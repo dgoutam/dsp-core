@@ -20,8 +20,8 @@ echo "
 Paths
 --------
 Base	:	${BASE_PATH}
-Log	:	${LOG_DIR}
-Web	:	${WEB_DIR}
+Log     :	${LOG_DIR}
+Web	    :	${WEB_DIR}
 Vendor	:	${VENDOR_DIR}
 Public	:	${PUBLIC_DIR}
 Assets	:	${ASSETS_DIR}
@@ -40,12 +40,8 @@ if [ ! -d "${VENDOR_DIR}" ] ; then
 	mkdir "${VENDOR_DIR}" >/dev/null 2>&1
 fi
 
-if [ ! -d "${VENDOR_DIR}/bootstrap" ] ; then
-	ln -s "${VENDOR_DIR}/twitter/bootstrap/" "${PUBLIC_DIR}/vendor/bootstrap" >/dev/null 2>&1
-fi
-
-if [ ! -d "${VENDOR_DIR}/datatables" ] ; then
-	ln -s "${VENDOR_DIR}/datatables/datatables/media/" "${PUBLIC_DIR}/vendor/datatables" >/dev/null 2>&1
+if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
+	ln -s "${VENDOR_DIR}/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
 fi
 
 chgrp -R www-data "${LOG_DIR}" "${PUBLIC_DIR}"

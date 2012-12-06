@@ -1,0 +1,1236 @@
+<?xml version ='1.0' encoding ='UTF-8' ?>
+
+<definitions xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+             xmlns:tns="http://www.dreamfactory.com/SOAP/" 
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+             xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+             xmlns="http://schemas.xmlsoap.org/wsdl/" 
+             targetNamespace="http://www.dreamfactory.com/SOAP/">
+
+    <types>
+        <schema elementFormDefault="qualified" xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.dreamfactory.com/SOAP/">
+            <!-- Simple Types -->
+            <simpleType name="Id">
+                <restriction base="xsd:string">
+                    <length value="18"/>
+                    <pattern value="[a-zA-Z0-9]{18}"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="FieldType">
+                <restriction base="xsd:string">
+                    <enumeration value="string"/>
+                    <enumeration value="mbstring"/>
+                    <enumeration value="picklist"/>
+                    <enumeration value="id"/>
+                    <enumeration value="reference"/>
+                    <enumeration value="base64"/>
+                    <enumeration value="boolean"/>
+                    <enumeration value="currency"/>
+                    <enumeration value="textarea"/>
+                    <enumeration value="int"/>
+                    <enumeration value="double"/>
+                    <enumeration value="percent"/>
+                    <enumeration value="date"/>
+                    <enumeration value="datetime"/>
+                    <enumeration value="time"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="SoapType">
+                <restriction base="xsd:string">
+                    <enumeration value="xsd:base64Binary"/>
+                    <enumeration value="xsd:boolean"/>
+                    <enumeration value="xsd:double"/>
+                    <enumeration value="xsd:int"/>
+                    <enumeration value="xsd:string"/>
+                    <enumeration value="xsd:date"/>
+                    <enumeration value="xsd:dateTime"/>
+                    <enumeration value="xsd:time"/>
+                    <enumeration value="xsd:anyType"/>
+                </restriction>
+            </simpleType>
+            
+            <complexType name="DescribeChildTable">
+                <all>
+                    <element name="cascadeDelete" type="xsd:boolean" minOccurs="0"/>
+                    <element name="table" type="xsd:string"/>
+                    <element name="field" type="xsd:string"/>
+                </all>
+            </complexType>
+            <complexType name="ArrayOfDescribeChildTable">
+                <sequence>
+                    <element name="child" type="tns:DescribeChildTable" minOccurs="0" maxOccurs="unbounded"/>
+                </sequence>
+            </complexType>
+            <complexType name="DescribeField">
+                <all>
+                    <element name="default" type="xsd:string"/>
+                    <element name="label" type="xsd:string"/>
+                    <element name="length" type="xsd:int"/>
+                    <element name="name" type="xsd:string"/>
+                    <element name="required" type="xsd:boolean"/>
+                    <element name="picklistValues" type="xsd:string" nillable="true" minOccurs="0"/>
+                    <element name="precision" type="xsd:int"/>
+                    <element name="referenceTo" type="xsd:string" nillable="true" minOccurs="0"/>
+                    <element name="scale" type="xsd:int"/>
+                    <element name="soapType" type="tns:SoapType"/>
+                    <element name="type" type="tns:FieldType"/>
+                </all>
+            </complexType>
+            <complexType name="ArrayOfDescribeField">
+                <sequence>
+                    <element name="field" type="tns:DescribeField" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+                </sequence>
+            </complexType>
+            <complexType name="DescribeTable">
+                <all>
+                    <element name="name" type="xsd:string"/>
+                    <element name="label" type="xsd:string"/>
+                    <element name="plural" type="xsd:string"/>
+                    <element name="fields" type="tns:ArrayOfDescribeField" nillable="true" minOccurs="0"/>
+                    <element name="children" type="tns:ArrayOfDescribeChildTable" nillable="true" minOccurs="0"/>
+                </all>
+            </complexType>
+            <complexType name="ArrayOfDescribeTable">
+                <sequence>
+                    <element name="table" type="tns:DescribeTable" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+                </sequence>
+            </complexType>
+            <!-- Dynamic Records -->
+            <complexType name="ArrayOfAny">
+                <sequence>
+                    <!-- This is used to pass loosely typed information through the API -->
+                    <any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                </sequence>
+            </complexType>
+            <complexType name="File">
+                <all>
+                    <element name="relPathName" type="xsd:string"/>
+                    <element name="content" type="xsd:string" minOccurs="0"/>
+                    <element name="contentType" type="xsd:string" minOccurs="0"/>
+                </all>
+            </complexType>
+            <complexType name="ArrayOfFile">
+                <sequence>
+                    <element name="file" type="tns:File" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+                </sequence>
+            </complexType>
+            <complexType name="Record">
+                <all>
+                    <element name="fields" type="tns:ArrayOfAny" minOccurs="0"/>
+                    <element name="files" type="tns:ArrayOfFile" minOccurs="0"/>
+                    <element name="faultCode" type="xsd:string" minOccurs="0"/>
+                    <element name="faultString" type="xsd:string" minOccurs="0"/>
+                </all>
+            </complexType>
+            <complexType name="ArrayOfRecord">
+                <sequence>
+                    <element name="record" type="tns:Record" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+                </sequence>
+            </complexType>
+            <complexType name="UserInfo">
+                <all>
+                    <element name="id" type="xsd:int" minOccurs="0"/>
+                    <element name="fullname" type="xsd:string" minOccurs="0"/>
+                    <element name="email" type="xsd:string" minOccurs="0"/>
+                    <element name="role" type="xsd:string" minOccurs="0"/>
+                    <element name="roleid" type="xsd:int" minOccurs="0"/>
+                    <element name="issysadmin" type="xsd:boolean" minOccurs="0"/>
+                    <element name="readrecords" type="xsd:boolean" minOccurs="0"/>
+                    <element name="createrecords" type="xsd:boolean" minOccurs="0"/>
+                    <element name="updaterecords" type="xsd:boolean" minOccurs="0"/>
+                    <element name="deleterecords" type="xsd:boolean" minOccurs="0"/>
+                    <element name="readusers" type="xsd:boolean" minOccurs="0"/>
+                    <element name="createusers" type="xsd:boolean" minOccurs="0"/>
+                    <element name="updateusers" type="xsd:boolean" minOccurs="0"/>
+                    <element name="deleteusers" type="xsd:boolean" minOccurs="0"/>
+                    <element name="readroles" type="xsd:boolean" minOccurs="0"/>
+                    <element name="adminroles" type="xsd:boolean" minOccurs="0"/>
+                    <element name="assignroles" type="xsd:boolean" minOccurs="0"/>
+                </all>
+            </complexType>
+
+
+            <!-- Fault -->
+            <complexType name="ApiFault">
+                <sequence>
+                    <element name="faultCode" type="xsd:string"/>
+                    <element name="faultString" type="xsd:string"/>
+                </sequence>
+            </complexType>
+            <element name="ApiFault" type="tns:ApiFault"/>
+
+            <complexType name="LoginFault">
+                <complexContent>
+                    <extension base="tns:ApiFault"/>
+                </complexContent>
+            </complexType>
+            <element name="LoginFault" type="tns:LoginFault"/>
+
+            <complexType name="InvalidIdFault">
+                <complexContent>
+                    <extension base="tns:ApiFault"/>
+                </complexContent>
+            </complexType>
+            <element name="InvalidIdFault" type="tns:InvalidIdFault"/>
+
+            <complexType name="UnexpectedErrorFault">
+                <complexContent>
+                    <extension base="tns:ApiFault"/>
+                </complexContent>
+            </complexType>
+            <element name="UnexpectedErrorFault" type="tns:UnexpectedErrorFault"/>
+            
+            
+            <!-- Element definitions -->
+            <element name="AuthHeader">
+                <complexType>
+                    <all>
+                        <element name="ticket" type="xsd:string"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="login">
+                <complexType>
+                    <all>
+                        <element name="username" type="xsd:string"/>
+                        <element name="password" type="xsd:string"/>
+                        <element name="appname" type="xsd:string"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="loginResponse">
+                <complexType>
+                    <all>
+                        <element name="ticket" type="xsd:string" minOccurs="0"/>
+                        <element name="appname" type="xsd:string" minOccurs="0"/>
+                        <element name="appid" type="xsd:int" minOccurs="0"/>
+                        <element name="id" type="xsd:int" minOccurs="0"/>
+                        <element name="fullname" type="xsd:string" minOccurs="0"/>
+                        <element name="email" type="xsd:string" minOccurs="0"/>
+                        <element name="role" type="xsd:string" minOccurs="0"/>
+                        <element name="roleid" type="xsd:int" minOccurs="0"/>
+                        <element name="issysadmin" type="xsd:boolean" minOccurs="0"/>
+                        <element name="readrecords" type="xsd:boolean" minOccurs="0"/>
+                        <element name="createrecords" type="xsd:boolean" minOccurs="0"/>
+                        <element name="updaterecords" type="xsd:boolean" minOccurs="0"/>
+                        <element name="deleterecords" type="xsd:boolean" minOccurs="0"/>
+                        <element name="readusers" type="xsd:boolean" minOccurs="0"/>
+                        <element name="createusers" type="xsd:boolean" minOccurs="0"/>
+                        <element name="updateusers" type="xsd:boolean" minOccurs="0"/>
+                        <element name="deleteusers" type="xsd:boolean" minOccurs="0"/>
+                        <element name="readroles" type="xsd:boolean" minOccurs="0"/>
+                        <element name="adminroles" type="xsd:boolean" minOccurs="0"/>
+                        <element name="assignroles" type="xsd:boolean" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="logout">
+            </element>
+            <element name="logoutResponse">
+            </element>
+            <element name="describeDatabase">
+            </element>
+            <element name="describeDatabaseResponse">
+                <complexType>
+                    <all>
+                        <element name="tables" type="tns:ArrayOfDescribeTable" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="describeTable">
+                <complexType>
+                    <all>
+                        <element name="table" type="xsd:string"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="describeTableResponse">
+                <complexType>
+                    <all>
+                        <element name="table" type="tns:DescribeTable" nillable="true" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="describeTables">
+                <complexType>
+                    <sequence>
+                        <element name="table" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="describeTablesResponse">
+                <complexType>
+                    <all>
+                        <element name="tables" type="tns:ArrayOfDescribeTable" nillable="true" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <!-- CRUD Operations on Data Records -->
+            <element name="createRecords">
+                <complexType>
+                    <all>
+                        <element name="table" type="xsd:string"/>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="createRecordsResponse">
+                <complexType>
+                    <all>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="updateRecords">
+                <complexType>
+                    <all>
+                        <element name="table" type="xsd:string"/>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="updateRecordsResponse">
+                <complexType>
+                    <all>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="deleteRecords">
+                <complexType>
+                    <all>
+                        <element name="table" type="xsd:string"/>
+                        <element name="ids" type="xsd:string"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="deleteRecordsResponse">
+                <complexType>
+                    <all>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="retrieveRecords">
+                <complexType>
+                    <all>
+                        <element name="table" type="xsd:string"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="ids" type="xsd:string"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="retrieveRecordsResponse">
+                <complexType>
+                    <all>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="filterRecords">
+                <complexType>
+                    <all>
+                        <element name="table" type="xsd:string"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="filter" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="limit" type="xsd:int" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="filterRecordsResponse">
+                <complexType>
+                    <all>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <!-- CRUD Operations on Users -->
+            <element name="createUsers">
+                <complexType>
+                    <all>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </all>
+                </complexType>
+            </element>
+            <element name="createUsersResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="updateUsers">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="updateUsersResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteUsers">
+                <complexType>
+                    <sequence>
+                        <element name="ids" type="xsd:string"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteUsersResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="retrieveUsers">
+                <complexType>
+                    <sequence>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="ids" type="xsd:string"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="retrieveUsersResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="filterUsers">
+                <complexType>
+                    <sequence>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="filter" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="limit" type="xsd:int" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="filterUsersResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- CRUD Operations on Roles -->
+            <element name="createRoles">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="createRolesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="updateRoles">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="updateRolesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteRoles">
+                <complexType>
+                    <sequence>
+                        <element name="ids" type="xsd:string"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteRolesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="retrieveRoles">
+                <complexType>
+                    <sequence>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="ids" type="xsd:string"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="retrieveRolesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="filterRoles">
+                <complexType>
+                    <sequence>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="filter" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="limit" type="xsd:int" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="filterRolesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- CRUD Operations on Applications -->
+            <element name="createApps">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="createAppsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="updateApps">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="updateAppsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteApps">
+                <complexType>
+                    <sequence>
+                        <element name="ids" type="xsd:string"/>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteAppsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="retrieveApps">
+                <complexType>
+                    <sequence>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="ids" type="xsd:string"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="retrieveAppsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="filterApps">
+                <complexType>
+                    <sequence>
+                        <element name="fields" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="filter" type="xsd:string" nillable="true" minOccurs="0"/>
+                        <element name="limit" type="xsd:int" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="filterAppsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="records" type="tns:ArrayOfRecord" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="downloadAppFiles">
+                <complexType>
+                    <sequence>
+                        <element name="appname" type="xsd:string"/>
+                        <element name="files" type="tns:ArrayOfFile"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="downloadAppFilesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="files" type="tns:ArrayOfFile" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteAppFiles">
+                <complexType>
+                    <sequence>
+                        <element name="appname" type="xsd:string"/>
+                        <element name="files" type="tns:ArrayOfFile"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="deleteAppFilesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="files" type="tns:ArrayOfFile" nillable="true" minOccurs="0"/>
+                    </sequence>
+                </complexType>
+            </element>
+        </schema>
+    </types>
+
+    <message name="Headers">
+        <part name="AuthHeader" element="tns:AuthHeader"/>
+    </message>
+    <message name="loginRequest">
+        <part name="parameters" element="tns:login"/>
+    </message>
+    <message name="loginResponse">
+        <part name="parameters" element="tns:loginResponse"/>
+    </message>
+    <message name="logoutRequest">
+        <part name="parameters" element="tns:logout"/>
+    </message>
+    <message name="logoutResponse">
+        <part name="parameters" element="tns:logoutResponse"/>
+    </message>
+    <message name="describeTableRequest">
+        <part name="parameters" element="tns:describeTable"/>
+    </message>
+    <message name="describeTableResponse">
+        <part name="parameters" element="tns:describeTableResponse"/>
+    </message>
+    <message name="describeTablesRequest">
+        <part name="parameters" element="tns:describeTables"/>
+    </message>
+    <message name="describeTablesResponse">
+        <part name="parameters" element="tns:describeTablesResponse"/>
+    </message>
+    <message name="describeDatabaseRequest">
+        <part name="parameters" element="tns:describeDatabase"/>
+    </message>
+    <message name="describeDatabaseResponse">
+        <part name="parameters" element="tns:describeDatabaseResponse"/>
+    </message>
+    <!-- CRUD Operations on Data Records -->
+    <message name="createRecordsRequest">
+        <part name="parameters" element="tns:createRecords"/>
+    </message>
+    <message name="createRecordsResponse">
+        <part name="parameters" element="tns:createRecordsResponse"/>
+    </message>
+    <message name="updateRecordsRequest">
+        <part name="parameters" element="tns:updateRecords"/>
+    </message>
+    <message name="updateRecordsResponse">
+        <part name="parameters" element="tns:updateRecordsResponse"/>
+    </message>
+    <message name="deleteRecordsRequest">
+        <part name="parameters" element="tns:deleteRecords"/>
+    </message>
+    <message name="deleteRecordsResponse">
+        <part name="parameters" element="tns:deleteRecordsResponse"/>
+    </message>
+    <message name="retrieveRecordsRequest">
+        <part name="parameters" element="tns:retrieveRecords"/>
+    </message>
+    <message name="retrieveRecordsResponse">
+        <part name="parameters" element="tns:retrieveRecordsResponse"/>
+    </message>
+    <message name="filterRecordsRequest">
+        <part name="parameters" element="tns:filterRecords"/>
+    </message>
+    <message name="filterRecordsResponse">
+        <part name="parameters" element="tns:filterRecordsResponse"/>
+    </message>
+    <!-- CRUD Operations on Users -->
+    <message name="createUsersRequest">
+        <part name="parameters" element="tns:createUsers"/>
+    </message>
+    <message name="createUsersResponse">
+        <part name="parameters" element="tns:createUsersResponse"/>
+    </message>
+    <message name="updateUsersRequest">
+        <part name="parameters" element="tns:updateUsers"/>
+    </message>
+    <message name="updateUsersResponse">
+        <part name="parameters" element="tns:updateUsersResponse"/>
+    </message>
+    <message name="deleteUsersRequest">
+        <part name="parameters" element="tns:deleteUsers"/>
+    </message>
+    <message name="deleteUsersResponse">
+        <part name="parameters" element="tns:deleteUsersResponse"/>
+    </message>
+    <message name="retrieveUsersRequest">
+        <part name="parameters" element="tns:retrieveUsers"/>
+    </message>
+    <message name="retrieveUsersResponse">
+        <part name="parameters" element="tns:retrieveUsersResponse"/>
+    </message>
+    <message name="filterUsersRequest">
+        <part name="parameters" element="tns:filterUsers"/>
+    </message>
+    <message name="filterUsersResponse">
+        <part name="parameters" element="tns:filterUsersResponse"/>
+    </message>
+    <!-- CRUD Operations on Application Roles -->
+    <message name="createRolesRequest">
+        <part name="parameters" element="tns:createRoles"/>
+    </message>
+    <message name="createRolesResponse">
+        <part name="parameters" element="tns:createRolesResponse"/>
+    </message>
+    <message name="updateRolesRequest">
+        <part name="parameters" element="tns:updateRoles"/>
+    </message>
+    <message name="updateRolesResponse">
+        <part name="parameters" element="tns:updateRolesResponse"/>
+    </message>
+    <message name="deleteRolesRequest">
+        <part name="parameters" element="tns:deleteRoles"/>
+    </message>
+    <message name="deleteRolesResponse">
+        <part name="parameters" element="tns:deleteRolesResponse"/>
+    </message>
+    <message name="retrieveRolesRequest">
+        <part name="parameters" element="tns:retrieveRoles"/>
+    </message>
+    <message name="retrieveRolesResponse">
+        <part name="parameters" element="tns:retrieveRolesResponse"/>
+    </message>
+    <message name="filterRolesRequest">
+        <part name="parameters" element="tns:filterRoles"/>
+    </message>
+    <message name="filterRolesResponse">
+        <part name="parameters" element="tns:filterRolesResponse"/>
+    </message>
+    <!-- CRUD Operations on Applications -->
+    <message name="createAppsRequest">
+        <part name="parameters" element="tns:createApps"/>
+    </message>
+    <message name="createAppsResponse">
+        <part name="parameters" element="tns:createAppsResponse"/>
+    </message>
+    <message name="updateAppsRequest">
+        <part name="parameters" element="tns:updateApps"/>
+    </message>
+    <message name="updateAppsResponse">
+        <part name="parameters" element="tns:updateAppsResponse"/>
+    </message>
+    <message name="deleteAppsRequest">
+        <part name="parameters" element="tns:deleteApps"/>
+    </message>
+    <message name="deleteAppsResponse">
+        <part name="parameters" element="tns:deleteAppsResponse"/>
+    </message>
+    <message name="retrieveAppsRequest">
+        <part name="parameters" element="tns:retrieveApps"/>
+    </message>
+    <message name="retrieveAppsResponse">
+        <part name="parameters" element="tns:retrieveAppsResponse"/>
+    </message>
+    <message name="filterAppsRequest">
+        <part name="parameters" element="tns:filterApps"/>
+    </message>
+    <message name="filterAppsResponse">
+        <part name="parameters" element="tns:filterAppsResponse"/>
+    </message>
+    <message name="downloadAppFilesRequest">
+        <part name="parameters" element="tns:downloadAppFiles"/>
+    </message>
+    <message name="downloadAppFilesResponse">
+        <part name="parameters" element="tns:downloadAppFilesResponse"/>
+    </message>
+    <message name="deleteAppFilesRequest">
+        <part name="parameters" element="tns:deleteAppFiles"/>
+    </message>
+    <message name="deleteAppFilesResponse">
+        <part name="parameters" element="tns:deleteAppFilesResponse"/>
+    </message>
+
+    <portType name='SoapPortType'>
+        <operation name='login'>
+            <documentation>Login to the SOAP API for DreamFactory Cloud Service</documentation>
+            <input message='tns:loginRequest'/>
+            <output message='tns:loginResponse'/>
+        </operation>
+        <operation name='logout'>
+            <documentation>Logout of the SOAP API for DreamFactory Cloud Service</documentation>
+            <input message='tns:logoutRequest'/>
+            <output message='tns:logoutResponse'/>
+        </operation>
+        <!-- Database Information -->
+        <operation name="describeDatabase">
+            <documentation>Describe the database</documentation>
+            <input message="tns:describeDatabaseRequest"/>
+            <output message="tns:describeDatabaseResponse"/>
+        </operation>
+        <operation name="describeTable">
+            <documentation>Describe a database table</documentation>
+            <input message="tns:describeTableRequest"/>
+            <output message="tns:describeTableResponse"/>
+        </operation>
+        <operation name="describeTables">
+            <documentation>Describe some database tables</documentation>
+            <input message="tns:describeTablesRequest"/>
+            <output message="tns:describeTablesResponse"/>
+        </operation>
+        <!-- CRUD Operations on Data Records -->
+        <operation name="createRecords">
+            <documentation>Create records in the database</documentation>
+            <input message="tns:createRecordsRequest"/>
+            <output message="tns:createRecordsResponse"/>
+        </operation>
+        <operation name="updateRecords">
+            <documentation>Update records in the database</documentation>
+            <input message="tns:updateRecordsRequest"/>
+            <output message="tns:updateRecordsResponse"/>
+        </operation>
+        <operation name="deleteRecords">
+            <documentation>Delete records from the database</documentation>
+            <input message="tns:deleteRecordsRequest"/>
+            <output message="tns:deleteRecordsResponse"/>
+        </operation>
+        <operation name="retrieveRecords">
+            <documentation>Retrieve records from the database by identifiers</documentation>
+            <input message="tns:retrieveRecordsRequest"/>
+            <output message="tns:retrieveRecordsResponse"/>
+        </operation>
+        <operation name="filterRecords">
+            <documentation>Retrieve records from the database by applying a filter</documentation>
+            <input message="tns:filterRecordsRequest"/>
+            <output message="tns:filterRecordsResponse"/>
+        </operation>
+        <!-- CRUD Operations on Users -->
+        <operation name="createUsers">
+            <documentation>Create users in the database</documentation>
+            <input message="tns:createUsersRequest"/>
+            <output message="tns:createUsersResponse"/>
+        </operation>
+        <operation name="updateUsers">
+            <documentation>Update users in the database</documentation>
+            <input message="tns:updateUsersRequest"/>
+            <output message="tns:updateUsersResponse"/>
+        </operation>
+        <operation name="deleteUsers">
+            <documentation>Delete users from the database</documentation>
+            <input message="tns:deleteUsersRequest"/>
+            <output message="tns:deleteUsersResponse"/>
+        </operation>
+        <operation name="retrieveUsers">
+            <documentation>Retrieve users from the database by identifiers</documentation>
+            <input message="tns:retrieveUsersRequest"/>
+            <output message="tns:retrieveUsersResponse"/>
+        </operation>
+        <operation name="filterUsers">
+            <documentation>Retrieve users from the database by applying a filter</documentation>
+            <input message="tns:filterUsersRequest"/>
+            <output message="tns:filterUsersResponse"/>
+        </operation>
+        <!-- CRUD Operations on Application Roles -->
+        <operation name="createRoles">
+            <documentation>Create application roles in the database</documentation>
+            <input message="tns:createRolesRequest"/>
+            <output message="tns:createRolesResponse"/>
+        </operation>
+        <operation name="updateRoles">
+            <documentation>Update application roles in the database</documentation>
+            <input message="tns:updateRolesRequest"/>
+            <output message="tns:updateRolesResponse"/>
+        </operation>
+        <operation name="deleteRoles">
+            <documentation>Delete application roles from the database</documentation>
+            <input message="tns:deleteRolesRequest"/>
+            <output message="tns:deleteRolesResponse"/>
+        </operation>
+        <operation name="retrieveRoles">
+            <documentation>Retrieve application roles from the database by identifiers</documentation>
+            <input message="tns:retrieveRolesRequest"/>
+            <output message="tns:retrieveRolesResponse"/>
+        </operation>
+        <operation name="filterRoles">
+            <documentation>Retrieve application roles from the database by applying a filter</documentation>
+            <input message="tns:filterRolesRequest"/>
+            <output message="tns:filterRolesResponse"/>
+        </operation>
+        <!-- CRUD Operations on Applications -->
+        <operation name="createApps">
+            <documentation>Create an application</documentation>
+            <input message="tns:createAppsRequest"/>
+            <output message="tns:createAppsResponse"/>
+        </operation>
+        <operation name="updateApps">
+            <documentation>Update an application</documentation>
+            <input message="tns:updateAppsRequest"/>
+            <output message="tns:updateAppsResponse"/>
+        </operation>
+        <operation name="deleteApps">
+            <documentation>Delete an application</documentation>
+            <input message="tns:deleteAppsRequest"/>
+            <output message="tns:deleteAppsResponse"/>
+        </operation>
+        <operation name="retrieveApps">
+            <documentation>Retrieve application information by identifiers</documentation>
+            <input message="tns:retrieveAppsRequest"/>
+            <output message="tns:retrieveAppsResponse"/>
+        </operation>
+        <operation name="filterApps">
+            <documentation>Retrieve application information by applying a filter</documentation>
+            <input message="tns:filterAppsRequest"/>
+            <output message="tns:filterAppsResponse"/>
+        </operation>
+        <operation name="downloadAppFiles">
+            <documentation>Retrieve files contained in an application</documentation>
+            <input message="tns:downloadAppFilesRequest"/>
+            <output message="tns:downloadAppFilesResponse"/>
+        </operation>
+        <operation name="deleteAppFiles">
+            <documentation>Remove individual files contained in an application in the system</documentation>
+            <input message="tns:deleteAppFilesRequest"/>
+            <output message="tns:deleteAppFilesResponse"/>
+        </operation>
+    </portType>
+
+    <binding name='SoapBinding' type='tns:SoapPortType'>
+        <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http'/>
+        <operation name='login'>
+            <soap:operation soapAction=""/>
+            <input><soap:body use='literal'/></input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name='logout'>
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <!-- Database Information -->
+        <operation name="describeDatabase">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="describeTable">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="describeTables">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <!-- CRUD Operations on Data Records -->
+        <operation name="createRecords">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="updateRecords">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="deleteRecords">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="retrieveRecords">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="filterRecords">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <!-- CRUD Operations on Users -->
+        <operation name="createUsers">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="updateUsers">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="deleteUsers">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="retrieveUsers">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="filterUsers">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <!-- CRUD Operations on Application Roles -->
+        <operation name="createRoles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="updateRoles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="deleteRoles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="retrieveRoles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="filterRoles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <!-- CRUD Operations on Applications -->
+        <operation name="createApps">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="updateApps">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="deleteApps">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="retrieveApps">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="filterApps">
+            <soap:operation soapAction=""/>
+            <input><soap:body use='literal'/></input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="downloadAppFiles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="deleteAppFiles">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use='literal'/>
+                <soap:header message="tns:Headers" part="AuthHeader" use="literal"/>
+            </input>
+            <output><soap:body use='literal'/></output>
+            <fault name="ApiFault">
+                <soap:fault name="ApiFault" use="literal"/>
+            </fault>
+        </operation>
+    </binding>
+
+    <service name='SoapService'>
+      <documentation>SOAP API for DreamFactory Cloud Service</documentation>
+      <port name='SoapPort' binding='tns:SoapBinding'>
+        <soap:address location='http://127.0.0.1:81/SOAP/index.php'/>
+      </port>
+    </service>
+
+</definitions>

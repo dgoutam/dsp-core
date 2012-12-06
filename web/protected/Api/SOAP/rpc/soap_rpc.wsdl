@@ -1,0 +1,54 @@
+<?xml version ='1.0' encoding ='UTF-8' ?>
+
+<definitions name='DreamFactory_Cloud_Service'
+  targetNamespace='http://dreamfactory.com/Cloud_Services'
+  xmlns='http://schemas.xmlsoap.org/wsdl/'
+  xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/'
+  xmlns:soapenc='http://schemas.xmlsoap.org/soap/encoding/'
+  xmlns:tns='http://dreamfactory.com/Cloud_Services'
+  xmlns:wsdl='http://schemas.xmlsoap.org/wsdl/'
+  xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
+
+<message name='loginRequest'>
+  <part name='username' type='xsd:string'/>
+  <part name='password' type='xsd:string'/>
+  <part name='appname' type='xsd:string'/>
+</message>
+<message name='loginResponse'>
+  <part name='result' type='xsd:string'/>
+  <part name='ticket' type='xsd:string'/>
+  <part name='errorcode' type='xsd:string'/>
+  <part name='errorstring' type='xsd:string'/>
+</message>
+
+<portType name='SoapPortType'>
+  <documentation>Login to the SOAP API for DreamFactory Cloud Service</documentation>
+  <operation name='login'>
+    <input message='tns:loginRequest'/>
+    <output message='tns:loginResponse'/>
+  </operation>
+</portType>
+
+<binding name='SoapBinding' type='tns:SoapPortType'>
+  <soap:binding style='rpc' transport='http://schemas.xmlsoap.org/soap/http'/>
+  <operation name='login'>
+    <soap:operation soapAction='login'/>
+    <input>
+      <soap:body use='encoded' namespace='urn:cloud_services'
+        encodingStyle='http://schemas.xmlsoap.org/soap/encoding/'/>
+    </input>
+    <output>
+      <soap:body use='encoded' namespace='urn:cloud_services'
+        encodingStyle='http://schemas.xmlsoap.org/soap/encoding/'/>
+    </output>
+  </operation>
+</binding>
+
+<service name='SoapService'>
+  <documentation>SOAP API for DreamFactory Cloud Service</documentation>
+  <port name='SoapPort' binding='tns:SoapBinding'>
+    <soap:address location='http://127.0.0.1:81/SOAP/soap_rpc.php'/>
+  </port>
+</service>
+
+</definitions>

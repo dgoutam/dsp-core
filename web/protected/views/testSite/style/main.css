@@ -1,0 +1,159 @@
+/*
+Copyright 2011 Microsoft Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+body
+{
+    /*font-family: Times New Roman, Helvetica, sans-serif; */
+    font-family: Segoe UI, Verdana, Arial, Sans-Serif;
+}
+
+h1
+{
+    font-family: Segoe UI, Verdana, Arial, Sans-Serif;    
+    font-weight: bold; 
+    color: #4981BD;   
+    line-height: 40px;
+}
+
+dl 
+{
+    padding: 0px;
+    margin: 0px;
+    text-align: left;
+    line-height: 24px;
+    float: left;
+}
+
+dt 
+{
+    float: left;
+    width: 100px;
+}
+
+dd 
+{
+    font-size: 11px;
+    margin: 0px 0px 5px 5px;
+    width: 340px;
+}
+
+table
+{
+    border-collapse:collapse;
+}
+
+table, th, td
+{
+    border: 1px solid black;
+    padding: 5px;
+}
+
+.general
+{
+    width: 800px;
+    margin: 0 auto;
+}
+
+.title
+{
+    width: 100%;
+    text-align: center;
+}
+
+.inputSection
+{
+    margin: 0 auto;
+    width: 400px;
+    height: 150px;
+}
+
+.inputSignSection
+{
+    display: inline;
+    margin: 0 auto;
+}
+
+.field
+{
+    width: 200px;
+}
+
+.signature
+{
+    min-height: 120px;
+    min-width: 800px;
+    width: inherit;
+    height: inherit;
+    border: solid 1px #AAAAAA;
+}
+
+.signatureImage
+{
+    float: left;
+    display: inline;
+    margin: 10px 10px 5px 10px;
+}
+
+.signatureDescription
+{
+    margin: 10px;
+}
+
+
+.signatureName
+{
+    display:inline;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.signatureSays
+{
+    display:inline;
+    font-size: 10px;
+    color: #888888;
+}
+
+.signatureDate
+{
+    display:inline;
+    float: right;
+    font-size: 15px;
+    color: #888888;
+    margin: 0px 10px auto 0;
+}
+
+.signatureMessage
+{
+    font-style: italic;
+}
+
+.editControls
+{
+    display:inline;
+    float: right;
+    font-size: 15px;
+    color: #888888;
+    margin: 0px 10px auto 0;
+}
+
+
+
+
+
+
+
+

@@ -1,0 +1,10 @@
+2012/11/29 20:55:55 [error] [exception.CHttpException.404] exception 'CHttpException' with message 'The system is unable to find the requested action "Label".' in C:\Users\DreamFactory\azurewebsites\registration\yii\framework\web\CController.php:484
+Stack trace:
+#0 C:\Users\DreamFactory\azurewebsites\registration\yii\framework\web\CController.php(271): CController->missingAction('Label')
+#1 C:\Users\DreamFactory\azurewebsites\registration\yii\framework\web\CWebApplication.php(283): CController->run('Label')
+#2 C:\Users\DreamFactory\azurewebsites\registration\yii\framework\web\CWebApplication.php(142): CWebApplication->runController('Rest/Label')
+#3 C:\Users\DreamFactory\azurewebsites\registration\yii\framework\base\CApplication.php(162): CWebApplication->processRequest()
+#4 C:\Users\DreamFactory\azurewebsites\registration\testdrive\index.php(13): CApplication->run()
+#5 {main}
+REQUEST_URI=/testdrive/index.php/Rest/Label/
+---
