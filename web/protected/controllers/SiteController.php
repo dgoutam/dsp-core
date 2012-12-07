@@ -38,7 +38,7 @@ class SiteController extends Controller
                     exit;
                 }
                 // otherwise use local copy
-                header("Location: ./launchpad/index.html");
+                header("Location: ./public/launchpad/index.html");
                 exit;
             }
             else {

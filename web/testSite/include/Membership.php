@@ -7,7 +7,7 @@
 */
 
 require_once("FormValidator.php");
-require_once dirname(__FILE__) . '/../../DreamFactory/CloudServicesPlatform/AutoLoader.php';
+require_once dirname(__FILE__) . '/../../../vendor/autoload.php';
 use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
 
 class Membership

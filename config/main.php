@@ -60,23 +60,24 @@ return array(
 		),
         */
 		// uncomment the following to use a MySQL database
-		/*
+
 		'db'=>array(
-			'connectionString' => 'mysql:host=us-cdbr-azure-east-b.cloudapp.net;dbname=dftestDb',
+			'connectionString' => 'mysql:127.0.0.1,3306;dbname=test',
 			'emulatePrepare' => true,
-			'username' => 'b87314a4dd182f',
-			'password' => '01f9b9a2',
+			'username' => 'root',
+			'password' => 'Dream123',
 			'charset' => 'utf8',
 		),
-        */
+
 		// uncomment the following to use a SQL Azure database
+        /*
 		'db'=>array(
 			'connectionString' => 'sqlsrv:server=tcp:hof7lqw5qv.database.windows.net,1433;Database=dfTestDB',
 			'username' => 'dfadmin',
 			'password' => 'Dream123',
 			'charset' => 'utf8',
 		),
-
+        */
 		'errorHandler'=>array(
 			// use 'site/error' action to display errors
 			'errorAction'=>'site/error',
