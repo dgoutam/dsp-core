@@ -6,10 +6,10 @@ RewriteBase /
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-RewriteRule ^REST/([_0-9a-z-/.\s]*) /protected/API/REST/index.php/$1 [NC,L] # Handle REST requests
-RewriteRule ^SOAP/([_0-9a-z-/.\s]+) /protected/API/SOAP/index.php/$1 [NC,L] # Handle SOAP requests
-RewriteRule ^apps/([_0-9a-z-/.\s]+) /protected/Apps/index.php/$1 [NC,L] # Handle requests for routing applications to blob storage
-RewriteRule ^lib/([_0-9a-z-/.\s]+) /protected/Libraries/index.php/$1 [NC,L] # Handle requests for routing applications to blob storage
+RewriteRule ^rest/([_0-9a-z-/.\s]*) /api/rest/index.php/$1 [NC,L] # Handle REST requests
+RewriteRule ^soap/([_0-9a-z-/.\s]+) /api/soap/index.php/$1 [NC,L] # Handle SOAP requests
+RewriteRule ^apps/(.+) /apps/index.php/$1 [NC,L] # Handle requests for application files in blob storage
+RewriteRule ^lib/(.+) /lib/index.php/$1 [NC,L] # Handle requests for library files in blob storage
 
 # otherwise forward it to index.php
 RewriteRule . index.php

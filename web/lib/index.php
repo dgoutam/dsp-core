@@ -5,7 +5,7 @@ use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
 
 try {
     $path = ltrim(@$_SERVER['PATH_INFO'], '/');
-    $app = ServiceHandler::getInstance()->getServiceObject('App');
+    $app = ServiceHandler::getInstance()->getServiceObject('Library');
     $app->streamFile($path);
 }
 catch (\Exception $ex) {

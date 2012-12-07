@@ -13,7 +13,7 @@ if (isset($_GET['wsdl']) || isset($_GET['WSDL']))
     exit;
 }
 
-require_once("./DreamFactory/SoapServices.php");
+require_once("./SoapServices.php");
 
 try {
     $server = new SoapServer("soap.wsdl", 

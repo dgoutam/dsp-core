@@ -6,7 +6,7 @@
     DreamFactory Software, Inc.
 */
 
-require_once dirname(__FILE__) . '/../DreamFactory/AutoLoader.php';
+require_once dirname(__FILE__) . '/../../../vendor/autoload.php';
 
 class SoapServices
 {
