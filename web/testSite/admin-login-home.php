@@ -24,7 +24,6 @@ Welcome back <?php echo $fgmembersite->userFullName(); ?>!
 <p><a href='change-pwd.php'>Change password</a></p>
 <p><a href='manage-users.php'>Manage Users</a></p>
 <p><a href='manage-apps.php'>Manage Apps</a></p>
-<p><a href='environment.php'>Display Environment</a></p>
 <br><br><br>
 <p><a href='logout.php'>Logout</a></p>
 </div>

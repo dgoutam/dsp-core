@@ -1,4 +1,6 @@
 <?php
+use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
+use CloudServicesPlatform\Utilities\Utilities;
 
 class RestController extends Controller
 {
@@ -19,8 +21,37 @@ class RestController extends Controller
     }
 
     // Actions
+    public function actionIndex()
+    {
+        try {
+            $this->detectCommonParams();
+            $service = (isset($_GET['service']) ? $_GET['service'] : '');
+            $resource = (isset($_GET['resource']) ? $_GET['resource'] : null);
+            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
+            $this->handleResults($result);
+        }
+        catch (Exception $ex) {
+            $this->handleErrors($ex->getMessage());
+        }
+        Yii::app()->end();
+    }
+
     public function actionList()
     {
+        try {
+            $this->detectCommonParams();
+            $service = (isset($_GET['service']) ? $_GET['service'] : '');
+            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
+            $this->handleResults($result);
+        }
+        catch (Exception $ex) {
+            $this->handleErrors($ex->getMessage());
+        }
+        Yii::app()->end();
+
         // Get the respective model instance
         switch ($_GET['service']) {
         case 'label':
@@ -51,6 +82,19 @@ class RestController extends Controller
 
     public function actionView()
     {
+        try {
+            $this->detectCommonParams();
+            $service = (isset($_GET['service']) ? $_GET['service'] : '');
+            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
+            $this->handleResults($result);
+        }
+        catch (Exception $ex) {
+            $this->handleErrors($ex->getMessage());
+        }
+        Yii::app()->end();
+
         // Check if id was submitted via GET
         if (!isset($_GET['id']))
             $this->_sendResponse(500, 'Error: Parameter <b>id</b> is missing');
@@ -75,6 +119,44 @@ class RestController extends Controller
 
     public function actionCreate()
     {
+        try {
+            $this->detectCommonParams();
+            // check for verb tunneling
+            $tunnel_method = (isset($_SERVER['HTTP_X_HTTP_METHOD'])) ? $_SERVER['HTTP_X_HTTP_METHOD'] : '';
+            if (empty($tunnel_method)) {
+                $tunnel_method = (isset($_REQUEST['method'])) ? $_REQUEST['method'] : '';
+            }
+            if (!empty($tunnel_method)) {
+                switch (strtolower($tunnel_method)) {
+                case 'delete':
+                    $this->actionDelete();
+                    break;
+                case 'get': // complex retrieves, non-standard
+                    $this->actionView();
+                    break;
+                case 'merge':
+                case 'patch':
+                case 'put':
+                    $this->actionUpdate();
+                    break;
+                default:
+                    if (!empty($tunnel_method)) {
+                        throw new Exception("Unknown verb tunneling method '$tunnel_method' in REST request.");
+                    }
+                    break;
+                }
+            }
+            $service = (isset($_GET['service']) ? $_GET['service'] : '');
+            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'POST', $resource, $_REQUEST, $this->format);
+            $this->handleResults($result);
+        }
+        catch (Exception $ex) {
+            $this->handleErrors($ex->getMessage());
+        }
+        Yii::app()->end();
+
         switch ($_GET['model']) {
             // Get an instance of the respective model
         case 'label':
@@ -118,6 +200,19 @@ class RestController extends Controller
 
     public function actionUpdate()
     {
+        try {
+            $this->detectCommonParams();
+            $service = (isset($_GET['service']) ? $_GET['service'] : '');
+            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'MERGE', $resource, $_REQUEST, $this->format);
+            $this->handleResults($result);
+        }
+        catch (Exception $ex) {
+            $this->handleErrors($ex->getMessage());
+        }
+        Yii::app()->end();
+
         // Parse the PUT parameters. This didn't work: parse_str(file_get_contents('php://input'), $put_vars);
         $json = file_get_contents('php://input'); //$GLOBALS['HTTP_RAW_POST_DATA'] is not preferred: http://www.php.net/manual/en/ini.core.php#ini.always-populate-raw-post-data
         $put_vars = CJSON::decode($json, true); //true means use associative array
@@ -171,6 +266,19 @@ class RestController extends Controller
 
     public function actionDelete()
     {
+        try {
+            $this->detectCommonParams();
+            $service = (isset($_GET['service']) ? $_GET['service'] : '');
+            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'DELETE', $resource, $_REQUEST, $this->format);
+            $this->handleResults($result);
+        }
+        catch (Exception $ex) {
+            $this->handleErrors($ex->getMessage());
+        }
+        Yii::app()->end();
+
         switch ($_GET['model']) {
             // Load the respective model
         case 'label':
@@ -196,6 +304,56 @@ class RestController extends Controller
             $this->_sendResponse(500,
                                  sprintf("Error: Couldn't delete model <b>%s</b> with ID <b>%s</b>.",
                                          $_GET['model'], $_GET['id']));
+    }
+
+    protected function detectCommonParams()
+    {
+        $temp = (isset($_REQUEST['format'])) ? strtolower($_REQUEST['format']) : '';
+        if (!empty($temp)) {
+            $this->format = $temp;
+        }
+
+        // determine application if any
+        $appName = (isset($_SERVER['HTTP_X_APPLICATION_NAME'])) ? $_SERVER['HTTP_X_APPLICATION_NAME'] : '';
+        if (empty($appName)) {
+            $appName = (isset($_REQUEST['appName'])) ? $_REQUEST['appName'] : '';
+        }
+        if (empty($appName)) {
+            throw new Exception("No application name header or parameter value in REST request.");
+        }
+        $GLOBALS['appName'] = $appName;
+
+    }
+
+    private function handleErrors($error)
+    {
+        $result = array("fault" => array("faultString" => htmlentities($error),
+                                         "faultCode" => htmlentities('Sender')));
+        switch ($this->format) {
+        case 'json':
+            $result = json_encode($result);
+            Utilities::sendJsonResponse($result);
+            break;
+        case 'xml':
+            $result = '<fault>';
+            $result .= '<faultString>' . htmlentities($error) . '</faultString>';
+            $result .= '<faultCode>' . htmlentities('Sender') . '</faultCode>';
+            $result .= '</fault>';
+            Utilities::sendXmlResponse($result);
+            break;
+        }
+    }
+
+    private function handleResults($result)
+    {
+        switch ($this->format) {
+        case 'json':
+            Utilities::sendJsonResponse($result);
+            break;
+        case 'xml':
+            Utilities::sendXmlResponse($result);
+            break;
+        }
     }
 
     private function _sendResponse($status = 200, $body = '', $content_type = 'text/html')
