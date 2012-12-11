@@ -36,7 +36,6 @@ class AppsController extends Controller
     public function actionView()
     {
         $path = (isset($_GET['path']) ? $_GET['path'] : '');
-        error_log('view: ' . $path);
         try {
             $app = ServiceHandler::getInstance()->getServiceObject('App');
             $app->streamFile($path);
@@ -49,22 +48,16 @@ class AppsController extends Controller
 
     public function actionCreate()
     {
-        error_log((isset($_GET['service']) ? $_GET['service'] : 'no service'));
-        error_log((isset($_GET['resource']) ? $_GET['resource'] : 'no resource'));
         Yii::app()->end();
     }
 
     public function actionUpdate()
     {
-        error_log((isset($_GET['service']) ? $_GET['service'] : 'no service'));
-        error_log((isset($_GET['resource']) ? $_GET['resource'] : 'no resource'));
         Yii::app()->end();
     }
 
     public function actionDelete()
     {
-        error_log((isset($_GET['service']) ? $_GET['service'] : 'no service'));
-        error_log((isset($_GET['resource']) ? $_GET['resource'] : 'no resource'));
         Yii::app()->end();
     }
 

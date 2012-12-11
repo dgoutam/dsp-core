@@ -23,22 +23,19 @@ class LibController extends Controller
     // Actions
     public function actionIndex()
     {
-        error_log('index: ' . (isset($_GET['path']) ? $_GET['path'] : 'no path'));
         Yii::app()->end();
     }
 
     public function actionList()
     {
-        error_log('index: ' . (isset($_GET['path']) ? $_GET['path'] : 'no path'));
         Yii::app()->end();
     }
 
     public function actionView()
     {
         $path = (isset($_GET['path']) ? $_GET['path'] : '');
-        error_log('view: ' . $path);
         try {
-            $app = ServiceHandler::getInstance()->getServiceObject('Library');
+            $app = ServiceHandler::getInstance()->getServiceObject('Lib');
             $app->streamFile($path);
             Yii::app()->end();
         }
@@ -49,22 +46,16 @@ class LibController extends Controller
 
     public function actionCreate()
     {
-        error_log((isset($_GET['service']) ? $_GET['service'] : 'no service'));
-        error_log((isset($_GET['resource']) ? $_GET['resource'] : 'no resource'));
         Yii::app()->end();
     }
 
     public function actionUpdate()
     {
-        error_log((isset($_GET['service']) ? $_GET['service'] : 'no service'));
-        error_log((isset($_GET['resource']) ? $_GET['resource'] : 'no resource'));
         Yii::app()->end();
     }
 
     public function actionDelete()
     {
-        error_log((isset($_GET['service']) ? $_GET['service'] : 'no service'));
-        error_log((isset($_GET['resource']) ? $_GET['resource'] : 'no resource'));
         Yii::app()->end();
     }
 
