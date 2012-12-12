@@ -106,9 +106,17 @@ return array(
     // application-level parameters that can be accessed
     // using Yii::app()->params['paramName']
     'params' => array(
+        'BlobStorageType'   => 'WindowsAzureBlob',
+        // Windows Azure
+        'BlobAccountName'   => 'dreamfactorysoftware',
+        'BlobAccountKey'    => 'lpUCNR/7lmxBVsQuB3jD4yBQ4SWTvbmoJmJ4f+2q7vvm7/qQBHF0Lkfq4QQSk7KefNc5O3VJbQuW+wLLp79F3A==',
+        // Amazon S3
+//        'BlobAccessKey'     => '',
+//        'BlobSecretKey'     => '',
+//        'BlobBucketName'    => '',
         // this is used in contact page
         'adminEmail' => 'leehicks@dreamfactory.com',
-        'CompanyLabel' => 'My Dream Cloud',
-        'AllowOpenRegistration' => 'true',
+        'companyLabel' => 'My Dream Cloud',
+        'allowOpenRegistration' => 'true',
     ),
 );

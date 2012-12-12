@@ -2,7 +2,7 @@
 use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
 use CloudServicesPlatform\Utilities\Utilities;
 
-class RestController extends Controller
+class DbController extends Controller
 {
     // Members
 
@@ -26,23 +26,19 @@ class RestController extends Controller
         try {
             $this->detectCommonParams();
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $svcHandler = ServiceHandler::getInstance();
             if (empty($service)) {
-                $result = $svcHandler->getServiceListing();
+                $result = ServiceHandler::getInstance()->getServiceListing();
+                if (0 === strcasecmp('xml', $this->format)) {
+                    $result = Utilities::arrayToXml('', $result);
+                }
+                else {
+                    $result = json_encode($result);
+                }
             }
             else {
                 $resource = (isset($_GET['resource']) ? $_GET['resource'] : null);
                 $resource = (!empty($resource)) ? explode('/', $resource) : array();
-                $svcObj = $svcHandler->getServiceObject($service);
-                $result = $svcObj->handleRestRequest('GET', $resource, $_REQUEST);
-
-                $type = $svcObj->getType();
-                if (0 === strcasecmp($type, 'Web')) {
-                    $nativeFormat = $svcObj->getNativeFormat();
-                    if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                        // reformat the code here
-                    }
-                }
+                $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
             }
             $this->handleResults($result);
         }
@@ -59,17 +55,7 @@ class RestController extends Controller
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
             $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
             $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('GET', $resource, $_REQUEST);
-
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
-            }
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
             $this->handleResults($result);
         }
         catch (Exception $ex) {
@@ -112,17 +98,7 @@ class RestController extends Controller
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
             $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
             $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('GET', $resource, $_REQUEST);
-
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
-            }
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
             $this->handleResults($result);
         }
         catch (Exception $ex) {
@@ -184,17 +160,7 @@ class RestController extends Controller
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
             $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
             $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('POST', $resource, $_REQUEST);
-
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
-            }
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'POST', $resource, $_REQUEST, $this->format);
             $this->handleResults($result);
         }
         catch (Exception $ex) {
@@ -250,17 +216,7 @@ class RestController extends Controller
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
             $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
             $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('MERGE', $resource, $_REQUEST);
-
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
-            }
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'MERGE', $resource, $_REQUEST, $this->format);
             $this->handleResults($result);
         }
         catch (Exception $ex) {
@@ -326,17 +282,7 @@ class RestController extends Controller
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
             $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
             $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('DELETE', $resource, $_REQUEST);
-
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
-            }
+            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'DELETE', $resource, $_REQUEST, $this->format);
             $this->handleResults($result);
         }
         catch (Exception $ex) {
@@ -373,21 +319,6 @@ class RestController extends Controller
 
     protected function detectCommonParams()
     {
-        $temp = (isset($_REQUEST['format'])) ? strtolower($_REQUEST['format']) : '';
-        if (!empty($temp)) {
-            $this->format = $temp;
-        }
-
-        // determine application if any
-        $appName = (isset($_SERVER['HTTP_X_APPLICATION_NAME'])) ? $_SERVER['HTTP_X_APPLICATION_NAME'] : '';
-        if (empty($appName)) {
-            $appName = (isset($_REQUEST['app_name'])) ? $_REQUEST['app_name'] : '';
-        }
-        if (empty($appName)) {
-            throw new Exception("No application name header or parameter value in REST request.");
-        }
-        $GLOBALS['app_name'] = $appName;
-
     }
 
     private function handleErrors($error)
@@ -411,12 +342,6 @@ class RestController extends Controller
 
     private function handleResults($result)
     {
-        if (0 === strcasecmp('xml', $this->format)) {
-            $result = Utilities::arrayToXml('', $result);
-        }
-        else {
-            $result = json_encode($result);
-        }
         switch ($this->format) {
         case 'json':
             Utilities::sendJsonResponse($result);
