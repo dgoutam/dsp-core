@@ -32,11 +32,11 @@
         },
         {
       	    "type": "vcs",
-      	    "url":  "git@bitbucket.org:dreamfactory/lib-directconnect.git"
+      	    "url":  "https://bitbucket.org:dreamfactory/lib-directconnect.git"
    	    },
         {
             "type": "vcs",
-            "url":  "git@bitbucket.org:dreamfactory/app-launchpad.git"
+            "url":  "https://bitbucket.org:dreamfactory/app-launchpad.git"
    	    },
         {
             "type": "pear",
