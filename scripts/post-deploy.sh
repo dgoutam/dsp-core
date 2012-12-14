@@ -19,6 +19,13 @@ VERBOSE=1
 WEB_USER="www-data"
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
 
+## No wrapper, unset
+if [ ! -f ${WRAPPER} ] ; then
+	WRAPPER=
+else
+	WRAPPER="GIT_SSH=${WRAPPER}"
+fi
+
 ##
 ## Check if composer is installed
 ## If not, install. If it is, make sure it's current
@@ -71,10 +78,10 @@ pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 #	echo "Installing dependencies"
-	GIT_SSH=${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q install
+	${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q install
 else
 #	echo "Updating dependencies"
-	GIT_SSH=${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q update
+	${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q update
 fi
 
 ##
