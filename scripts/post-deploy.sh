@@ -78,10 +78,10 @@ pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 #	echo "Installing dependencies"
-	${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q install
+	${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} install
 else
 #	echo "Updating dependencies"
-	${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q update
+	${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} update
 fi
 
 ##
