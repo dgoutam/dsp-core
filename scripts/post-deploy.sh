@@ -17,6 +17,7 @@ COMPOSER=composer.phar
 PHP=/usr/bin/php
 VERBOSE=1
 WEB_USER="www-data"
+WRAPPER=/var/www/launchpad/git-ssh-wrapper
 
 ##
 ## Check if composer is installed
@@ -66,16 +67,14 @@ ASSETS_DIR="${PUBLIC_DIR}/assets"
 ##	Install composer dependencies
 ##
 
-GIT_SSH=/var/www/launchpad/git-ssh-wrapper
-
 pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 #	echo "Installing dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} -q install
+	GIT_SSH=${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q install
 else
 #	echo "Updating dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} -q update
+	GIT_SSH=${WRAPPER} ${PHP} ${INSTALL_DIR}/${COMPOSER} -q update
 fi
 
 ##
