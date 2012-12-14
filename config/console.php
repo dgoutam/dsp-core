@@ -18,7 +18,7 @@ return array(
 		// uncomment the following to use a MySQL database
 		/*
 		'db'=>array(
-			'connectionString' => 'mysql:host=us-cdbr-azure-east-b.cloudapp.net;dbname=dftestDb',
+			'connectionString' => 'mysql:host=us-cdbr-azure-east-b.cloudapp.net;dbname=dreamfactory',
 			'emulatePrepare' => true,
 			'username' => 'b87314a4dd182f',
 			'password' => '01f9b9a2',
