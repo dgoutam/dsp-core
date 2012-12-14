@@ -44,8 +44,9 @@ return array(
                 // REST patterns
                 array('lib/view', 'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
                 array('apps/view', 'pattern' => 'apps/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
+                array('rest/view', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-]+>/<id:\d+>', 'verb' => 'GET'),
                 array('rest/list', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>/', 'verb' => 'GET'),
-                array('rest/view', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:\w+>/<id:\d+>', 'verb' => 'GET'),
+                array('rest/view', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
                 array('rest/create', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:\w+>', 'verb' => 'POST'),
                 array('rest/update', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:\w+>/<id:\d+>', 'verb' => 'PUT'),
                 array('rest/delete', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:\w+>/<id:\d+>', 'verb' => 'DELETE'),
@@ -106,10 +107,10 @@ return array(
     // application-level parameters that can be accessed
     // using Yii::app()->params['paramName']
     'params' => array(
-        'BlobStorageType'   => 'WindowsAzureBlob',
+//        'blobStorageType'   => 'WindowsAzureBlob',
         // Windows Azure
-        'BlobAccountName'   => 'dreamfactorysoftware',
-        'BlobAccountKey'    => 'lpUCNR/7lmxBVsQuB3jD4yBQ4SWTvbmoJmJ4f+2q7vvm7/qQBHF0Lkfq4QQSk7KefNc5O3VJbQuW+wLLp79F3A==',
+        'blobAccountName'   => 'dreamfactorysoftware',
+        'blobAccountKey'    => 'lpUCNR/7lmxBVsQuB3jD4yBQ4SWTvbmoJmJ4f+2q7vvm7/qQBHF0Lkfq4QQSk7KefNc5O3VJbQuW+wLLp79F3A==',
         // Amazon S3
 //        'BlobAccessKey'     => '',
 //        'BlobSecretKey'     => '',

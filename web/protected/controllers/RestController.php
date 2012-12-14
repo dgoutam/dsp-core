@@ -58,7 +58,7 @@ class RestController extends Controller
             $this->detectCommonParams();
             $service = (isset($_GET['service']) ? $_GET['service'] : '');
             $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
+            $resource = (!empty($resource)) ? explode('/', $resource . '/') : array();
             $svcHandler = ServiceHandler::getInstance();
             $svcObj = $svcHandler->getServiceObject($service);
             $result = $svcObj->handleRestRequest('GET', $resource, $_REQUEST);
