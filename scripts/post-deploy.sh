@@ -31,6 +31,10 @@ fi
 ## If not, install. If it is, make sure it's current
 ##
 
+if [ ! -d "${INSTALL_DIR}/${COMPOSER}" ] ; then
+	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR}
+fi 
+
 if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	echo "Installing Composer"
 	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR}
@@ -98,6 +102,10 @@ fi
 
 if [ ! -d "${ASSETS_DIR}" ] ; then
 	mkdir "${ASSETS_DIR}" >/dev/null 2>&1
+fi
+
+if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
+    ln -s "${VENDOR_DIR}/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
 fi
 
 # make writable by web-server, change www-data to _www on Mac, see 'cat /etc/apache2/httpd.conf'
