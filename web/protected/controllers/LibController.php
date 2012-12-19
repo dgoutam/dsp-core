@@ -21,17 +21,7 @@ class LibController extends Controller
     }
 
     // Actions
-    public function actionIndex()
-    {
-        Yii::app()->end();
-    }
-
-    public function actionList()
-    {
-        Yii::app()->end();
-    }
-
-    public function actionView()
+    public function actionStream()
     {
         $path = (isset($_GET['path']) ? $_GET['path'] : '');
         try {
@@ -42,6 +32,16 @@ class LibController extends Controller
         catch (\Exception $ex) {
             die($ex->getMessage());
         }
+    }
+
+    public function actionIndex()
+    {
+        Yii::app()->end();
+    }
+
+    public function actionList()
+    {
+        Yii::app()->end();
     }
 
     public function actionCreate()

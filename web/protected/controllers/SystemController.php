@@ -1,16 +1,30 @@
 <?php
 use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
+use CloudServicesPlatform\Storage\Database\PdoSqlDbSvc;
 use CloudServicesPlatform\Utilities\Utilities;
 
 class SystemController extends Controller
 {
     // Members
 
+    protected $modelName;
+    protected $modelId;
+
     /**
-     * Default response format
-     * either 'json' or 'xml'
+     * @var PdoSqlDbSvc
      */
-    private $format = 'json';
+    protected $nativeDb;
+
+    public function init()
+   	{
+        parent::init();
+        try {
+            $this->nativeDb = new PdoSqlDbSvc('df_');
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Failed to create native database service.\n{$ex->getMessage()}");
+        }
+   	}
 
     /**
      * @return array action filters
@@ -24,413 +38,1215 @@ class SystemController extends Controller
     public function actionIndex()
     {
         try {
-            $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            if (empty($service)) {
-                $result = ServiceHandler::getInstance()->getServiceListing();
-                if (0 === strcasecmp('xml', $this->format)) {
-                    $result = Utilities::arrayToXml('', $result);
-                }
-                else {
-                    $result = json_encode($result);
-                }
-            }
-            else {
-                $resource = (isset($_GET['resource']) ? $_GET['resource'] : null);
-                $resource = (!empty($resource)) ? explode('/', $resource) : array();
-                $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
-            }
-            $this->handleResults($result);
+            $result = array(array('name' => 'App', 'label' => 'Applications'),
+                            array('name' => 'AppGroup', 'label' => 'Application Groups'),
+                            array('name' => 'Role', 'label' => 'Roles'),
+                            array('name' => 'RoleAssign', 'label' => 'Role Assignment'),
+                            array('name' => 'Service', 'label' => 'Services'),
+                            array('name' => 'User', 'label' => 'Users'));
+            $result = array('resource' => $result);
+            return $result;
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            throw $ex;
         }
-        Yii::app()->end();
     }
 
     public function actionList()
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
-            $this->handleResults($result);
+            $result = array(array('name' => 'App', 'label' => 'Applications'),
+                            array('name' => 'AppGroup', 'label' => 'Application Groups'),
+                            array('name' => 'Role', 'label' => 'Roles'),
+                            array('name' => 'RoleAssign', 'label' => 'Role Assignment'),
+                            array('name' => 'Service', 'label' => 'Services'),
+                            array('name' => 'User', 'label' => 'Users'));
+            $result = array('resource' => $result);
+            return $result;
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
-        }
-        Yii::app()->end();
-
-        // Get the respective model instance
-        switch ($_GET['service']) {
-        case 'label':
-            $models = Label::model()->findAll();
-            break;
-        default:
-            // Model not implemented error
-            $this->_sendResponse(501, sprintf(
-                'Error: Mode <b>list</b> is not implemented for model <b>%s</b>',
-                $_GET['model']));
-            Yii::app()->end();
-        }
-        // Did we get some results?
-        if (empty($models)) {
-            // No
-            $this->_sendResponse(200,
-                                 sprintf('No items where found for model <b>%s</b>', $_GET['model']));
-        }
-        else {
-            // Prepare response
-            $rows = array();
-            foreach ($models as $model)
-                $rows[] = $model->attributes;
-            // Send the response
-            $this->_sendResponse(200, CJSON::encode($rows));
+            throw $ex;
         }
     }
 
-    public function actionView()
+    public function actionGet()
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'GET', $resource, $_REQUEST, $this->format);
-            $this->handleResults($result);
-        }
-        catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
-        }
-        Yii::app()->end();
-
-        // Check if id was submitted via GET
-        if (!isset($_GET['id']))
-            $this->_sendResponse(500, 'Error: Parameter <b>id</b> is missing');
-
-        switch ($_GET['model']) {
-            // Find respective model
-        case 'label':
-            $model = Label::model()->findByPk($_GET['id']);
-            break;
-        default:
-            $this->_sendResponse(501, sprintf(
-                'Mode <b>view</b> is not implemented for model <b>%s</b>',
-                $_GET['model']));
-            Yii::app()->end();
-        }
-        // Did we find the requested model? If not, raise an error
-        if (is_null($model))
-            $this->_sendResponse(404, 'No Item found with id ' . $_GET['id']);
-        else
-            $this->_sendResponse(200, CJSON::encode($model));
-    }
-
-    public function actionCreate()
-    {
-        try {
-            $this->detectCommonParams();
-            // check for verb tunneling
-            $tunnel_method = (isset($_SERVER['HTTP_X_HTTP_METHOD'])) ? $_SERVER['HTTP_X_HTTP_METHOD'] : '';
-            if (empty($tunnel_method)) {
-                $tunnel_method = (isset($_REQUEST['method'])) ? $_REQUEST['method'] : '';
-            }
-            if (!empty($tunnel_method)) {
-                switch (strtolower($tunnel_method)) {
-                case 'delete':
-                    $this->actionDelete();
-                    break;
-                case 'get': // complex retrieves, non-standard
-                    $this->actionView();
-                    break;
-                case 'merge':
-                case 'patch':
-                case 'put':
-                    $this->actionUpdate();
-                    break;
-                default:
-                    if (!empty($tunnel_method)) {
-                        throw new Exception("Unknown verb tunneling method '$tunnel_method' in REST request.");
-                    }
-                    break;
+            $data = Utilities::getPostDataAsArray();
+            // Most requests contain 'returned fields' parameter
+            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            $extras = array();
+            switch (strtolower($this->modelName)) {
+            case '':
+                $result = $this->actionList();
+                break;
+            case 'schema':
+                if (empty($this->modelId)) {
+                    $result = $this->describeSystem();
                 }
+                else {
+                    $result = $this->describeTable($this->modelId);
+                }
+                break;
+            case 'app':
+            case 'appgroup':
+            case 'role':
+            case 'service':
+            case 'user':
+                if (isset($_REQUEST['apps'])) {
+                    $extras['apps'] = $_REQUEST['apps'];
+                }
+                if (isset($_REQUEST['users'])) {
+                    $extras['users'] = $_REQUEST['users'];
+                }
+                if (isset($_REQUEST['roles'])) {
+                    $extras['roles'] = $_REQUEST['roles'];
+                }
+                if (empty($this->modelId)) {
+                    $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                    if (!empty($ids)) {
+                        $result = $this->retrieveSystemRecordsByIds($this->modelName, $ids, $fields, $extras);
+                    }
+                    else { // get by filter or all
+                        if (!empty($data)) { // complex filters or large numbers of ids require post
+                            $ids = Utilities::getArrayValue('ids', $data, '');
+                            $records = Utilities::getArrayValue('record', $data, null);
+                            if (empty($records)) {
+                                // xml to array conversion leaves them in plural wrapper
+                                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                            }
+                            if (!empty($ids)) {
+                                $result = $this->retrieveSystemRecordsByIds($this->modelName, $ids, $fields, $extras);
+                            }
+                            elseif (!empty($records)) {
+                                $result = $this->retrieveSystemRecords($this->modelName, $records, $fields, $extras);
+                            }
+                            else { // if not specified use empty filter
+                                $filter = Utilities::getArrayValue('filter', $data, '');
+                                $limit = intval(Utilities::getArrayValue('limit', $data, 0));
+                                $order = Utilities::getArrayValue('order', $data, '');
+                                $offset = intval(Utilities::getArrayValue('offset', $data, 0));
+                                $result = $this->retrieveSystemRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
+                            }
+                        }
+                        else {
+                            $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : '';
+                            $limit = (isset($_REQUEST['limit'])) ? intval($_REQUEST['limit']) : 0;
+                            $order = (isset($_REQUEST['order'])) ? $_REQUEST['order'] : '';
+                            $offset = (isset($_REQUEST['offset'])) ? intval($_REQUEST['offset']) : 0;
+                            $result = $this->retrieveSystemRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
+                        }
+                    }
+                }
+                else { // single entity by id
+                    $result = $this->retrieveSystemRecordsByIds($this->modelName, $this->modelId, $fields, $extras);
+                }
+                break;
+            default:
+                throw new \Exception("GET received to an unsupported system table named '$this->modelName'.");
+                break;
             }
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'POST', $resource, $_REQUEST, $this->format);
-            $this->handleResults($result);
+            return $result;
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
-        }
-        Yii::app()->end();
-
-        switch ($_GET['model']) {
-            // Get an instance of the respective model
-        case 'label':
-            $model = new Label;
-            break;
-        default:
-            $this->_sendResponse(501,
-                                 sprintf('Mode <b>create</b> is not implemented for model <b>%s</b>',
-                                         $_GET['model']));
-            Yii::app()->end();
-        }
-        // Try to assign POST values to attributes
-        foreach ($_POST as $var => $value) {
-            // Does the model have this attribute? If not raise an error
-            if ($model->hasAttribute($var))
-                $model->$var = $value;
-            else
-                $this->_sendResponse(500,
-                                     sprintf('Parameter <b>%s</b> is not allowed for model <b>%s</b>', $var,
-                                             $_GET['model']));
-        }
-        // Try to save the model
-        if ($model->save())
-            $this->_sendResponse(200, CJSON::encode($model));
-        else {
-            // Errors occurred
-            $msg = "<h1>Error</h1>";
-            $msg .= sprintf("Couldn't create model <b>%s</b>", $_GET['model']);
-            $msg .= "<ul>";
-            foreach ($model->errors as $attribute => $attr_errors) {
-                $msg .= "<li>Attribute: $attribute</li>";
-                $msg .= "<ul>";
-                foreach ($attr_errors as $attr_error)
-                    $msg .= "<li>$attr_error</li>";
-                $msg .= "</ul>";
-            }
-            $msg .= "</ul>";
-            $this->_sendResponse(500, $msg);
+            throw $ex;
         }
     }
 
-    public function actionUpdate()
+    public function actionPost()
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'MERGE', $resource, $_REQUEST, $this->format);
-            $this->handleResults($result);
+            $data = Utilities::getPostDataAsArray();
+            // Most requests contain 'returned fields' parameter
+            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            switch (strtolower($this->modelName)) {
+            case '':
+            case 'schema':
+                throw new \Exception("System schema can not currently be modified through this API.");
+                break;
+            case 'app':
+            case 'appgroup':
+            case 'role':
+            case 'service':
+            case 'user':
+                $records = Utilities::getArrayValue('record', $data, null);
+                if (empty($records)) {
+                    // xml to array conversion leaves them in plural wrapper
+                    $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                }
+                if (empty($records)) {
+                    throw new \Exception('No records in POST create request.');
+                }
+                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                if (!isset($rollback)) {
+                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                }
+                $result = $this->createSystemRecords($this->modelName, $records, $rollback, $fields);
+                break;
+            default:
+                throw new \Exception("POST received to an unsupported system table named '$this->modelName'.");
+                break;
+            }
+            return $result;
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            throw $ex;
         }
-        Yii::app()->end();
+    }
 
-        // Parse the PUT parameters. This didn't work: parse_str(file_get_contents('php://input'), $put_vars);
-        $json = file_get_contents('php://input'); //$GLOBALS['HTTP_RAW_POST_DATA'] is not preferred: http://www.php.net/manual/en/ini.core.php#ini.always-populate-raw-post-data
-        $put_vars = CJSON::decode($json, true); //true means use associative array
-
-        switch ($_GET['model']) {
-            // Find respective model
-        case 'label':
-            $model = Label::model()->findByPk($_GET['id']);
-            break;
-        default:
-            $this->_sendResponse(501,
-                                 sprintf('Error: Mode <b>update</b> is not implemented for model <b>%s</b>',
-                                         $_GET['model']));
-            Yii::app()->end();
-        }
-        // Did we find the requested model? If not, raise an error
-        if ($model === null)
-            $this->_sendResponse(400,
-                                 sprintf("Error: Didn't find any model <b>%s</b> with ID <b>%s</b>.",
-                                         $_GET['model'], $_GET['id']));
-
-        // Try to assign PUT parameters to attributes
-        foreach ($put_vars as $var => $value) {
-            // Does model have this attribute? If not, raise an error
-            if ($model->hasAttribute($var))
-                $model->$var = $value;
-            else {
-                $this->_sendResponse(500,
-                                     sprintf('Parameter <b>%s</b> is not allowed for model <b>%s</b>',
-                                             $var, $_GET['model']));
+    public function actionMerge()
+    {
+        try {
+            $this->detectCommonParams();
+            $data = Utilities::getPostDataAsArray();
+            // Most requests contain 'returned fields' parameter
+            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            switch (strtolower($this->modelName)) {
+            case '':
+            case 'schema':
+                throw new \Exception("System schema can not currently be modified through this API.");
+                break;
+            case 'app':
+            case 'appgroup':
+            case 'role':
+            case 'service':
+            case 'user':
+                $records = Utilities::getArrayValue('record', $data, null);
+                if (empty($records)) {
+                    // xml to array conversion leaves them in plural wrapper
+                    $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                }
+                if (empty($records)) {
+                    throw new \Exception('No records in POST update request.');
+                }
+                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                if (!isset($rollback)) {
+                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                }
+                $result = $this->updateSystemRecords($this->modelName, $records, $rollback, $fields);
+                break;
+            default:
+                throw new \Exception("MERGE/PATCH received to an unsupported system table named '$this->modelName'.");
+                break;
             }
+            return $result;
         }
-        // Try to save the model
-        if ($model->save())
-            $this->_sendResponse(200, CJSON::encode($model));
-        else
-            // Errors occurred
-            $msg = "<h1>Error</h1>";
-            $msg .= sprintf("Couldn't create model <b>%s</b>", $_GET['model']);
-            $msg .= "<ul>";
-            foreach ($model->errors as $attribute => $attr_errors) {
-                $msg .= "<li>Attribute: $attribute</li>";
-                $msg .= "<ul>";
-                foreach ($attr_errors as $attr_error)
-                    $msg .= "<li>$attr_error</li>";
-                $msg .= "</ul>";
-            }
-            $msg .= "</ul>";
-            $this->_sendResponse(500, $msg);
+        catch (Exception $ex) {
+            throw $ex;
+        }
     }
 
     public function actionDelete()
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $result = ServiceHandler::getInstance()->handleRestRequest($service, 'DELETE', $resource, $_REQUEST, $this->format);
-            $this->handleResults($result);
+            $data = Utilities::getPostDataAsArray();
+            // Most requests contain 'returned fields' parameter
+            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            switch (strtolower($this->modelName)) {
+            case 'schema':
+                throw new \Exception("System schema can not currently be modified through this API.");
+                break;
+            case 'app':
+            case 'appgroup':
+            case 'role':
+            case 'service':
+            case 'user':
+                if (empty($this->modelId)) {
+                    $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                    if (!empty($ids)) {
+                        $result = $this->deleteSystemRecordsByIds($this->modelName, $ids, $fields);
+                    }
+                    else {
+                        if (!empty($data)) {
+                            $ids = Utilities::getArrayValue('ids', $data, '');
+                            $records = Utilities::getArrayValue('record', $data, null);
+                            if (empty($records)) {
+                                // xml to array conversion leaves them in plural wrapper
+                                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                            }
+                            if (!empty($ids)) {
+                                $result = $this->deleteSystemRecordsByIds($this->modelName, $ids, $fields);
+                            }
+                            elseif (!empty($records)) {
+                                $result = $this->deleteSystemRecords($this->modelName, $records, $fields);
+                            }
+                            else {
+                                throw new \Exception("Id list or record sets containing Id fields required to delete $this->modelName records.");
+                            }
+                        }
+                        else {
+                            throw new \Exception("Id list or record sets containing Id fields required to delete $this->modelName records.");
+                        }
+                    }
+                }
+                else {
+                    $result = $this->deleteSystemRecordsByIds($this->modelName, $this->modelId, $fields);
+                }
+                break;
+            default:
+                throw new \Exception("DELETE received to an unsupported system table named '$this->modelName'.");
+                break;
+            }
+            return $result;
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            throw $ex;
         }
-        Yii::app()->end();
-
-        switch ($_GET['model']) {
-            // Load the respective model
-        case 'label':
-            $model = Label::model()->findByPk($_GET['id']);
-            break;
-        default:
-            $this->_sendResponse(501,
-                                 sprintf('Error: Mode <b>delete</b> is not implemented for model <b>%s</b>',
-                                         $_GET['model']));
-            Yii::app()->end();
-        }
-        // Was a model found? If not, raise an error
-        if ($model === null)
-            $this->_sendResponse(400,
-                                 sprintf("Error: Didn't find any model <b>%s</b> with ID <b>%s</b>.",
-                                         $_GET['model'], $_GET['id']));
-
-        // Delete the model
-        $num = $model->delete();
-        if ($num > 0)
-            $this->_sendResponse(200, $num); //this is the only way to work with backbone
-        else
-            $this->_sendResponse(500,
-                                 sprintf("Error: Couldn't delete model <b>%s</b> with ID <b>%s</b>.",
-                                         $_GET['model'], $_GET['id']));
     }
 
     protected function detectCommonParams()
     {
+        $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+        $resource = (!empty($resource)) ? explode('/', $resource) : array();
+        $this->modelName = (isset($resource[0])) ? $resource[0] : '';
+        $this->modelId = (isset($resource[1])) ? $resource[1] : '';
     }
 
-    private function handleErrors($error)
+    public function getAppNameFromId($id)
     {
-        $result = array("fault" => array("faultString" => htmlentities($error),
-                                         "faultCode" => htmlentities('Sender')));
-        switch ($this->format) {
-        case 'json':
-            $result = json_encode($result);
-            Utilities::sendJsonResponse($result);
-            break;
-        case 'xml':
-            $result = '<fault>';
-            $result .= '<faultString>' . htmlentities($error) . '</faultString>';
-            $result .= '<faultCode>' . htmlentities('Sender') . '</faultCode>';
-            $result .= '</fault>';
-            Utilities::sendXmlResponse($result);
-            break;
+        if (!empty($id)) {
+            try {
+                $db = $this->nativeDb;
+                $result = $db->retrieveSqlRecordsByIds('App', $id, 'Id', 'Name');
+                if (count($result) > 0) {
+                    return $result[0]['Name'];
+                }
+            }
+            catch (\Exception $ex) {
+                throw $ex;
+            }
         }
+
+        return '';
     }
 
-    private function handleResults($result)
+    public function getAppIdFromName($name)
     {
-        switch ($this->format) {
-        case 'json':
-            Utilities::sendJsonResponse($result);
-            break;
-        case 'xml':
-            Utilities::sendXmlResponse($result);
-            break;
+        if (!empty($name)) {
+            try {
+                $db = $this->nativeDb;
+                $result = $db->retrieveSqlRecordsByIds('App', $name, 'Name', 'Id');
+                if (count($result) > 0) {
+                    return $result[0]['Id'];
+                }
+            }
+            catch (\Exception $ex) {
+                throw $ex;
+            }
         }
+
+        return '';
     }
 
-    private function _sendResponse($status = 200, $body = '', $content_type = 'text/html')
+    public function getCurrentAppId()
     {
-        // set the status
-        $status_header = 'HTTP/1.1 ' . $status . ' ' . $this->_getStatusCodeMessage($status);
-        header($status_header);
-        // and the content type
-        header('Content-type: ' . $content_type);
+        return $this->getAppIdFromName(Utilities::getCurrentAppName());
+    }
 
-        // pages with body are easy
-        if($body != '')
-        {
-            // send the body
-            echo $body;
-        }
-        // we need to create the body if none is passed
-        else
-        {
-            // create some body messages
-            $message = '';
-
-            // this is purely optional, but makes the pages a little nicer to read
-            // for your users.  Since you won't likely send a lot of different status codes,
-            // this also shouldn't be too ponderous to maintain
-            switch($status)
-            {
-                case 401:
-                    $message = 'You must be authorized to view this page.';
-                    break;
-                case 404:
-                    $message = 'The requested URL ' . $_SERVER['REQUEST_URI'] . ' was not found.';
-                    break;
-                case 500:
-                    $message = 'The server encountered an error processing your request.';
-                    break;
-                case 501:
-                    $message = 'The requested method is not implemented.';
-                    break;
+    protected function getUserIdsFromNames($user_names)
+    {
+        try {
+            $db = $this->nativeDb;
+            $result = $db->retrieveSqlRecordsByIds('User', "'$user_names'", 'UserName', 'Id');
+            $userIds = '';
+            foreach ($result as $item) {
+                if (!empty($userIds)) {
+                    $userIds .= ',';
+                }
+                $userIds .= $item['Id'];
             }
 
-            // servers don't always have a signature turned on
-            // (this is an apache directive "ServerSignature On")
-            $signature = ($_SERVER['SERVER_SIGNATURE'] == '') ? $_SERVER['SERVER_SOFTWARE'] . ' Server at ' . $_SERVER['SERVER_NAME'] . ' Port ' . $_SERVER['SERVER_PORT'] : $_SERVER['SERVER_SIGNATURE'];
-
-            // this should be templated in a real-world solution
-            $body = '
-    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-    <html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-        <title>' . $status . ' ' . $this->_getStatusCodeMessage($status) . '</title>
-    </head>
-    <body>
-        <h1>' . $this->_getStatusCodeMessage($status) . '</h1>
-        <p>' . $message . '</p>
-        <hr />
-        <address>' . $signature . '</address>
-    </body>
-    </html>';
-
-            echo $body;
+            return $userIds;
         }
-        Yii::app()->end();
+        catch (\Exception $ex) {
+            throw $ex;
+        }
     }
 
-    private function _getStatusCodeMessage($status)
+    public function assignRole($role_id, $user_ids = '', $user_names = '', $override = false)
     {
-        // these could be stored in a .ini file and loaded
-        // via parse_ini_file()... however, this will suffice
-        // for an example
-        $codes = Array(
-            200 => 'OK',
-            400 => 'Bad Request',
-            401 => 'Unauthorized',
-            402 => 'Payment Required',
-            403 => 'Forbidden',
-            404 => 'Not Found',
-            500 => 'Internal Server Error',
-            501 => 'Not Implemented',
-        );
-        return (isset($codes[$status])) ? $codes[$status] : '';
+        $this->checkPermission('create', 'RoleAssign');
+        // ids have preference, if blank, use names for users
+        // override is true/false, true allows overriding an existing role assignment
+        // i.e. move user to a different role,
+        // false will return an error for that user that is already assigned to a role
+        if (empty($role_id)) {
+            throw new \Exception('[InvalidParam]: Role id can not be empty.');
+        }
+        if (empty($user_ids)) {
+            if (empty($user_names)) {
+                throw new \Exception('[InvalidParam]: User ids and names can not both be empty.');
+            }
+            // find user ids
+            try {
+                $user_ids = $this->getUserIdsFromNames($user_names);
+            }
+            catch (\Exception $ex) {
+                throw new \Exception("Error looking up users.\n{$ex->getMessage()}");
+            }
+        }
+
+        $user_ids = implode(',', array_map('trim', explode(',', $user_ids)));
+        try {
+            $db = $this->nativeDb;
+            $users = $db->retrieveSqlRecordsByIds('User', $user_ids, 'Id', 'RoleIds,Id');
+            foreach ($users as $key => $user) {
+                $users[$key]['RoleIds'] = $role_id;
+            }
+            $db->updateSqlRecords('User', $users, 'Id', false, 'Id');
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error updating users.\n{$ex->getMessage()}");
+        }
     }
+
+    public function unassignRole($role_id, $user_ids = '', $user_names = '')
+    {
+        $this->checkPermission('delete', 'RoleAssign');
+        // ids have preference, if blank, use names for both role and users
+        // use this to officially remove a user from the current app
+        if (empty($role_id)) {
+            throw new \Exception('[InvalidParam]: Role id can not be empty.');
+        }
+        if (empty($user_ids)) {
+            if (empty($user_names)) {
+                throw new \Exception('[InvalidParam]: User ids and names can not both be empty.');
+            }
+            // find user ids
+            try {
+                $user_ids = $this->getUserIdsFromNames($user_names);
+            }
+            catch (\Exception $ex) {
+                throw new \Exception("Error looking up users.\n{$ex->getMessage()}");
+            }
+        }
+
+        $user_ids = implode(',', array_map('trim', explode(',', $user_ids)));
+        try {
+            $db = $this->nativeDb;
+            $users = $db->retrieveSqlRecordsByIds('User', $user_ids, 'Id', 'RoleIds,Id');
+            foreach ($users as $key => $user) {
+                $userRoleId = trim($user['RoleIds']);
+                if ($userRoleId === $role_id) {
+                    $users[$key]['RoleIds'] = '';
+                }
+            }
+            $db->updateSqlRecords('User', $users, 'Id', false, 'Id');
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error updating users.\n{$ex->getMessage()}");
+        }
+    }
+
+    protected function assignServiceAccess($role_id, $services = array())
+    {
+        $db = $this->nativeDb;
+        // get any pre-existing access records
+        $old = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', 'Id', "RoleId = '$role_id'");
+        unset($old['total']);
+        // create a new access record for each service
+        $noDupes = array();
+        if (!empty($services)) {
+            foreach ($services as $key=>$sa) {
+                $services[$key]['roleId'] = $role_id;
+                // validate service
+                $component = Utilities::getArrayValue('component', $sa);
+                $serviceName = Utilities::getArrayValue('service', $sa);
+                $serviceId = Utilities::getArrayValue('serviceId', $sa);
+                if (empty($serviceName) && empty($serviceId)) {
+                    throw new \Exception("No service name or id in role service access.");
+                }
+                if ('*' !== $serviceName) { // special 'All Services' designation
+                    if (!empty($serviceId)) {
+                        $temp = $db->retrieveSqlRecordsByIds('Service', $serviceId, 'Id', 'Id,Name');
+                        if ((count($temp) > 0) && isset($temp[0]['Name']) && !empty($temp[0]['Name'])) {
+                            $serviceName = $temp[0]['Name'];
+                            $services[$key]['service'] = $serviceName;
+                        }
+                        else {
+                            throw new \Exception("Invalid service id '$serviceId' in role service access.");
+                        }
+                    }
+                    elseif (!empty($serviceName)) {
+                        $temp = $db->retrieveSqlRecordsByIds('Service', $serviceName, 'Name', 'Id,Name');
+                        if ((count($temp) > 0) && isset($temp[0]['Id']) && !empty($temp[0]['Id'])) {
+                            $services[$key]['serviceid'] = $temp[0]['Id'];
+                        }
+                        else {
+                            throw new \Exception("Invalid service name '$serviceName' in role service access.");
+                        }
+                    }
+                }
+                $test = $serviceName.'.'.$component;
+                if (false !== array_search($test, $noDupes)) {
+                    throw new \Exception("Duplicated service and component combination '$serviceName $component' in role service access.");
+                }
+                $noDupes[] = $test;
+            }
+            $db->createSqlRecords('RoleServiceAccess', $services);
+        }
+        if ((count($old) > 0) && isset($old[0]['Id'])) {
+            // delete any pre-existing access records
+            $db->deleteSqlRecords('RoleServiceAccess', $old, 'Id');
+        }
+    }
+
+    protected function validateUniqueSystemName($table, $fields, $for_update = false)
+    {
+        $id = Utilities::getArrayValue('id', $fields, '');
+        if ($for_update && empty($id)) {
+            throw new \Exception("The Id field for $table can not be empty for updates.");
+        }
+        // make sure it is named
+        $nameField = 'Name';
+        if (0 == strcasecmp('User', $table)) {
+            $nameField = 'UserName';
+        }
+        $name = Utilities::getArrayValue($nameField, $fields, '');
+        if (empty($name)) {
+            if ($for_update) {
+                return; // no need to check
+            }
+            throw new \Exception("The $nameField field for $table can not be empty.");
+        }
+        if ($for_update && (0 == strcasecmp('App', $table))) {
+            throw new \Exception("Application names can not change. Change the label instead.");
+        }
+        $appId = '';
+        if (0 == strcasecmp('Role', $table)) {
+            $appId = Utilities::getArrayValue('AppIds', $fields, '');
+            if (empty($appId) && $for_update) {
+                // get the appId from the db for this role id
+                try {
+                    $db = $this->nativeDb;
+                    $result = $db->retrieveSqlRecordsByIds('Role', $id, 'Id', 'AppIds');
+
+                    if (count($result) > 0) {
+                        $appId = (isset($result[0]['AppIds'])) ? $result[0]['AppIds'] : '';
+                    }
+                }
+                catch (\Exception $ex) {
+                    throw new \Exception("A Role with this id does not exist.");
+                }
+            }
+            // make sure it is unique
+            try {
+                $db = $this->nativeDb;
+                $result = $db->retrieveSqlRecordsByFilter('Role', 'Id', "Name='$name' AND AppIds='$appId'", 1);
+                unset($result['total']);
+                if (count($result) > 0) {
+                    if ($for_update) {
+                        if ($id != $result[0]['Id']) { // not self
+                            throw new \Exception("A $table already exists with the $nameField '$name'.");
+                        }
+                    }
+                    else {
+                        throw new \Exception("A $table already exists with the $nameField '$name'.");
+                    }
+                }
+            }
+            catch (\Exception $ex) {
+                throw $ex;
+            }
+        }
+        else {
+            // make sure it is unique
+            try {
+                $db = $this->nativeDb;
+                $result = $db->retrieveSqlRecordsByFilter($table, 'Id', "$nameField = '$name'", 1);
+                unset($result['total']);
+                if (count($result) > 0) {
+                    if ($for_update) {
+                        if ($id != $result[0]['Id']) { // not self
+                            throw new \Exception("A $table already exists with the $nameField '$name'.");
+                        }
+                    }
+                    else {
+                        throw new \Exception("A $table already exists with the $nameField '$name'.");
+                    }
+                }
+            }
+            catch (\Exception $ex) {
+                throw $ex;
+            }
+        }
+    }
+
+    protected function checkRetrievableSystemFields($table, $fields)
+    {
+        switch (strtolower($table)) {
+        case 'user':
+            if (empty($fields)) {
+                $fields = 'Id,FullName,FirstName,LastName,UserName,Email,Phone,';
+                $fields .= 'IsActive,IsSysAdmin,RoleIds,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById';
+            }
+            else {
+                $fields = Utilities::removeOneFromList($fields, 'Password', ',');
+                $fields = Utilities::removeOneFromList($fields, 'SecurityAnswer', ',');
+                $fields = Utilities::removeOneFromList($fields, 'ConfirmCode', ',');
+            }
+            break;
+        default:
+        }
+
+        return $fields;
+    }
+
+    protected function validateUser(&$fields, $for_update = false)
+    {
+        $pwd = Utilities::getArrayValue('password', $fields, '');
+        if (!empty($pwd)) {
+            $fields['password'] = md5($pwd);
+            $fields['confirmcode'] = 'y';
+        }
+        else {
+            // autogenerate ?
+        }
+    }
+
+    //-------- System Records Operations ---------------------
+    // records is an array of field arrays
+
+    protected function createSystemRecordLow($table, $record, $fields = '')
+    {
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new \Exception('[InvalidParam]: There are no fields in the record set.');
+        }
+        try {
+            // before record create - all
+            $this->validateUniqueSystemName($table, $record['fields']);
+            // specific
+            switch (strtolower($table)) {
+            case 'user':
+                $this->validateUser($record['fields']);
+                break;
+            case 'app':
+                // need name and isUrlExternal to create app directory in storage
+                $fields = Utilities::addOnceToList($fields, 'Name', ',');
+                $fields = Utilities::addOnceToList($fields, 'IsUrlExternal', ',');
+                break;
+            }
+
+            // create DB record
+            $fields = Utilities::addOnceToList($fields, 'Id', ',');
+            $db = $this->nativeDb;
+            $results = $db->createSqlRecord($table, $record['fields'], $fields);
+            $id = $results[0]['Id'];
+
+            // after record create
+            switch (strtolower($table)) {
+            case 'app':
+                // need name and isUrlExternal to create app directory in storage
+                if (isset($results[0]['IsUrlExternal'])) {
+                    $isExternal = Utilities::boolval($results[0]['IsUrlExternal']);
+                    if (!$isExternal) {
+                        $appSvc = ServiceHandler::getInstance()->getServiceObject('App');
+                        if ($appSvc) {
+                            $appSvc->createApp($results[0]['Name']);
+                        }
+                    }
+                }
+                break;
+            case 'role':
+                if (isset($record['users'])) {
+                    try {
+                        $users = (isset($record['users']['assign'])) ? $record['users']['assign'] : '';
+                        if (!empty($users)) {
+                            $override = (isset($record['users']['override'])) ?
+                                Utilities::boolval($record['users']['override']) : false;
+                            $this->assignRole($id, $users, $override);
+                        }
+                    }
+                    catch (\Exception $ex) {
+                        throw $ex;
+                    }
+                }
+                if (isset($record['fields']['services'])) {
+                    try {
+                        $services = $record['fields']['services'];
+                        $this->assignServiceAccess($id, $services);
+                    }
+                    catch (\Exception $ex) {
+                        throw $ex;
+                    }
+                }
+                break;
+            }
+
+            return array('fields' => (isset($results[0]) ? $results[0] : $results));
+        }
+        catch (\Exception $ex) {
+            // need to delete the above table entry and clean up
+            if (isset($id) && !empty($id)) {
+                $this->nativeDb->deleteSqlRecordsByIds($table, $id, 'Id', false, 'Id,Name');
+            }
+            throw $ex;
+        }
+    }
+
+    public function createSystemRecords($table, $records, $rollback = false, $fields = '')
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('create', $table);
+        if (!isset($records) || empty($records)) {
+            throw new \Exception('[InvalidParam]: There are no record sets in the request.');
+        }
+        if (!isset($records[0])) { // isArrayNumeric($records)
+            // conversion from xml can pull single record out of array format
+            $records = array($records);
+        }
+        $out = array();
+        foreach ($records as $record) {
+            try {
+                $out[] = $this->createSystemRecordLow($table, $record, $fields);
+            }
+            catch (\Exception $ex) {
+                $out[] = array('fault' => array('faultString' => $ex->getMessage(),
+                                                'faultCode' => 'RequestFailed'));
+            }
+        }
+
+        return array('record' => $out);
+    }
+
+    protected function updateSystemRecordLow($table, $record, $fields)
+    {
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new \Exception('[InvalidParam]: There are no fields in the record set.');
+        }
+        try {
+            // before record update
+            $this->validateUniqueSystemName($table, $record['fields'], true);
+            // specific
+            switch (strtolower($table)) {
+            case 'user':
+                $this->validateUser($record['fields'], true);
+                break;
+            case 'app':
+                // need name and isUrlExternal to create app directory in storage
+                $fields = Utilities::addOnceToList($fields, 'Name', ',');
+                break;
+            }
+            $id = Utilities::getArrayValue('Id', $record['fields'], '');
+            if (empty($id)) {
+                throw new \Exception("Identifying field 'Id' can not be empty for update request.");
+            }
+            $record['fields'] = Utilities::removeOneFromArray('Id', $record['fields']);
+
+            $db = $this->nativeDb;
+            $results = $db->updateSqlRecordsByIds($table, $record['fields'], $id, 'Id', false, $fields);
+
+            // after record update
+            switch (strtolower($table)) {
+            case 'app':
+                // need name and isExternal to create app directory in storage
+                $isUrlExternal = Utilities::getArrayValue('IsUrlExternal', $record, null);
+                if (isset($isUrlExternal)) {
+                    $name = (isset($results[0]['Name'])) ? $results[0]['Name'] : '';
+                    if (!empty($name)) {
+                        if (!Utilities::boolval($isUrlExternal)) {
+                            $appSvc = ServiceHandler::getInstance()->getServiceObject('App');
+                            if ($appSvc) {
+                                if (!$appSvc->appExists($name)) {
+                                    $appSvc->createApp($name);
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            case 'role':
+                if (isset($record['users'])) {
+                    try {
+                        $users = (isset($record['users']['assign'])) ? $record['users']['assign'] : '';
+                        if (!empty($users)) {
+                            $override = (isset($record['users']['override'])) ?
+                                Utilities::boolval($record['users']['override']) : false;
+                            $this->assignRole($id, $users, $override);
+                        }
+                        $users = (isset($record['users']['unassign'])) ? $record['users']['unassign'] : '';
+                        if (!empty($users)) {
+                            $this->unassignRole($id, $users);
+                        }
+                    }
+                    catch (\Exception $ex) {
+                        throw $ex;
+                    }
+                }
+                if (isset($record['fields']['services'])) {
+                    try {
+                        $services = $record['fields']['services'];
+                        $this->assignServiceAccess($id, $services);
+                    }
+                    catch (\Exception $ex) {
+                        throw $ex;
+                    }
+                }
+                break;
+            }
+
+            return array('fields' => (isset($results[0]) ? $results[0] : $results));
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    public function updateSystemRecords($table, $records, $rollback = false, $fields = '')
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('update', $table);
+        if (!isset($records) || empty($records)) {
+            throw new \Exception('[InvalidParam]: There are no record sets in the request.');
+        }
+
+        if (!isset($records[0])) {
+            // conversion from xml can pull single record out of array format
+            $records = array($records);
+        }
+        $out = array();
+        foreach ($records as $record) {
+            try {
+                $out[] = $this->updateSystemRecordLow($table, $record, $fields);
+            }
+            catch (\Exception $ex) {
+                $out[] = array('fault' => array('faultString' => $ex->getMessage(),
+                                                'faultCode' => 'RequestFailed'));
+            }
+        }
+
+        return array('record' => $out);
+    }
+
+    public function updateSystemRecordById($table, $record, $fields = '')
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('update', $table);
+
+        try {
+            $result = $this->updateSystemRecordLow($table, $record, $fields);
+
+            return (isset($result[0]) ? $result[0] : $result);
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error updating $table records.\n{$ex->getMessage()}");
+        }
+    }
+
+    protected function preDeleteUsers($id_list)
+    {
+        try {
+            $currUser = Utilities::getCurrentUserId();
+            $db = $this->nativeDb;
+            $ids = array_map('trim', explode(',', $id_list));
+            foreach ($ids as $id) {
+                if ($currUser === $id) {
+                    throw new \Exception("The current logged in user with Id '$id' can not be deleted.");
+                }
+            }
+            // todo check and make sure this is not the last admin user
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    protected function preDeleteRoles($id_list)
+    {
+        try {
+            $currentRole = Utilities::getCurrentRoleId();
+            $ids = array_map('trim', explode(',', $id_list));
+            if (false !== array_search($currentRole, $ids)) {
+                throw new \Exception("Your current role with Id '$currentRole' can not be deleted.");
+            }
+            $db = $this->nativeDb;
+            foreach ($ids as $id) {
+                // clean up User.RoleIds pointing here
+                $result = $db->retrieveSqlRecordsByFilter('User', 'Id,RoleIds', "RoleIds = '$id'");
+                $total = (isset($result['total'])) ? $result['total'] : '';
+                unset($result['total']);
+                if (!empty($result)) {
+                    foreach ($result as $key => $userInfo) {
+                        $result[$key]['RoleIds'] = '';
+                    }
+                    $db->updateSqlRecords('User', $result, 'Id');
+                }
+                // Clean out the RoleServiceAccess for this role
+                $db->deleteSqlRecordsByFilter('RoleServiceAccess', "RoleId = '$id'");
+            }
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    protected function preDeleteApps($id_list)
+    {
+        try {
+            $currApp = Utilities::getCurrentAppName();
+            $db = $this->nativeDb;
+            $result = $db->retrieveSqlRecordsByIds('App', $id_list, 'Id', 'Id,Name');
+            foreach ($result as $appInfo) {
+                if (!is_array($appInfo) || empty($appInfo)) {
+                    throw new \Exception("One of the application ids is invalid.");
+                }
+                $name = $appInfo['Name'];
+                if ($currApp === $name) {
+                    throw new \Exception("The currently running application '$name' can not be deleted.");
+                }
+            }
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+        try {
+            $store = ServiceHandler::getInstance()->getServiceObject('App');
+            foreach ($result as $appInfo) {
+                $id = $appInfo['Id'];
+                // delete roles - which need cleaning of users first
+                $roles = $db->retrieveSqlRecordsByFilter('Role', "Id", "AppIds='$id'");
+                unset($roles['total']);
+                $roleIdList = '';
+                foreach ($roles as $role) {
+                    $roleIdList .= (!empty($roleIdList)) ? ',' . $role['Id'] : $role['Id'];
+                }
+                if (!empty($roleIdList)) {
+                    $this->deleteSystemRecordsByIds('Role', $roleIdList);
+                }
+                // remove file storage
+                $name = $appInfo['Name'];
+                $store->deleteApp($name);
+            }
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    protected function preDeleteAppGroups($id_list)
+    {
+        try {
+            $db = $this->nativeDb;
+            $ids = array_map('trim', explode(',', $id_list));
+            foreach ($ids as $id) {
+                // %,$id,% is more accurate but in case of slopply updating by client, filter for %$id%
+                $result = $db->retrieveSqlRecordsByFilter('App', 'Id,AppGroupIds', "AppGroupIds like '%$id%'");
+                $total = (isset($result['total'])) ? $result['total'] : '';
+                unset($result['total']);
+                foreach ($result as $key => $appInfo) {
+                    $groupIds = (isset($appInfo['AppGroupIds'])) ? $appInfo['AppGroupIds'] : '';
+                    $groupIds = trim($groupIds, ','); // in case of sloppy updating
+                    if (false === stripos(",$groupIds,", ",$id,")) {
+                        unset($result[$key]);
+                        continue;
+                    }
+                    $groupIds = str_ireplace(",$id,", '', ",$groupIds,");
+                    $result[$key]['RoleIds'] = $groupIds;
+                }
+                $result = array_values($result);
+                if (!empty($result)) {
+                    $db->updateSqlRecords('App', $result, 'Id');
+                }
+            }
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    public function deleteSystemRecords($table, $records, $rollback = false, $fields = '')
+    {
+        if (!isset($records) || empty($records)) {
+            throw new \Exception('[InvalidParam]: There are no record sets in the request.');
+        }
+
+        if (!isset($records[0])) {
+            // conversion from xml can pull single record out of array format
+            $records = array($records);
+        }
+        $idList = '';
+        foreach ($records as $record) {
+            if (!isset($record['fields']) || empty($record['fields'])) {
+                throw new \Exception('[InvalidParam]: There are no fields in the record set.');
+            }
+            if (!empty($idList)) $idList .= ',';
+            $idList .= $record['fields']['Id'];
+        }
+
+        return $this->deleteSystemRecordsByIds($table, $idList, $fields);
+    }
+
+    public function deleteSystemRecordsByIds($table, $id_list, $fields = '')
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('delete', $table);
+
+        try {
+            switch (strtolower($table)) {
+            case "appgroup":
+                $this->preDeleteAppGroups($id_list);
+                break;
+            case "app":
+                $this->preDeleteApps($id_list);
+                break;
+            case "role":
+                $this->preDeleteRoles($id_list);
+                break;
+            case "user":
+                $this->preDeleteUsers($id_list);
+                break;
+            }
+
+            $db = $this->nativeDb;
+            $results = $db->deleteSqlRecordsByIds($table, $id_list, 'Id', false, $fields);
+            $out = array();
+            foreach ($results as $result) {
+                if (empty($result) || is_array($result)) {
+                    $out[] = array('fields' => $result);
+                }
+                else { // error
+                    $out[] = array('fault' => array('faultString' => $result,
+                                                    'faultCode' => 'RequestFailed'));
+                }
+            }
+
+            return array('record' => $out);
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error deleting $table records.\n{$ex->getMessage()}");
+        }
+    }
+
+    public function retrieveSystemRecords($table, $records, $fields = '', $extras = null)
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('read', $table);
+        $fields = $this->checkRetrievableSystemFields($table, $fields);
+
+        try {
+            $db = $this->nativeDb;
+            $results = $db->retrieveSqlRecords($table, $records, 'Id', $fields);
+            $out = array();
+            foreach ($results as $result) {
+                if (empty($result) || is_array($result)) {
+                    switch (strtolower($table)) {
+                    case 'appgroup':
+                        break;
+                    case 'role':
+                        if ((isset($result['Id']) && !empty($result['Id'])) &&
+                            (empty($fields) || (false !== stripos($fields, 'Services')))) {
+                            $permFields = 'ServiceId,Service,Component,Read,Create,Update,Delete';
+                            $permQuery = "RoleId='" . $result['Id'] . "'";
+                            $perms = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', $permFields, $permQuery, 0, 'Service');
+                            unset($perms['total']);
+                            $result['Services'] = $perms;
+                        }
+                        break;
+                    case 'service':
+                        if (isset($result['Type']) && !empty($result['Type'])) {
+                            switch (strtolower($result['Type'])) {
+                            case 'native':
+                            case 'managed':
+                                unset($result['BaseUrl']);
+                                unset($result['ParamList']);
+                                unset($result['HeaderList']);
+                                break;
+                            case 'web':
+                                break;
+                            }
+                        }
+                        break;
+                    case 'user':
+                        if (isset($extras['role'])) {
+                            if (isset($result['RoleId']) && !empty($result['RoleId'])) {
+                                $roleInfo = $this->retrieveSystemRecordsByIds('Role', $result['RoleId'], 'Id', '');
+                                $result['Role'] = $roleInfo[0];
+                            }
+                        }
+                        break;
+                    }
+                    $out[] = array('fields' => $result);
+                }
+                else { // error
+                    $out[] = array('fault' => array('faultString' => $result,
+                                                    'faultCode' => 'RequestFailed'));
+                }
+            }
+
+            return array('record' => $out);
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+        }
+    }
+
+    public function retrieveSystemRecordsByFilter($table, $fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = null)
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('read', $table);
+        $fields = $this->checkRetrievableSystemFields($table, $fields);
+
+        try {
+            $db = $this->nativeDb;
+            $results = $db->retrieveSqlRecordsByFilter($table, $fields, $filter, $limit, $order, $offset);
+            $total = (isset($results['total'])) ? $results['total'] : '';
+            unset($results['total']);
+            $out = array();
+            foreach ($results as $result) {
+                if (empty($result) || is_array($result)) {
+                    switch (strtolower($table)) {
+                    case 'appgroup':
+                        break;
+                    case 'role':
+                        if ((isset($result['Id']) && !empty($result['Id'])) &&
+                            (empty($fields) || (false !== stripos($fields, 'Services')))) {
+                            $permFields = 'ServiceId,Service,Component,Read,Create,Update,Delete';
+                            $permQuery = "RoleId='" . $result['Id'] . "'";
+                            $perms = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', $permFields, $permQuery, 0, 'Service');
+                            unset($perms['total']);
+                            $result['Services'] = $perms;
+                        }
+                        break;
+                    case 'service':
+                        if (isset($result['Type']) && !empty($result['Type'])) {
+                            switch (strtolower($result['Type'])) {
+                            case 'native':
+                            case 'managed':
+                                unset($result['BaseUrl']);
+                                unset($result['ParamList']);
+                                unset($result['HeaderList']);
+                                break;
+                            case 'web':
+                                break;
+                            }
+                        }
+                        break;
+                    case 'user':
+                        if (isset($extras['role'])) {
+                            if (isset($result['RoleId']) && !empty($result['RoleId'])) {
+                                $roleInfo = $this->retrieveSystemRecordsByIds('Role', $result['RoleId'], 'Id', '');
+                                $result['Role'] = $roleInfo[0];
+                            }
+                        }
+                        break;
+                    }
+                    $out[] = array('fields' => $result);
+                }
+                else { // error
+                    $out[] = array('fault' => array('faultString' => $result,
+                                                    'faultCode' => 'RequestFailed'));
+                }
+            }
+
+            return array('record' => $out, 'meta' => array('total' => $total));
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error retrieving $table records.\nquery: $filter\n{$ex->getMessage()}");
+        }
+    }
+
+    public function retrieveSystemRecordsByIds($table, $id_list, $fields = '', $extras = null)
+    {
+        if (empty($table)) {
+            throw new \Exception('[InvalidParam]: Table name can not be empty.');
+        }
+        $this->checkPermission('read', $table);
+        $fields = $this->checkRetrievableSystemFields($table, $fields);
+
+        try {
+            $db = $this->nativeDb;
+            $results = $db->retrieveSqlRecordsByIds($table, $id_list, 'Id', $fields);
+            $out = array();
+            foreach ($results as $result) {
+                if (empty($result) || is_array($result)) {
+                    switch (strtolower($table)) {
+                    case 'appgroup':
+                        break;
+                    case 'role':
+                        if ((isset($result['Id']) && !empty($result['Id'])) &&
+                            (empty($fields) || (false !== stripos($fields, 'Services')))) {
+                            $permFields = 'ServiceId,Service,Component,Read,Create,Update,Delete';
+                            $permQuery = "RoleId='" . $result['Id'] . "'";
+                            $perms = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', $permFields, $permQuery, 0, 'Service');
+                            unset($perms['total']);
+                            $result['Services'] = $perms;
+                        }
+                        break;
+                    case 'service':
+                        if (isset($result['Type']) && !empty($result['Type'])) {
+                            switch (strtolower($result['Type'])) {
+                            case 'native':
+                            case 'managed':
+                                unset($result['BaseUrl']);
+                                unset($result['ParamList']);
+                                unset($result['HeaderList']);
+                                break;
+                            case 'web':
+                                break;
+                            }
+                        }
+                        break;
+                    case 'user':
+                        if (isset($extras['role'])) {
+                            if (isset($result['RoleId']) && !empty($result['RoleId'])) {
+                                $roleInfo = $this->retrieveSystemRecordsByIds('Role', $result['RoleId'], 'Id', '');
+                                $result['Role'] = $roleInfo[0];
+                            }
+                        }
+                        break;
+                    }
+                    $out[] = array('fields' => $result);
+                }
+                else { // error
+                    $out[] = array('fault' => array('faultString' => $result,
+                                                    'faultCode' => 'RequestFailed'));
+                }
+            }
+
+            return array('record' => $out);
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+        }
+    }
+
+    public function describeSystem()
+    {
+        $tables = self::SYSTEM_TABLES;
+        try {
+            $db = $this->nativeDb;
+            return $db->describeDatabase($tables, '');
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error describing system tables.\n{$ex->getMessage()}");
+        }
+    }
+
+    public function describeTable($table)
+    {
+        try {
+            $db = $this->nativeDb;
+            return $db->describeTable($table);
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Error describing database table '$table'.\n{$ex->getMessage()}");
+        }
+    }
+
 }

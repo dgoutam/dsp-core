@@ -1,4 +1,5 @@
 <?php
+use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
 
 class AppController extends Controller
 {
@@ -11,7 +12,7 @@ class AppController extends Controller
 	/**
 	 * @return array action filters
 	 */
-	public function filters()
+	public function filtersx()
 	{
 		return array(
 			'accessControl', // perform access control for CRUD operations
@@ -24,7 +25,7 @@ class AppController extends Controller
 	 * This method is used by the 'accessControl' filter.
 	 * @return array access control rules
 	 */
-	public function accessRules()
+	public function accessRulesx()
 	{
 		return array(
 			array('allow',  // allow all users to perform 'index' and 'view' actions
@@ -44,6 +45,19 @@ class AppController extends Controller
 			),
 		);
 	}
+
+    public function actionStream()
+    {
+        $path = (isset($_GET['path']) ? $_GET['path'] : '');
+        try {
+            $app = ServiceHandler::getInstance()->getServiceObject('App');
+            $app->streamFile($path);
+            Yii::app()->end();
+        }
+        catch (\Exception $ex) {
+            die($ex->getMessage());
+        }
+    }
 
 	/**
 	 * Displays a particular model.

@@ -1,5 +1,6 @@
 <?php
 use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
+use CloudServicesPlatform\Storage\Database\PdoSqlDbSvc;
 use CloudServicesPlatform\Utilities\Utilities;
 
 class DbController extends Controller
@@ -7,10 +8,20 @@ class DbController extends Controller
     // Members
 
     /**
-     * Default response format
-     * either 'json' or 'xml'
+     * @var PdoSqlDbSvc
      */
-    private $format = 'json';
+    protected $sqlDb;
+
+    public function init()
+   	{
+        parent::init();
+        try {
+            $this->sqlDb = new PdoSqlDbSvc();
+        }
+        catch (\Exception $ex) {
+            throw new \Exception("Failed to create database service.\n{$ex->getMessage()}");
+        }
+   	}
 
     /**
      * @return array action filters

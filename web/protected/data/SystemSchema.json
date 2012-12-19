@@ -1,0 +1,525 @@
+{
+	"table": [
+        {
+            "name": "Label",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "Table",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "Field",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "Picklist",
+                    "type": "nvarchar",
+                    "size": 4000,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "Label",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "Plural",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "Session",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "nvarchar",
+                    "size": 32,
+                    "allow_null": false,
+                    "is_primary_key": true
+                },
+                {
+                    "name": "start_time",
+                    "type": "integer",
+                    "allow_null": false
+                },
+                {
+                    "name": "data",
+                    "type": "nvarchar",
+                    "size": 4000,
+                    "allow_null": false
+                }
+            ]
+        },
+	    {
+            "name": "User",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "FullName",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "Email",
+                    "type": "varchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "Phone",
+                    "type": "nvarchar",
+                    "size": 16,
+                    "allow_null": true
+                },
+                {
+                    "name": "UserName",
+                    "type": "nvarchar",
+                    "size": 32,
+                    "allow_null": false
+                },
+                {
+                    "name": "Password",
+                    "type": "nvarchar",
+                    "size": 32,
+                    "allow_null": true
+                },
+                {
+                    "name": "IsActive",
+                    "type": "boolean",
+                    "default": 1,
+                    "allow_null": false
+                },
+                {
+                    "name": "IsSysAdmin",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "ConfirmCode",
+                    "type": "varchar",
+                    "size": 128,
+                    "allow_null": true
+                },
+                {
+                    "name": "RoleId",
+                    "type": "reference",
+                    "ref_table": "Role",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                },
+                {
+                    "name": "FirstName",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "LastName",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "SecurityQuestion",
+                    "type": "nvarchar",
+                    "size": 255,
+                    "allow_null": true
+                },
+                {
+                    "name": "SecurityAnswer",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "CreatedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "CreatedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                },
+                {
+                    "name": "LastModifiedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "Role",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "Name",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "Description",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "AppIds",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "CreatedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "CreatedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "RoleServiceAccess",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "RoleId",
+                    "type": "reference",
+                    "ref_table": "Role",
+                    "ref_fields": "Id",
+                    "allow_null": false
+                },
+                {
+                    "name": "ServiceId",
+                    "type": "reference",
+                    "ref_table": "Service",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                },
+                {
+                    "name": "Service",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "Component",
+                    "type": "varchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "Read",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "Create",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "Update",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "Delete",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "Service",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "Name",
+                    "type": "varchar",
+                    "size": 50,
+                    "allow_null": false
+                },
+                {
+                    "name": "Label",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "IsActive",
+                    "type": "boolean",
+                    "default": 1,
+                    "allow_null": false
+                },
+                {
+                    "name": "Type",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "StorageName",
+                    "type": "varchar",
+                    "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "StorageType",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": true
+                },
+                {
+                    "name": "NativeFormat",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": true
+                },
+                {
+                    "name": "BaseUrl",
+                    "type": "varchar",
+                    "size": 255,
+                    "allow_null": true
+                },
+                {
+                    "name": "Parameters",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "Headers",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "CreatedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "CreatedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                },
+                {
+                    "name": "LastModifiedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "App",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "Name",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "Label",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "Description",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "IsActive",
+                    "type": "boolean",
+                    "default": 1,
+                    "allow_null": false
+                },
+                {
+                    "name": "Url",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "IsUrlExternal",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": true
+                },
+                {
+                    "name": "AppGroupIds",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "CreatedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "CreatedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                },
+                {
+                    "name": "LastModifiedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "AppGroup",
+            "field": [
+                {
+                    "name": "Id",
+                    "type": "pk"
+                },
+                {
+                    "name": "Name",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "Description",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "CreatedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedDate",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "CreatedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": false
+                },
+                {
+                    "name": "LastModifiedById",
+                    "type": "reference",
+                    "ref_table": "User",
+                    "ref_fields": "Id",
+                    "allow_null": false
+                }
+            ]
+        }
+    ],
+    "Service": [
+        {
+            "Name":"system","Label":"System","IsActive":1,"Type":"Native"
+        },
+        {
+            "Name":"user","Label":"User Login","IsActive":1,"Type":"Native"
+        },
+        {
+            "Name":"db","Label":"Database","IsActive":1,"Type":"Local SQL DB"
+        },
+        {
+            "Name":"app","Label":"Application Storage","IsActive":1,"Type":"Local File Storage"
+        },
+        {
+            "Name":"lib","Label":"Library Storage","IsActive":1,"Type":"Local File Storage"
+        },
+        {
+            "Name":"doc","Label":"Document Storage","IsActive":1,"Type":"Local File Storage"
+        }
+    ],
+    "App": [
+        {
+            "Name":"admin","Label":"System Admin","IsActive":1,
+            "Description":"DreamFactory Document Services Platform System Administration Application",
+            "Url":"app/admin/index.html","IsUrlExternal":1
+        }
+    ]
+}

@@ -1,0 +1,528 @@
+{
+	"table": [
+        {
+            "name": "df_label",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "table",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "field",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "picklist",
+                    "type": "nvarchar",
+                    "size": 4000,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "label",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "plural",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "df_session",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "nvarchar",
+                    "size": 32,
+                    "allow_null": false,
+                    "is_primary_key": true
+                },
+                {
+                    "name": "start_time",
+                    "type": "integer",
+                    "allow_null": false
+                },
+                {
+                    "name": "data",
+                    "type": "nvarchar",
+                    "size": 4000,
+                    "allow_null": false
+                }
+            ]
+        },
+	    {
+            "name": "df_user",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "full_name",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "email",
+                    "type": "varchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "phone",
+                    "type": "nvarchar",
+                    "size": 16,
+                    "allow_null": true
+                },
+                {
+                    "name": "username",
+                    "type": "nvarchar",
+                    "size": 32,
+                    "allow_null": false
+                },
+                {
+                    "name": "password",
+                    "type": "nvarchar",
+                    "size": 32,
+                    "allow_null": true
+                },
+                {
+                    "name": "is_active",
+                    "type": "boolean",
+                    "default": 1,
+                    "allow_null": false
+                },
+                {
+                    "name": "is_sys_admin",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "confirm_code",
+                    "type": "varchar",
+                    "size": 128,
+                    "allow_null": true
+                },
+                {
+                    "name": "role_id",
+                    "type": "reference",
+                    "ref_table": "df_role",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
+                    "name": "first_name",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "last_name",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "security_question",
+                    "type": "nvarchar",
+                    "size": 160,
+                    "allow_null": true
+                },
+                {
+                    "name": "security_answer",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "created_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "created_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
+                    "name": "last_modified_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "df_role",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "name",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "description",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "app_ids",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "created_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "created_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "df_role_service_access",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "role_id",
+                    "type": "reference",
+                    "ref_table": "df_role",
+                    "ref_fields": "id",
+                    "allow_null": false
+                },
+                {
+                    "name": "service_id",
+                    "type": "reference",
+                    "ref_table": "df_service",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
+                    "name": "service",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "component",
+                    "type": "varchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "read",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "create",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "update",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "delete",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "df_service",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "name",
+                    "type": "varchar",
+                    "size": 50,
+                    "allow_null": false
+                },
+                {
+                    "name": "label",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "is_active",
+                    "type": "boolean",
+                    "default": 1,
+                    "allow_null": false
+                },
+                {
+                    "name": "type",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "storage_name",
+                    "type": "varchar",
+                    "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "storage_type",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": true
+                },
+                {
+                    "name": "native_format",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": true
+                },
+                {
+                    "name": "base_url",
+                    "type": "varchar",
+                    "size": 255,
+                    "allow_null": true
+                },
+                {
+                    "name": "parameters",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "headers",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "created_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "created_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
+                    "name": "last_modified_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "df_app",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "name",
+                    "type": "varchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "label",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "description",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "is_active",
+                    "type": "boolean",
+                    "default": 1,
+                    "allow_null": false
+                },
+                {
+                    "name": "url",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "is_url_external",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": true
+                },
+                {
+                    "name": "app_group_ids",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "created_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "created_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
+                    "name": "last_modified_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": true
+                }
+            ]
+        },
+        {
+            "name": "df_app_group",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "name",
+                    "type": "nvarchar",
+                    "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "description",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "created_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_date",
+                    "type": "datetime",
+                    "allow_null": false
+                },
+                {
+                    "name": "created_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": false
+                },
+                {
+                    "name": "last_modified_by_id",
+                    "type": "reference",
+                    "ref_table": "df_user",
+                    "ref_fields": "id",
+                    "allow_null": false
+                }
+            ]
+        }
+    ],
+    "service": [
+        {
+            "name":"system","label":"System","is_active":1,"type":"Native"
+        },
+        {
+            "name":"user","label":"User Login","is_active":1,"type":"Native"
+        },
+        {
+            "name":"db","label":"Database","is_active":1,"type":"Local SQL DB"
+        },
+        {
+            "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage",
+            "storage_name":"applications"
+        },
+        {
+            "name":"lib","label":"Library Storage","is_active":1,"type":"Local File Storage",
+            "storage_name":"libraries"
+        },
+        {
+            "name":"doc","label":"Document Storage","is_active":1,"type":"Local File Storage",
+            "storage_name":"documents"
+        }
+    ],
+    "app": [
+        {
+            "name":"admin","label":"System Admin","is_active":1,
+            "description":"DreamFactory Document Services Platform System Administration Application",
+            "url":"app/admin/index.html","is_url_external":1
+        }
+    ]
+}
