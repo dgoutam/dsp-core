@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This is the model class for table "df_session".
+ * This is the model class for table "session".
  *
- * The followings are the available columns in table 'df_session':
+ * The followings are the available columns in table 'session':
  * @property string $id
  * @property integer $start_time
  * @property string $data
@@ -25,7 +25,7 @@ class Session extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_session';
+		return 'session';
 	}
 
 	/**
@@ -35,15 +35,7 @@ class Session extends CActiveRecord
 	{
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
-		return array(
-			array('id, start_time, data', 'required'),
-			array('start_time', 'numerical', 'integerOnly'=>true),
-			array('id', 'length', 'max'=>32),
-			array('data', 'length', 'max'=>4000),
-			// The following rule is used by search().
-			// Please remove those attributes that should not be searched.
-			array('id, start_time, data', 'safe', 'on'=>'search'),
-		);
+		return array();
 	}
 
 	/**
@@ -53,8 +45,7 @@ class Session extends CActiveRecord
 	{
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
-		return array(
-		);
+		return array();
 	}
 
 	/**
@@ -63,7 +54,7 @@ class Session extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'ID',
+			'id' => 'Id',
 			'start_time' => 'Start Time',
 			'data' => 'Data',
 		);
@@ -79,10 +70,8 @@ class Session extends CActiveRecord
 		// should not be searched.
 
 		$criteria=new CDbCriteria;
-
 		$criteria->compare('id',$this->id,true);
 		$criteria->compare('start_time',$this->start_time);
-		$criteria->compare('data',$this->data,true);
 
 		return new CActiveDataProvider($this, array(
 			'criteria'=>$criteria,

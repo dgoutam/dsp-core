@@ -1,7 +1,7 @@
 {
 	"table": [
         {
-            "name": "df_label",
+            "name": "label",
             "field": [
                 {
                     "name": "id",
@@ -45,7 +45,7 @@
             ]
         },
         {
-            "name": "df_session",
+            "name": "session",
             "field": [
                 {
                     "name": "id",
@@ -68,7 +68,7 @@
             ]
         },
 	    {
-            "name": "df_user",
+            "name": "user",
             "field": [
                 {
                     "name": "id",
@@ -95,13 +95,13 @@
                 {
                     "name": "username",
                     "type": "nvarchar",
-                    "size": 32,
+                    "size": 40,
                     "allow_null": false
                 },
                 {
                     "name": "password",
                     "type": "nvarchar",
-                    "size": 32,
+                    "size": 40,
                     "allow_null": true
                 },
                 {
@@ -125,7 +125,7 @@
                 {
                     "name": "role_id",
                     "type": "reference",
-                    "ref_table": "df_role",
+                    "ref_table": "role",
                     "ref_fields": "id",
                     "allow_null": true
                 },
@@ -144,7 +144,7 @@
                 {
                     "name": "security_question",
                     "type": "nvarchar",
-                    "size": 160,
+                    "size": 128,
                     "allow_null": true
                 },
                 {
@@ -166,21 +166,21 @@
                 {
                     "name": "created_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": true
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": true
                 }
             ]
         },
         {
-            "name": "df_role",
+            "name": "role",
             "field": [
                 {
                     "name": "id",
@@ -189,7 +189,7 @@
                 {
                     "name": "name",
                     "type": "nvarchar",
-                    "size": 80,
+                    "size": 40,
                     "allow_null": false
                 },
                 {
@@ -215,21 +215,21 @@
                 {
                     "name": "created_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": false
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": false
                 }
             ]
         },
         {
-            "name": "df_role_service_access",
+            "name": "role_service_access",
             "field": [
                 {
                     "name": "id",
@@ -238,14 +238,14 @@
                 {
                     "name": "role_id",
                     "type": "reference",
-                    "ref_table": "df_role",
+                    "ref_table": "role",
                     "ref_fields": "id",
                     "allow_null": false
                 },
                 {
                     "name": "service_id",
                     "type": "reference",
-                    "ref_table": "df_service",
+                    "ref_table": "service",
                     "ref_fields": "id",
                     "allow_null": true
                 },
@@ -288,7 +288,7 @@
             ]
         },
         {
-            "name": "df_service",
+            "name": "service",
             "field": [
                 {
                     "name": "id",
@@ -297,7 +297,7 @@
                 {
                     "name": "name",
                     "type": "varchar",
-                    "size": 50,
+                    "size": 40,
                     "allow_null": false
                 },
                 {
@@ -328,6 +328,11 @@
                     "name": "storage_type",
                     "type": "varchar",
                     "size": 40,
+                    "allow_null": true
+                },
+                {
+                    "name": "credentials",
+                    "type": "text",
                     "allow_null": true
                 },
                 {
@@ -365,21 +370,21 @@
                 {
                     "name": "created_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": true
+                    "allow_null": false
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": true
+                    "allow_null": false
                 }
             ]
         },
         {
-            "name": "df_app",
+            "name": "app",
             "field": [
                 {
                     "name": "id",
@@ -417,12 +422,47 @@
                     "name": "is_url_external",
                     "type": "boolean",
                     "default": 0,
-                    "allow_null": true
+                    "allow_null": false
                 },
                 {
                     "name": "app_group_ids",
                     "type": "text",
                     "allow_null": true
+                },
+                {
+                    "name": "schemas",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "filter_by_device",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "filter_phone",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "filter_tablet",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "filter_desktop",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "requires_plugin",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
                 },
                 {
                     "name": "created_date",
@@ -437,21 +477,21 @@
                 {
                     "name": "created_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": true
+                    "allow_null": false
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": true
+                    "allow_null": false
                 }
             ]
         },
         {
-            "name": "df_app_group",
+            "name": "app_group",
             "field": [
                 {
                     "name": "id",
@@ -460,7 +500,7 @@
                 {
                     "name": "name",
                     "type": "nvarchar",
-                    "size": 80,
+                    "size": 40,
                     "allow_null": false
                 },
                 {
@@ -481,48 +521,18 @@
                 {
                     "name": "created_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": false
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
-                    "ref_table": "df_user",
+                    "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": false
                 }
             ]
-        }
-    ],
-    "service": [
-        {
-            "name":"system","label":"System","is_active":1,"type":"Native"
-        },
-        {
-            "name":"user","label":"User Login","is_active":1,"type":"Native"
-        },
-        {
-            "name":"db","label":"Database","is_active":1,"type":"Local SQL DB"
-        },
-        {
-            "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage",
-            "storage_name":"applications"
-        },
-        {
-            "name":"lib","label":"Library Storage","is_active":1,"type":"Local File Storage",
-            "storage_name":"libraries"
-        },
-        {
-            "name":"doc","label":"Document Storage","is_active":1,"type":"Local File Storage",
-            "storage_name":"documents"
-        }
-    ],
-    "app": [
-        {
-            "name":"admin","label":"System Admin","is_active":1,
-            "description":"DreamFactory Document Services Platform System Administration Application",
-            "url":"app/admin/index.html","is_url_external":1
         }
     ]
 }

@@ -1,14 +1,17 @@
 <?php
 
 /**
- * This is the model class for table "df_service".
+ * This is the model class for table "service".
  *
- * The followings are the available columns in table 'df_service':
+ * The followings are the available columns in table 'service':
  * @property integer $id
  * @property string $name
  * @property string $label
  * @property boolean $is_active
  * @property string $type
+ * @property string $storage_type
+ * @property string $storage_name
+ * @property string $credentials
  * @property string $native_format
  * @property string $base_url
  * @property string $parameters
@@ -35,7 +38,7 @@ class Service extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_service';
+		return 'service';
 	}
 
 	/**
@@ -56,7 +59,7 @@ class Service extends CActiveRecord
 			array('is_active, parameters, headers, created_date, last_modified_date', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, label, is_active, type, native_format, base_url, parameters, headers, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, label, is_active, type, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -77,7 +80,7 @@ class Service extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'ID',
+			'id' => 'Id',
 			'name' => 'Name',
 			'label' => 'Label',
 			'is_active' => 'Is Active',
@@ -109,10 +112,6 @@ class Service extends CActiveRecord
 		$criteria->compare('label',$this->label,true);
 		$criteria->compare('is_active',$this->is_active);
 		$criteria->compare('type',$this->type,true);
-		$criteria->compare('native_format',$this->native_format,true);
-		$criteria->compare('base_url',$this->base_url,true);
-		$criteria->compare('parameters',$this->parameters,true);
-		$criteria->compare('headers',$this->headers,true);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);
 		$criteria->compare('created_by_id',$this->created_by_id);

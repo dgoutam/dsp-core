@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This is the model class for table "df_app_group".
+ * This is the model class for table "app_group".
  *
- * The followings are the available columns in table 'df_app_group':
+ * The followings are the available columns in table 'app_group':
  * @property integer $id
  * @property string $name
  * @property string $description
@@ -33,7 +33,7 @@ class AppGroup extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_app_group';
+		return 'app_group';
 	}
 
 	/**
@@ -50,7 +50,7 @@ class AppGroup extends CActiveRecord
 			array('description, created_date, last_modified_date', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, description, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -73,7 +73,7 @@ class AppGroup extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'ID',
+			'id' => 'Id',
 			'name' => 'Name',
 			'description' => 'Description',
 			'created_date' => 'Created Date',
@@ -96,7 +96,6 @@ class AppGroup extends CActiveRecord
 
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
-		$criteria->compare('description',$this->description,true);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);
 		$criteria->compare('created_by_id',$this->created_by_id);

@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This is the model class for table "df_role".
+ * This is the model class for table "role".
  *
- * The followings are the available columns in table 'df_role':
+ * The followings are the available columns in table 'role':
  * @property integer $id
  * @property string $name
  * @property string $description
@@ -30,7 +30,7 @@ class Role extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_role';
+		return 'role';
 	}
 
 	/**
@@ -47,7 +47,7 @@ class Role extends CActiveRecord
 			array('description, app_ids, created_date, last_modified_date', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, description, app_ids, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, app_ids, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -58,8 +58,7 @@ class Role extends CActiveRecord
 	{
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
-		return array(
-		);
+		return array();
 	}
 
 	/**
@@ -68,7 +67,7 @@ class Role extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'ID',
+			'id' => 'Id',
 			'name' => 'Name',
 			'description' => 'Description',
 			'app_ids' => 'App Ids',
@@ -92,7 +91,6 @@ class Role extends CActiveRecord
 
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
-		$criteria->compare('description',$this->description,true);
 		$criteria->compare('app_ids',$this->app_ids,true);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);

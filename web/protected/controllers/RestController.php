@@ -25,8 +25,8 @@ class RestController extends Controller
     {
         try {
             $this->detectCommonParams();
-            $svcHandler = ServiceHandler::getInstance();
-            $result = $svcHandler->getServiceListing();
+            $svc = ServiceHandler::getInstance();
+            $result = $svc->getServiceListing();
             $this->handleResults($result);
         }
         catch (Exception $ex) {
@@ -39,10 +39,10 @@ class RestController extends Controller
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('GET', array(), $_REQUEST);
+            $service = Utilities::getArrayValue('service', $_GET, '');
+            $svc = ServiceHandler::getInstance();
+            $svcObj = $svc->getServiceObject($service);
+            $result = $svcObj->actionGet();
 
             $type = $svcObj->getType();
             if (0 === strcasecmp($type, 'Web')) {
@@ -63,12 +63,10 @@ class RestController extends Controller
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('GET', $resource, $_REQUEST);
+            $service = Utilities::getArrayValue('service', $_GET, '');
+            $svc = ServiceHandler::getInstance();
+            $svcObj = $svc->getServiceObject($service);
+            $result = $svcObj->actionGet();
 
             $type = $svcObj->getType();
             if (0 === strcasecmp($type, 'Web')) {
@@ -116,12 +114,10 @@ class RestController extends Controller
                     break;
                 }
             }
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('POST', $resource, $_REQUEST);
+            $service = Utilities::getArrayValue('service', $_GET, '');
+            $svc = ServiceHandler::getInstance();
+            $svcObj = $svc->getServiceObject($service);
+            $result = $svcObj->actionPost();
 
             $type = $svcObj->getType();
             if (0 === strcasecmp($type, 'Web')) {
@@ -142,12 +138,10 @@ class RestController extends Controller
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('MERGE', $resource, $_REQUEST);
+            $service = Utilities::getArrayValue('service', $_GET, '');
+            $svc = ServiceHandler::getInstance();
+            $svcObj = $svc->getServiceObject($service);
+            $result = $svcObj->actionMerge();
 
             $type = $svcObj->getType();
             if (0 === strcasecmp($type, 'Web')) {
@@ -168,12 +162,10 @@ class RestController extends Controller
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('MERGE', $resource, $_REQUEST);
+            $service = Utilities::getArrayValue('service', $_GET, '');
+            $svc = ServiceHandler::getInstance();
+            $svcObj = $svc->getServiceObject($service);
+            $result = $svcObj->actionMerge();
 
             $type = $svcObj->getType();
             if (0 === strcasecmp($type, 'Web')) {
@@ -194,12 +186,10 @@ class RestController extends Controller
     {
         try {
             $this->detectCommonParams();
-            $service = (isset($_GET['service']) ? $_GET['service'] : '');
-            $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
-            $resource = (!empty($resource)) ? explode('/', $resource) : array();
-            $svcHandler = ServiceHandler::getInstance();
-            $svcObj = $svcHandler->getServiceObject($service);
-            $result = $svcObj->handleRestRequest('DELETE', $resource, $_REQUEST);
+            $service = Utilities::getArrayValue('service', $_GET, '');
+            $svc = ServiceHandler::getInstance();
+            $svcObj = $svc->getServiceObject($service);
+            $result = $svcObj->actionDelete();
 
             $type = $svcObj->getType();
             if (0 === strcasecmp($type, 'Web')) {

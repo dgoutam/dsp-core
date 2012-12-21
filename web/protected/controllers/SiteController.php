@@ -1,5 +1,7 @@
 <?php
 use \CloudServicesPlatform\ServiceHandlers\ServiceHandler;
+use CloudServicesPlatform\Utilities\Utilities;
+use CloudServicesPlatform\Storage\Database\PdoSqlDbSvc;
 
 class SiteController extends Controller
 {
@@ -33,7 +35,7 @@ class SiteController extends Controller
 			if ( 'ready' === $this->getSystemState() )
 			{
                 $svc = ServiceHandler::getInstance();
-				$app = $svc->getServiceObject( 'App' );
+				$app = $svc->getServiceObject('App');
 				// check if loaded in blob storage as app
 				if ( $app->appExists( 'LaunchPad' ) )
 				{
@@ -153,8 +155,9 @@ class SiteController extends Controller
    		{
    			$model->attributes = $_POST['InitForm'];
    			// validate user input, configure the system and redirect to the previous page
-   			if ( $model->validate() && $model->configure() )
+   			if ( $model->validate())
    			{
+                $this->configure($model->attributes);
    				$this->redirect( Yii::app()->user->returnUrl );
    			}
             $this->refresh();
@@ -186,29 +189,29 @@ class SiteController extends Controller
     {
         try {
             $tables = Yii::app()->db->schema->getTableNames();
-            if (!in_array('df_app', $tables) ||
-                !in_array('df_app_group', $tables) ||
-                !in_array('df_label', $tables) ||
-                !in_array('df_role', $tables) ||
-                !in_array('df_role_service_access', $tables) ||
-                !in_array('df_service', $tables) ||
-                !in_array('df_session', $tables) ||
-                !in_array('df_user', $tables)) {
+            if (!in_array('app', $tables) ||
+                !in_array('app_group', $tables) ||
+                !in_array('label', $tables) ||
+                !in_array('role', $tables) ||
+                !in_array('role_service_access', $tables) ||
+                !in_array('service', $tables) ||
+                !in_array('session', $tables) ||
+                !in_array('user', $tables)) {
                 return 'init required';
             }
-            $db = new \CloudServicesPlatform\Storage\Database\PdoSqlDbSvc('df_');
-            $result = $db->retrieveSqlRecordsByFilter('df_service', 'name');
+            $db = new PdoSqlDbSvc();
+            $result = $db->retrieveSqlRecordsByFilter('service', 'name');
             unset($result['total']);
             if (count($result) < 1) {
                 return 'init required';
             }
-            $result = $db->retrieveSqlRecordsByFilter('df_app', 'name');
+            $result = $db->retrieveSqlRecordsByFilter('app', 'name');
             unset($result['total']);
             if (count($result) < 1) {
                 return 'init required';
             }
 
-            $result = $db->retrieveSqlRecordsByFilter('df_user', 'username', "is_sys_admin = 1", 1);
+            $result = $db->retrieveSqlRecordsByFilter('user', 'username', "is_sys_admin = 1", 1);
             unset($result['total']);
             if (count($result) < 1) {
                 return 'admin required';
@@ -219,4 +222,146 @@ class SiteController extends Controller
             throw $ex;
         }
     }
+
+    /**
+     * Configures the system.
+     *
+     * @param array $data
+     * @throws Exception
+     * @return boolean whether configuration is successful
+     */
+   	public function configure($data = array())
+   	{
+        try {
+            $contents = file_get_contents(Yii::app()->basePath.'/data/system_schema.json');
+            if (empty($contents)) {
+                throw new \Exception("Empty or no system schema file found.");
+            }
+            $contents = Utilities::jsonToArray($contents);
+            // create system tables
+            $tables = Utilities::getArrayValue('table', $contents);
+            if (empty($tables)) {
+                throw new \Exception("No default system schema found.");
+            }
+            $db = new PdoSqlDbSvc();
+            $result = $db->createTables($tables, true, true);
+            // setup session stored procedure
+            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
+                      WHERE ROUTINE_TYPE="PROCEDURE"
+                          AND ROUTINE_SCHEMA="dreamfactory"
+                          AND ROUTINE_NAME="UpdateOrInsertSession";';
+            $result = $db->singleSqlQuery($query);
+            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
+                switch ($db->getDriverType()) {
+                case Utilities::DRV_SQLSRV:
+                    $query =
+                        'CREATE PROCEDURE dbo.UpdateOrInsertSession
+                           @id nvarchar(32),
+                           @start_time int,
+                           @data nvarchar(4000)
+                        AS
+                        BEGIN
+                            IF EXISTS (SELECT id FROM session WHERE id = @id)
+                                BEGIN
+                                    UPDATE session
+                                    SET  data = @data, start_time = @start_time
+                                    WHERE id = @id
+                                END
+                            ELSE
+                                BEGIN
+                                    INSERT INTO session (id, start_time, data)
+                                    VALUES ( @id, @start_time, @data )
+                                END
+                        END';
+                    break;
+                case Utilities::DRV_MYSQL:
+                default:
+                    $query =
+                        'CREATE PROCEDURE `UpdateOrInsertSession`(IN the_id nvarchar(32),
+                                                                  IN the_start int,
+                                                                  IN the_data nvarchar(4000))
+                        BEGIN
+                            IF EXISTS (SELECT `id` FROM `session` WHERE `id` = the_id) THEN
+                                UPDATE session
+                                SET  `data` = the_data, `start_time` = the_start
+                                WHERE `id` = the_id;
+                            ELSE
+                                INSERT INTO session (`id`, `start_time`, `data`)
+                                VALUES ( the_id, the_start, the_data );
+                            END IF;
+                        END';
+                    break;
+                }
+                $db->singleSqlExecute($query);
+            }
+            // refresh the schema that we just added
+            Yii::app()->db->schema->refresh();
+
+            // create and login first admin user
+            // fill out the user fields for creation
+            $username = Utilities::getArrayValue('username', $data);
+            $firstName = Utilities::getArrayValue('firstName', $data);
+            $lastName = Utilities::getArrayValue('lastName', $data);
+            $fields = array('username' => $username,
+                            'email' => Utilities::getArrayValue('email', $data),
+                            'password' => md5(Utilities::getArrayValue('password', $data)),
+                            'first_name' => $firstName,
+                            'last_name' => $lastName,
+                            'full_name' => $firstName . ' ' . $lastName,
+                            'is_active' => true,
+                            'is_sys_admin' => true,
+                            'confirm_code' => 'y'
+            );
+            $result = $db->retrieveSqlRecordsByFilter('user', 'id', "username = '$username'", 1);
+            unset($result['total']);
+            if (count($result) > 0) {
+                throw new \Exception("A user already exists with the username '$username'.");
+            }
+            $result = $db->createSqlRecord('user', $fields);
+            if (!isset($result[0])) {
+                error_log(print_r($result, true));
+                throw new \Exception("Failed to create user.");
+            }
+            $userId = Utilities::getArrayValue('id', $result[0]);
+            if (empty($userId)) {
+                error_log(print_r($result[0], true));
+                throw new \Exception("Failed to create user.");
+            }
+            Utilities::setCurrentUserId($userId);
+
+            // init system tables with records
+            $contents = file_get_contents(Yii::app()->basePath.'/data/system_data.json');
+            if (empty($contents)) {
+                throw new \Exception("Empty or no system data file found.");
+            }
+            $contents = Utilities::jsonToArray($contents);
+            $result = $db->retrieveSqlRecordsByFilter('service', 'id', '', 1);
+            unset($result['total']);
+            if (empty($result)) {
+                $services = Utilities::getArrayValue('service', $contents);
+                if (empty($services)) {
+                    error_log(print_r($contents, true));
+                    throw new \Exception("No default system services found.");
+                }
+                $db->createSqlRecords('service', $services, true);
+            }
+            $result = $db->retrieveSqlRecordsByFilter('app', 'id', '', 1);
+            unset($result['total']);
+            if (empty($result)) {
+                $apps = Utilities::getArrayValue('app', $contents);
+                if (empty($apps)) {
+                    error_log(print_r($contents, true));
+                    throw new \Exception("No default system apps found.");
+                }
+                $db->createSqlRecords('app', $apps, true);
+            }
+
+            return true;
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+        return false;
+   	}
+
 }

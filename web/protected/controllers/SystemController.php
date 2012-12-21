@@ -19,7 +19,7 @@ class SystemController extends Controller
    	{
         parent::init();
         try {
-            $this->nativeDb = new PdoSqlDbSvc('df_');
+            $this->nativeDb = new PdoSqlDbSvc();
         }
         catch (\Exception $ex) {
             throw new \Exception("Failed to create native database service.\n{$ex->getMessage()}");
@@ -91,7 +91,7 @@ class SystemController extends Controller
                 }
                 break;
             case 'app':
-            case 'appgroup':
+            case 'app_group':
             case 'role':
             case 'service':
             case 'user':
@@ -168,7 +168,7 @@ class SystemController extends Controller
                 throw new \Exception("System schema can not currently be modified through this API.");
                 break;
             case 'app':
-            case 'appgroup':
+            case 'app_group':
             case 'role':
             case 'service':
             case 'user':
@@ -210,7 +210,7 @@ class SystemController extends Controller
                 throw new \Exception("System schema can not currently be modified through this API.");
                 break;
             case 'app':
-            case 'appgroup':
+            case 'app_group':
             case 'role':
             case 'service':
             case 'user':
@@ -251,7 +251,7 @@ class SystemController extends Controller
                 throw new \Exception("System schema can not currently be modified through this API.");
                 break;
             case 'app':
-            case 'appgroup':
+            case 'app_group':
             case 'role':
             case 'service':
             case 'user':
@@ -310,10 +310,9 @@ class SystemController extends Controller
     {
         if (!empty($id)) {
             try {
-                $db = $this->nativeDb;
-                $result = $db->retrieveSqlRecordsByIds('App', $id, 'Id', 'Name');
+                $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $id, 'id', 'name');
                 if (count($result) > 0) {
-                    return $result[0]['Name'];
+                    return $result[0]['name'];
                 }
             }
             catch (\Exception $ex) {
@@ -328,10 +327,9 @@ class SystemController extends Controller
     {
         if (!empty($name)) {
             try {
-                $db = $this->nativeDb;
-                $result = $db->retrieveSqlRecordsByIds('App', $name, 'Name', 'Id');
+                $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $name, 'name', 'id');
                 if (count($result) > 0) {
-                    return $result[0]['Id'];
+                    return $result[0]['id'];
                 }
             }
             catch (\Exception $ex) {
@@ -350,14 +348,13 @@ class SystemController extends Controller
     protected function getUserIdsFromNames($user_names)
     {
         try {
-            $db = $this->nativeDb;
-            $result = $db->retrieveSqlRecordsByIds('User', "'$user_names'", 'UserName', 'Id');
+            $result = $this->nativeDb->retrieveSqlRecordsByIds('user', "'$user_names'", 'username', 'id');
             $userIds = '';
             foreach ($result as $item) {
                 if (!empty($userIds)) {
                     $userIds .= ',';
                 }
-                $userIds .= $item['Id'];
+                $userIds .= $item['id'];
             }
 
             return $userIds;
@@ -369,7 +366,7 @@ class SystemController extends Controller
 
     public function assignRole($role_id, $user_ids = '', $user_names = '', $override = false)
     {
-        $this->checkPermission('create', 'RoleAssign');
+        Utilities::checkPermission('create', 'system', 'RoleAssign');
         // ids have preference, if blank, use names for users
         // override is true/false, true allows overriding an existing role assignment
         // i.e. move user to a different role,
@@ -392,12 +389,11 @@ class SystemController extends Controller
 
         $user_ids = implode(',', array_map('trim', explode(',', $user_ids)));
         try {
-            $db = $this->nativeDb;
-            $users = $db->retrieveSqlRecordsByIds('User', $user_ids, 'Id', 'RoleIds,Id');
+            $users = $this->nativeDb->retrieveSqlRecordsByIds('user', $user_ids, 'id', 'role_id,id');
             foreach ($users as $key => $user) {
-                $users[$key]['RoleIds'] = $role_id;
+                $users[$key]['role_id'] = $role_id;
             }
-            $db->updateSqlRecords('User', $users, 'Id', false, 'Id');
+            $this->nativeDb->updateSqlRecords('user', $users, 'id', false, 'id');
         }
         catch (\Exception $ex) {
             throw new \Exception("Error updating users.\n{$ex->getMessage()}");
@@ -406,7 +402,7 @@ class SystemController extends Controller
 
     public function unassignRole($role_id, $user_ids = '', $user_names = '')
     {
-        $this->checkPermission('delete', 'RoleAssign');
+        Utilities::checkPermission('delete', 'system', 'RoleAssign');
         // ids have preference, if blank, use names for both role and users
         // use this to officially remove a user from the current app
         if (empty($role_id)) {
@@ -427,15 +423,14 @@ class SystemController extends Controller
 
         $user_ids = implode(',', array_map('trim', explode(',', $user_ids)));
         try {
-            $db = $this->nativeDb;
-            $users = $db->retrieveSqlRecordsByIds('User', $user_ids, 'Id', 'RoleIds,Id');
+            $users = $this->nativeDb->retrieveSqlRecordsByIds('user', $user_ids, 'id', 'role_id,id');
             foreach ($users as $key => $user) {
-                $userRoleId = trim($user['RoleIds']);
+                $userRoleId = trim($user['role_id']);
                 if ($userRoleId === $role_id) {
-                    $users[$key]['RoleIds'] = '';
+                    $users[$key]['role_id'] = '';
                 }
             }
-            $db->updateSqlRecords('User', $users, 'Id', false, 'Id');
+            $this->nativeDb->updateSqlRecords('user', $users, 'id', false, 'id');
         }
         catch (\Exception $ex) {
             throw new \Exception("Error updating users.\n{$ex->getMessage()}");
@@ -444,27 +439,26 @@ class SystemController extends Controller
 
     protected function assignServiceAccess($role_id, $services = array())
     {
-        $db = $this->nativeDb;
         // get any pre-existing access records
-        $old = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', 'Id', "RoleId = '$role_id'");
+        $old = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', 'id', "role_id = '$role_id'");
         unset($old['total']);
         // create a new access record for each service
         $noDupes = array();
         if (!empty($services)) {
             foreach ($services as $key=>$sa) {
-                $services[$key]['roleId'] = $role_id;
+                $services[$key]['role_id'] = $role_id;
                 // validate service
                 $component = Utilities::getArrayValue('component', $sa);
                 $serviceName = Utilities::getArrayValue('service', $sa);
-                $serviceId = Utilities::getArrayValue('serviceId', $sa);
+                $serviceId = Utilities::getArrayValue('service_id', $sa);
                 if (empty($serviceName) && empty($serviceId)) {
                     throw new \Exception("No service name or id in role service access.");
                 }
                 if ('*' !== $serviceName) { // special 'All Services' designation
                     if (!empty($serviceId)) {
-                        $temp = $db->retrieveSqlRecordsByIds('Service', $serviceId, 'Id', 'Id,Name');
-                        if ((count($temp) > 0) && isset($temp[0]['Name']) && !empty($temp[0]['Name'])) {
-                            $serviceName = $temp[0]['Name'];
+                        $temp = $this->nativeDb->retrieveSqlRecordsByIds('service', $serviceId, 'id', 'id,name');
+                        if ((count($temp) > 0) && isset($temp[0]['name']) && !empty($temp[0]['name'])) {
+                            $serviceName = $temp[0]['name'];
                             $services[$key]['service'] = $serviceName;
                         }
                         else {
@@ -472,9 +466,9 @@ class SystemController extends Controller
                         }
                     }
                     elseif (!empty($serviceName)) {
-                        $temp = $db->retrieveSqlRecordsByIds('Service', $serviceName, 'Name', 'Id,Name');
-                        if ((count($temp) > 0) && isset($temp[0]['Id']) && !empty($temp[0]['Id'])) {
-                            $services[$key]['serviceid'] = $temp[0]['Id'];
+                        $temp = $this->nativeDb->retrieveSqlRecordsByIds('service', $serviceName, 'name', 'id,name');
+                        if ((count($temp) > 0) && isset($temp[0]['id']) && !empty($temp[0]['id'])) {
+                            $services[$key]['service_id'] = $temp[0]['id'];
                         }
                         else {
                             throw new \Exception("Invalid service name '$serviceName' in role service access.");
@@ -487,11 +481,11 @@ class SystemController extends Controller
                 }
                 $noDupes[] = $test;
             }
-            $db->createSqlRecords('RoleServiceAccess', $services);
+            $this->nativeDb->createSqlRecords('role_service_access', $services);
         }
-        if ((count($old) > 0) && isset($old[0]['Id'])) {
+        if ((count($old) > 0) && isset($old[0]['id'])) {
             // delete any pre-existing access records
-            $db->deleteSqlRecords('RoleServiceAccess', $old, 'Id');
+            $this->nativeDb->deleteSqlRecords('role_service_access', $old, 'id');
         }
     }
 
@@ -502,9 +496,9 @@ class SystemController extends Controller
             throw new \Exception("The Id field for $table can not be empty for updates.");
         }
         // make sure it is named
-        $nameField = 'Name';
-        if (0 == strcasecmp('User', $table)) {
-            $nameField = 'UserName';
+        $nameField = 'name';
+        if (0 == strcasecmp('user', $table)) {
+            $nameField = 'username';
         }
         $name = Utilities::getArrayValue($nameField, $fields, '');
         if (empty($name)) {
@@ -513,20 +507,19 @@ class SystemController extends Controller
             }
             throw new \Exception("The $nameField field for $table can not be empty.");
         }
-        if ($for_update && (0 == strcasecmp('App', $table))) {
+        if ($for_update && (0 == strcasecmp('app', $table))) {
             throw new \Exception("Application names can not change. Change the label instead.");
         }
         $appId = '';
-        if (0 == strcasecmp('Role', $table)) {
-            $appId = Utilities::getArrayValue('AppIds', $fields, '');
+        if (0 == strcasecmp('role', $table)) {
+            $appId = Utilities::getArrayValue('app_ids', $fields, '');
             if (empty($appId) && $for_update) {
                 // get the appId from the db for this role id
                 try {
-                    $db = $this->nativeDb;
-                    $result = $db->retrieveSqlRecordsByIds('Role', $id, 'Id', 'AppIds');
+                    $result = $this->nativeDb->retrieveSqlRecordsByIds('role', $id, 'id', 'app_ids');
 
                     if (count($result) > 0) {
-                        $appId = (isset($result[0]['AppIds'])) ? $result[0]['AppIds'] : '';
+                        $appId = (isset($result[0]['app_ids'])) ? $result[0]['app_ids'] : '';
                     }
                 }
                 catch (\Exception $ex) {
@@ -535,12 +528,11 @@ class SystemController extends Controller
             }
             // make sure it is unique
             try {
-                $db = $this->nativeDb;
-                $result = $db->retrieveSqlRecordsByFilter('Role', 'Id', "Name='$name' AND AppIds='$appId'", 1);
+                $result = $this->nativeDb->retrieveSqlRecordsByFilter('role', 'id', "name='$name' AND app_ids='$appId'", 1);
                 unset($result['total']);
                 if (count($result) > 0) {
                     if ($for_update) {
-                        if ($id != $result[0]['Id']) { // not self
+                        if ($id != $result[0]['id']) { // not self
                             throw new \Exception("A $table already exists with the $nameField '$name'.");
                         }
                     }
@@ -556,12 +548,11 @@ class SystemController extends Controller
         else {
             // make sure it is unique
             try {
-                $db = $this->nativeDb;
-                $result = $db->retrieveSqlRecordsByFilter($table, 'Id', "$nameField = '$name'", 1);
+                $result = $this->nativeDb->retrieveSqlRecordsByFilter($table, 'id', "$nameField = '$name'", 1);
                 unset($result['total']);
                 if (count($result) > 0) {
                     if ($for_update) {
-                        if ($id != $result[0]['Id']) { // not self
+                        if ($id != $result[0]['id']) { // not self
                             throw new \Exception("A $table already exists with the $nameField '$name'.");
                         }
                     }
@@ -581,13 +572,13 @@ class SystemController extends Controller
         switch (strtolower($table)) {
         case 'user':
             if (empty($fields)) {
-                $fields = 'Id,FullName,FirstName,LastName,UserName,Email,Phone,';
-                $fields .= 'IsActive,IsSysAdmin,RoleIds,CreatedDate,CreatedById,LastModifiedDate,LastModifiedById';
+                $fields = 'id,full_name,first_name,last_name,username,email,phone,';
+                $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
             }
             else {
-                $fields = Utilities::removeOneFromList($fields, 'Password', ',');
-                $fields = Utilities::removeOneFromList($fields, 'SecurityAnswer', ',');
-                $fields = Utilities::removeOneFromList($fields, 'ConfirmCode', ',');
+                $fields = Utilities::removeOneFromList($fields, 'password', ',');
+                $fields = Utilities::removeOneFromList($fields, 'security_answer', ',');
+                $fields = Utilities::removeOneFromList($fields, 'confirm_code', ',');
             }
             break;
         default:
@@ -601,7 +592,7 @@ class SystemController extends Controller
         $pwd = Utilities::getArrayValue('password', $fields, '');
         if (!empty($pwd)) {
             $fields['password'] = md5($pwd);
-            $fields['confirmcode'] = 'y';
+            $fields['confirm_code'] = 'y';
         }
         else {
             // autogenerate ?
@@ -626,27 +617,34 @@ class SystemController extends Controller
                 break;
             case 'app':
                 // need name and isUrlExternal to create app directory in storage
-                $fields = Utilities::addOnceToList($fields, 'Name', ',');
-                $fields = Utilities::addOnceToList($fields, 'IsUrlExternal', ',');
+                $fields = Utilities::addOnceToList($fields, 'name', ',');
+                $fields = Utilities::addOnceToList($fields, 'is_url_external', ',');
                 break;
             }
 
             // create DB record
-            $fields = Utilities::addOnceToList($fields, 'Id', ',');
-            $db = $this->nativeDb;
-            $results = $db->createSqlRecord($table, $record['fields'], $fields);
-            $id = $results[0]['Id'];
+            $fields = Utilities::addOnceToList($fields, 'id', ',');
+            $results = $this->nativeDb->createSqlRecord($table, $record['fields'], $fields);
+            if (!isset($results[0])) {
+                error_log(print_r($results, true));
+                throw new \Exception("Failed to create user.");
+            }
+            $id = Utilities::getArrayValue('id', $results[0]);
+            if (empty($id)) {
+                error_log(print_r($results[0], true));
+                throw new \Exception("Failed to create user.");
+            }
 
             // after record create
             switch (strtolower($table)) {
             case 'app':
                 // need name and isUrlExternal to create app directory in storage
-                if (isset($results[0]['IsUrlExternal'])) {
-                    $isExternal = Utilities::boolval($results[0]['IsUrlExternal']);
+                if (isset($results[0]['is_url_external'])) {
+                    $isExternal = Utilities::boolval($results[0]['is_url_external']);
                     if (!$isExternal) {
                         $appSvc = ServiceHandler::getInstance()->getServiceObject('App');
                         if ($appSvc) {
-                            $appSvc->createApp($results[0]['Name']);
+                            $appSvc->createApp($results[0]['name']);
                         }
                     }
                 }
@@ -682,7 +680,7 @@ class SystemController extends Controller
         catch (\Exception $ex) {
             // need to delete the above table entry and clean up
             if (isset($id) && !empty($id)) {
-                $this->nativeDb->deleteSqlRecordsByIds($table, $id, 'Id', false, 'Id,Name');
+                $this->nativeDb->deleteSqlRecordsByIds($table, $id, 'id');
             }
             throw $ex;
         }
@@ -693,7 +691,7 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('create', $table);
+        Utilities::checkPermission('create', 'system', $table);
         if (!isset($records) || empty($records)) {
             throw new \Exception('[InvalidParam]: There are no record sets in the request.');
         }
@@ -730,25 +728,24 @@ class SystemController extends Controller
                 break;
             case 'app':
                 // need name and isUrlExternal to create app directory in storage
-                $fields = Utilities::addOnceToList($fields, 'Name', ',');
+                $fields = Utilities::addOnceToList($fields, 'name', ',');
                 break;
             }
-            $id = Utilities::getArrayValue('Id', $record['fields'], '');
+            $id = Utilities::getArrayValue('id', $record['fields'], '');
             if (empty($id)) {
-                throw new \Exception("Identifying field 'Id' can not be empty for update request.");
+                throw new \Exception("Identifying field 'id' can not be empty for update request.");
             }
-            $record['fields'] = Utilities::removeOneFromArray('Id', $record['fields']);
+            $record['fields'] = Utilities::removeOneFromArray('id', $record['fields']);
 
-            $db = $this->nativeDb;
-            $results = $db->updateSqlRecordsByIds($table, $record['fields'], $id, 'Id', false, $fields);
+            $results = $this->nativeDb->updateSqlRecordsByIds($table, $record['fields'], $id, 'id', false, $fields);
 
             // after record update
             switch (strtolower($table)) {
             case 'app':
                 // need name and isExternal to create app directory in storage
-                $isUrlExternal = Utilities::getArrayValue('IsUrlExternal', $record, null);
+                $isUrlExternal = Utilities::getArrayValue('is_url_external', $record, null);
                 if (isset($isUrlExternal)) {
-                    $name = (isset($results[0]['Name'])) ? $results[0]['Name'] : '';
+                    $name = (isset($results[0]['name'])) ? $results[0]['name'] : '';
                     if (!empty($name)) {
                         if (!Utilities::boolval($isUrlExternal)) {
                             $appSvc = ServiceHandler::getInstance()->getServiceObject('App');
@@ -803,7 +800,7 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('update', $table);
+        Utilities::checkPermission('update', 'system', $table);
         if (!isset($records) || empty($records)) {
             throw new \Exception('[InvalidParam]: There are no record sets in the request.');
         }
@@ -831,7 +828,7 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('update', $table);
+        Utilities::checkPermission('update', 'system', $table);
 
         try {
             $result = $this->updateSystemRecordLow($table, $record, $fields);
@@ -847,7 +844,6 @@ class SystemController extends Controller
     {
         try {
             $currUser = Utilities::getCurrentUserId();
-            $db = $this->nativeDb;
             $ids = array_map('trim', explode(',', $id_list));
             foreach ($ids as $id) {
                 if ($currUser === $id) {
@@ -869,20 +865,19 @@ class SystemController extends Controller
             if (false !== array_search($currentRole, $ids)) {
                 throw new \Exception("Your current role with Id '$currentRole' can not be deleted.");
             }
-            $db = $this->nativeDb;
             foreach ($ids as $id) {
                 // clean up User.RoleIds pointing here
-                $result = $db->retrieveSqlRecordsByFilter('User', 'Id,RoleIds', "RoleIds = '$id'");
+                $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id,role_id', "role_id = '$id'");
                 $total = (isset($result['total'])) ? $result['total'] : '';
                 unset($result['total']);
                 if (!empty($result)) {
                     foreach ($result as $key => $userInfo) {
-                        $result[$key]['RoleIds'] = '';
+                        $result[$key]['role_id'] = '';
                     }
-                    $db->updateSqlRecords('User', $result, 'Id');
+                    $this->nativeDb->updateSqlRecords('user', $result, 'id');
                 }
                 // Clean out the RoleServiceAccess for this role
-                $db->deleteSqlRecordsByFilter('RoleServiceAccess', "RoleId = '$id'");
+                $this->nativeDb->deleteSqlRecordsByFilter('role_service_access', "role_id = '$id'");
             }
         }
         catch (\Exception $ex) {
@@ -894,13 +889,12 @@ class SystemController extends Controller
     {
         try {
             $currApp = Utilities::getCurrentAppName();
-            $db = $this->nativeDb;
-            $result = $db->retrieveSqlRecordsByIds('App', $id_list, 'Id', 'Id,Name');
+            $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $id_list, 'id', 'id,name');
             foreach ($result as $appInfo) {
                 if (!is_array($appInfo) || empty($appInfo)) {
                     throw new \Exception("One of the application ids is invalid.");
                 }
-                $name = $appInfo['Name'];
+                $name = $appInfo['name'];
                 if ($currApp === $name) {
                     throw new \Exception("The currently running application '$name' can not be deleted.");
                 }
@@ -912,19 +906,19 @@ class SystemController extends Controller
         try {
             $store = ServiceHandler::getInstance()->getServiceObject('App');
             foreach ($result as $appInfo) {
-                $id = $appInfo['Id'];
+                $id = $appInfo['id'];
                 // delete roles - which need cleaning of users first
-                $roles = $db->retrieveSqlRecordsByFilter('Role', "Id", "AppIds='$id'");
+                $roles = $this->nativeDb->retrieveSqlRecordsByFilter('role', 'id', "app_ids='$id'");
                 unset($roles['total']);
                 $roleIdList = '';
                 foreach ($roles as $role) {
-                    $roleIdList .= (!empty($roleIdList)) ? ',' . $role['Id'] : $role['Id'];
+                    $roleIdList .= (!empty($roleIdList)) ? ',' . $role['id'] : $role['id'];
                 }
                 if (!empty($roleIdList)) {
-                    $this->deleteSystemRecordsByIds('Role', $roleIdList);
+                    $this->deleteSystemRecordsByIds('role', $roleIdList);
                 }
                 // remove file storage
-                $name = $appInfo['Name'];
+                $name = $appInfo['name'];
                 $store->deleteApp($name);
             }
         }
@@ -936,26 +930,25 @@ class SystemController extends Controller
     protected function preDeleteAppGroups($id_list)
     {
         try {
-            $db = $this->nativeDb;
             $ids = array_map('trim', explode(',', $id_list));
             foreach ($ids as $id) {
                 // %,$id,% is more accurate but in case of slopply updating by client, filter for %$id%
-                $result = $db->retrieveSqlRecordsByFilter('App', 'Id,AppGroupIds', "AppGroupIds like '%$id%'");
+                $result = $this->nativeDb->retrieveSqlRecordsByFilter('app', 'id,app_group_ids', "app_group_ids like '%$id%'");
                 $total = (isset($result['total'])) ? $result['total'] : '';
                 unset($result['total']);
                 foreach ($result as $key => $appInfo) {
-                    $groupIds = (isset($appInfo['AppGroupIds'])) ? $appInfo['AppGroupIds'] : '';
+                    $groupIds = (isset($appInfo['app_group_ids'])) ? $appInfo['app_group_ids'] : '';
                     $groupIds = trim($groupIds, ','); // in case of sloppy updating
                     if (false === stripos(",$groupIds,", ",$id,")) {
                         unset($result[$key]);
                         continue;
                     }
                     $groupIds = str_ireplace(",$id,", '', ",$groupIds,");
-                    $result[$key]['RoleIds'] = $groupIds;
+                    $result[$key]['app_group_ids'] = $groupIds;
                 }
                 $result = array_values($result);
                 if (!empty($result)) {
-                    $db->updateSqlRecords('App', $result, 'Id');
+                    $this->nativeDb->updateSqlRecords('app', $result, 'id');
                 }
             }
         }
@@ -980,7 +973,7 @@ class SystemController extends Controller
                 throw new \Exception('[InvalidParam]: There are no fields in the record set.');
             }
             if (!empty($idList)) $idList .= ',';
-            $idList .= $record['fields']['Id'];
+            $idList .= $record['fields']['id'];
         }
 
         return $this->deleteSystemRecordsByIds($table, $idList, $fields);
@@ -991,11 +984,11 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('delete', $table);
+        Utilities::checkPermission('delete', 'system', $table);
 
         try {
             switch (strtolower($table)) {
-            case "appgroup":
+            case "app_group":
                 $this->preDeleteAppGroups($id_list);
                 break;
             case "app":
@@ -1009,8 +1002,7 @@ class SystemController extends Controller
                 break;
             }
 
-            $db = $this->nativeDb;
-            $results = $db->deleteSqlRecordsByIds($table, $id_list, 'Id', false, $fields);
+            $results = $this->nativeDb->deleteSqlRecordsByIds($table, $id_list, 'id', false, $fields);
             $out = array();
             foreach ($results as $result) {
                 if (empty($result) || is_array($result)) {
@@ -1034,36 +1026,35 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('read', $table);
+        Utilities::checkPermission('read', 'system', $table);
         $fields = $this->checkRetrievableSystemFields($table, $fields);
 
         try {
-            $db = $this->nativeDb;
-            $results = $db->retrieveSqlRecords($table, $records, 'Id', $fields);
+            $results = $this->nativeDb->retrieveSqlRecords($table, $records, 'id', $fields);
             $out = array();
             foreach ($results as $result) {
                 if (empty($result) || is_array($result)) {
                     switch (strtolower($table)) {
-                    case 'appgroup':
+                    case 'app_group':
                         break;
                     case 'role':
-                        if ((isset($result['Id']) && !empty($result['Id'])) &&
-                            (empty($fields) || (false !== stripos($fields, 'Services')))) {
-                            $permFields = 'ServiceId,Service,Component,Read,Create,Update,Delete';
-                            $permQuery = "RoleId='" . $result['Id'] . "'";
-                            $perms = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', $permFields, $permQuery, 0, 'Service');
+                        if ((isset($result['id']) && !empty($result['id'])) &&
+                            (empty($fields) || (false !== stripos($fields, 'services')))) {
+                            $permFields = 'service_id,service,component,read,create,update,delete';
+                            $permQuery = "role_id='" . $result['id'] . "'";
+                            $perms = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', $permFields, $permQuery, 0, 'service');
                             unset($perms['total']);
-                            $result['Services'] = $perms;
+                            $result['services'] = $perms;
                         }
                         break;
                     case 'service':
-                        if (isset($result['Type']) && !empty($result['Type'])) {
-                            switch (strtolower($result['Type'])) {
+                        if (isset($result['type']) && !empty($result['type'])) {
+                            switch (strtolower($result['type'])) {
                             case 'native':
                             case 'managed':
-                                unset($result['BaseUrl']);
-                                unset($result['ParamList']);
-                                unset($result['HeaderList']);
+                                unset($result['base_url']);
+                                unset($result['parameters']);
+                                unset($result['headers']);
                                 break;
                             case 'web':
                                 break;
@@ -1072,9 +1063,9 @@ class SystemController extends Controller
                         break;
                     case 'user':
                         if (isset($extras['role'])) {
-                            if (isset($result['RoleId']) && !empty($result['RoleId'])) {
-                                $roleInfo = $this->retrieveSystemRecordsByIds('Role', $result['RoleId'], 'Id', '');
-                                $result['Role'] = $roleInfo[0];
+                            if (isset($result['role_id']) && !empty($result['role_id'])) {
+                                $roleInfo = $this->retrieveSystemRecordsByIds('role', $result['role_id'], 'id', '');
+                                $result['role'] = $roleInfo[0];
                             }
                         }
                         break;
@@ -1099,38 +1090,37 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('read', $table);
+        Utilities::checkPermission('read', 'system', $table);
         $fields = $this->checkRetrievableSystemFields($table, $fields);
 
         try {
-            $db = $this->nativeDb;
-            $results = $db->retrieveSqlRecordsByFilter($table, $fields, $filter, $limit, $order, $offset);
+            $results = $this->nativeDb->retrieveSqlRecordsByFilter($table, $fields, $filter, $limit, $order, $offset);
             $total = (isset($results['total'])) ? $results['total'] : '';
             unset($results['total']);
             $out = array();
             foreach ($results as $result) {
                 if (empty($result) || is_array($result)) {
                     switch (strtolower($table)) {
-                    case 'appgroup':
+                    case 'app_group':
                         break;
                     case 'role':
-                        if ((isset($result['Id']) && !empty($result['Id'])) &&
-                            (empty($fields) || (false !== stripos($fields, 'Services')))) {
-                            $permFields = 'ServiceId,Service,Component,Read,Create,Update,Delete';
-                            $permQuery = "RoleId='" . $result['Id'] . "'";
-                            $perms = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', $permFields, $permQuery, 0, 'Service');
+                        if ((isset($result['id']) && !empty($result['id'])) &&
+                            (empty($fields) || (false !== stripos($fields, 'services')))) {
+                            $permFields = 'service_id,service,component,read,create,update,delete';
+                            $permQuery = "role_id='" . $result['id'] . "'";
+                            $perms = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', $permFields, $permQuery, 0, 'service');
                             unset($perms['total']);
-                            $result['Services'] = $perms;
+                            $result['services'] = $perms;
                         }
                         break;
                     case 'service':
-                        if (isset($result['Type']) && !empty($result['Type'])) {
-                            switch (strtolower($result['Type'])) {
+                        if (isset($result['type']) && !empty($result['type'])) {
+                            switch (strtolower($result['type'])) {
                             case 'native':
                             case 'managed':
-                                unset($result['BaseUrl']);
-                                unset($result['ParamList']);
-                                unset($result['HeaderList']);
+                                unset($result['base_url']);
+                                unset($result['parameters']);
+                                unset($result['headers']);
                                 break;
                             case 'web':
                                 break;
@@ -1139,8 +1129,8 @@ class SystemController extends Controller
                         break;
                     case 'user':
                         if (isset($extras['role'])) {
-                            if (isset($result['RoleId']) && !empty($result['RoleId'])) {
-                                $roleInfo = $this->retrieveSystemRecordsByIds('Role', $result['RoleId'], 'Id', '');
+                            if (isset($result['role_id']) && !empty($result['role_id'])) {
+                                $roleInfo = $this->retrieveSystemRecordsByIds('role', $result['role_id'], 'id', '');
                                 $result['Role'] = $roleInfo[0];
                             }
                         }
@@ -1166,36 +1156,35 @@ class SystemController extends Controller
         if (empty($table)) {
             throw new \Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('read', $table);
+        Utilities::checkPermission('read', 'system', $table);
         $fields = $this->checkRetrievableSystemFields($table, $fields);
 
         try {
-            $db = $this->nativeDb;
-            $results = $db->retrieveSqlRecordsByIds($table, $id_list, 'Id', $fields);
+            $results = $this->nativeDb->retrieveSqlRecordsByIds($table, $id_list, 'id', $fields);
             $out = array();
             foreach ($results as $result) {
                 if (empty($result) || is_array($result)) {
                     switch (strtolower($table)) {
-                    case 'appgroup':
+                    case 'app_group':
                         break;
                     case 'role':
-                        if ((isset($result['Id']) && !empty($result['Id'])) &&
-                            (empty($fields) || (false !== stripos($fields, 'Services')))) {
-                            $permFields = 'ServiceId,Service,Component,Read,Create,Update,Delete';
-                            $permQuery = "RoleId='" . $result['Id'] . "'";
-                            $perms = $db->retrieveSqlRecordsByFilter('RoleServiceAccess', $permFields, $permQuery, 0, 'Service');
+                        if ((isset($result['id']) && !empty($result['id'])) &&
+                            (empty($fields) || (false !== stripos($fields, 'services')))) {
+                            $permFields = 'service_id,service,component,read,create,update,delete';
+                            $permQuery = "role_id='" . $result['id'] . "'";
+                            $perms = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', $permFields, $permQuery, 0, 'service');
                             unset($perms['total']);
-                            $result['Services'] = $perms;
+                            $result['services'] = $perms;
                         }
                         break;
                     case 'service':
-                        if (isset($result['Type']) && !empty($result['Type'])) {
-                            switch (strtolower($result['Type'])) {
+                        if (isset($result['type']) && !empty($result['type'])) {
+                            switch (strtolower($result['type'])) {
                             case 'native':
                             case 'managed':
-                                unset($result['BaseUrl']);
-                                unset($result['ParamList']);
-                                unset($result['HeaderList']);
+                                unset($result['base_url']);
+                                unset($result['parameters']);
+                                unset($result['headers']);
                                 break;
                             case 'web':
                                 break;
@@ -1204,8 +1193,8 @@ class SystemController extends Controller
                         break;
                     case 'user':
                         if (isset($extras['role'])) {
-                            if (isset($result['RoleId']) && !empty($result['RoleId'])) {
-                                $roleInfo = $this->retrieveSystemRecordsByIds('Role', $result['RoleId'], 'Id', '');
+                            if (isset($result['role_id']) && !empty($result['role_id'])) {
+                                $roleInfo = $this->retrieveSystemRecordsByIds('role', $result['role_id'], 'id', '');
                                 $result['Role'] = $roleInfo[0];
                             }
                         }
@@ -1228,21 +1217,27 @@ class SystemController extends Controller
 
     public function describeSystem()
     {
+        $result = array(array('name' => 'app', 'label' => 'Application', 'plural' => 'Applications'),
+                        array('name' => 'app_group', 'label' => 'Application Group', 'plural' => 'Application Groups'),
+                        array('name' => 'role', 'label' => 'Role', 'plural' => 'Roles'),
+                        array('name' => 'service', 'label' => 'Service', 'plural' => 'Services'),
+                        array('name' => 'user', 'label' => 'User', 'plural' => 'Users'));
+        return array('resource' => $result);
+        /* don't expose
         $tables = self::SYSTEM_TABLES;
         try {
-            $db = $this->nativeDb;
-            return $db->describeDatabase($tables, '');
+            return $this->nativeDb->describeDatabase($tables, '');
         }
         catch (\Exception $ex) {
             throw new \Exception("Error describing system tables.\n{$ex->getMessage()}");
         }
+        */
     }
 
     public function describeTable($table)
     {
         try {
-            $db = $this->nativeDb;
-            return $db->describeTable($table);
+            return $this->nativeDb->describeTable($table);
         }
         catch (\Exception $ex) {
             throw new \Exception("Error describing database table '$table'.\n{$ex->getMessage()}");

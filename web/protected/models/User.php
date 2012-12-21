@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This is the model class for table "df_user".
+ * This is the model class for table "user".
  *
- * The followings are the available columns in table 'df_user':
+ * The followings are the available columns in table 'user':
  * @property integer $id
  * @property string $full_name
  * @property string $email
@@ -44,7 +44,7 @@ class User extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_user';
+		return 'user';
 	}
 
 	/**
@@ -88,15 +88,15 @@ class User extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'ID',
+			'id' => 'Id',
 			'full_name' => 'Full Name',
 			'email' => 'Email',
 			'phone' => 'Phone',
 			'username' => 'Username',
 			'password' => 'Password',
 			'is_active' => 'Is Active',
-			'is_sys_admin' => 'Is Sys Admin',
-			'confirm_code' => 'Confirm Code',
+			'is_sys_admin' => 'Is System Admin',
+			'confirm_code' => 'Confirmation Code',
 			'role_id' => 'Role',
 			'first_name' => 'First Name',
 			'last_name' => 'Last Name',

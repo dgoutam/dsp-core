@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This is the model class for table "df_label".
+ * This is the model class for table "label".
  *
- * The followings are the available columns in table 'df_label':
+ * The followings are the available columns in table 'label':
  * @property integer $id
  * @property string $table
  * @property string $field
@@ -28,7 +28,7 @@ class Label extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_label';
+		return 'label';
 	}
 
 	/**
@@ -54,8 +54,7 @@ class Label extends CActiveRecord
 	{
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
-		return array(
-		);
+		return array();
 	}
 
 	/**
@@ -64,7 +63,7 @@ class Label extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'ID',
+			'id' => 'Id',
 			'table' => 'Table',
 			'field' => 'Field',
 			'picklist' => 'Picklist',
