@@ -1,6 +1,6 @@
 <?php
 /* @var $this SiteController */
-/* @var $model InitForm */
+/* @var $model InitAdminForm */
 /* @var $form CActiveForm */
 
 $this->pageTitle=Yii::app()->name . ' - Initialization';
@@ -20,8 +20,8 @@ $this->breadcrumbs=array(
 <?php else: ?>
 
 <p>
-Your Document Services Platform from DreamFactory Software, Inc. needs initializing.
-When you are ready, click the 'Initialize' button below.
+Your Document Services Platform needs a system administrator.
+When you are ready, click the 'Add Admin' button below.
 </p>
 
 <div class="form">
@@ -69,7 +69,7 @@ When you are ready, click the 'Initialize' button below.
    	</div>
 
 	<div class="row buttons">
-		<?php echo CHtml::submitButton('Initialize'); ?>
+		<?php echo CHtml::submitButton('Add Admin'); ?>
 	</div>
 
 <?php $this->endWidget(); ?>

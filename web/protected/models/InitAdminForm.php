@@ -1,11 +1,11 @@
 <?php
 
 /**
- * InitForm class.
- * InitForm is the data structure for keeping system initialization data.
- * It is used by the 'init' action of 'SiteController'.
+ * InitAdminForm class.
+ * InitAdminForm is the data structure for keeping system admin initialization data.
+ * It is used by the 'initAdmin' action of 'SiteController'.
  */
-class InitForm extends CFormModel
+class InitAdminForm extends CFormModel
 {
 	public $username;
     public $password;
