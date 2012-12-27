@@ -6,6 +6,8 @@
  * The followings are the available columns in table 'user':
  * @property integer $id
  * @property string $full_name
+ * @property string $first_name
+ * @property string $last_name
  * @property string $email
  * @property string $phone
  * @property string $username
@@ -14,8 +16,6 @@
  * @property boolean $is_sys_admin
  * @property string $confirm_code
  * @property integer $role_id
- * @property string $first_name
- * @property string $last_name
  * @property string $security_question
  * @property string $security_answer
  * @property string $created_date

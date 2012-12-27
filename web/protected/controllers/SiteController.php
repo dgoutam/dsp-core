@@ -1,7 +1,4 @@
 <?php
-use \CloudServicesPlatform\ServiceHandlers\ServiceHandler;
-use CloudServicesPlatform\Utilities\Utilities;
-use CloudServicesPlatform\Storage\Database\PdoSqlDbSvc;
 
 class SiteController extends Controller
 {

@@ -1,7 +1,8 @@
 <?php
-use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
-use CloudServicesPlatform\Utilities\Utilities;
 
+/**
+ * REST API router and controller
+ */
 class RestController extends Controller
 {
     // Members
@@ -21,10 +22,13 @@ class RestController extends Controller
     }
 
     // Actions
+
+    /**
+     *
+     */
     public function actionIndex()
     {
         try {
-            $this->detectCommonParams();
             $svc = ServiceHandler::getInstance();
             $result = $svc->getServiceListing();
             $this->handleResults($result);
@@ -35,17 +39,18 @@ class RestController extends Controller
         Yii::app()->end();
     }
 
-    public function actionList()
+    /**
+     *
+     */
+    public function actionGet($service='')
     {
         try {
-            $this->detectCommonParams();
-            $service = Utilities::getArrayValue('service', $_GET, '');
             $svc = ServiceHandler::getInstance();
             $svcObj = $svc->getServiceObject($service);
             $result = $svcObj->actionGet();
 
             $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
+            if (0 === strcasecmp($type, 'Remote Web Service')) {
                 $nativeFormat = $svcObj->getNativeFormat();
                 if (0 !== strcasecmp($nativeFormat, $this->format)) {
                     // reformat the code here
@@ -59,34 +64,12 @@ class RestController extends Controller
         Yii::app()->end();
     }
 
-    public function actionGet()
+    /**
+     *
+     */
+    public function actionPost($service='')
     {
         try {
-            $this->detectCommonParams();
-            $service = Utilities::getArrayValue('service', $_GET, '');
-            $svc = ServiceHandler::getInstance();
-            $svcObj = $svc->getServiceObject($service);
-            $result = $svcObj->actionGet();
-
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
-            }
-            $this->handleResults($result);
-        }
-        catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
-        }
-        Yii::app()->end();
-    }
-
-    public function actionPost()
-    {
-        try {
-            $this->detectCommonParams();
             // check for verb tunneling
             $tunnel_method = (isset($_SERVER['HTTP_X_HTTP_METHOD'])) ? $_SERVER['HTTP_X_HTTP_METHOD'] : '';
             if (empty($tunnel_method)) {
@@ -95,17 +78,17 @@ class RestController extends Controller
             if (!empty($tunnel_method)) {
                 switch (strtolower($tunnel_method)) {
                 case 'delete':
-                    $this->actionDelete();
+                    $this->actionDelete($service);
                     break;
                 case 'get': // complex retrieves, non-standard
-                    $this->actionGet();
+                    $this->actionGet($service);
                     break;
                 case 'merge':
                 case 'patch':
-                    $this->actionMerge();
+                    $this->actionMerge($service);
                     break;
                 case 'put':
-                    $this->actionPut();
+                    $this->actionPut($service);
                     break;
                 default:
                     if (!empty($tunnel_method)) {
@@ -114,13 +97,12 @@ class RestController extends Controller
                     break;
                 }
             }
-            $service = Utilities::getArrayValue('service', $_GET, '');
             $svc = ServiceHandler::getInstance();
             $svcObj = $svc->getServiceObject($service);
             $result = $svcObj->actionPost();
 
             $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
+            if (0 === strcasecmp($type, 'Remote Web Service')) {
                 $nativeFormat = $svcObj->getNativeFormat();
                 if (0 !== strcasecmp($nativeFormat, $this->format)) {
                     // reformat the code here
@@ -134,17 +116,18 @@ class RestController extends Controller
         Yii::app()->end();
     }
 
-    public function actionMerge()
+    /**
+     *
+     */
+    public function actionMerge($service='')
     {
         try {
-            $this->detectCommonParams();
-            $service = Utilities::getArrayValue('service', $_GET, '');
             $svc = ServiceHandler::getInstance();
             $svcObj = $svc->getServiceObject($service);
             $result = $svcObj->actionMerge();
 
             $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
+            if (0 === strcasecmp($type, 'Remote Web Service')) {
                 $nativeFormat = $svcObj->getNativeFormat();
                 if (0 !== strcasecmp($nativeFormat, $this->format)) {
                     // reformat the code here
@@ -158,17 +141,18 @@ class RestController extends Controller
         Yii::app()->end();
     }
 
-    public function actionPut()
+    /**
+     *
+     */
+    public function actionPut($service='')
     {
         try {
-            $this->detectCommonParams();
-            $service = Utilities::getArrayValue('service', $_GET, '');
             $svc = ServiceHandler::getInstance();
             $svcObj = $svc->getServiceObject($service);
             $result = $svcObj->actionMerge();
 
             $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
+            if (0 === strcasecmp($type, 'Remote Web Service')) {
                 $nativeFormat = $svcObj->getNativeFormat();
                 if (0 !== strcasecmp($nativeFormat, $this->format)) {
                     // reformat the code here
@@ -182,17 +166,18 @@ class RestController extends Controller
         Yii::app()->end();
     }
 
-    public function actionDelete()
+    /**
+     *
+     */
+    public function actionDelete($service='')
     {
         try {
-            $this->detectCommonParams();
-            $service = Utilities::getArrayValue('service', $_GET, '');
             $svc = ServiceHandler::getInstance();
             $svcObj = $svc->getServiceObject($service);
             $result = $svcObj->actionDelete();
 
             $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Web')) {
+            if (0 === strcasecmp($type, 'Remote Web Service')) {
                 $nativeFormat = $svcObj->getNativeFormat();
                 if (0 !== strcasecmp($nativeFormat, $this->format)) {
                     // reformat the code here
@@ -206,7 +191,14 @@ class RestController extends Controller
         Yii::app()->end();
     }
 
-    protected function detectCommonParams()
+    /**
+     * Override base method to do some processing of incoming requests
+     *
+     * @param CAction $action
+     * @return bool
+     * @throws Exception
+     */
+    protected function beforeAction($action)
     {
         $temp = (isset($_REQUEST['format'])) ? strtolower($_REQUEST['format']) : '';
         if (!empty($temp)) {
@@ -234,8 +226,13 @@ class RestController extends Controller
             }
             $_GET['resource'] = $resource;
         }
+
+        return parent::beforeAction($action);
     }
 
+    /**
+     * @param $error
+     */
     private function handleErrors($error)
     {
         $result = array("fault" => array("faultString" => htmlentities($error),
@@ -255,6 +252,9 @@ class RestController extends Controller
         }
     }
 
+    /**
+     * @param $result
+     */
     private function handleResults($result)
     {
         if (0 === strcasecmp('xml', $this->format)) {

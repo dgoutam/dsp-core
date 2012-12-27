@@ -1,5 +1,4 @@
 <?php
-use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
 
 class AppController extends Controller
 {

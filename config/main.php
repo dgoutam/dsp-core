@@ -1,4 +1,15 @@
 <?php
+/*
+ * This is the main configuration file for the Document Services Platform server application.
+ */
+
+/*
+ * Location of the blob storage credentials if provisioned,
+ * otherwise local file storage is used.
+ */
+$_blobConfig = __DIR__ . '/blob.config.php';
+
+
 return array(
     'basePath' => __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'web' . DIRECTORY_SEPARATOR . 'protected',
     'name' => 'DreamFactory Document Services Platform',
@@ -11,6 +22,7 @@ return array(
     'import' => array(
         'application.models.*',
         'application.components.*',
+        'application.components.services.*',
     ),
 
     'modules' => array(
@@ -42,14 +54,19 @@ return array(
             'urlFormat' => 'path',
             'rules' => array(
                 // REST patterns
-                array('lib/stream', 'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
                 array('app/stream', 'pattern' => 'app/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
+                array('lib/stream', 'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
                 array('rest/get', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
                 array('rest/post', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST'),
                 array('rest/put', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT'),
                 array('rest/merge', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE'),
                 array('rest/delete', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE'),
-                array('rest/list', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/', 'verb' => 'GET'),
+                // duplicate for the root service calls due to trailing / problem
+                array('rest/get', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/', 'verb' => 'GET'),
+                array('rest/post', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/', 'verb' => 'POST'),
+                array('rest/put', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/', 'verb' => 'PUT'),
+                array('rest/merge', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/', 'verb' => 'PATCH,MERGE'),
+                array('rest/delete', 'pattern' => 'rest/<service:[_0-9a-zA-Z-]+>/', 'verb' => 'DELETE'),
                 // Other controllers
                 '<controller:\w+>/<id:\d+>' => '<controller>/view',
                 '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
@@ -81,9 +98,7 @@ return array(
 	// application-level parameters that can be accessed
 	// using Yii::app()->params['paramName']
 	'params'      => array(
-//        'blobStorageType'   => 'WindowsAzureBlob',
-//        'blobAccountName'   => 'dreamfactorysoftware',
-//        'blobAccountKey'    => 'lpUCNR/7lmxBVsQuB3jD4yBQ4SWTvbmoJmJ4f+2q7vvm7/qQBHF0Lkfq4QQSk7KefNc5O3VJbQuW+wLLp79F3A==',
+        'blobStorageConfig' => file_exists( $_blobConfig ) ? require_once( $_blobConfig ) : array(),
         // this is used in contact page
         'adminEmail' => 'leehicks@dreamfactory.com',
         'companyLabel' => 'My Dream Cloud',
