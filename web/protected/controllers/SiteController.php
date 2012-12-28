@@ -284,7 +284,6 @@ class SiteController extends Controller
             $db = new PdoSqlDbSvc();
             $result = $db->createTables($tables, true, true);
             // setup session stored procedure
-            $query = 'DROP PROCEDURE IF EXISTS `sp_students_UPDATE_byPK`';
 //            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
 //                      WHERE ROUTINE_TYPE="PROCEDURE"
 //                          AND ROUTINE_SCHEMA="dreamfactory"
@@ -318,6 +317,7 @@ class SiteController extends Controller
                 break;
             case Utilities::DRV_MYSQL:
             default:
+                Yii::app()->db->emulatePrepare = true;
                 $query = 'DROP PROCEDURE IF EXISTS `UpdateOrInsertSession`';
                 $db->singleSqlExecute($query);
                 $query =
@@ -337,6 +337,7 @@ class SiteController extends Controller
                 break;
             }
             $db->singleSqlExecute($query);
+            Yii::app()->db->emulatePrepare = false;
 //            }
             // refresh the schema that we just added
             Yii::app()->db->schema->refresh();

@@ -68,7 +68,7 @@ class PdoSqlDbSvc
             $this->_driverType = Utilities::getDbDriverType($this->_sqlConn->driverName);
             switch ($this->_driverType) {
             case Utilities::DRV_MYSQL:
-                $this->_sqlConn->setAttribute('emulatePrepare', true);
+                $this->_sqlConn->setAttribute('emulatePrepare', false);
                 $this->_sqlConn->setAttribute('charset', 'utf8');
                 break;
             case Utilities::DRV_SQLSRV:
