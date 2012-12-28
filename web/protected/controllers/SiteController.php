@@ -283,7 +283,9 @@ class SiteController extends Controller
             }
             $db = new PdoSqlDbSvc();
             $result = $db->createTables($tables, true, true);
+
             // setup session stored procedure
+            $command = Yii::app()->db->createCommand();
 //            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
 //                      WHERE ROUTINE_TYPE="PROCEDURE"
 //                          AND ROUTINE_SCHEMA="dreamfactory"
@@ -294,7 +296,8 @@ class SiteController extends Controller
             case Utilities::DRV_SQLSRV:
                 $query = "IF ( OBJECT_ID('dbo.UpdateOrInsertSession') IS NOT NULL )
                                   DROP PROCEDURE dbo.UpdateOrInsertSession";
-                $db->singleSqlExecute($query);
+                $command->setText($query);
+                $command->execute();
                 $query =
                     'CREATE PROCEDURE dbo.UpdateOrInsertSession
                            @id nvarchar(32),
@@ -314,12 +317,16 @@ class SiteController extends Controller
                                     VALUES ( @id, @start_time, @data )
                                 END
                         END';
+                $command->reset();
+                $command->setText($query);
+                $command->execute();
                 break;
             case Utilities::DRV_MYSQL:
             default:
                 Yii::app()->db->emulatePrepare = true;
                 $query = 'DROP PROCEDURE IF EXISTS `UpdateOrInsertSession`';
-                $db->singleSqlExecute($query);
+                $command->setText($query);
+                $command->execute();
                 $query =
                     'CREATE PROCEDURE `UpdateOrInsertSession`(IN the_id nvarchar(32),
                                                                   IN the_start int,
@@ -334,10 +341,12 @@ class SiteController extends Controller
                                 VALUES ( the_id, the_start, the_data );
                             END IF;
                         END';
+                $command->reset();
+                $command->setText($query);
+                $command->execute();
+                Yii::app()->db->emulatePrepare = false;
                 break;
             }
-            $db->singleSqlExecute($query);
-            Yii::app()->db->emulatePrepare = false;
 //            }
             // refresh the schema that we just added
             Yii::app()->db->schema->refresh();
