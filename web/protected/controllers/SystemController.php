@@ -1,13 +1,19 @@
 <?php
-use CloudServicesPlatform\ServiceHandlers\ServiceHandler;
-use CloudServicesPlatform\Storage\Database\PdoSqlDbSvc;
-use CloudServicesPlatform\Utilities\Utilities;
 
+/**
+ *
+ */
 class SystemController extends Controller
 {
     // Members
 
+    /**
+     * @var
+     */
     protected $modelName;
+    /**
+     * @var
+     */
     protected $modelId;
 
     /**
@@ -15,6 +21,9 @@ class SystemController extends Controller
      */
     protected $nativeDb;
 
+    /**
+     * @throws Exception
+     */
     public function init()
    	{
         parent::init();
@@ -35,6 +44,10 @@ class SystemController extends Controller
     }
 
     // Actions
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionIndex()
     {
         try {
@@ -52,6 +65,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionList()
     {
         try {
@@ -70,6 +87,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionGet()
     {
         try {
@@ -155,6 +176,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionPost()
     {
         try {
@@ -197,6 +222,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionMerge()
     {
         try {
@@ -239,6 +268,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionDelete()
     {
         try {
@@ -298,6 +331,9 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     *
+     */
     protected function detectCommonParams()
     {
         $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
@@ -306,6 +342,11 @@ class SystemController extends Controller
         $this->modelId = (isset($resource[1])) ? $resource[1] : '';
     }
 
+    /**
+     * @param $id
+     * @return string
+     * @throws Exception
+     */
     public function getAppNameFromId($id)
     {
         if (!empty($id)) {
@@ -323,6 +364,11 @@ class SystemController extends Controller
         return '';
     }
 
+    /**
+     * @param $name
+     * @return string
+     * @throws Exception
+     */
     public function getAppIdFromName($name)
     {
         if (!empty($name)) {
@@ -340,11 +386,19 @@ class SystemController extends Controller
         return '';
     }
 
+    /**
+     * @return string
+     */
     public function getCurrentAppId()
     {
         return $this->getAppIdFromName(Utilities::getCurrentAppName());
     }
 
+    /**
+     * @param $user_names
+     * @return string
+     * @throws Exception
+     */
     protected function getUserIdsFromNames($user_names)
     {
         try {
@@ -364,6 +418,13 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $role_id
+     * @param string $user_ids
+     * @param string $user_names
+     * @param bool $override
+     * @throws Exception
+     */
     public function assignRole($role_id, $user_ids = '', $user_names = '', $override = false)
     {
         Utilities::checkPermission('create', 'system', 'RoleAssign');
@@ -400,6 +461,12 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $role_id
+     * @param string $user_ids
+     * @param string $user_names
+     * @throws Exception
+     */
     public function unassignRole($role_id, $user_ids = '', $user_names = '')
     {
         Utilities::checkPermission('delete', 'system', 'RoleAssign');
@@ -437,6 +504,11 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $role_id
+     * @param array $services
+     * @throws Exception
+     */
     protected function assignServiceAccess($role_id, $services = array())
     {
         // get any pre-existing access records
@@ -489,6 +561,12 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $fields
+     * @param bool $for_update
+     * @throws Exception
+     */
     protected function validateUniqueSystemName($table, $fields, $for_update = false)
     {
         $id = Utilities::getArrayValue('id', $fields, '');
@@ -567,6 +645,11 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $fields
+     * @return string
+     */
     protected function checkRetrievableSystemFields($table, $fields)
     {
         switch (strtolower($table)) {
@@ -587,6 +670,10 @@ class SystemController extends Controller
         return $fields;
     }
 
+    /**
+     * @param $fields
+     * @param bool $for_update
+     */
     protected function validateUser(&$fields, $for_update = false)
     {
         $pwd = Utilities::getArrayValue('password', $fields, '');
@@ -602,6 +689,13 @@ class SystemController extends Controller
     //-------- System Records Operations ---------------------
     // records is an array of field arrays
 
+    /**
+     * @param $table
+     * @param $record
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
     protected function createSystemRecordLow($table, $record, $fields = '')
     {
         if (!isset($record['fields']) || empty($record['fields'])) {
@@ -686,6 +780,14 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $records
+     * @param bool $rollback
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
     public function createSystemRecords($table, $records, $rollback = false, $fields = '')
     {
         if (empty($table)) {
@@ -713,6 +815,13 @@ class SystemController extends Controller
         return array('record' => $out);
     }
 
+    /**
+     * @param $table
+     * @param $record
+     * @param $fields
+     * @return array
+     * @throws Exception
+     */
     protected function updateSystemRecordLow($table, $record, $fields)
     {
         if (!isset($record['fields']) || empty($record['fields'])) {
@@ -795,6 +904,14 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $records
+     * @param bool $rollback
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
     public function updateSystemRecords($table, $records, $rollback = false, $fields = '')
     {
         if (empty($table)) {
@@ -823,6 +940,13 @@ class SystemController extends Controller
         return array('record' => $out);
     }
 
+    /**
+     * @param $table
+     * @param $record
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
     public function updateSystemRecordById($table, $record, $fields = '')
     {
         if (empty($table)) {
@@ -840,6 +964,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $id_list
+     * @throws Exception
+     */
     protected function preDeleteUsers($id_list)
     {
         try {
@@ -857,6 +985,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $id_list
+     * @throws Exception
+     */
     protected function preDeleteRoles($id_list)
     {
         try {
@@ -885,6 +1017,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $id_list
+     * @throws Exception
+     */
     protected function preDeleteApps($id_list)
     {
         try {
@@ -927,6 +1063,10 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $id_list
+     * @throws Exception
+     */
     protected function preDeleteAppGroups($id_list)
     {
         try {
@@ -957,6 +1097,14 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $records
+     * @param bool $rollback
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
     public function deleteSystemRecords($table, $records, $rollback = false, $fields = '')
     {
         if (!isset($records) || empty($records)) {
@@ -979,6 +1127,13 @@ class SystemController extends Controller
         return $this->deleteSystemRecordsByIds($table, $idList, $fields);
     }
 
+    /**
+     * @param $table
+     * @param $id_list
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
     public function deleteSystemRecordsByIds($table, $id_list, $fields = '')
     {
         if (empty($table)) {
@@ -1021,6 +1176,14 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $records
+     * @param string $fields
+     * @param null $extras
+     * @return array
+     * @throws Exception
+     */
     public function retrieveSystemRecords($table, $records, $fields = '', $extras = null)
     {
         if (empty($table)) {
@@ -1085,6 +1248,17 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param string $fields
+     * @param string $filter
+     * @param int $limit
+     * @param string $order
+     * @param int $offset
+     * @param null $extras
+     * @return array
+     * @throws Exception
+     */
     public function retrieveSystemRecordsByFilter($table, $fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = null)
     {
         if (empty($table)) {
@@ -1151,6 +1325,14 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @param $table
+     * @param $id_list
+     * @param string $fields
+     * @param null $extras
+     * @return array
+     * @throws Exception
+     */
     public function retrieveSystemRecordsByIds($table, $id_list, $fields = '', $extras = null)
     {
         if (empty($table)) {
@@ -1215,6 +1397,9 @@ class SystemController extends Controller
         }
     }
 
+    /**
+     * @return array
+     */
     public function describeSystem()
     {
         $result = array(array('name' => 'app', 'label' => 'Application', 'plural' => 'Applications'),
@@ -1234,6 +1419,11 @@ class SystemController extends Controller
         */
     }
 
+    /**
+     * @param $table
+     * @return array
+     * @throws Exception
+     */
     public function describeTable($table)
     {
         try {

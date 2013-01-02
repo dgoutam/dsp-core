@@ -4,16 +4,22 @@
  */
 
 /*
+ * Location of the database credentials.
+ */
+$_dbConfig = __DIR__ . DIRECTORY_SEPARATOR . 'database.config.php';
+
+/*
  * Location of the blob storage credentials if provisioned,
  * otherwise local file storage is used.
  */
-$_blobConfig = __DIR__ . '/blob.config.php';
+$_blobConfig = __DIR__ . DIRECTORY_SEPARATOR . 'blob.config.php';
 
+$_theRoot = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR;
 
 return array(
-    'basePath' => __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'web' . DIRECTORY_SEPARATOR . 'protected',
+    'basePath' => $_theRoot . 'web' . DIRECTORY_SEPARATOR . 'protected',
     'name' => 'DreamFactory Document Services Platform',
-    'runtimePath' => __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'log',
+    'runtimePath' => $_theRoot . 'log',
 
     // preloading 'log' component
     'preload' => array('log'),
@@ -22,6 +28,8 @@ return array(
     'import' => array(
         'application.models.*',
         'application.components.*',
+        'application.components.blobs.*',
+        'application.components.file_managers.*',
         'application.components.services.*',
     ),
 
@@ -74,7 +82,7 @@ return array(
             ),
         ),
 
-		'db'           => require_once( __DIR__ . DIRECTORY_SEPARATOR . 'database.config.php'),
+		'db'           => require_once( $_dbConfig),
 		'errorHandler' => array(
 			// use 'site/error' action to display errors
 			'errorAction' => 'site/error',

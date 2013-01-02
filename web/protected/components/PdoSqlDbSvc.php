@@ -188,6 +188,9 @@ class PdoSqlDbSvc
             $tables = $this->_sqlConn->schema->getTableNames();
             if (in_array($this->_tablePrefix . $name, $tables))
                 return true;
+            // mysql drops every table name to lowercase
+            if (in_array(strtolower($this->_tablePrefix . $name), $tables))
+                return true;
         }
         catch (Exception $ex) {
             throw $ex;
@@ -2321,6 +2324,8 @@ class PdoSqlDbSvc
      */
     public function createTables($tables, $allow_merge=true, $rollback=true)
     {
+        // refresh the schema so we have the latest
+        Yii::app()->db->schema->refresh();
         $references = array();
         $labels = array();
         $out = array();
@@ -2440,6 +2445,8 @@ class PdoSqlDbSvc
             throw new Exception("Schema tables were create, but not all labels were added.\n{$ex->getMessage()}");
         }
 
+        // refresh the schema that we just added
+        Yii::app()->db->schema->refresh();
         return $out;
     }
 

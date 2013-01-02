@@ -1,9 +1,5 @@
 <?php
 
-use CloudServicesPlatform\Storage\FileManagers\BlobFileManager;
-use CloudServicesPlatform\Storage\FileManagers\FileManager;
-use CloudServicesPlatform\Storage\FileManagers\FileUtilities;
-
 /**
  * @category   DreamFactory
  * @package    DreamFactory

@@ -1,10 +1,8 @@
 <?php
 
-use CloudServicesPlatform\Storage\FileManagers\FileUtilities;
-
 /**
  * @category   DreamFactory
- * @package    CloudServicesPlatform
+ * @package    web-csp
  * @subpackage ApplicationSvc
  * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
  * @license    http://www.dreamfactory.com/license
