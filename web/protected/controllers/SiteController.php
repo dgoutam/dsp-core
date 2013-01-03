@@ -323,8 +323,6 @@ class SiteController extends Controller
                 break;
             case Utilities::DRV_MYSQL:
             default:
-                //Yii::app()->db->emulatePrepare = true;
-                Yii::app()->db->setAttribute(PDO::ATTR_EMULATE_PREPARES,true);
                 $query = 'DROP PROCEDURE IF EXISTS `UpdateOrInsertSession`';
                 $command->setText($query);
                 $command->execute();
@@ -345,8 +343,6 @@ class SiteController extends Controller
                 $command->reset();
                 $command->setText($query);
                 $command->execute();
-                Yii::app()->db->setAttribute(PDO::ATTR_EMULATE_PREPARES,false);
-                //Yii::app()->db->emulatePrepare = false;
                 break;
             }
 //            }
