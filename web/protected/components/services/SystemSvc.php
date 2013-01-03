@@ -70,10 +70,12 @@ class SystemSvc extends CommonService implements iRestHandler
             switch ($this->modelName) {
             case '':
                 $result = $this->describeSystem();
+                $result = array('resource' => $result);
                 break;
             case 'schema':
                 if (empty($this->modelId)) {
                     $result = $this->describeSystem();
+                    $result = array('table' => $result);
                 }
                 else {
                     $result = $this->describeTable(strtolower($this->modelId));
@@ -1279,7 +1281,7 @@ class SystemSvc extends CommonService implements iRestHandler
                         array('name' => 'role', 'label' => 'Role', 'plural' => 'Roles'),
                         array('name' => 'service', 'label' => 'Service', 'plural' => 'Services'),
                         array('name' => 'user', 'label' => 'User', 'plural' => 'Users'));
-        return array('resource' => $result);
+        return $result;
         /* don't expose
         $tables = self::SYSTEM_TABLES;
         try {

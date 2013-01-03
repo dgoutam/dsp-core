@@ -33,9 +33,8 @@ class BlobFileManager extends CommonFileManager
             $type = isset($config['storage_type']) ? $config['storage_type'] : '';
             $credentials = isset($config['credentials']) ? $config['credentials'] : '';
             $credentials = json_decode($credentials, true);
-            error_log($type);
             switch (strtolower($type)) {
-            case 'windows azure blob':
+            case 'azure blob':
                 $local_dev = isset($credentials['local_dev']) ? Utilities::boolval($credentials['local_dev']) : false;
                 $accountName = isset($credentials['account_name']) ? $credentials['account_name'] : '';
                 $accountKey = isset($credentials['account_key']) ? $credentials['account_key'] : '';
@@ -46,7 +45,7 @@ class BlobFileManager extends CommonFileManager
                     throw new Exception("Unexpected Windows Azure Blob Service Exception:\n{$ex->getMessage()}");
                 }
                 break;
-            case 'amazon web services s3':
+            case 'aws s3':
                 $accessKey = isset($credentials['access_key']) ? $credentials['access_key'] : '';
                 $secretKey = isset($credentials['secret_key']) ? $credentials['secret_key'] : '';
                 $bucketName = isset($credentials['bucket_name']) ? $credentials['bucket_name'] : '';
