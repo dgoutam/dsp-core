@@ -752,6 +752,7 @@ class PdoSqlDbSvc
         }
         $outString = '';
         $outArray = array();
+        $bindArray = array();
         for ($i = 0, $size = sizeof($field_arr); $i < $size; $i++) {
             $field = $field_arr[$i];
             $as = (isset($as_arr[$i]) ? $as_arr[$i] : '');
@@ -764,6 +765,15 @@ class PdoSqlDbSvc
             // find the type
             $field_info = $this->getFieldFromDescribe($field, $avail_fields);
             $dbType = (isset($field_info)) ? $field_info['db_type'] : '';
+            $type = (isset($field_info)) ? $field_info['type'] : '';
+            switch ($type) {
+            case 'boolean':
+                $bindArray[] = array('name' => $field, 'type' => PDO::PARAM_BOOL);
+                break;
+            case 'integer':
+                $bindArray[] = array('name' => $field, 'type' => PDO::PARAM_INT);
+                break;
+            }
             // todo fix special cases - maybe after retrieve
             switch ($dbType) {
             case 'datetime':
@@ -788,21 +798,10 @@ class PdoSqlDbSvc
                 break;
             }
 
-            if ($as_quoted_string) {
-                if (!empty($outString)) {
-                    $outString .= ', ';
-                }
-                $outString .= $out;
-            }
-            else {
-                $outArray[] = $out;
-            }
+            $outArray[] = $out;
         }
 
-        if ($as_quoted_string) {
-            return $outString;
-        }
-        return $outArray;
+        return array('fields' => $outArray, 'bindings' => $bindArray);
     }
 
     /**
@@ -897,11 +896,7 @@ class PdoSqlDbSvc
             }
             else {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table);
-                $command->where(array('in', 'id', array_values($ids)));
-                $temp = $command->queryAll();
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -950,11 +945,7 @@ class PdoSqlDbSvc
             }
             else {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table);
-                $command->where(array('in', 'id', array($id)));
-                return $command->queryAll();
+                return $this->retrieveSqlRecordsByIds($table, $id, 'id', $out_fields);
             }
         }
         catch (Exception $ex) {
@@ -1034,11 +1025,7 @@ class PdoSqlDbSvc
             }
             else {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table);
-                $command->where(array('in', 'id', array_values($ids)));
-                $temp = $command->queryAll();
+                $temp =  $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -1137,11 +1124,7 @@ class PdoSqlDbSvc
             }
             else {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table);
-                $command->where(array('in', 'id', array_values($ids)));
-                $temp = $command->queryAll();
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($outIds[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -1189,10 +1172,7 @@ class PdoSqlDbSvc
             // todo figure out primary key
             if (!empty($out_fields)) {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table)->where($filter);
-                $results = $command->queryAll();
+                $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter);
             }
 
             return $results;
@@ -1263,11 +1243,7 @@ class PdoSqlDbSvc
             // todo figure out primary key
             if (!(empty($out_fields) || (0 === strcasecmp('id', $out_fields)))) {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table);
-                $command->where(array('in', 'id', array_values($ids)));
-                $outResults = $command->queryAll();
+                $outResults = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
             }
 
             if ($rollback) {
@@ -1344,17 +1320,13 @@ class PdoSqlDbSvc
         }
         $this->checkTableExists($table);
         try {
-            $field_info = $this->describeTableFields($table);
             $command = $this->_sqlConn->createCommand();
             $results = array();
             // get the returnable fields first, then issue delete
             // todo figure out primary key
             if (!empty($out_fields)) {
                 $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $fields = $this->parseFieldsForSqlSelect($out_fields, $field_info);
-                $command->reset();
-                $command->select($fields)->from($this->_tablePrefix . $table)->where($filter);
-                $results = $command->queryAll();
+                $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter);
             }
 
             // parse filter
@@ -1424,7 +1396,9 @@ class PdoSqlDbSvc
         $this->checkTableExists($table);
         try {
             $availFields = $this->describeTableFields($table);
-            $fields = $this->parseFieldsForSqlSelect($fields, $availFields, true);
+            $result = $this->parseFieldsForSqlSelect($fields, $availFields, true);
+            $bindings = $result['bindings'];
+            $fields = implode(',', $result['fields']);
             $query = '';
             // todo use select in () here?
             foreach ($ids as $id) {
@@ -1436,7 +1410,7 @@ class PdoSqlDbSvc
                 $query .= ' = ' . $this->_sqlConn->quoteValue($id) . ';';
             }
 
-            return $this->batchSqlQuery($query);
+            return $this->batchSqlQuery($query, $bindings);
         }
         catch (Exception $ex) {
             throw $ex;
@@ -1459,7 +1433,9 @@ class PdoSqlDbSvc
             $this->checkTableExists($table);
             // parse filter
             $availFields = $this->describeTableFields($table);
-            $fields = $this->parseFieldsForSqlSelect($fields, $availFields);
+            $result = $this->parseFieldsForSqlSelect($fields, $availFields);
+            $bindings = $result['bindings'];
+            $fields = $result['fields'];
             if (empty($fields)) {
                 $fields = '*';
             }
@@ -1489,6 +1465,10 @@ class PdoSqlDbSvc
             $this->checkConnection();
             Utilities::markTimeStart('DB_TIME');
             $reader = $command->query();
+            $dummy = null;
+            foreach ($bindings as $binding) {
+                $reader->bindColumn($binding['name'], $dummy, $binding['type']);
+            }
             $reader->setFetchMode(PDO::FETCH_ASSOC);
             $data = $reader->readAll();
 
@@ -1501,14 +1481,16 @@ class PdoSqlDbSvc
                     $command->where($filter);
                 }
                 $reader = $command->query();
-                $reader->setFetchMode(PDO::FETCH_ASSOC);
+                $total = 0;
+                $reader->bindColumn('total', $total, PDO::PARAM_INT);
+                $reader->setFetchMode(PDO::FETCH_BOUND);
                 if ($row = $reader->read()) {
-                    $data['total'] = $row['total'];
+                    $data['total'] = $total;
                 }
             }
 
             Utilities::markTimeStop('DB_TIME');
-//            error_log('retrievefilter: ' . PHP_EOL . $query);
+//            error_log('retrievefilter: ' . PHP_EOL . gettype($data[0]['id']));
 
             return $data;
         }
@@ -1546,7 +1528,7 @@ class PdoSqlDbSvc
     /**
      * Handle raw SQL Azure requests
      */
-    protected function batchSqlQuery($query)
+    protected function batchSqlQuery($query, $bindings=array())
     {
         if (empty($query)) {
             throw new Exception('[NOQUERY]: No query string present in request.');
@@ -1557,6 +1539,10 @@ class PdoSqlDbSvc
 
             $command = $this->_sqlConn->createCommand($query);
             $reader = $command->query();
+            $dummy = null;
+            foreach ($bindings as $binding) {
+                $reader->bindColumn($binding['name'], $dummy, $binding['type']);
+            }
 
             $data = array();
             $rowData = array();

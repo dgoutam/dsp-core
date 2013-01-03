@@ -11,16 +11,16 @@ class AttachmentSvc extends CommonFileSvc
 {
     /**
      * @param array $config
-     * @param string $store_name
      * @throws \Exception
      */
-    public function __construct($config, $store_name = '')
+    public function __construct($config)
     {
-        // Validate blob setup
+        // Validate storage setup
+        $store_name = Utilities::getArrayValue('storage_name', $config, '');
         if (empty($store_name)) {
-            $store_name = Defaults::ATTACHMENTS_STORAGE_NAME;
+            $config['storage_name'] = Defaults::ATTACHMENTS_STORAGE_NAME;
         }
-        parent::__construct($config, $store_name);
+        parent::__construct($config);
     }
 
     /**

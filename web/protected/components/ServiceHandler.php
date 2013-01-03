@@ -215,6 +215,13 @@ class ServiceHandler
                 case 'Remote Web Service':
                     $service = new WebService($record);
                     break;
+                case 'Local File Storage':
+                case 'Remote File Storage':
+                    $service = new CommonFileSvc($record);
+                    break;
+                case 'Remote SQL DB':
+                    $service = new DatabaseSvc($record);
+                    break;
                 default:
                     throw new Exception("Failed to launch service, unknown type value '$type' in service record.");
                     break;

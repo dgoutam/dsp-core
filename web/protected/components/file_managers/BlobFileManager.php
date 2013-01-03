@@ -33,20 +33,14 @@ class BlobFileManager extends CommonFileManager
             $type = isset($config['storage_type']) ? $config['storage_type'] : '';
             $credentials = isset($config['credentials']) ? $config['credentials'] : '';
             $credentials = json_decode($credentials, true);
+            error_log($type);
             switch (strtolower($type)) {
-            case 'windows azure blob dev':
-                try {
-                    $this->blobSvc = new WindowsAzureBlob(true);
-                }
-                catch (Exception $ex) {
-                    throw new Exception("Unexpected Windows Azure Blob Service Exception:\n{$ex->getMessage()}");
-                }
-                break;
             case 'windows azure blob':
+                $local_dev = isset($credentials['local_dev']) ? Utilities::boolval($credentials['local_dev']) : false;
                 $accountName = isset($credentials['account_name']) ? $credentials['account_name'] : '';
                 $accountKey = isset($credentials['account_key']) ? $credentials['account_key'] : '';
                 try {
-                    $this->blobSvc = new WindowsAzureBlob(false, $accountName, $accountKey);
+                    $this->blobSvc = new WindowsAzureBlob($local_dev, $accountName, $accountKey);
                 }
                 catch (Exception $ex) {
                     throw new Exception("Unexpected Windows Azure Blob Service Exception:\n{$ex->getMessage()}");

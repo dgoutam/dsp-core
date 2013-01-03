@@ -17,19 +17,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
 
     /**
      * @param array $config
-     * @param string $store_name
-     * @throws \Exception
+     * @throws Exception
      */
-    public function __construct($config, $store_name = '')
+    public function __construct($config)
     {
         parent::__construct($config);
 
-        // Validate blob setup
+        // Validate storage setup
+        $store_name = Utilities::getArrayValue('storage_name', $config, '');
         if (empty($store_name)) {
-            throw new \Exception("Error creating common file service. No storage name given.");
+            throw new Exception("Error creating common file service. No storage name given.");
         }
         try {
-            $type = Utilities::getArrayValue('Type', $config, 'Native');
+            $type = Utilities::getArrayValue('type', $config, '');
             switch (strtolower($type)) { // remote blob storage or native disk
             case 'remote file storage':
                 $this->fileRestHandler = new BlobFileManager($config, $store_name);
@@ -39,8 +39,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 break;
             }
         }
-        catch (\Exception $ex) {
-            throw new \Exception("Error creating document storage.\n{$ex->getMessage()}");
+        catch (Exception $ex) {
+            throw new Exception("Error creating document storage.\n{$ex->getMessage()}");
         }
     }
 
@@ -55,14 +55,14 @@ class CommonFileSvc extends CommonService implements iRestHandler
     /**
      * @param string $path
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     public function streamFile($path)
     {
         try {
             $this->fileRestHandler->streamFile($path);
         }
-        catch (\Exception $ex) {
+        catch (Exception $ex) {
             throw $ex;
         }
     }
@@ -71,7 +71,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionGet()
     {
@@ -122,8 +122,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
             }
-            catch (\Exception $ex) {
-                throw new \Exception("Failed to retrieve application folder content for '$path''.\n{$ex->getMessage()}");
+            catch (Exception $ex) {
+                throw new Exception("Failed to retrieve application folder content for '$path''.\n{$ex->getMessage()}");
             }
         }
         else {
@@ -146,8 +146,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
             }
-            catch (\Exception $ex) {
-                throw new \Exception("Failed to retrieve application file '$path''.\n{$ex->getMessage()}");
+            catch (Exception $ex) {
+                throw new Exception("Failed to retrieve application file '$path''.\n{$ex->getMessage()}");
             }
         }
 
@@ -156,7 +156,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionPost()
     {
@@ -189,8 +189,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $this->fileRestHandler->writeFile($fullPathName, $content, false, true);
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -202,8 +202,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $content = Utilities::getPostDataAsArray();
                     $this->fileRestHandler->createFolder($fullPathName, true, $content, true);
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to create application folder $fullPathName.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to create application folder $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -231,7 +231,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
                             }
                         }
-                        catch (\Exception $ex) {
+                        catch (Exception $ex) {
                             $out[0]['fault'] = array('faultCode' => 'blah',
                                                      'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                         }
@@ -261,7 +261,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
                                 }
                             }
-                            catch (\Exception $ex) {
+                            catch (Exception $ex) {
                                 $out[$key]['fault'] = array('faultCode' => 'blah',
                                                             'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                             }
@@ -308,7 +308,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                             $this->fileRestHandler->deleteFolder($srcPath, true);
                                         }
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -324,7 +324,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     try {
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -353,7 +353,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                             $this->fileRestHandler->deleteFile($srcPath);
                                         }
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -369,7 +369,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     try {
                                         $this->fileRestHandler->writeFile($fullPathName, $content);
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -378,8 +378,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $result = $out;
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to create application folders or files from request.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to create application folders or files from request.\n{$ex->getMessage()}");
                 }
             }
         }
@@ -390,7 +390,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
             if (isset($_SERVER['HTTP_X_FILE_NAME']) && !empty($_SERVER['HTTP_X_FILE_NAME'])) {
                 $x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
                 if (0 !== strcasecmp($name, $x_file_name)) {
-                    throw new \Exception("Header file name '$x_file_name' mismatched with REST resource '$name'.");
+                    throw new Exception("Header file name '$x_file_name' mismatched with REST resource '$name'.");
                 }
                 try {
                     $content = Utilities::getPostData();
@@ -412,22 +412,22 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $this->fileRestHandler->writeFile($path, $content, false, true);
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to create application file $path.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to create application file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $path)));
             }
             elseif (isset($_SERVER['HTTP_X_FOLDER_NAME']) && !empty($_SERVER['HTTP_X_FOLDER_NAME'])) {
                 $x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
                 if (0 !== strcasecmp($name, $x_folder_name)) {
-                    throw new \Exception("Header folder name '$x_folder_name' mismatched with REST resource '$name'.");
+                    throw new Exception("Header folder name '$x_folder_name' mismatched with REST resource '$name'.");
                 }
                 try {
                     $content = Utilities::getPostDataAsArray();
                     $this->fileRestHandler->createFolder($path, true, $content);
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to create application file $path.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to create application file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $path)));
             }
@@ -436,7 +436,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 $files = $_FILES['files'];
                 //$files = Utilities::reorgFilePostArray($files);
                 if (1 < count($files['error'])) {
-                    throw new \Exception("Multiple files uploaded to a single REST resource '$name'.");
+                    throw new Exception("Multiple files uploaded to a single REST resource '$name'.");
                 }
                 $name = $files['name'][0];
                 $fullPathName = $path . $name;
@@ -456,12 +456,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
                         }
                     }
-                    catch (\Exception $ex) {
-                        throw new \Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                     }
                 }
                 else {
-                    throw new \Exception("Failed to create application file $fullPathName.\n$error");
+                    throw new Exception("Failed to create application file $fullPathName.\n$error");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -473,7 +473,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     //$this->addFiles($path, $data['files']);
                     $result = array();
                 }
-                catch (\Exception $ex) {
+                catch (Exception $ex) {
 
                 }
             }
@@ -484,7 +484,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionPut()
     {
@@ -517,8 +517,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $this->fileRestHandler->writeFile($fullPathName, $content, false);
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application file $fullPathName.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application file $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -530,8 +530,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $content = Utilities::getPostDataAsArray();
                     $this->fileRestHandler->updateFolderProperties($fullPathName, $content);
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application folder $fullPathName.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application folder $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -551,7 +551,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         try {
                             $this->fileRestHandler->moveFile($fullPathName, $tmp_name, false);
                         }
-                        catch (\Exception $ex) {
+                        catch (Exception $ex) {
                             $out[$key]['fault'] = array('faultCode' => 'blah',
                                                         'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                         }
@@ -597,7 +597,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                             $this->fileRestHandler->deleteFolder($srcPath, true);
                                         }
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -613,7 +613,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     try {
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -642,7 +642,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                             $this->fileRestHandler->deleteFile($srcPath);
                                         }
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -658,7 +658,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     try {
                                         $this->fileRestHandler->writeFile($fullPathName, $content);
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -667,8 +667,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $result = $out;
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application folders or files from request.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application folders or files from request.\n{$ex->getMessage()}");
                 }
             }
         }
@@ -678,7 +678,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
             if (isset($_SERVER['HTTP_X_FILE_NAME']) && !empty($_SERVER['HTTP_X_FILE_NAME'])) {
                 $x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
                 if (0 !== strcasecmp($name, $x_file_name)) {
-                    throw new \Exception("Header file name '$x_file_name' mismatched with REST resource '$name'.");
+                    throw new Exception("Header file name '$x_file_name' mismatched with REST resource '$name'.");
                 }
                 try {
                     $content = Utilities::getPostData();
@@ -700,22 +700,22 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $this->fileRestHandler->writeFile($path, $content, false);
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application file $path.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $path)));
             }
             elseif (isset($_SERVER['HTTP_X_FOLDER_NAME']) && !empty($_SERVER['HTTP_X_FOLDER_NAME'])) {
                 $x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
                 if (0 !== strcasecmp($name, $x_folder_name)) {
-                    throw new \Exception("Header folder name '$x_folder_name' mismatched with REST resource '$name'.");
+                    throw new Exception("Header folder name '$x_folder_name' mismatched with REST resource '$name'.");
                 }
                 try {
                     $content = Utilities::getPostDataAsArray();
                     $this->fileRestHandler->updateFolderProperties($path, $content);
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application folder $path.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application folder $path.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $path)));
             }
@@ -724,7 +724,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 $files = $_FILES['files'];
                 //$files = Utilities::reorgFilePostArray($files);
                 if (1 < count($files['error'])) {
-                    throw new \Exception("Multiple files uploaded to a single REST resource '$name'.");
+                    throw new Exception("Multiple files uploaded to a single REST resource '$name'.");
                 }
                 $name = $files['name'][0];
                 $fullPathName = $path . $name;
@@ -744,12 +744,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
                         }
                     }
-                    catch (\Exception $ex) {
-                        throw new \Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                     }
                 }
                 else {
-                    throw new \Exception("Failed to create application file $fullPathName.\n$error");
+                    throw new Exception("Failed to create application file $fullPathName.\n$error");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -761,7 +761,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     //$this->addFiles($path, $data['files']);
                     $result = array();
                 }
-                catch (\Exception $ex) {
+                catch (Exception $ex) {
 
                 }
             }
@@ -772,7 +772,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionMerge()
     {
@@ -805,8 +805,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $this->fileRestHandler->writeFile($fullPathName, $content, false);
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application file $fullPathName.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application file $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -818,8 +818,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $content = Utilities::getPostDataAsArray();
                     $this->fileRestHandler->updateFolderProperties($fullPathName, $content);
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application folder $fullPathName.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application folder $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -839,7 +839,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         try {
                             $this->fileRestHandler->moveFile($fullPathName, $tmp_name, false);
                         }
-                        catch (\Exception $ex) {
+                        catch (Exception $ex) {
                             $out[$key]['fault'] = array('faultCode' => 'blah',
                                                         'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                         }
@@ -885,7 +885,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                             $this->fileRestHandler->deleteFolder($srcPath, true);
                                         }
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -901,7 +901,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     try {
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -930,7 +930,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                             $this->fileRestHandler->deleteFile($srcPath);
                                         }
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -946,7 +946,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     try {
                                         $this->fileRestHandler->writeFile($fullPathName, $content);
                                     }
-                                    catch (\Exception $ex) {
+                                    catch (Exception $ex) {
                                         $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
@@ -955,8 +955,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $result = $out;
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application folders or files from request.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application folders or files from request.\n{$ex->getMessage()}");
                 }
             }
         }
@@ -966,7 +966,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
             if (isset($_SERVER['HTTP_X_FILE_NAME']) && !empty($_SERVER['HTTP_X_FILE_NAME'])) {
                 $x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
                 if (0 !== strcasecmp($name, $x_file_name)) {
-                    throw new \Exception("Header file name '$x_file_name' mismatched with REST resource '$name'.");
+                    throw new Exception("Header file name '$x_file_name' mismatched with REST resource '$name'.");
                 }
                 try {
                     $content = Utilities::getPostData();
@@ -988,22 +988,22 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $this->fileRestHandler->writeFile($path, $content, false);
                     }
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application file $path.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $path)));
             }
             elseif (isset($_SERVER['HTTP_X_FOLDER_NAME']) && !empty($_SERVER['HTTP_X_FOLDER_NAME'])) {
                 $x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
                 if (0 !== strcasecmp($name, $x_folder_name)) {
-                    throw new \Exception("Header folder name '$x_folder_name' mismatched with REST resource '$name'.");
+                    throw new Exception("Header folder name '$x_folder_name' mismatched with REST resource '$name'.");
                 }
                 try {
                     $content = Utilities::getPostDataAsArray();
                     $this->fileRestHandler->updateFolderProperties($path, $content);
                 }
-                catch (\Exception $ex) {
-                    throw new \Exception("Failed to update application folder $path.\n{$ex->getMessage()}");
+                catch (Exception $ex) {
+                    throw new Exception("Failed to update application folder $path.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $path)));
             }
@@ -1012,7 +1012,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 $files = $_FILES['files'];
                 //$files = Utilities::reorgFilePostArray($files);
                 if (1 < count($files['error'])) {
-                    throw new \Exception("Multiple files uploaded to a single REST resource '$name'.");
+                    throw new Exception("Multiple files uploaded to a single REST resource '$name'.");
                 }
                 $name = $files['name'][0];
                 $fullPathName = $path . $name;
@@ -1032,12 +1032,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
                         }
                     }
-                    catch (\Exception $ex) {
-                        throw new \Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                     }
                 }
                 else {
-                    throw new \Exception("Failed to create application file $fullPathName.\n$error");
+                    throw new Exception("Failed to create application file $fullPathName.\n$error");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -1049,7 +1049,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     //$this->addFiles($path, $data['files']);
                     $result = array();
                 }
-                catch (\Exception $ex) {
+                catch (Exception $ex) {
 
                 }
             }
@@ -1060,7 +1060,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionDelete()
     {
@@ -1072,7 +1072,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
             try {
                 $content = Utilities::getPostDataAsArray();
                 if (empty($content)) {
-                    throw new \Exception("Empty file or folder path given for application storage delete.");
+                    throw new Exception("Empty file or folder path given for application storage delete.");
                 }
                 else {
                     $out = array();
@@ -1087,8 +1087,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $result = $out;
                 }
             }
-            catch (\Exception $ex) {
-                throw new \Exception("Failed to delete application storage folders.\n{$ex->getMessage()}");
+            catch (Exception $ex) {
+                throw new Exception("Failed to delete application storage folders.\n{$ex->getMessage()}");
             }
         }
         elseif (empty($path_array[count($path_array) - 1])) {
@@ -1097,8 +1097,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
             try {
                 $this->fileRestHandler->deleteFolder($path, $force);
             }
-            catch (\Exception $ex) {
-                throw new \Exception("Failed to delete application storage folder '$path'.\n{$ex->getMessage()}");
+            catch (Exception $ex) {
+                throw new Exception("Failed to delete application storage folder '$path'.\n{$ex->getMessage()}");
             }
             $result = array('folder' => array(array('path' => $path)));
         }
@@ -1107,8 +1107,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
             try {
                 $this->fileRestHandler->deleteFile($path);
             }
-            catch (\Exception $ex) {
-                throw new \Exception("Failed to delete application storage file '$path'.\n{$ex->getMessage()}");
+            catch (Exception $ex) {
+                throw new Exception("Failed to delete application storage file '$path'.\n{$ex->getMessage()}");
             }
             $result = array('file' => array(array('path' => $path)));
         }
