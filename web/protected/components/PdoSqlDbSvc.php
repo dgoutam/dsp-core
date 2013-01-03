@@ -773,6 +773,9 @@ class PdoSqlDbSvc
             case 'integer':
                 $bindArray[] = array('name' => $field, 'type' => PDO::PARAM_INT);
                 break;
+            default:
+                $bindArray[] = array('name' => $field, 'type' => PDO::PARAM_STR);
+                break;
             }
             // todo fix special cases - maybe after retrieve
             switch ($dbType) {
@@ -1465,12 +1468,20 @@ class PdoSqlDbSvc
             $this->checkConnection();
             Utilities::markTimeStart('DB_TIME');
             $reader = $command->query();
-            $dummy = null;
+            $data = array();
+            $dummy = array();
             foreach ($bindings as $binding) {
-                $reader->bindColumn($binding['name'], $dummy, $binding['type']);
+                $reader->bindColumn($binding['name'], $dummy[$binding['name']], $binding['type']);
             }
-            $reader->setFetchMode(PDO::FETCH_ASSOC);
-            $data = $reader->readAll();
+            $reader->setFetchMode(PDO::FETCH_BOUND);
+            $count = 0;
+            while (false !== $reader->read()) {
+                $temp = array();
+                foreach ($bindings as $binding) {
+                    $temp[$binding['name']] = $dummy[$binding['name']];
+                }
+                $data[$count++] = $temp;
+            }
 
             // count total records in some scenarios
             if (!(($limit > 0) && ($offset > 0))) {
@@ -1485,12 +1496,13 @@ class PdoSqlDbSvc
                 $reader->bindColumn('total', $total, PDO::PARAM_INT);
                 $reader->setFetchMode(PDO::FETCH_BOUND);
                 if ($row = $reader->read()) {
+//                    $data['count'] = $count;
                     $data['total'] = $total;
                 }
             }
 
             Utilities::markTimeStop('DB_TIME');
-//            error_log('retrievefilter: ' . PHP_EOL . gettype($data[0]['id']));
+//            error_log('retrievefilter: ' . PHP_EOL . print_r($data, true));
 
             return $data;
         }
