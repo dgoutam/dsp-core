@@ -728,6 +728,8 @@ class Utilities
         if (empty($appName)) {
             throw new \Exception("[AccessDenied]: A valid application name is required to access services.");
         }
+        // todo temporary check for launchpad
+        if (0 !== strcasecmp($appName, 'launchpad')) {
         $apps = static::getArrayValue('apps', $roleInfo, null);
         $found = false;
         foreach ($apps as $app) {
@@ -738,6 +740,24 @@ class Utilities
         }
         if (!$found) {
             throw new \Exception("[AccessDenied]: Access to application '$appName' is not provisioned for this user's role.");
+        }
+        /*
+             // see if we need to deny access to this app
+             $result = $db->retrieveSqlRecordsByIds('app', $appName, 'name', 'id,is_active');
+             if ((0 >= count($result)) || empty($result[0])) {
+                 throw new Exception("The application '$appName' could not be found.");
+             }
+             if (!$result[0]['is_active']) {
+                 throw new Exception("The application '$appName' is not currently active.");
+             }
+             $appId = $result[0]['id'];
+             // is this app part of the role's allowed apps
+             if (!empty($allowedAppIds)) {
+                 if (!Utilities::isInList($allowedAppIds, $appId, ',')) {
+                     throw new Exception("The application '$appName' is not currently allowed by this role.");
+                 }
+             }
+         */
         }
 
         $services = static::getArrayValue('services', $roleInfo, null);

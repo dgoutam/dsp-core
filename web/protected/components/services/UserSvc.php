@@ -485,12 +485,13 @@ class UserSvc extends CommonService implements iRestHandler
             throw new Exception("[InvalidParam]: Login request is missing required password.");
         }
 
-        $appName = (isset($GLOBALS['app_name'])) ? $GLOBALS['app_name'] : '';
-        $pwd_md5 = md5($password);
         try {
             $db = $this->nativeDb;
+            $pwd_md5 = md5($password);
             $query = "username='$username' and password='$pwd_md5' and confirm_code='y'";
-            $result = $db->retrieveSqlRecordsByFilter('user', '', $query, 1);
+            $fields = 'id,full_name,first_name,last_name,username,email,phone,';
+            $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
+            $result = $db->retrieveSqlRecordsByFilter('user', $fields, $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
                 // Check if the password is wrong
@@ -530,27 +531,13 @@ class UserSvc extends CommonService implements iRestHandler
                 }
                 else {
                     $role = $result[0];
-                    // see if we need to deny access to this app
+                    $allowedAppIds = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
                     try {
-                        $result = $db->retrieveSqlRecordsByIds('app', $appName, 'name', 'id,is_active');
-                        if ((0 >= count($result)) || empty($result[0])) {
-                            throw new Exception("The application '$appName' could not be found.");
+                        $allowedApps = null;
+                        if (!empty($allowedAppIds)) {
+                            $allowedApps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', 'id,name,app_group_ids');
                         }
-                        if (!$result[0]['is_active']) {
-                            throw new Exception("The application '$appName' is not currently active.");
-                        }
-                        $appId = $result[0]['id'];
-                        // is this app part of the role's allowed apps
-                        $allowedApps = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
-                        if (!empty($allowedApps)) {
-                            if (!Utilities::isInList($allowedApps, $appId, ',')) {
-                                throw new Exception("The application '$appName' is not currently allowed by this role.");
-                            }
-                            $role['apps'] = $db->retrieveSqlRecordsByIds('app', $allowedApps, 'id', 'id,name');
-                        }
-                        else {
-                            $role['apps'] = null;
-                        }
+                        $role['apps'] = $allowedApps;
                         unset($role['app_ids']);
                     }
                     catch (Exception $ex) {
@@ -575,11 +562,14 @@ class UserSvc extends CommonService implements iRestHandler
             $userId = $userInfo['id'];
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
+            $result = $db->retrieveSqlRecordsByFilter('app_group');
+            unset($result['total']);
 
             $data = $userInfo;
             $data['ticket'] = $ticket;
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
+            $data['app_groups'] = $result;
 
             return $data;
         }
@@ -627,10 +617,11 @@ class UserSvc extends CommonService implements iRestHandler
             throw new Exception("[InvalidSession]: There is no active session. Please Login to use the API.");
         }
 
-        $appName = (isset($GLOBALS['app_name'])) ? $GLOBALS['app_name'] : '';
         try {
             $db = $this->nativeDb;
-            $result = $db->retrieveSqlRecordsByIds('user', $userId, 'id', '');
+            $fields = 'id,full_name,first_name,last_name,username,email,phone,';
+            $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
+            $result = $db->retrieveSqlRecordsByIds('user', $userId, 'id', $fields);
             if (count($result) < 1) {
                 throw new Exception("The user identified in the ticket does not exist in the system.");
             }
@@ -656,34 +647,22 @@ class UserSvc extends CommonService implements iRestHandler
                 }
                 else {
                     $role = $result[0];
-                    // see if we need to deny access to this app
+                    $allowedAppIds = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
                     try {
-                        $result = $db->retrieveSqlRecordsByIds('app', $appName, 'name', 'id,is_active');
-                        if ((0 >= count($result)) || empty($result[0])) {
-                            throw new Exception("The application '$appName' could not be found.");
+                        $allowedApps = null;
+                        if (!empty($allowedAppIds)) {
+                            $allowedApps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', 'id,name,app_group_ids');
                         }
-                        if (!$result[0]['is_active']) {
-                            throw new Exception("The application '$appName' is not currently active.");
-                        }
-                        $appId = $result[0]['id'];
-                        // is this app part of the role's allowed apps
-                        $allowedApps = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
-                        if (!empty($allowedApps)) {
-                            if (!Utilities::isInList($allowedApps, $appId, ',')) {
-                                throw new Exception("The application '$appName' is not currently allowed by this role.");
-                            }
-                            $role['apps'] = $db->retrieveSqlRecordsByIds('app', $allowedApps, 'id', 'id,name');
-                        }
-                        else {
-                            $role['apps'] = null;
-                        }
+                        $role['apps'] = $allowedApps;
                         unset($role['app_ids']);
                     }
                     catch (Exception $ex) {
                         throw $ex;
                     }
                     if ((isset($role['id']) && !empty($role['id']))) {
-                        $perms = $db->retrieveSqlRecordsByFilter('role_service_access', '', "role_id='" . $role['id'] . "'");
+                        $permsFields = 'service_id,service,component,read,create,update,delete';
+                        $permQuery = "role_id='" . $role['id'] . "'";
+                        $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
                         unset($perms['total']);
                         $role['services'] = $perms;
                     }
@@ -699,11 +678,14 @@ class UserSvc extends CommonService implements iRestHandler
             $userId = $userInfo['id'];
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
+            $result = $db->retrieveSqlRecordsByFilter('app_group');
+            unset($result['total']);
 
             $data = $userInfo;
             $data['ticket'] = $ticket;
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
+            $data['app_groups'] = $result;
 
             return $data;
         }
@@ -902,9 +884,8 @@ class UserSvc extends CommonService implements iRestHandler
     {
         try {
             $db = $this->nativeDb;
-            // if security question available ask, otherwise if email svc available send tmp password
-            $query = "username='$username' and confirm_code='y'";
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id,security_question,email', $query, 1);
+            $query = "username='$username' and security_answer='$answer' and confirm_code='y'";
+            $result = $db->retrieveSqlRecordsByFilter('user', 'id,email', $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
                 // Check if the confirmation was never completed
@@ -914,19 +895,23 @@ class UserSvc extends CommonService implements iRestHandler
                 if (count($result) > 0) {
                     throw new Exception("The user has not confirmed registration.");
                 }
-                throw new Exception("The supplied username was not found in the system.");
+                throw new Exception("The supplied answer to the security question is invalid.");
             }
 
-            return $result;
+            $userId = $result[0]['id'];
+            $timestamp = time();
+            $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
+
+            return $this->userSession($ticket);
         }
         catch (Exception $ex) {
-            throw new Exception("Error sending new password.\n{$ex->getMessage()}");
+            throw new Exception("Error processing security answer.\n{$ex->getMessage()}");
         }
     }
 
     /**
      * @param $code
-     * @param $newpassword
+     * @param $new_password
      * @throws Exception
      * @return bool
      */

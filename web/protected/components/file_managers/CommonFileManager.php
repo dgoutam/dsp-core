@@ -174,11 +174,11 @@ abstract class CommonFileManager
 
     /**
      * @param string $path
+     * @param null|ZipArchive $zip
      * @param string $zipFileName
      * @param bool $overwrite
-     * @throws Exception
      * @return string Zip File Name created/updated
      */
-    abstract public function getFolderAsZip($path, $zipFileName = '', $overwrite = false);
+    abstract public function getFolderAsZip($path, $zip = null, $zipFileName = '', $overwrite = false);
 
 }

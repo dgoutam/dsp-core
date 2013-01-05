@@ -110,11 +110,11 @@ class ApplicationSvc extends CommonFileSvc
                 throw new \Exception("Can not include description file in package file.");
             }
             // add related/required database table schemas
-            if (!$zip->addFromString('tables.json', '')) {
+            if (!$zip->addFromString('schema.json', '')) {
                 throw new \Exception("Can not include database schema files in package file.");
             }
             // add files
-            $zipFileName = $this->fileRestHandler->getFolderAsZip($app_root, $zipFileName, true);
+            $this->fileRestHandler->getFolderAsZip($app_root, $zip, $zipFileName, true);
             $zip->close();
 
             $fd = fopen($zipFileName, "r");
@@ -153,8 +153,8 @@ class ApplicationSvc extends CommonFileSvc
             }
             $record = json_decode($record, true);
             $records = array(array('fields' => $record));
-            $sys = ServiceHandler::getInstance()->getServiceObject('System');
-            $result = $sys->createSystemRecords('App', $records, false, 'Id');
+            $sys = ServiceHandler::getInstance()->getServiceObject('system');
+            $result = $sys->createSystemRecords('app', $records, false, 'Id');
             if (isset($result['record'][0]['fault'])) {
                 $msg = $result['record'][0]['fault']['faultString'];
                 throw new \Exception("Could not create the database entry for this application.\n$msg");
@@ -162,10 +162,10 @@ class ApplicationSvc extends CommonFileSvc
             $id = $result['record'][0]['fields']['Id'];
             try {
                 $zip->deleteName('description.json');
-                $record = $zip->getFromName('tables.json');
+                $record = $zip->getFromName('schema.json');
                 if (false !== $record) {
-                    // handle additional schema for database
-                    $zip->deleteName('tables.json');
+                    // todo handle additional schema for database
+                    $zip->deleteName('schema.json');
                 }
                 for ($i=0; $i < $zip->numFiles; $i++) {
                     $fullPathName = $zip->getNameIndex($i);
@@ -175,13 +175,19 @@ class ApplicationSvc extends CommonFileSvc
                     if (!empty($parent)) {
                         $this->fileRestHandler->createFolder($parent, true, array(), false);
                     }
-                    $content = $zip->getFromIndex($i);
-                    $this->fileRestHandler->writeFile($fullPathName, $content);
+                    if ('/' === substr($fullPathName, -1)) {
+                        $this->fileRestHandler->createFolder($fullPathName, true, array(), false);
+                    }
+                    else {
+                        $content = $zip->getFromIndex($i);
+                        $this->fileRestHandler->writeFile($fullPathName, $content);
+                    }
                 }
             }
             catch (\Exception $ex) {
-                // delete db record and schema created
-                $sys->deleteSystemRecordsByIds('App', $id);
+                // delete db record
+                // todo anyone else using schema created?
+                $sys->deleteSystemRecordsByIds('app', $id);
                 throw $ex;
             }
         }
@@ -228,7 +234,7 @@ class ApplicationSvc extends CommonFileSvc
         if (empty($path_array) || ((1 === count($path_array)) && empty($path_array[0]))) {
             // for application management at root directory,
             // you can import application package files, but not post other files
-            $asPkg = Utilities::boolval(Utilities::getArrayValue('export', $_REQUEST, false));
+            $asPkg = Utilities::boolval(Utilities::getArrayValue('import', $_REQUEST, false));
             if ($asPkg) {
                 if (isset($_FILES['files']) && !empty($_FILES['files'])) {
                     // older html multi-part/form-data post, single or multiple files

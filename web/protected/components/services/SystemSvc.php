@@ -636,6 +636,7 @@ class SystemSvc extends CommonService implements iRestHandler
             }
             else {
                 $fields = Utilities::removeOneFromList($fields, 'password', ',');
+                $fields = Utilities::removeOneFromList($fields, 'security_question', ',');
                 $fields = Utilities::removeOneFromList($fields, 'security_answer', ',');
                 $fields = Utilities::removeOneFromList($fields, 'confirm_code', ',');
             }

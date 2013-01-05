@@ -605,34 +605,37 @@ class FileManager extends CommonFileManager
 
     /**
      * @param string $path
+     * @param null|ZipArchive $zip
      * @param string $zipFileName
      * @param bool $overwrite
      * @throws Exception
      * @return string Zip File Name created/updated
      */
-    public function getFolderAsZip($path, $zipFileName = '', $overwrite = false)
+    public function getFolderAsZip($path, $zip = null, $zipFileName = '', $overwrite = false)
     {
-        $path = FileUtilities::fixFolderPath($path);
-        $delimiter = '';
         try {
             $container = self::addContainerToName($this->storageContainer, '');
-            if (is_dir($container)) {
+            if (!is_dir($container)) {
+                throw new Exception("Can not find directory '$container'.");
+            }
+            $needClose = false;
+            if (!isset($zip)) {
+                $needClose = true;
                 $zip = new ZipArchive();
                 if (empty($zipFileName)) {
                     $temp = FileUtilities::getNameFromPath($path);
-                    if (empty($temp)) $temp = $this->storageContainer;
+                    if (empty($temp))
+                        $temp = $this->storageContainer;
                     $zipFileName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $temp . '.zip';
                 }
                 if (true !== $zip->open($zipFileName, ($overwrite ? ZipArchive::OVERWRITE : ZipArchive::CREATE))) {
                     throw new Exception("Can not create zip file for directory '$path'.");
                 }
-
-                $dirPath = $container . $path;
-                static::addTreeToZip($dirPath, '', $zip);
-                $zip->close();
-                return $zipFileName;
             }
-            return null;
+            static::addTreeToZip($container, rtrim($path, '/'), $zip);
+            if ($needClose)
+                $zip->close();
+            return $zipFileName;
         }
         catch (Exception $ex) {
             throw $ex;
@@ -678,23 +681,40 @@ class FileManager extends CommonFileManager
         }
     }
 
+    /**
+     * @param $name
+     * @return string
+     */
     private static function asFullPath($name)
     {
         $root = dirname($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR;
         return $root . $name;
     }
 
+    /**
+     * @param $name
+     * @return string
+     */
     private static function asLocalPath($name)
     {
         $root = dirname($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR;
         return substr($name, strlen($root) + 1);
     }
 
+    /**
+     * @param $container
+     * @return string
+     */
     private static function fixContainerName($container)
     {
         return rtrim($container, '/') . '/';
     }
 
+    /**
+     * @param $container
+     * @param $name
+     * @return string
+     */
     private static function addContainerToName($container, $name)
     {
         if (!empty($container))
@@ -703,6 +723,11 @@ class FileManager extends CommonFileManager
         return static::asFullPath($container . $name);
     }
 
+    /**
+     * @param $container
+     * @param $name
+     * @return string
+     */
     private static function removeContainerFromName($container, $name)
     {
         $name = static::asLocalPath($name);
@@ -802,6 +827,11 @@ class FileManager extends CommonFileManager
         }
     }
 
+    /**
+     * @param $dir
+     * @param bool $force
+     * @throws Exception
+     */
     public static function deleteTree($dir, $force = false)
     {
         if (is_dir($dir)) {
@@ -811,12 +841,16 @@ class FileManager extends CommonFileManager
             }
             foreach ($files as $file) {
                 $delPath = $dir . DIRECTORY_SEPARATOR . $file;
-                (is_dir($delPath)) ? static::deleteTree($delPath) : unlink($delPath);
+                (is_dir($delPath)) ? static::deleteTree($delPath, $force) : unlink($delPath);
             }
             rmdir($dir);
         }
     }
 
+    /**
+     * @param $src
+     * @param $dst
+     */
     public static function copyTree($src, $dst)
     {
         if (file_exists($dst)) {
@@ -834,24 +868,35 @@ class FileManager extends CommonFileManager
         }
     }
 
+    /**
+     * @param $root
+     * @param $path
+     * @param $zip ZipArchive
+     * @throws Exception
+     */
     public static function addTreeToZip($root, $path, $zip)
     {
-        $dirPath = $root . $path . DIRECTORY_SEPARATOR;
+        $dirPath = $root;
+        if (!empty($path))
+            $dirPath .= $path . DIRECTORY_SEPARATOR;
         if (is_dir($dirPath)) {
             $files = array_diff(scandir($dirPath), array('.','..'));
             if (empty($files)) {
-                if (!$zip->addEmptyDir($path)) {
-                    throw new Exception("Can not include folder '$path' in zip file.");
+                $newPath = str_replace(DIRECTORY_SEPARATOR, '/', $path);
+                if (!$zip->addEmptyDir($newPath)) {
+                    throw new Exception("Can not include folder '$newPath' in zip file.");
                 }
                 return;
             }
             foreach ($files as $file) {
-                if (is_dir($dirPath . $file . DIRECTORY_SEPARATOR)) {
-                    static::addTreeToZip($root, $path . DIRECTORY_SEPARATOR . $file, $zip);
+                $newPath = (empty($path) ? $file : $path . DIRECTORY_SEPARATOR . $file);
+                if (is_dir($dirPath . $file)) {
+                    static::addTreeToZip($root, $newPath, $zip);
                 }
                 else {
-                    if (!$zip->addFile($file, $dirPath . $file)) {
-                        throw new Exception("Can not include file '$file' in zip file.");
+                    $newPath = str_replace(DIRECTORY_SEPARATOR, '/', $newPath);
+                    if (!$zip->addFile($dirPath . $file, $newPath)) {
+                        throw new Exception("Can not include file '$newPath' in zip file.");
                     }
                 }
             }

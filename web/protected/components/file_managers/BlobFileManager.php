@@ -616,17 +616,23 @@ class BlobFileManager extends CommonFileManager
 
     /**
      * @param string $path
+     * @param null|ZipArchive $zip
      * @param string $zipFileName
      * @param bool $overwrite
      * @throws Exception
      * @return string Zip File Name created/updated
      */
-    public function getFolderAsZip($path, $zipFileName = '', $overwrite = false)
+    public function getFolderAsZip($path, $zip = null, $zipFileName = '', $overwrite = false)
     {
         $path = FileUtilities::fixFolderPath($path);
         $delimiter = '';
         try {
             if ($this->blobSvc->containerExists($this->storageContainer)) {
+                throw new Exception("Can not find storage container for folder zip operation.");
+            }
+            $needClose = false;
+            if (!isset($zip)) {
+                $needClose = true;
                 $zip = new ZipArchive();
                 if (empty($zipFileName)) {
                     $temp = FileUtilities::getNameFromPath($path);
@@ -636,31 +642,30 @@ class BlobFileManager extends CommonFileManager
                 if (true !== $zip->open($zipFileName, ($overwrite ? ZipArchive::OVERWRITE : ZipArchive::CREATE))) {
                     throw new Exception("Can not create zip file for directory '$path'.");
                 }
-
-                $results = $this->blobSvc->listBlobs($this->storageContainer, $path, $delimiter);
-                foreach ($results as $blob) {
-                    $fullPathName = $blob['name'];
-                    $shortName = substr_replace($fullPathName, '', 0, strlen($path));
-                    if (empty($shortName)) continue;
-                    error_log($shortName);
-                    if ('/' == substr($fullPathName, strlen($fullPathName) - 1)) {
-                        // folders
-                        if (!$zip->addEmptyDir($shortName)) {
-                            throw new Exception("Can not include folder '$shortName' in zip file.");
-                        }
-                    }
-                    else {
-                        // files
-                        $content = $this->blobSvc->getBlobData($this->storageContainer, $fullPathName);
-                        if (!$zip->addFromString($shortName, $content)) {
-                            throw new Exception("Can not include file '$shortName' in zip file.");
-                        }
+            }
+            $results = $this->blobSvc->listBlobs($this->storageContainer, $path, $delimiter);
+            foreach ($results as $blob) {
+                $fullPathName = $blob['name'];
+                $shortName = substr_replace($fullPathName, '', 0, strlen($path));
+                if (empty($shortName)) continue;
+                error_log($shortName);
+                if ('/' == substr($fullPathName, strlen($fullPathName) - 1)) {
+                    // folders
+                    if (!$zip->addEmptyDir($shortName)) {
+                        throw new Exception("Can not include folder '$shortName' in zip file.");
                     }
                 }
-                $zip->close();
-                return $zipFileName;
+                else {
+                    // files
+                    $content = $this->blobSvc->getBlobData($this->storageContainer, $fullPathName);
+                    if (!$zip->addFromString($shortName, $content)) {
+                        throw new Exception("Can not include file '$shortName' in zip file.");
+                    }
+                }
             }
-            return null;
+            if ($needClose)
+            $zip->close();
+            return $zipFileName;
         }
         catch (Exception $ex) {
             throw $ex;

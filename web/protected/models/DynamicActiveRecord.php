@@ -41,12 +41,13 @@ class DynamicActiveRecord extends CActiveRecord
 		parent::__construct($scenario);
 	}
 
-	/**
-	 * Overrides default instantiation logic.
-	 * Instantiates AR class by providing table name
-	 * @see CActiveRecord::instantiate()
-	 * @return DynamicActiveRecord
-	 */
+    /**
+     * Overrides default instantiation logic.
+     * Instantiates AR class by providing table name
+     * @see CActiveRecord::instantiate()
+     * @param array $attributes
+     * @return DynamicActiveRecord
+     */
 	protected function instantiate($attributes)
 	{
 		return new DynamicActiveRecord(null, $this->tableName());
@@ -88,4 +89,27 @@ class DynamicActiveRecord extends CActiveRecord
 	{
 		return new DynamicActiveRecord($scenario, $tableName);
 	}
+
+    /**
+     * @param array $attributes
+     * @param bool $callAfterFind
+     * @return CActiveRecord|null
+     */
+    public function populateRecord($attributes, $callAfterFind = true)
+    {
+        if ($this->useTypeCasting() and is_array($attributes))
+            foreach ($attributes as $name => &$value)
+                if ($this->hasAttribute($name) and $value !== null)
+                    settype($value, $this->getMetaData()->columns[$name]->type);
+
+        return parent::populateRecord($attributes, $callAfterFind);
+    }
+
+    /**
+     * @return bool
+     */
+    public function useTypeCasting()
+    {
+        return false;
+    }
 }
