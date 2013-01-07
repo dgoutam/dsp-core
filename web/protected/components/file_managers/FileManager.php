@@ -365,7 +365,7 @@ class FileManager extends CommonFileManager
             $data = array(
                 'path' => $path,
                 'name' => $shortName,
-                'contentType' => CFileHelper::getMimeType($key),
+                'contentType' => FileUtilities::determineContentType($key),
                 'lastModified' => gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)),
                 'size' => filesize($key)
             );
@@ -399,7 +399,7 @@ class FileManager extends CommonFileManager
             if (is_file($key)) {
                 $result = file_get_contents($key);
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
-                header('Content-type: ' . CFileHelper::getMimeType($key));
+                header('Content-type: ' . FileUtilities::determineContentType($key));
                 header('Content-Length:' . filesize($key));
                 $disposition = 'inline';
                 header("Content-Disposition: $disposition; filename=\"$path\";");
@@ -427,7 +427,7 @@ class FileManager extends CommonFileManager
             if (is_file($key)) {
                 $result = file_get_contents($key);
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
-                header('Content-type: ' . CFileHelper::getMimeType($key));
+                header('Content-type: ' . FileUtilities::determineContentType($key));
                 header('Content-Length:' . filesize($key));
                 $disposition = 'attachment';
                 header("Content-Disposition: $disposition; filename=\"$path\";");
@@ -810,7 +810,7 @@ class FileManager extends CommonFileManager
                     elseif (is_file($key)) {
                         $out[] = array(
                             'name' => str_replace(DIRECTORY_SEPARATOR, '/', $local),
-                            'contentType' => CFileHelper::getMimeType($key),
+                            'contentType' => FileUtilities::determineContentType($key),
                             'lastModified' => gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)),
                             'size' => filesize($key)
                         );

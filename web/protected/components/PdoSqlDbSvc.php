@@ -1395,27 +1395,68 @@ class PdoSqlDbSvc
         if (empty($id_list)) {
             return array();
         }
-        $ids = array_map('trim', explode(",", $id_list));
+        $ids = array_map('trim', explode(',', $id_list));
         $this->checkTableExists($table);
         try {
             $availFields = $this->describeTableFields($table);
-            $result = $this->parseFieldsForSqlSelect($fields, $availFields, true);
+            // add id field to field list
+            $fields = Utilities::addOnceToList($fields, $id_field, ',');
+            $result = $this->parseFieldsForSqlSelect($fields, $availFields);
             $bindings = $result['bindings'];
-            $fields = implode(',', $result['fields']);
-            $query = '';
-            // todo use select in () here?
-            foreach ($ids as $id) {
-                if (empty($id)) {
-                    throw new Exception("Identifying field '$id_field' can not be empty for retrieve record request.");
+            $fields = $result['fields'];
+            if (empty($fields)) {
+                $fields = '*';
+            }
+            // use query builder
+            $command = $this->_sqlConn->createCommand();
+            $command->select($fields);
+            $command->from($this->_tablePrefix . $table);
+            $command->where(array('in', $id_field, $ids));
+
+            $this->checkConnection();
+            Utilities::markTimeStart('DB_TIME');
+            $reader = $command->query();
+            $data = array();
+            $dummy = array();
+            foreach ($bindings as $binding) {
+                $reader->bindColumn($binding['name'], $dummy[$binding['name']], $binding['type']);
+            }
+            $reader->setFetchMode(PDO::FETCH_BOUND);
+            $count = 0;
+            while (false !== $reader->read()) {
+                $temp = array();
+                foreach ($bindings as $binding) {
+                    $temp[$binding['name']] = $dummy[$binding['name']];
                 }
-                $query .= 'SELECT ' . $fields . ' from ' . $this->_sqlConn->quoteTableName($this->_tablePrefix . $table);
-                $query .= ' WHERE ' . $this->_sqlConn->quoteColumnName($id_field);
-                $query .= ' = ' . $this->_sqlConn->quoteValue($id) . ';';
+                $data[$count++] = $temp;
             }
 
-            return $this->batchSqlQuery($query, $bindings);
+            // order returned data by received ids, fill in error for those not found
+            $results = array();
+            foreach ($ids as $id) {
+                $foundRecord = null;
+                foreach ($data as $record) {
+                    if (isset($record[$id_field]) && ($record[$id_field] == $id)) {
+                        $foundRecord = $record;
+                        break;
+                    }
+                }
+                $results[] = (isset($foundRecord) ? $foundRecord :
+                                ("Could not find record for id = '$id'"));
+            }
+
+            Utilities::markTimeStop('DB_TIME');
+
+            return $results;
         }
         catch (Exception $ex) {
+            Utilities::markTimeStop('DB_TIME');
+            /*
+            $msg = '[QUERYFAILED]: ' . implode(':', $this->_sqlConn->errorInfo()) . "\n";
+            if (isset($GLOBALS['DB_DEBUG'])) {
+                error_log($msg . "\n$query");
+            }
+            */
             throw $ex;
         }
     }
@@ -1517,24 +1558,6 @@ class PdoSqlDbSvc
             */
             throw $ex;
         }
-    }
-
-    /**
-     * @param $query
-     * @param $table
-     * @param $id_field
-     * @param $id
-     * @return string
-     */
-    protected function wrapQueryWithIdCheck($query, $table, $id_field, $id)
-    {
-        $newQuery = 'IF EXISTS(SELECT * FROM ' . $this->_sqlConn->quoteTableName($table);
-        $newQuery .= ' WHERE ' . $this->_sqlConn->quoteColumnName($id_field);
-        $newQuery .= ' = ' . $this->_sqlConn->quoteValue($id) . ') BEGIN ';
-        $newQuery .= $query;
-        $newQuery .= " END ELSE PRINT 'Record with $id_field ''$id'' in table ''$table'' not found.'";
-
-        return $newQuery;
     }
 
     /**
