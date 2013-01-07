@@ -1399,14 +1399,13 @@ class PdoSqlDbSvc
         $this->checkTableExists($table);
         try {
             $availFields = $this->describeTableFields($table);
-            // add id field to field list
-            $fields = Utilities::addOnceToList($fields, $id_field, ',');
+            if (!empty($fields)) {
+                // add id field to field list
+                $fields = Utilities::addOnceToList($fields, $id_field, ',');
+            }
             $result = $this->parseFieldsForSqlSelect($fields, $availFields);
             $bindings = $result['bindings'];
             $fields = $result['fields'];
-            if (empty($fields)) {
-                $fields = '*';
-            }
             // use query builder
             $command = $this->_sqlConn->createCommand();
             $command->select($fields);
