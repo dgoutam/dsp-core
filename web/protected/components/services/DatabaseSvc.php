@@ -11,12 +11,6 @@
 class DatabaseSvc extends CommonService implements iRestHandler
 {
 
-    // constants
-    /**
-     *
-     */
-    const SYSTEM_TABLES = 'app_group,app,role,user,service,label,role_service_access,session';
-
     // Members
 
     /**
@@ -796,8 +790,10 @@ class DatabaseSvc extends CommonService implements iRestHandler
      */
     public function describeDatabase()
     {
+        // check for system tables and deny
+        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
         try {
-            return $this->sqlDb->describeDatabase('', self::SYSTEM_TABLES);
+            return $this->sqlDb->describeDatabase('', $sysTables);
         }
         catch (Exception $ex) {
             throw new Exception("Error describing database tables.\n{$ex->getMessage()}");
@@ -812,6 +808,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function describeTables($tables)
     {
         // check for system tables and deny
+        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
         try {
             return $this->sqlDb->describeTables($tables);
         }
@@ -828,6 +825,10 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function describeTable($table)
     {
         // check for system tables and deny
+        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
+        if (Utilities::isInList($sysTables, $table, ',')) {
+            throw new Exception("System table '$table' not available through this interface.");
+        }
         try {
             return $this->sqlDb->describeTable($table);
         }

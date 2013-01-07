@@ -125,7 +125,7 @@ class UserSvc extends CommonService implements iRestHandler
         case 'login':
             $username = Utilities::getArrayValue('username', $data, '');
             $password = Utilities::getArrayValue('password', $data, '');
-            $password = Utilities::decryptPassword($password);
+            //$password = Utilities::decryptPassword($password);
             $result = $this->userLogin($username, $password);
             break;
         case 'logout':
