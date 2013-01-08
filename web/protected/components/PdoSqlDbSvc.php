@@ -136,23 +136,6 @@ class PdoSqlDbSvc
 
     /**
      * @param $name
-     * @param $pwd
-     * @throws Exception
-     * @return void
-     */
-    public function checkAdminLogin($name, $pwd)
-    {
-        if (0 !== strcmp($this->_sqlConn->username, $name)) {
-            throw new Exception('UserName is incorrect.');
-        }
-
-        if (0 !== strcmp($this->_sqlConn->password, $pwd)) {
-            throw new Exception('Password is incorrect.');
-        }
-    }
-
-    /**
-     * @param $name
      * @return void
      * @throws InvalidArgumentException
      * @throws Exception
@@ -165,7 +148,9 @@ class PdoSqlDbSvc
         try {
             $tables = $this->_sqlConn->schema->getTableNames();
             if (!in_array($this->_tablePrefix . $name, $tables)) {
-                throw new Exception("Table '$name' does not exist in the database.");
+                // mysql drops every table name to lowercase
+                if (!in_array(strtolower($this->_tablePrefix . $name), $tables))
+                    throw new Exception("Table '$name' does not exist in the database.");
             }
         }
         catch (Exception $ex) {
@@ -546,6 +531,21 @@ class PdoSqlDbSvc
     }
 
     /**
+     * @param $avail_fields
+     * @return string
+     */
+    protected function getPrimaryKeyFieldFromDescribe($avail_fields)
+    {
+        foreach ($avail_fields as $field_info) {
+            if ($field_info['is_primary_key']) {
+                return $field_info['name'];
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * @param $record
      * @param $avail_fields
      * @param bool $for_update
@@ -853,6 +853,7 @@ class PdoSqlDbSvc
         $this->checkTableExists($table);
         try {
             $field_info = $this->describeTableFields($table);
+            $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
             $command = $this->_sqlConn->createCommand();
             $ids = array();
             $errors = array();
@@ -890,16 +891,16 @@ class PdoSqlDbSvc
 
             $results = array();
             // todo figure out primary key
-            if (empty($out_fields) || (0 === strcasecmp('id', $out_fields))) {
+            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
-                                    array('id' => $ids[$i]) :
+                                    array($id_field => $ids[$i]) :
                                     (isset($errors[$i]) ? $errors[$i] : null));
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
+                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -930,6 +931,7 @@ class PdoSqlDbSvc
         $this->checkTableExists($table);
         try {
             $field_info = $this->describeTableFields($table);
+            $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
             $record = $this->parseRecord($record, $field_info);
             if (0 >= count($record)) {
                 throw new Exception("No valid fields were passed in the record request.");
@@ -942,13 +944,12 @@ class PdoSqlDbSvc
                 throw new Exception("Record insert failed for table '$table'.");
             }
             $id = $this->_sqlConn->lastInsertID;
-            // todo figure out primary key
-            if (empty($out_fields) || (0 === strcasecmp('id', $out_fields))) {
-                return array(array('id' => $id));
+            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
+                return array(array($id_field => $id));
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                return $this->retrieveSqlRecordsByIds($table, $id, 'id', $out_fields);
+                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                return $this->retrieveSqlRecordsByIds($table, $id, $id_field, $out_fields);
             }
         }
         catch (Exception $ex) {
@@ -967,9 +968,6 @@ class PdoSqlDbSvc
      */
     public function updateSqlRecords($table, $records, $id_field, $rollback = false, $out_fields = '')
     {
-        if (empty($id_field)) {
-            throw new Exception("Identifying field can not be empty.");
-        }
         if (!isset($records) || !is_array($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
@@ -977,6 +975,12 @@ class PdoSqlDbSvc
         $this->checkTableExists($table);
         try {
             $field_info = $this->describeTableFields($table);
+            if (empty($id_field)) {
+                $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
+                if (empty($id_field)) {
+                    throw new Exception("Identifying field can not be empty.");
+                }
+            }
             $command = $this->_sqlConn->createCommand();
             $ids = array();
             $errors = array();
@@ -997,7 +1001,7 @@ class PdoSqlDbSvc
                     }
                     // simple update request
                     $command->reset();
-                    $rows = $command->update($this->_tablePrefix . $table, $record, array('in', 'id', $id));
+                    $rows = $command->update($this->_tablePrefix . $table, $record, array('in', $id_field, $id));
                     if (0 >= $rows) {
                         throw new Exception("Record update failed for table '$table'.");
                     }
@@ -1019,16 +1023,16 @@ class PdoSqlDbSvc
 
             $results = array();
             // todo figure out primary key
-            if (empty($out_fields) || (0 === strcasecmp('id', $out_fields))) {
+            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
-                                    array('id' => $ids[$i]) :
+                                    array($id_field => $ids[$i]) :
                                     (isset($errors[$i]) ? $errors[$i] : null));
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $temp =  $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
+                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                $temp =  $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -1055,19 +1059,22 @@ class PdoSqlDbSvc
      */
     public function updateSqlRecordsByIds($table, $record, $id_list, $id_field, $rollback = false, $out_fields = '')
     {
-        if (empty($id_field)) {
-            throw new Exception("Identifying field can not be empty.");
-        }
-        if (empty($id_list)) {
-            throw new Exception("Identifying values for '$id_field' can not be empty for update request.");
-        }
         if (!is_array($record) || empty($record)) {
             throw new Exception("No record fields were passed in the request.");
         }
         $this->checkTableExists($table);
         try {
-            $record = Utilities::removeOneFromArray($id_field, $record);
             $field_info = $this->describeTableFields($table);
+            if (empty($id_field)) {
+                $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
+                if (empty($id_field)) {
+                    throw new Exception("Identifying field can not be empty.");
+                }
+            }
+            if (empty($id_list)) {
+                throw new Exception("Identifying values for '$id_field' can not be empty for update request.");
+            }
+            $record = Utilities::removeOneFromArray($id_field, $record);
             // simple update request
             $record = $this->parseRecord($record, $field_info, true);
             if (empty($record)) {
@@ -1089,7 +1096,7 @@ class PdoSqlDbSvc
                     }
                     // simple update request
                     $command->reset();
-                    $rows = $command->update($this->_tablePrefix . $table, $record, array('in', 'id', $id));
+                    $rows = $command->update($this->_tablePrefix . $table, $record, array('in', $id_field, $id));
                     if (0 >= $rows) {
                         throw new Exception("Record update failed for table '$table'.");
                     }
@@ -1118,16 +1125,16 @@ class PdoSqlDbSvc
 */
             $results = array();
             // todo figure out primary key
-            if (empty($out_fields) || (0 === strcasecmp('id', $out_fields))) {
+            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($outIds[$i]) ?
-                                    array('id' => $outIds[$i]) :
+                                    array($id_field => $outIds[$i]) :
                                     (isset($errors[$i]) ? $errors[$i] : null));
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
+                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($outIds[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -1168,13 +1175,10 @@ class PdoSqlDbSvc
             $rows = $command->update($this->_tablePrefix . $table, $record, $filter);
             if (0 >= $rows) {
                 throw new Exception("No records updated in table '$table'.");
-//                throw new Exception("Record with $id_field '$id' not found in table '$table'.");
             }
 
             $results = array();
-            // todo figure out primary key
             if (!empty($out_fields)) {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
                 $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter);
             }
 
@@ -1196,14 +1200,18 @@ class PdoSqlDbSvc
      */
     public function deleteSqlRecords($table, $records, $id_field, $rollback = false, $out_fields = '')
     {
-        if (empty($id_field)) {
-            throw new Exception("Identifying field can not be empty.");
-        }
         if (!isset($records) || !is_array($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
 
         $ids = array();
+        $field_info = $this->describeTableFields($table);
+        if (empty($id_field)) {
+            $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
+            if (empty($id_field)) {
+                throw new Exception("Identifying field can not be empty.");
+            }
+        }
         foreach ($records as $key => $record) {
             $id = Utilities::getArrayValue($id_field, $record, '');
             if (empty($id)) {
@@ -1226,16 +1234,19 @@ class PdoSqlDbSvc
      */
     public function deleteSqlRecordsByIds($table, $id_list, $id_field, $rollback = false, $out_fields = '')
     {
-        if (empty($id_field)) {
-            throw new Exception("Identifying field can not be empty.");
-        }
-        if (empty($id_list)) {
-            throw new Exception("Identifying values for '$id_field' can not be empty for update request.");
-        }
-
         $this->checkTableExists($table);
         try {
             $field_info = $this->describeTableFields($table);
+            if (empty($id_field)) {
+                $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
+                if (empty($id_field)) {
+                    throw new Exception("Identifying field can not be empty.");
+                }
+            }
+            if (empty($id_list)) {
+                throw new Exception("Identifying values for '$id_field' can not be empty for update request.");
+            }
+
             $ids = array_map('trim', explode(",", $id_list));
             $errors = array();
             $count = count($ids);
@@ -1243,10 +1254,9 @@ class PdoSqlDbSvc
 
             // get the returnable fields first, then issue delete
             $outResults = array();
-            // todo figure out primary key
-            if (!(empty($out_fields) || (0 === strcasecmp('id', $out_fields)))) {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
-                $outResults = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), 'id', $out_fields);
+            if (!(empty($out_fields) || (0 === strcasecmp($id_field, $out_fields)))) {
+                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                $outResults = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
             }
 
             if ($rollback) {
@@ -1259,7 +1269,7 @@ class PdoSqlDbSvc
                     }
                     // simple delete request
                     $command->reset();
-                    $rows = $command->delete($this->_tablePrefix . $table, array('in', 'id', $id));
+                    $rows = $command->delete($this->_tablePrefix . $table, array('in', $id_field, $id));
                     if (0 >= $rows) {
                         throw new Exception("Record delete failed for table '$table'.");
                     }
@@ -1286,11 +1296,10 @@ class PdoSqlDbSvc
             }
 */
             $results = array();
-            // todo figure out primary key
-            if (empty($out_fields) || (0 === strcasecmp('id', $out_fields))) {
+            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
-                                    array('id' => $ids[$i]) :
+                                    array($id_field => $ids[$i]) :
                                     (isset($errors[$i]) ? $errors[$i] : null));
                 }
             }
@@ -1326,9 +1335,7 @@ class PdoSqlDbSvc
             $command = $this->_sqlConn->createCommand();
             $results = array();
             // get the returnable fields first, then issue delete
-            // todo figure out primary key
             if (!empty($out_fields)) {
-                $out_fields = Utilities::addOnceToList($out_fields, 'id');
                 $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter);
             }
 
@@ -1336,8 +1343,7 @@ class PdoSqlDbSvc
             $command->reset();
             $rows = $command->delete($this->_tablePrefix . $table, $filter);
             if (0 >= $rows) {
-                throw new Exception("No records updated in table '$table'.");
-//                throw new Exception("Record with $id_field '$id' not found in table '$table'.");
+                throw new Exception("No records deleted from table '$table'.");
             }
 
             return $results;
@@ -1357,9 +1363,6 @@ class PdoSqlDbSvc
      */
     public function retrieveSqlRecords($table, $records, $id_field, $fields = '')
     {
-        if (empty($id_field)) {
-            throw new Exception("Identifying field can not be empty.");
-        }
         if (!isset($records) || !is_array($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
@@ -1367,6 +1370,13 @@ class PdoSqlDbSvc
             return array();
         }
 
+        $field_info = $this->describeTableFields($table);
+        if (empty($id_field)) {
+            $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
+            if (empty($id_field)) {
+                throw new Exception("Identifying field can not be empty.");
+            }
+        }
         $ids = array();
         foreach ($records as $key => $record) {
             $id = Utilities::getArrayValue($id_field, $record, '');
@@ -1389,9 +1399,6 @@ class PdoSqlDbSvc
      */
     public function retrieveSqlRecordsByIds($table, $id_list, $id_field, $fields = '')
     {
-        if (empty($id_field)) {
-            throw new Exception("Identifying field can not be empty.");
-        }
         if (empty($id_list)) {
             return array();
         }
@@ -1399,6 +1406,12 @@ class PdoSqlDbSvc
         $this->checkTableExists($table);
         try {
             $availFields = $this->describeTableFields($table);
+            if (empty($id_field)) {
+                $id_field = $this->getPrimaryKeyFieldFromDescribe($availFields);
+                if (empty($id_field)) {
+                    throw new Exception("Identifying field can not be empty.");
+                }
+            }
             if (!empty($fields)) {
                 // add id field to field list
                 $fields = Utilities::addOnceToList($fields, $id_field, ',');

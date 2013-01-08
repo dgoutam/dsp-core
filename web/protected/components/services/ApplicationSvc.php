@@ -101,7 +101,7 @@ class ApplicationSvc extends CommonFileSvc
 
             $sys = ServiceHandler::getInstance()->getServiceObject('System');
             $fields = 'name,label,description,is_active,url,is_url_external';
-            $records = $sys->retrieveSystemRecordsByFilter('app', $fields, "name = '$app_root'", 1);
+            $records = $sys->retrieveRecordsByFilter('app', $fields, "name = '$app_root'", 1);
             if ((0 === count($records)) || !isset($records['record'][0]['fields'])) {
                 throw new \Exception("No database entry exists for this application '$app_root''");
             }
@@ -154,7 +154,7 @@ class ApplicationSvc extends CommonFileSvc
             $record = json_decode($record, true);
             $records = array(array('fields' => $record));
             $sys = ServiceHandler::getInstance()->getServiceObject('system');
-            $result = $sys->createSystemRecords('app', $records, false, 'Id');
+            $result = $sys->createRecords('app', $records, false, 'Id');
             if (isset($result['record'][0]['fault'])) {
                 $msg = $result['record'][0]['fault']['faultString'];
                 throw new \Exception("Could not create the database entry for this application.\n$msg");
@@ -187,7 +187,7 @@ class ApplicationSvc extends CommonFileSvc
             catch (\Exception $ex) {
                 // delete db record
                 // todo anyone else using schema created?
-                $sys->deleteSystemRecordsByIds('app', $id);
+                $sys->deleteRecordsByIds('app', $id);
                 throw $ex;
             }
         }
