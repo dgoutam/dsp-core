@@ -181,7 +181,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                        $tmpName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $name;
+                        $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                        $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
                     }
@@ -403,7 +404,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                        $tmpName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $name;
+                        $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                        $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
                         $this->fileRestHandler->expandZipFile($folder, $tmpName, $clean);
@@ -509,7 +511,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                        $tmpName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $name;
+                        $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                        $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
                     }
@@ -691,7 +694,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                        $tmpName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $name;
+                        $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                        $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
                         $this->fileRestHandler->expandZipFile($folder, $tmpName, $clean);
@@ -797,7 +801,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                        $tmpName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $name;
+                        $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                        $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
                     }
@@ -979,7 +984,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                        $tmpName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $name;
+                        $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                        $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
                         $this->fileRestHandler->expandZipFile($folder, $tmpName, $clean);

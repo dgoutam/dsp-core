@@ -626,7 +626,8 @@ class FileManager extends CommonFileManager
                     $temp = FileUtilities::getNameFromPath($path);
                     if (empty($temp))
                         $temp = $this->storageContainer;
-                    $zipFileName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $temp . '.zip';
+                    $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                    $zipFileName = $tempDir . $temp . '.zip';
                 }
                 if (true !== $zip->open($zipFileName, ($overwrite ? ZipArchive::OVERWRITE : ZipArchive::CREATE))) {
                     throw new Exception("Can not create zip file for directory '$path'.");

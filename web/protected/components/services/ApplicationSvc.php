@@ -94,7 +94,8 @@ class ApplicationSvc extends CommonFileSvc
             $zip = new \ZipArchive();
             $temp = $app_root;
             if (empty($temp)) $temp = $this->$app_root;
-            $zipFileName = $_SERVER['TEMP'] . DIRECTORY_SEPARATOR  . $temp . '.zip';
+            $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $zipFileName = $tempDir . $temp . '.zip';
             if (true !== $zip->open($zipFileName, \ZipArchive::CREATE)) {
                 throw new \Exception("Can not create zip file for this application.");
             }
