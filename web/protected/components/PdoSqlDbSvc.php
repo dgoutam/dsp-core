@@ -145,17 +145,14 @@ class PdoSqlDbSvc
         if (empty($name)) {
             throw new InvalidArgumentException('Table name can not be empty.');
         }
-        try {
-            $tables = $this->_sqlConn->schema->getTableNames();
-            if (!in_array($this->_tablePrefix . $name, $tables)) {
-                // mysql drops every table name to lowercase
-                if (!in_array(strtolower($this->_tablePrefix . $name), $tables))
-                    throw new Exception("Table '$name' does not exist in the database.");
-            }
+        $tables = $this->_sqlConn->schema->getTableNames();
+         // make search case insensitive
+        foreach ($tables as $table) {
+            if (0 === strcasecmp($table, $name))
+                return;
         }
-        catch (Exception $ex) {
-            throw $ex;
-        }
+        error_log(print_r($tables, true));
+        throw new Exception("Table '$name' does not exist in the database.");
     }
 
     /**
@@ -169,18 +166,14 @@ class PdoSqlDbSvc
         if (empty($name)) {
             throw new InvalidArgumentException('Table name can not be empty.');
         }
-        try {
-            $tables = $this->_sqlConn->schema->getTableNames();
-            if (in_array($this->_tablePrefix . $name, $tables))
+        $tables = $this->_sqlConn->schema->getTableNames();
+        // make search case insensitive
+        foreach ($tables as $table) {
+            if (0 === strcasecmp($table, $name))
                 return true;
-            // mysql drops every table name to lowercase
-            if (in_array(strtolower($this->_tablePrefix . $name), $tables))
-                return true;
-        }
-        catch (Exception $ex) {
-            throw $ex;
         }
 
+        error_log(print_r($tables, true));
         return false;
     }
 

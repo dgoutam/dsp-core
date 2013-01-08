@@ -1358,7 +1358,10 @@ class SystemSvc extends CommonService implements iRestHandler
             if ($for_update) {
                 // possibly remove existing groups
                 // %,$id,% is more accurate but in case of sloppy updating by client, filter for %$id%
-                $query = "(app_group_ids like '%$app_group_id%') and (id not in ($app_ids))";
+                $query = "(app_group_ids like '%$app_group_id%')";
+                if (!empty($app_ids)) {
+                    $query .= " and (id not in ($app_ids))";
+                }
                 $apps = $this->nativeDb->retrieveSqlRecordsByFilter('app', 'id,app_group_ids', $query);
                 unset($apps['total']);
                 foreach ($apps as $key => $app) {
@@ -1369,7 +1372,9 @@ class SystemSvc extends CommonService implements iRestHandler
                         unset($apps[$key]);
                         continue;
                     }
-                    $groupIds = str_ireplace(",$app_group_id,", '', ",$groupIds,");
+                    $groupIds = trim(str_ireplace(",$app_group_id,", '', ",$groupIds,"), ',');
+                    if (!empty($groupIds))
+                        $groupIds = ",$groupIds,";
                     $apps[$key]['app_group_ids'] = $groupIds;
                 }
                 $apps = array_values($apps);
@@ -1377,17 +1382,19 @@ class SystemSvc extends CommonService implements iRestHandler
                     $this->nativeDb->updateSqlRecords('app', $apps, 'id');
                 }
             }
-            // add new groups
-            $apps = $this->nativeDb->retrieveSqlRecordsByIds('app', $app_ids, 'id', 'id,app_group_ids');
-            foreach ($apps as $key => $app) {
-                $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
-                $groupIds = trim($groupIds, ','); // in case of sloppy updating
-                $groupIds = Utilities::addOnceToList($groupIds, $app_group_id, ',');
-                $apps[$key]['app_group_ids'] = ",$groupIds,";
-            }
-            $apps = array_values($apps);
-            if (!empty($apps)) {
-                $this->nativeDb->updateSqlRecords('app', $apps, 'id');
+            if (!empty($app_ids)) {
+                // add new groups
+                $apps = $this->nativeDb->retrieveSqlRecordsByIds('app', $app_ids, 'id', 'id,app_group_ids');
+                foreach ($apps as $key => $app) {
+                    $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
+                    $groupIds = trim($groupIds, ','); // in case of sloppy updating
+                    $groupIds = Utilities::addOnceToList($groupIds, $app_group_id, ',');
+                    $apps[$key]['app_group_ids'] = ",$groupIds,";
+                }
+                $apps = array_values($apps);
+                if (!empty($apps)) {
+                    $this->nativeDb->updateSqlRecords('app', $apps, 'id');
+                }
             }
         }
         catch (Exception $ex) {
