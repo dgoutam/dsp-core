@@ -136,11 +136,11 @@ class PdoSqlDbSvc
 
     /**
      * @param $name
-     * @return void
+     * @return string
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function checkTableExists($name)
+    public function correctTableName($name)
     {
         if (empty($name)) {
             throw new InvalidArgumentException('Table name can not be empty.');
@@ -148,8 +148,9 @@ class PdoSqlDbSvc
         $tables = $this->_sqlConn->schema->getTableNames();
          // make search case insensitive
         foreach ($tables as $table) {
-            if (0 === strcasecmp($table, $name))
-                return;
+            if (0 == strcasecmp($table, $name)) {
+                return $table;
+            }
         }
         error_log(print_r($tables, true));
         throw new Exception("Table '$name' does not exist in the database.");
@@ -169,8 +170,9 @@ class PdoSqlDbSvc
         $tables = $this->_sqlConn->schema->getTableNames();
         // make search case insensitive
         foreach ($tables as $table) {
-            if (0 === strcasecmp($table, $name))
+            if (0 == strcasecmp($table, $name)) {
                 return true;
+            }
         }
 
         error_log(print_r($tables, true));
@@ -239,7 +241,7 @@ class PdoSqlDbSvc
         }
     }
 
-    public static function determineDfType($column, $found_pick_list=false)
+    protected static function determineDfType($column, $found_pick_list=false)
     {
         switch ($column->type) {
         case 'string':
@@ -262,7 +264,7 @@ class PdoSqlDbSvc
         return $column->type;
     }
 
-    public static function determineMultiByteSupport($type)
+    protected static function determineMultiByteSupport($type)
     {
         switch ($type) {
         case 'nchar':
@@ -273,7 +275,7 @@ class PdoSqlDbSvc
         }
     }
 
-    public static function determineRequired($column)
+    protected static function determineRequired($column)
     {
         if ((1 == $column->allowNull) || (isset($column->defaultValue)) || (1 == $column->autoIncrement)) {
             return false;
@@ -288,6 +290,7 @@ class PdoSqlDbSvc
      */
     public function describeTable($name)
     {
+        $name = $this->correctTableName($name);
         try {
             $table = $this->_sqlConn->schema->getTable($this->_tablePrefix . $name);
             if (!$table) {
@@ -396,11 +399,8 @@ class PdoSqlDbSvc
      * @return array
      * @throws Exception
      */
-    public function describeTableFields($name)
+    protected function describeTableFields($name)
     {
-        if (empty($name)) {
-            throw new Exception("[NO_TABLE]: The database table name has not been specified.");
-        }
         if (isset($this->_fieldCache[$name])) {
             return $this->_fieldCache[$name];
         }
@@ -452,11 +452,8 @@ class PdoSqlDbSvc
      * @return array
      * @throws Exception
      */
-    public function describeTableChildren($parent_table)
+    protected function describeTableChildren($parent_table)
     {
-        if (empty($parent_table)) {
-            throw new Exception("[NO_TABLE]: The database table name has not been specified.");
-        }
         $names = $this->_sqlConn->schema->getTableNames();
         natcasesort($names);
         $names = array_values($names);
@@ -843,7 +840,7 @@ class PdoSqlDbSvc
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
 
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $field_info = $this->describeTableFields($table);
             $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
@@ -883,7 +880,6 @@ class PdoSqlDbSvc
             }
 
             $results = array();
-            // todo figure out primary key
             if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
@@ -921,7 +917,7 @@ class PdoSqlDbSvc
             throw new Exception('[InvalidParam]: There are no record fields in the request.');
         }
 
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $field_info = $this->describeTableFields($table);
             $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
@@ -965,7 +961,7 @@ class PdoSqlDbSvc
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
 
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $field_info = $this->describeTableFields($table);
             if (empty($id_field)) {
@@ -1055,7 +1051,7 @@ class PdoSqlDbSvc
         if (!is_array($record) || empty($record)) {
             throw new Exception("No record fields were passed in the request.");
         }
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $field_info = $this->describeTableFields($table);
             if (empty($id_field)) {
@@ -1155,7 +1151,7 @@ class PdoSqlDbSvc
         if (!is_array($record) || empty($record)) {
             throw new Exception("No record fields were passed in the request.");
         }
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $field_info = $this->describeTableFields($table);
             // simple update request
@@ -1197,6 +1193,7 @@ class PdoSqlDbSvc
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
 
+        $table = $this->correctTableName($table);
         $ids = array();
         $field_info = $this->describeTableFields($table);
         if (empty($id_field)) {
@@ -1227,7 +1224,7 @@ class PdoSqlDbSvc
      */
     public function deleteSqlRecordsByIds($table, $id_list, $id_field, $rollback = false, $out_fields = '')
     {
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $field_info = $this->describeTableFields($table);
             if (empty($id_field)) {
@@ -1323,7 +1320,7 @@ class PdoSqlDbSvc
         if (empty($filter)) {
             throw new Exception("Filter for delete request can not be empty.");
         }
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $command = $this->_sqlConn->createCommand();
             $results = array();
@@ -1363,6 +1360,7 @@ class PdoSqlDbSvc
             return array();
         }
 
+        $table = $this->correctTableName($table);
         $field_info = $this->describeTableFields($table);
         if (empty($id_field)) {
             $id_field = $this->getPrimaryKeyFieldFromDescribe($field_info);
@@ -1396,7 +1394,7 @@ class PdoSqlDbSvc
             return array();
         }
         $ids = array_map('trim', explode(',', $id_list));
-        $this->checkTableExists($table);
+        $table = $this->correctTableName($table);
         try {
             $availFields = $this->describeTableFields($table);
             if (empty($id_field)) {
@@ -1478,8 +1476,8 @@ class PdoSqlDbSvc
      */
     public function retrieveSqlRecordsByFilter($table, $fields = '', $filter = '', $limit = 0, $order = '', $offset = 0)
     {
+        $table = $this->correctTableName($table);
         try {
-            $this->checkTableExists($table);
             // parse filter
             $availFields = $this->describeTableFields($table);
             $result = $this->parseFieldsForSqlSelect($fields, $availFields);
