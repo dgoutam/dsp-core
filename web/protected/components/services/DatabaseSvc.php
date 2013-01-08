@@ -65,7 +65,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function actionGet()
     {
         $this->detectCommonParams();
-        switch ($this->tableName) {
+        switch (strtolower($this->tableName)) {
         case '':
             $result = $this->describeDatabase();
             $commands = array(array('name' => 'schema', 'label' => 'Schema', 'plural' => 'Schemas'));
@@ -148,7 +148,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
-        switch ($this->tableName) {
+        switch (strtolower($this->tableName)) {
         case 'schema':
             $tables = Utilities::getArrayValue('table', $data, '');
             if (empty($tables)) {
@@ -191,7 +191,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
-        switch ($this->tableName) {
+        switch (strtolower($this->tableName)) {
         case 'schema':
             if (empty($this->recordId)) {
                 $tables = Utilities::getArrayValue('table', $data, '');
@@ -266,7 +266,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
-        switch ($this->tableName) {
+        switch (strtolower($this->tableName)) {
         case 'schema':
             if (empty($this->recordId)) {
                 $tables = Utilities::getArrayValue('table', $data, '');
@@ -341,7 +341,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
-        switch ($this->tableName) {
+        switch (strtolower($this->tableName)) {
         case 'schema':
             if (empty($this->recordId)) {
                 throw new Exception('[INVALIDREQUEST]: Invalid format for DELETE Table request.');
@@ -410,7 +410,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $resource = Utilities::getArrayValue('resource', $_GET, '');
         $resource = (!empty($resource)) ? explode('/', $resource) : array();
-        $this->tableName = (isset($resource[0])) ? strtolower($resource[0]) : '';
+        $this->tableName = (isset($resource[0])) ? $resource[0] : '';
         $this->recordId = (isset($resource[1])) ? $resource[1] : '';
     }
 
