@@ -499,7 +499,7 @@ class UserSvc extends CommonService implements iRestHandler
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
-                    throw new Exception("Either the username or password supplied do not match system records.");
+                    throw new Exception("Either the username or password supplied does not match system records.");
                 }
                 $query = "username='$username'";
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
@@ -507,7 +507,7 @@ class UserSvc extends CommonService implements iRestHandler
                 if (count($result) > 0) {
                     throw new Exception("Login registration has not been confirmed.");
                 }
-                throw new Exception("Either the username or password supplied do not match system records.");
+                throw new Exception("Either the username or password supplied does not match system records.");
             }
             $userInfo = $result[0];
             if (!$userInfo['is_active']) {
@@ -523,7 +523,8 @@ class UserSvc extends CommonService implements iRestHandler
             }
             unset($userInfo['role_id']);
 
-            $role = null;
+            $data = $userInfo; // session data
+            $allowedAppIds = '';
             if (!empty($roleId)) {
                 $result = $db->retrieveSqlRecordsByIds('role', $roleId, 'id', '');
                 if (0 >= count($result) && !$isSysAdmin) {
@@ -535,7 +536,7 @@ class UserSvc extends CommonService implements iRestHandler
                     try {
                         $allowedApps = null;
                         if (!empty($allowedAppIds)) {
-                            $allowedApps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', 'id,name,app_group_ids');
+                            $allowedApps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', 'id,name');
                         }
                         $role['apps'] = $allowedApps;
                         unset($role['app_ids']);
@@ -551,22 +552,33 @@ class UserSvc extends CommonService implements iRestHandler
                         $role['services'] = $perms;
                     }
                 }
+                $userInfo['role'] = $role;
             }
-            $userInfo['role'] = $role;
 
             if (!isset($_SESSION)) {
                 session_start();
             }
             $_SESSION['public'] = $userInfo;
 
+            // additional stuff for session - launchpad mainly
             $userId = $userInfo['id'];
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
-
-            $data = $userInfo;
             $data['ticket'] = $ticket;
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
+
+            if ($isSysAdmin) {
+                $apps = $db->retrieveSqlRecordsByFilter('app');
+                unset($apps['total']);
+            }
+            else {
+                $apps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
+            }
+            $data['apps'] = $apps;
+            $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
+            unset($appGroups['total']);
+            $data['app_groups'] = $appGroups;
 
             return $data;
         }
@@ -590,7 +602,7 @@ class UserSvc extends CommonService implements iRestHandler
         if (!isset($_SESSION['public']) || empty($_SESSION['public'])) {
             if (empty($ticket)) {
                 $this->userLogout();
-                throw new Exception("[InvalidSession]: There is no active session. Please Login to use the API.");
+                throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
             }
             else { // process ticket
                 $creds = Utilities::decryptCreds($ticket, "gorilla");
@@ -611,7 +623,7 @@ class UserSvc extends CommonService implements iRestHandler
         if (empty($userId)) {
             // cleanup by calling logout
             $this->userLogout();
-            throw new Exception("[InvalidSession]: There is no active session. Please Login to use the API.");
+            throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
         }
 
         try {
@@ -636,7 +648,8 @@ class UserSvc extends CommonService implements iRestHandler
             }
             unset($userInfo['role_id']);
 
-            $role = null;
+            $data = $userInfo;
+            $allowedAppIds = '';
             if (!empty($roleId)) {
                 $result = $db->retrieveSqlRecordsByIds('role', $roleId, 'id', '');
                 if (0 >= count($result) && !$isSysAdmin) {
@@ -664,22 +677,33 @@ class UserSvc extends CommonService implements iRestHandler
                         $role['services'] = $perms;
                     }
                 }
+                $userInfo['role'] = $role;
             }
-            $userInfo['role'] = $role;
 
             if (!isset($_SESSION)) {
                 session_start();
             }
             $_SESSION['public'] = $userInfo;
 
+            // additional stuff for session - launchpad mainly
             $userId = $userInfo['id'];
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
-
-            $data = $userInfo;
             $data['ticket'] = $ticket;
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
+
+            if ($isSysAdmin) {
+                $apps = $db->retrieveSqlRecordsByFilter('app');
+                unset($apps['total']);
+            }
+            else {
+                $apps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
+            }
+            $data['apps'] = $apps;
+            $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
+            unset($appGroups['total']);
+            $data['app_groups'] = $appGroups;
 
             return $data;
         }
@@ -947,7 +971,7 @@ class UserSvc extends CommonService implements iRestHandler
         }
         $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
         if (empty($userId)) {
-            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session. Please Login to use the API.");
+            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session. Please login to use the API.");
         }
 
         try {
@@ -994,7 +1018,7 @@ class UserSvc extends CommonService implements iRestHandler
         }
         $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
         if (empty($userId)) {
-            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session. Please Login to use the API.");
+            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session. Please login to use the API.");
         }
 
         try {
