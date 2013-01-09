@@ -195,7 +195,7 @@ class ServiceHandler
                 $service = new DocumentSvc($record);
                 break;
             case 'email':
-                $service = new EmailSvc();
+                $service = new EmailSvc($record);
                 break;
             case 'lib':
                 $service = new LibrarySvc($record);
@@ -221,6 +221,10 @@ class ServiceHandler
                     break;
                 case 'Remote SQL DB':
                     $service = new DatabaseSvc($record);
+                    break;
+                case 'Local Email Service':
+                case 'Remote Email Service':
+                    $service = new EmailSvc($record);
                     break;
                 default:
                     throw new Exception("Failed to launch service, unknown type value '$type' in service record.");

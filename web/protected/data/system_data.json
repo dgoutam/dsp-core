@@ -1,5 +1,5 @@
 {
-   "service": [
+    "service": [
         {
             "name":"system","label":"System","is_active":1,"type":"Native"
         },
@@ -8,6 +8,9 @@
         },
         {
             "name":"db","label":"Database","is_active":1,"type":"Local SQL DB"
+        },
+        {
+            "name":"email","label":"Email Service","is_active":1,"type":"Local Email Service"
         },
         {
             "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage",

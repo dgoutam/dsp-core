@@ -8,7 +8,7 @@
  * @license    http://www.dreamfactory.com/license
  */
 
-class EmailSvc
+class EmailSvc extends CommonService implements iRestHandler
 {
     protected $adminName;
     protected $adminAddress;
@@ -19,72 +19,184 @@ class EmailSvc
 
     /**
      * Creates a new EmailSvc instance
+     *
+     * @param array $config
+     * @throws InvalidArgumentException
      */
-    public function __construct()
+    public function __construct($config)
     {
+        parent::__construct($config);
+
         $company = Yii::app()->params['companyLabel'];
 
         // Provide the admin email address where you want to get notifications
-        $this->adminName = empty($company) ? 'Admin' : $company . ' Admin';
-        $this->adminAddress = Yii::app()->params['adminEmail'];
+        $this->adminName = empty($company) ? $_SERVER['SERVER_NAME'] . 'Admin' : $company . ' Admin';
+        $this->adminAddress = Utilities::getArrayValue('adminEmail',
+                                                       Yii::app()->params,
+                                                       'admin@' . $_SERVER['SERVER_NAME']);
 
         // Provide the from email address to display for all outgoing emails
-        $this->fromName = empty($company) ? 'Admin' : $company . ' Admin';
-        $this->fromAddress = Yii::app()->params['adminEmail'];
+        $this->fromName = empty($company) ? $_SERVER['SERVER_NAME'] . 'Admin' : $company . ' Admin';
+        $this->fromAddress = Utilities::getArrayValue('adminEmail',
+                                                      Yii::app()->params,
+                                                      'admin@' . $_SERVER['SERVER_NAME']);
 
         // Provide the reply-to email address where you want users to reply to for support
-        $this->replyToName = empty($company) ? 'Support' : $company . ' Support';
-        $this->replyToAddress = Yii::app()->params['adminEmail'];
+        $this->replyToName = empty($company) ? $_SERVER['SERVER_NAME'] . 'Support' : $company . ' Support';
+        $this->replyToAddress = Utilities::getArrayValue('adminEmail',
+                                                         Yii::app()->params,
+                                                         'admin@' . $_SERVER['SERVER_NAME']);
+    }
+
+    /**
+     * Object destructor
+     */
+    public function __destruct()
+    {
+        parent::__destruct();
+    }
+
+    // Controller based methods
+
+    public function actionPost()
+    {
+        // get all possibly parameters from request
+        $toEmails = Utilities::getArrayValue('to_emails', $_REQUEST, '');
+        $ccEmails = Utilities::getArrayValue('cc_emails', $_REQUEST, '');
+        $bccEmails = Utilities::getArrayValue('bcc_emails', $_REQUEST, '');
+        $subject = Utilities::getArrayValue('subject', $_REQUEST, '');
+        $textBody = Utilities::getArrayValue('text_body', $_REQUEST, '');
+        $htmlBody = Utilities::getArrayValue('html_body', $_REQUEST, '');
+        $fromName = Utilities::getArrayValue('from_name', $_REQUEST, $this->fromName);
+        $fromEmail = Utilities::getArrayValue('from_email', $_REQUEST, $this->fromAddress);
+        $replyName = Utilities::getArrayValue('reply_name', $_REQUEST, $this->replyToName);
+        $replyEmail = Utilities::getArrayValue('reply_email', $_REQUEST, $this->replyToAddress);
+
+        $data = Utilities::getPostDataAsArray();
+        if (!empty($data)) {
+            // override any parameters with posted data
+            $toEmails = Utilities::getArrayValue('to_emails', $data, $toEmails);
+            $ccEmails = Utilities::getArrayValue('cc_emails', $data, $ccEmails);
+            $bccEmails = Utilities::getArrayValue('bcc_emails', $data, $bccEmails);
+            $subject = Utilities::getArrayValue('subject', $data, $subject);
+            $textBody = Utilities::getArrayValue('text_body', $data, $textBody);
+            $htmlBody = Utilities::getArrayValue('html_body', $data, $htmlBody);
+            $fromName = Utilities::getArrayValue('from_name', $data, $fromName);
+            $fromEmail = Utilities::getArrayValue('from_email', $data, $fromEmail);
+            $replyName = Utilities::getArrayValue('reply_name', $data, $replyName);
+            $replyEmail = Utilities::getArrayValue('reply_email', $data, $replyEmail);
+        }
+
+        $toEmails = filter_var($toEmails, FILTER_SANITIZE_EMAIL);
+        if (false === filter_var($toEmails, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("Invalid 'to' email - '$toEmails'.");
+        }
+        if (!empty($ccEmails)) {
+            $ccEmails = filter_var($ccEmails, FILTER_SANITIZE_EMAIL);
+            if (false === filter_var($ccEmails, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid 'cc' email - '$ccEmails'.");
+            }
+        }
+        if (!empty($bccEmails)) {
+            $bccEmails = filter_var($bccEmails, FILTER_SANITIZE_EMAIL);
+            if (false === filter_var($bccEmails, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid 'bcc' email - '$bccEmails'.");
+            }
+        }
+        if (!empty($fromEmail)) {
+            $fromEmail = filter_var($fromEmail, FILTER_SANITIZE_EMAIL);
+            if (false === filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid 'from' email - '$fromEmail'.");
+            }
+        }
+        if (!empty($replyEmail)) {
+            $replyEmail = filter_var($replyEmail, FILTER_SANITIZE_EMAIL);
+            if (false === filter_var($replyEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid 'reply' email - '$replyEmail'.");
+            }
+        }
+
+        // todo do subject and body text substitution
+
+        $result = $this->sendEmailPhp($toEmails, $ccEmails, $bccEmails, $subject, $textBody,
+                                      $htmlBody, $fromName, $fromEmail, $replyName, $replyEmail);
+        return $result;
+    }
+
+    public function actionPut()
+    {
+        throw new Exception("PUT Request is not supported by this Email API.");
+    }
+
+    public function actionMerge()
+    {
+        throw new Exception("MERGE Request is not supported by this Email API.");
+    }
+
+    public function actionDelete()
+    {
+        throw new Exception("DELETE Request is not supported by this Email API.");
+    }
+
+    public function actionGet()
+    {
+        throw new Exception("GET Request is not supported by this Email API.");
     }
 
     //------- Email Helpers ----------------------
 
-    protected function getFromName()
+    /**
+     * Email Web Service Send Email API
+     *
+     * @param string $to_emails   comma-delimited list of receiver addresses
+     * @param string $cc_emails   comma-delimited list of CC'd addresses
+     * @param string $bcc_emails  comma-delimited list of BCC'd addresses
+     * @param string $subject     Text only subject line
+     * @param string $text_body   Text only version of the email body
+     * @param string $html_body   Escaped HTML version of the email body
+     * @param string $from_name   Name displayed for the sender
+     * @param string $from_email  Email displayed for the sender
+     * @param string $reply_name  Name displayed for the reply to
+     * @param string $reply_email Email used for the sender reply to
+     * @return bool|string
+     */
+    public function sendEmailPhp($to_emails, $cc_emails, $bcc_emails, $subject, $text_body,
+                                 $html_body='', $from_name='', $from_email='', $reply_name='', $reply_email='')
     {
-        if (!empty($this->fromName)) { return $this->fromName; }
+        // support utf8
+        $fromName = '=?UTF-8?B?' . base64_encode($from_name) . '?=';
+        $replyName = '=?UTF-8?B?' . base64_encode($reply_name) . '?=';
+        $subject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
-        // make up something if not set
-        return $_SERVER['SERVER_NAME'] . ' Admin';
-    }
+        $headers  = '';
+        $headers .= "From: $fromName <{$from_email}>\r\n";
+        $headers .= "Reply-To: $replyName <{$reply_email}>\r\n";
+//        $headers .= "To: $to_emails" . "\r\n";
+        if (!empty($cc_emails))
+            $headers .= "Cc: $cc_emails" . "\r\n";
+        if (!empty($bcc_emails))
+            $headers .= "Bcc: $bcc_emails" . "\r\n";
+        $headers .= 'MIME-Version: 1.0' . "\r\n";
+        if (!empty($html_body)) {
+            $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
+            $body = $html_body;
+        }
+        else {
+            $headers .= 'Content-type: text/plain; charset=UTF-8' . "\r\n";
+            $body = $text_body;
+        }
 
-    protected function getFromAddress()
-    {
-        if (!empty($this->fromAddress)) { return $this->fromAddress; }
+        $result = mail($to_emails, $subject, $body, $headers);
+        if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
+            $msg = "Error: Failed to send email.";
+            if (is_string($result)) {
+                $msg .= "\n$result";
+            }
 
-        // make up something if not set
-        return "admin@" . $_SERVER['SERVER_NAME'];
-    }
+            return $msg;
+        }
 
-    protected function getReplyToName()
-    {
-        if (!empty($this->replyToName)) { return $this->replyToName; }
-
-        // make up something if not set
-        return $_SERVER['SERVER_NAME'] . ' Support';
-    }
-
-    protected function getReplyToAddress()
-    {
-        if (!empty($this->replyToAddress)) { return $this->replyToAddress; }
-
-        // make up something if not set
-        return "support@" . $_SERVER['SERVER_NAME'];
-    }
-
-    protected function getAdminName()
-    {
-        if (!empty($this->adminName)) { return $this->adminName; }
-
-        // make up something if not set
-        return $_SERVER['SERVER_NAME'] . ' Admin';
-    }
-
-    protected function getAdminAddress()
-    {
-        if (!empty($this->adminAddress)) { return $this->adminAddress; }
-
-        // make up something if not set
-        return "admin@" . $_SERVER['SERVER_NAME'];
+        return true;
     }
 
     /**

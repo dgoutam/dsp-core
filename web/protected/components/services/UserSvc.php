@@ -499,7 +499,7 @@ class UserSvc extends CommonService implements iRestHandler
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
-                    throw new Exception("The password supplied does not match.");
+                    throw new Exception("Either the username or password supplied do not match system records.");
                 }
                 $query = "username='$username'";
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
@@ -507,7 +507,7 @@ class UserSvc extends CommonService implements iRestHandler
                 if (count($result) > 0) {
                     throw new Exception("Login registration has not been confirmed.");
                 }
-                throw new Exception("The username '$username' does not exist in the system.");
+                throw new Exception("Either the username or password supplied do not match system records.");
             }
             $userInfo = $result[0];
             if (!$userInfo['is_active']) {
@@ -562,14 +562,11 @@ class UserSvc extends CommonService implements iRestHandler
             $userId = $userInfo['id'];
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
-            $result = $db->retrieveSqlRecordsByFilter('app_group');
-            unset($result['total']);
 
             $data = $userInfo;
             $data['ticket'] = $ticket;
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
-            $data['app_groups'] = $result;
 
             return $data;
         }
@@ -678,14 +675,11 @@ class UserSvc extends CommonService implements iRestHandler
             $userId = $userInfo['id'];
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
-            $result = $db->retrieveSqlRecordsByFilter('app_group');
-            unset($result['total']);
 
             $data = $userInfo;
             $data['ticket'] = $ticket;
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
-            $data['app_groups'] = $result;
 
             return $data;
         }
@@ -707,21 +701,18 @@ class UserSvc extends CommonService implements iRestHandler
         }
         if (!isset($_SESSION['public']) || empty($_SESSION['public'])) {
             $this->userLogout();
-            throw new Exception("[InvalidSession]: There is no active session. Please Login to use the API.");
+            throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
         }
-        $userid = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
-        if (empty($userid)) {
+        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
+        if (empty($userId)) {
             // cleanup by calling logout
             $this->userLogout();
-            throw new Exception("[InvalidSession]: There is no active session. Please Login to use the API.");
+            throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
         }
         // regenerate new timed ticket
         $timestamp = time();
-        $ticket = Utilities::encryptCreds("$userid,$timestamp", "gorilla");
-        $retdata['ticket_expiry'] = time() + (5 * 60);
-        $retdata = array('ticket' => $ticket, 'ticket_expiry' => time() + (5 * 60));
-
-        return $retdata;
+        $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
+        return array('ticket' => $ticket, 'ticket_expiry' => time() + (5 * 60));
     }
 
     /**
@@ -949,7 +940,7 @@ class UserSvc extends CommonService implements iRestHandler
     public function changePassword($old_password, $new_password)
     {
         // check valid session,
-        // using userid from session, query with check for old password
+        // using userId from session, query with check for old password
         // then update with new password
         if (!Utilities::validateSession()) {
             throw new Exception("[INVALIDSESSION]: There is no valid session information for the current request.");
@@ -996,7 +987,7 @@ class UserSvc extends CommonService implements iRestHandler
     public function changeProfile($record)
     {
         // check valid session,
-        // using userid from session, query with check for old password
+        // using userId from session, query with check for old password
         // then update with new password
         if (!Utilities::validateSession()) {
             throw new Exception("[INVALIDSESSION]: There is no valid session information for the current request.");
