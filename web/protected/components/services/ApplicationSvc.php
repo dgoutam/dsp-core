@@ -152,7 +152,7 @@ class ApplicationSvc extends CommonFileSvc
             if (false === $data) {
                 throw new \Exception('No application description file in this package file.');
             }
-            $data = json_decode($data, true);
+            $data = Utilities::jsonToArray($data);
             $records = array(array('fields' => $data)); // todo bad assumption of right format
             $sys = ServiceHandler::getInstance()->getServiceObject('system');
             $result = $sys->createRecords('app', $records, false, 'Id');
@@ -165,7 +165,7 @@ class ApplicationSvc extends CommonFileSvc
             try {
                 $data = $zip->getFromName('schema.json');
                 if (false !== $data) {
-                    $data = json_decode($data, true);
+                    $data = Utilities::jsonToArray($data);
                     // todo how to determine which service to send this?
                     $tables = Utilities::getArrayValue('table', $data, array());
                     $db = ServiceHandler::getInstance()->getServiceObject('db');
@@ -179,7 +179,7 @@ class ApplicationSvc extends CommonFileSvc
                 try {
                     $data = $zip->getFromName('data.json');
                     if (false !== $data) {
-                        $data = json_decode($data, true);
+                        $data = Utilities::jsonToArray($data);
                         // todo how to determine which service to send this?
                         $db = ServiceHandler::getInstance()->getServiceObject('db');
                         $tables = Utilities::getArrayValue('table', $data, array());
@@ -266,7 +266,7 @@ class ApplicationSvc extends CommonFileSvc
                         if ($error == UPLOAD_ERR_OK) {
                             $tmpName = $files['tmp_name'];
                             $contentType = $files['type'];
-                            if ((0 == strcasecmp($contentType, 'application/zip'))) {
+                            if (Utilities::isZipContent($contentType)) {
                                 try {
                                     // need to expand zip file and move contents to storage
                                     $this->importAppFromPackage($tmpName);

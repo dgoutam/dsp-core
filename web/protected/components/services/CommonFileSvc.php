@@ -178,7 +178,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                    if (Utilities::isZipContent($contentType) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -229,7 +229,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $contentType = $files['type'];
                         $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
                         try {
-                            if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                            if (Utilities::isZipContent($contentType) && $expand) {
                                 // need to expand zip file and move contents to storage
                                 $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                                 $zip = new ZipArchive();
@@ -265,7 +265,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $contentType = $files['type'][$key];
                             $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
                             try {
-                                if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                                if (Utilities::isZipContent($contentType) && $expand) {
                                     // need to expand zip file and move contents to storage
                                     $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                                     $zip = new ZipArchive();
@@ -419,7 +419,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         error_log("Empty content in write application file $path to storage.");
                     }
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                    if (Utilities::isZipContent($contentType) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -473,7 +473,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
                     // create in permanent storage
                     try {
-                        if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                        if (Utilities::isZipContent($contentType) && $expand) {
                             // need to expand zip file and move contents to storage
                             $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                             $zip = new ZipArchive();
@@ -538,7 +538,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                    if (Utilities::isZipContent($contentType) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -727,7 +727,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         error_log("Empty content in write application file $path to storage.");
                     }
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                    if (Utilities::isZipContent($contentType) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -781,7 +781,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
                     // create in permanent storage
                     try {
-                        if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                        if (Utilities::isZipContent($contentType) && $expand) {
                             // need to expand zip file and move contents to storage
                             $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                             $zip = new ZipArchive();
@@ -846,7 +846,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                    if (Utilities::isZipContent($contentType) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -1035,7 +1035,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         error_log("Empty content in write application file $path to storage.");
                     }
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                    if (Utilities::isZipContent($contentType) && $expand) {
                         // need to expand zip file and move contents to storage
                         $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -1089,7 +1089,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
                     // create in permanent storage
                     try {
-                        if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
+                        if (Utilities::isZipContent($contentType) && $expand) {
                             // need to expand zip file and move contents to storage
                             $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
                             $zip = new ZipArchive();

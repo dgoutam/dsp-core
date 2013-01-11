@@ -610,6 +610,12 @@ class Utilities
         return $data;
     }
 
+    public static function isZipContent($content_type)
+    {
+        return ((0 == strcasecmp($content_type, 'application/zip')) ||
+                (0 == strcasecmp($content_type, 'application/x-zip-compressed')));
+    }
+
     public static function display_xml_error($error, $xml)
     {
         $return = $xml[$error->line - 1] . "\n";
