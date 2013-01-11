@@ -166,11 +166,11 @@ abstract class CommonFileManager
 
     /**
      * @param $path
-     * @param $zip_file
+     * @param ZipArchive $zip
      * @param bool $clean
      * @throws Exception
      */
-    abstract public function expandZipFile($path, $zip_file, $clean = false);
+    abstract public function expandZipFile($path, $zip, $clean = false);
 
     /**
      * @param string $path

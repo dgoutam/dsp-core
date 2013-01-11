@@ -148,12 +148,12 @@ class ApplicationSvc extends CommonFileSvc
     {
         $zip = new \ZipArchive();
         if (true === $zip->open($pkg_file)) {
-            $record = $zip->getFromName('description.json');
-            if (false === $record) {
+            $data = $zip->getFromName('description.json');
+            if (false === $data) {
                 throw new \Exception('No application description file in this package file.');
             }
-            $record = json_decode($record, true);
-            $records = array(array('fields' => $record));
+            $data = json_decode($data, true);
+            $records = array(array('fields' => $data)); // todo bad assumption of right format
             $sys = ServiceHandler::getInstance()->getServiceObject('system');
             $result = $sys->createRecords('app', $records, false, 'Id');
             if (isset($result['record'][0]['fault'])) {
@@ -161,28 +161,45 @@ class ApplicationSvc extends CommonFileSvc
                 throw new \Exception("Could not create the database entry for this application.\n$msg");
             }
             $id = $result['record'][0]['fields']['Id'];
+            $zip->deleteName('description.json');
             try {
-                $zip->deleteName('description.json');
-                $record = $zip->getFromName('schema.json');
-                if (false !== $record) {
-                    // todo handle additional schema for database
+                $data = $zip->getFromName('schema.json');
+                if (false !== $data) {
+                    $data = json_decode($data, true);
+                    // todo how to determine which service to send this?
+                    $tables = Utilities::getArrayValue('table', $data, array());
+                    $db = ServiceHandler::getInstance()->getServiceObject('db');
+                    $result = $db->createTables($tables);
+                    if (isset($result['table'][0]['fault'])) {
+                        $msg = $result['table'][0]['fault']['faultString'];
+                        throw new \Exception("Could not create the database tables for this application.\n$msg");
+                    }
                     $zip->deleteName('schema.json');
                 }
-                for ($i=0; $i < $zip->numFiles; $i++) {
-                    $fullPathName = $zip->getNameIndex($i);
-                    if (empty($fullPathName))
-                        continue;
-                    $parent = FileUtilities::getParentFolder($fullPathName);
-                    if (!empty($parent)) {
-                        $this->fileRestHandler->createFolder($parent, true, array(), false);
+                try {
+                    $data = $zip->getFromName('data.json');
+                    if (false !== $data) {
+                        $data = json_decode($data, true);
+                        // todo how to determine which service to send this?
+                        $db = ServiceHandler::getInstance()->getServiceObject('db');
+                        $tables = Utilities::getArrayValue('table', $data, array());
+                        foreach ($tables as $table) {
+                            $tableName = Utilities::getArrayValue('name', $table, '');
+                            $records = Utilities::getArrayValue('record', $table, '');
+                            $result = $db->createRecords($tableName, $records);
+                            if (isset($result['record'][0]['fault'])) {
+                                $msg = $result['record'][0]['fault']['faultString'];
+                                throw new \Exception("Could not insert the database entries for table '$tableName'' for this application.\n$msg");
+                            }
+                        }
+                        $zip->deleteName('data.json');
                     }
-                    if ('/' === substr($fullPathName, -1)) {
-                        $this->fileRestHandler->createFolder($fullPathName, true, array(), false);
-                    }
-                    else {
-                        $content = $zip->getFromIndex($i);
-                        $this->fileRestHandler->writeFile($fullPathName, $content);
-                    }
+                }
+                catch (\Exception $ex) {
+                    // delete db record
+                    // todo anyone else using schema created?
+                    $sys->deleteRecordsByIds('app', $id);
+                    throw $ex;
                 }
             }
             catch (\Exception $ex) {
@@ -191,6 +208,8 @@ class ApplicationSvc extends CommonFileSvc
                 $sys->deleteRecordsByIds('app', $id);
                 throw $ex;
             }
+            // expand the rest of the zip file into storage
+            $this->fileRestHandler->expandZipFile('', $zip);
         }
         else {
             throw new \Exception('Error opening zip file.');

@@ -675,11 +675,11 @@ class BlobFileManager extends CommonFileManager
 
     /**
      * @param $path
-     * @param $zip_file
+     * @param ZipArchive $zip
      * @param bool $clean
      * @throws Exception
      */
-    public function expandZipFile($path, $zip_file, $clean = false)
+    public function expandZipFile($path, $zip, $clean = false)
     {
         if (($clean)) {
             try {
@@ -697,24 +697,27 @@ class BlobFileManager extends CommonFileManager
                 throw new Exception("Could not clean out existing directory $path.\n{$ex->getMessage()}");
             }
         }
-        $zip = new ZipArchive();
-        if (true === $zip->open($zip_file)) {
-            for ($i=0; $i < $zip->numFiles; $i++) {
-                try {
-                    $name = $zip->getNameIndex($i);
-                    $fullPathName = $path . $name;
-                    $parent = FileUtilities::getParentFolder($fullPathName);
+        for ($i=0; $i < $zip->numFiles; $i++) {
+            try {
+                $name = $zip->getNameIndex($i);
+                if (empty($name))
+                    continue;
+                $fullPathName = $path . $name;
+                $parent = FileUtilities::getParentFolder($fullPathName);
+                if (!empty($parent)) {
                     $this->createFolder($parent, true, array(), false);
+                }
+                if ('/' === substr($fullPathName, -1)) {
+                    $this->createFolder($fullPathName, true, array(), false);
+                }
+                else {
                     $content = $zip->getFromIndex($i);
                     $this->writeFile($fullPathName, $content);
                 }
-                catch (Exception $ex) {
-                    throw $ex;
-                }
             }
-        }
-        else {
-            throw new Exception('Error opening zip file.');
+            catch (Exception $ex) {
+                throw $ex;
+            }
         }
     }
 }

@@ -423,7 +423,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
      */
     private static function removeFieldsLevel($record)
     {
-        return (isset($record['fields'])) ? $record['fields'] : array();
+        return (isset($record['fields'])) ? $record['fields'] : $record;
     }
 
     /**

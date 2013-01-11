@@ -184,7 +184,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
-                        $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                        $zip = new ZipArchive();
+                        if (true === $zip->open($tmpName)) {
+                            $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                        }
+                        else {
+                            throw new \Exception('Error opening temporary zip file.');
+                        }
                     }
                     else {
                         $this->fileRestHandler->writeFile($fullPathName, $content, false, true);
@@ -226,7 +232,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                                 // need to expand zip file and move contents to storage
                                 $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                                $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                                $zip = new ZipArchive();
+                                if (true === $zip->open($tmpName)) {
+                                    $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                }
+                                else {
+                                    throw new \Exception('Error opening temporary zip file.');
+                                }
                             }
                             else {
                                 $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
@@ -256,7 +268,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                                     // need to expand zip file and move contents to storage
                                     $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                                    $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                                    $zip = new ZipArchive();
+                                    if (true === $zip->open($tmpName)) {
+                                        $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                    }
+                                    else {
+                                        throw new \Exception('Error opening temporary zip file.');
+                                    }
                                 }
                                 else {
                                     $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
@@ -408,7 +426,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
-                        $this->fileRestHandler->expandZipFile($folder, $tmpName, $clean);
+                        $zip = new ZipArchive();
+                        if (true === $zip->open($tmpName)) {
+                            $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
+                        }
+                        else {
+                            throw new \Exception('Error opening temporary zip file.');
+                        }
                     }
                     else {
                         $this->fileRestHandler->writeFile($path, $content, false, true);
@@ -452,7 +476,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                             // need to expand zip file and move contents to storage
                             $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                            $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                            $zip = new ZipArchive();
+                            if (true === $zip->open($tmpName)) {
+                                $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                            }
+                            else {
+                                throw new \Exception('Error opening temporary zip file.');
+                            }
                         }
                         else {
                             $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
@@ -514,7 +544,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
-                        $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                        $zip = new ZipArchive();
+                        if (true === $zip->open($tmpName)) {
+                            $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                        }
+                        else {
+                            throw new \Exception('Error opening temporary zip file.');
+                        }
                     }
                     else {
                         $this->fileRestHandler->writeFile($fullPathName, $content, false);
@@ -698,7 +734,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
-                        $this->fileRestHandler->expandZipFile($folder, $tmpName, $clean);
+                        $zip = new ZipArchive();
+                        if (true === $zip->open($tmpName)) {
+                            $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
+                        }
+                        else {
+                            throw new \Exception('Error opening temporary zip file.');
+                        }
                     }
                     else {
                         $this->fileRestHandler->writeFile($path, $content, false);
@@ -742,7 +784,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                             // need to expand zip file and move contents to storage
                             $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                            $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                            $zip = new ZipArchive();
+                            if (true === $zip->open($tmpName)) {
+                                $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                            }
+                            else {
+                                throw new \Exception('Error opening temporary zip file.');
+                            }
                         }
                         else {
                             $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
@@ -804,7 +852,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
-                        $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                        $zip = new ZipArchive();
+                        if (true === $zip->open($tmpName)) {
+                            $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                        }
+                        else {
+                            throw new \Exception('Error opening temporary zip file.');
+                        }
                     }
                     else {
                         $this->fileRestHandler->writeFile($fullPathName, $content, false);
@@ -988,7 +1042,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
-                        $this->fileRestHandler->expandZipFile($folder, $tmpName, $clean);
+                        $zip = new ZipArchive();
+                        if (true === $zip->open($tmpName)) {
+                            $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
+                        }
+                        else {
+                            throw new \Exception('Error opening temporary zip file.');
+                        }
                     }
                     else {
                         $this->fileRestHandler->writeFile($path, $content, false);
@@ -1032,7 +1092,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         if ((0 == strcasecmp($contentType, 'application/zip')) && $expand) {
                             // need to expand zip file and move contents to storage
                             $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
-                            $this->fileRestHandler->expandZipFile($path, $tmpName, $clean);
+                            $zip = new ZipArchive();
+                            if (true === $zip->open($tmpName)) {
+                                $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                            }
+                            else {
+                                throw new \Exception('Error opening temporary zip file.');
+                            }
                         }
                         else {
                             $this->fileRestHandler->moveFile($fullPathName, $tmpName, true);
