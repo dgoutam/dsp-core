@@ -524,7 +524,7 @@ class UserSvc extends CommonService implements iRestHandler
             unset($userInfo['role_id']);
 
             $data = $userInfo; // session data
-            $allowedAppIds = '';
+            $allowedApps = array();
             if (!empty($roleId)) {
                 $result = $db->retrieveSqlRecordsByIds('role', $roleId, 'id', '');
                 if (0 >= count($result) && !$isSysAdmin) {
@@ -534,11 +534,16 @@ class UserSvc extends CommonService implements iRestHandler
                     $role = $result[0];
                     $allowedAppIds = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
                     try {
-                        $allowedApps = null;
+                        $roleApps = array();
                         if (!empty($allowedAppIds)) {
-                            $allowedApps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', 'id,name');
+                            $temp = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
+                            foreach($temp as $app) {
+                                $roleApps[] = array('id'=>$app['id'], 'name'=>$app['name']);
+                                if ($app['is_active'])
+                                    $allowedApps[] = $app;
+                            }
                         }
-                        $role['apps'] = $allowedApps;
+                        $role['apps'] = $roleApps;
                         unset($role['app_ids']);
                     }
                     catch (Exception $ex) {
@@ -568,12 +573,10 @@ class UserSvc extends CommonService implements iRestHandler
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
 
+            $apps = $allowedApps;
             if ($isSysAdmin) {
-                $apps = $db->retrieveSqlRecordsByFilter('app');
+                $apps = $db->retrieveSqlRecordsByFilter('app', '', "is_active = '1'");
                 unset($apps['total']);
-            }
-            else {
-                $apps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
             }
             $data['apps'] = $apps;
             $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
@@ -649,7 +652,7 @@ class UserSvc extends CommonService implements iRestHandler
             unset($userInfo['role_id']);
 
             $data = $userInfo;
-            $allowedAppIds = '';
+            $allowedApps = array();
             if (!empty($roleId)) {
                 $result = $db->retrieveSqlRecordsByIds('role', $roleId, 'id', '');
                 if (0 >= count($result) && !$isSysAdmin) {
@@ -659,11 +662,16 @@ class UserSvc extends CommonService implements iRestHandler
                     $role = $result[0];
                     $allowedAppIds = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
                     try {
-                        $allowedApps = null;
+                        $roleApps = array();
                         if (!empty($allowedAppIds)) {
-                            $allowedApps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', 'id,name,app_group_ids');
+                            $temp = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
+                            foreach($temp as $app) {
+                                $roleApps[] = array('id'=>$app['id'], 'name'=>$app['name']);
+                                if ($app['is_active'])
+                                    $allowedApps[] = $app;
+                            }
                         }
-                        $role['apps'] = $allowedApps;
+                        $role['apps'] = $roleApps;
                         unset($role['app_ids']);
                     }
                     catch (Exception $ex) {
@@ -693,12 +701,10 @@ class UserSvc extends CommonService implements iRestHandler
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
 
+            $apps = $allowedApps;
             if ($isSysAdmin) {
-                $apps = $db->retrieveSqlRecordsByFilter('app');
+                $apps = $db->retrieveSqlRecordsByFilter('app', '', "is_active = '1'");
                 unset($apps['total']);
-            }
-            else {
-                $apps = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
             }
             $data['apps'] = $apps;
             $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
