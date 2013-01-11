@@ -427,15 +427,17 @@ class WindowsAzureBlob extends CommonBlob
 //            $this->_blobConn->registerStreamWrapper();
 //            $blobUrl = 'azure://' . $container . '/' . $blobName;
 //            readfile($blobUrl);
-            exit;
         }
         catch (Exception $ex) {
             if ('Resource could not be accessed.' == $ex->getMessage()) {
-                header("Status: 404 The specified file '$blobName' does not exist.");
-                exit;
-            } else {
+                $status_header = "HTTP/1.1 404 The specified file '$blobName' does not exist.";
+                header($status_header);
+                header('Content-type: text/html');
+            }
+            else {
                 throw $ex;
             }
         }
+        Yii::app()->end();
     }
 }

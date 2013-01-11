@@ -406,7 +406,9 @@ class FileManager extends CommonFileManager
                 echo $result;
             }
             else {
-                header("Status: 404 The specified file '$path' does not exist.");
+                $status_header = "HTTP/1.1 404 The specified file '$path' does not exist.";
+                header($status_header);
+                header('Content-type: text/html');
             }
             Yii::app()->end();;
         }
@@ -434,7 +436,9 @@ class FileManager extends CommonFileManager
                 echo $result;
             }
             else {
-                header("Status: 404 The specified file '$path' does not exist.");
+                $status_header = "HTTP/1.1 404 The specified file '$path' does not exist.";
+                header($status_header);
+                header('Content-type: text/html');
             }
             Yii::app()->end();;
         }

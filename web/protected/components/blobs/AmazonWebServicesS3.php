@@ -424,14 +424,17 @@ class AmazonWebServicesS3 extends CommonBlob
             $disposition = (isset($params['disposition']) && !empty($params['disposition'])) ? $params['disposition'] : 'inline';
             header("Content-Disposition: $disposition; filename=\"$name\";");
             echo $result->body;
-            exit;
-        } catch (Exception $ex) {
+        }
+        catch (Exception $ex) {
             if ('Resource could not be accessed.' == $ex->getMessage()) {
-                header("Status: 404 The specified file '$name' does not exist.");
-                exit;
-            } else {
+                $status_header = "HTTP/1.1 404 The specified file '$name' does not exist.";
+                header($status_header);
+                header('Content-type: text/html');
+            }
+            else {
                 throw $ex;
             }
         }
+        Yii::app()->end();
     }
 }
