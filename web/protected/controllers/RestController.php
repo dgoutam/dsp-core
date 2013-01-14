@@ -77,6 +77,8 @@ class RestController extends Controller
             }
             if (!empty($tunnel_method)) {
                 switch (strtolower($tunnel_method)) {
+                case 'post': // in case they use it in the header as well
+                    break;
                 case 'delete':
                     $this->actionDelete($service);
                     break;
