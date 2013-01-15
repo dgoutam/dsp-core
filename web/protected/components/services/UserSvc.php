@@ -751,7 +751,6 @@ class UserSvc extends CommonService implements iRestHandler
                 $apps = $db->retrieveSqlRecordsByFilter('app', $appFields, "is_active = '1'");
                 unset($apps['total']);
             }
-            $data['apps'] = $apps;
             $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
             unset($appGroups['total']);
             $noGroupApps = array();
