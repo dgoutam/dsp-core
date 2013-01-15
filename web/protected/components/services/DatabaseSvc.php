@@ -436,7 +436,6 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return array('fields' => $result);
         }
         else { // error
-
             return array('fault' => array('faultString' => $result,
                                           'faultCode' => 'RequestFailed'));
         }
@@ -799,6 +798,24 @@ class DatabaseSvc extends CommonService implements iRestHandler
         }
         catch (Exception $ex) {
             throw new Exception("Error describing database table '$table'.\n{$ex->getMessage()}");
+        }
+    }
+
+    public function describeTables($table_list)
+    {
+        // check for system tables and deny
+        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
+        $tables = array_map('trim', explode(',', trim($table_list, ',')));
+        foreach ($tables as $table) {
+            if (Utilities::isInList($sysTables, $table, ',')) {
+                throw new Exception("System table '$table' not available through this interface.");
+            }
+        }
+        try {
+            return $this->sqlDb->describeTables($tables);
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error describing database tables '$table_list'.\n{$ex->getMessage()}");
         }
     }
 

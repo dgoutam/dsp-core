@@ -327,7 +327,7 @@ class Utilities
                 $errstr .= static::display_xml_error($error, $xmlstr) . "\n";
             }
             libxml_clear_errors();
-            throw new \Exception($errstr);
+            throw new Exception($errstr);
         }
 
         return json_encode((array)$xml);
@@ -573,17 +573,19 @@ class Utilities
                 try {
                     $data = static::jsonToArray($postdata);
                 }
-                catch (\Exception $ex) {
+                catch (Exception $ex) {
                     try {
                         $data = static::xmlToArray($postdata);
                     }
-                    catch (\Exception $ex) {
-                        throw new \Exception('Invalid Format Requested');
+                    catch (Exception $ex) {
+                        throw new Exception('Invalid Format Requested');
                     }
                 }
             }
-            $data = static::array_key_lower($data);
-            $data = (isset($data['dfapi'])) ? $data['dfapi'] : $data;
+            if (!empty($data) && is_array($data)) {
+                $data = static::array_key_lower($data);
+                $data = (isset($data['dfapi'])) ? $data['dfapi'] : $data;
+            }
         }
 
         return $data;
@@ -659,7 +661,7 @@ class Utilities
                 $errstr .= static::display_xml_error($error, $xmlstr) . "\n";
             }
             libxml_clear_errors();
-            throw new \Exception($errstr);
+            throw new Exception($errstr);
         }
 
         return $xml;
@@ -696,7 +698,7 @@ class Utilities
             $error = 'Unknown error';
         }
         if (!empty($error))
-            throw new \Exception('JSON Error: ' . $error);
+            throw new Exception('JSON Error: ' . $error);
 
         return $array;
     }
@@ -708,23 +710,25 @@ class Utilities
         }
 
         if (!isset($_SESSION['public']) || empty($_SESSION['public'])) {
-            return false;
+            throw new Exception("[INVALIDSESSION]: There is no valid session for the current request.", 401);
         }
 
-        return true;
+        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
+        if (empty($userId)) {
+            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session.", 401);
+        }
+        return $userId;
     }
 
     public static function checkPermission($request, $service, $component = '')
     {
-        if (!static::validateSession()) {
-            throw new \Exception("[INVALIDSESSION]: There is no valid session information for the current request.");
-        }
+        $userId = static::validateSession();
         $admin = (isset($_SESSION['public']['is_sys_admin'])) ? $_SESSION['public']['is_sys_admin'] : false;
         $roleInfo = (isset($_SESSION['public']['role'])) ? $_SESSION['public']['role'] : array();
         if (empty($roleInfo)) {
             if (!$admin) {
                 // no role assigned, if not sys admin, denied service
-                throw new \Exception("[AccessDenied]: A valid user role or system administrator is required to access services.");
+                throw new Exception("[AccessDenied]: A valid user role or system administrator is required to access services.");
             }
             return; // no need to check role
         }
@@ -732,10 +736,9 @@ class Utilities
         // check if app allowed in role
         $appName = (isset($GLOBALS['app_name'])) ? $GLOBALS['app_name'] : '';
         if (empty($appName)) {
-            throw new \Exception("[AccessDenied]: A valid application name is required to access services.");
+            throw new Exception("[AccessDenied]: A valid application name is required to access services.");
         }
-        // todo temporary check for launchpad
-        if (0 !== strcasecmp($appName, 'launchpad')) {
+
         $apps = static::getArrayValue('apps', $roleInfo, null);
         $found = false;
         foreach ($apps as $app) {
@@ -745,7 +748,7 @@ class Utilities
             }
         }
         if (!$found) {
-            throw new \Exception("[AccessDenied]: Access to application '$appName' is not provisioned for this user's role.");
+            throw new Exception("[AccessDenied]: Access to application '$appName' is not provisioned for this user's role.");
         }
         /*
              // see if we need to deny access to this app
@@ -764,11 +767,10 @@ class Utilities
                  }
              }
          */
-        }
 
         $services = static::getArrayValue('services', $roleInfo, null);
         if (!is_array($services) || empty($services)) {
-            throw new \Exception("[AccessDenied]: Access to service '$service' is not provisioned for this user's role.");
+            throw new Exception("[AccessDenied]: Access to service '$service' is not provisioned for this user's role.");
         }
 
         $allAllowed = false;
@@ -784,7 +786,7 @@ class Utilities
                         if (!static::boolval(static::getArrayValue($request, $svcInfo, false))) {
                             $msg = "[AccessDenied]: " . ucfirst($request) . " access to ";
                             $msg .= "component '$component' of service '$service' is not allowed by this user's role.";
-                            throw new \Exception($msg);
+                            throw new Exception($msg);
                         }
                         return; // component specific found and allowed, so bail
                     }
@@ -798,7 +800,7 @@ class Utilities
                         if (!static::boolval(static::getArrayValue($request, $svcInfo, false))) {
                             $msg = "[AccessDenied]: " . ucfirst($request) . " access to ";
                             $msg .= "service '$service' is not allowed by this user's role.";
-                            throw new \Exception($msg);
+                            throw new Exception($msg);
                         }
                         return; // service specific found and allowed, so bail
                     }
@@ -824,7 +826,7 @@ class Utilities
         if (!empty($component))
             $msg .= "component '$component' of ";
         $msg .= "service '$service' is not allowed by this user's role.";
-        throw new \Exception($msg);
+        throw new Exception($msg);
     }
 
     public static function setCurrentUserId($userId)
@@ -836,21 +838,24 @@ class Utilities
     {
         if (isset(static::$_userId)) return static::$_userId;
 
-        if (static::validateSession()) {
-            static::$_userId = (isset($_SESSION['public']['id'])) ? intval($_SESSION['public']['id']) : null;
+        try {
+            static::$_userId = static::validateSession();
             return static::$_userId;
         }
-
-        return null;
+        catch (Exception $ex) {
+            return null;
+        }
     }
 
     public static function getCurrentRoleId()
     {
-        if (static::validateSession()) {
+        try {
+            static::validateSession();
             return (isset($_SESSION['public']['role']['id'])) ? intval($_SESSION['public']['role']['id']) : null;
         }
-
-        return null;
+        catch (Exception $ex) {
+            return null;
+        }
     }
 
     public static function getCurrentAppName()

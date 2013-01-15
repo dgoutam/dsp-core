@@ -296,17 +296,17 @@ class CommonFileSvc extends CommonService implements iRestHandler
             else {
                 // possibly xml or json post either of files or folders to create, copy or move
                 try {
-                    $content = Utilities::getPostDataAsArray();
-                    if (empty($content)) {
+                    $data = Utilities::getPostDataAsArray();
+                    if (empty($data)) {
                         // create folder from resource path
                         $this->fileRestHandler->createFolder($path);
                         $result = array('folder' => array(array('path' => $path)));
                     }
                     else {
                         $out = array('folder' => array(), 'file' => array());
-                        $folders = Utilities::getArrayValue('folder', $content, null);
+                        $folders = Utilities::getArrayValue('folder', $data, null);
                         if (empty($folders)) {
-                            $folders = (isset($content['folders']['folder']) ? $content['folders']['folder'] : null);
+                            $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
                         }
                         if (!empty($folders)) {
                             if (!isset($folders[0])) {
@@ -314,10 +314,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 $folders = array($folders);
                             }
                             foreach ($folders as $key=>$folder) {
+                                $name = Utilities::getArrayValue('name', $folder, '');
                                 if (isset($folder['source_path'])) {
                                     // copy or move
                                     $srcPath = $folder['source_path'];
-                                    $name = FileUtilities::getNameFromPath($srcPath);
+                                    if (empty($name)) {
+                                        $name = FileUtilities::getNameFromPath($srcPath);
+                                    }
                                     $fullPathName = $path . $name . '/';
                                     $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
                                     try {
@@ -331,15 +334,14 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
                                     }
                                 }
-                                elseif (isset($folder['content'])) {
-                                    $name = $folder['name'];
+                                else {
                                     $fullPathName = $path . $name;
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    $content = $folder['content'];
-                                    $isBase64 = (isset($folder['is_base64'])) ? Utilities::boolval($folder['is_base64']) : false;
+                                    $content = Utilities::getArrayValue('content', $folder, '');
+                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
                                     if ($isBase64) {
                                         $content = base64_decode($content);
                                     }
+                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
                                     try {
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
@@ -349,9 +351,9 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 }
                             }
                         }
-                        $files = Utilities::getArrayValue('file', $content, null);
+                        $files = Utilities::getArrayValue('file', $data, null);
                         if (empty($files)) {
-                            $files = (isset($content['files']['file']) ? $content['files']['file'] : null);
+                            $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
                         }
                         if (!empty($files)) {
                             if (!isset($files[0])) {
@@ -359,10 +361,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 $files = array($files);
                             }
                             foreach ($files as $key=>$file) {
+                                $name = Utilities::getArrayValue('name', $file, '');
                                 if (isset($file['source_path'])) {
                                     // copy or move
                                     $srcPath = $file['source_path'];
-                                    $name = FileUtilities::getNameFromPath($srcPath);
+                                    if (empty($name)) {
+                                        $name = FileUtilities::getNameFromPath($srcPath);
+                                    }
                                     $fullPathName = $path . $name;
                                     $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
                                     try {
@@ -377,11 +382,10 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     }
                                 }
                                 elseif (isset($file['content'])) {
-                                    $name = $file['name'];
                                     $fullPathName = $path . $name;
                                     $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    $content = $file['content'];
-                                    $isBase64 = (isset($file['is_base64'])) ? Utilities::boolval($file['is_base64']) : false;
+                                    $content = Utilities::getArrayValue('content', $file, '');
+                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
                                     if ($isBase64) {
                                         $content = base64_decode($content);
                                     }
@@ -404,7 +408,6 @@ class CommonFileSvc extends CommonService implements iRestHandler
         }
         else {
             // if ending in file name, create the file or folder
-            error_log($path);
             $name = substr($path, strripos($path, '/') + 1);
             if (isset($_SERVER['HTTP_X_FILE_NAME']) && !empty($_SERVER['HTTP_X_FILE_NAME'])) {
                 $x_file_name = $_SERVER['HTTP_X_FILE_NAME'];

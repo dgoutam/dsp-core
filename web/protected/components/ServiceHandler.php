@@ -118,7 +118,7 @@ class ServiceHandler
         try {
             $criteria = new CDbCriteria(array('select' => 'name,label'));
             $result = Service::model()->findAll($criteria);
-            $out = array();
+            $out = array(array('name' => 'user', 'label' => 'User Login'));
             foreach ($result as $service) {
                 $out[] = array('name' => $service->name, 'label' => $service->label);
             }
@@ -133,12 +133,12 @@ class ServiceHandler
     /**
      * Retrieves the record of the particular service
      *
-     * @access public
+     * @access private
      * @param string $name
      * @return array The service record array
      * @throws Exception if retrieving of service is not possible
      */
-    public function getService($name)
+    private function getService($name)
     {
         try {
             $criteria = new CDbCriteria(array('condition' => 'name=:name',
@@ -207,7 +207,7 @@ class ServiceHandler
                 $service = new SystemSvc($record);
                 break;
             case 'user':
-                $service = new UserSvc($record);
+                $service = new UserSvc(array('name'=>'user','label'=>'User Login','is_active'=>1,'type'=>'native'));
                 break;
             default:
                 $type = Utilities::getArrayValue('type', $record, '');

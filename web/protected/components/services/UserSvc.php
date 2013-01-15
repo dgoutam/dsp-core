@@ -59,10 +59,8 @@ class UserSvc extends CommonService implements iRestHandler
     protected $randKey;
 
     /**
-     * Creates a new DreamFactory_UserSvc instance
+     * Creates a new UserSvc instance
      *
-     * @param array $config
-     * @throws InvalidArgumentException
      */
     public function __construct($config)
     {
@@ -85,10 +83,16 @@ class UserSvc extends CommonService implements iRestHandler
     public function __destruct()
     {
         parent::__destruct();
+
+        unset($this->nativeDb);
     }
 
     // Controller based methods
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionGet()
     {
         $this->detectCommonParams();
@@ -105,7 +109,7 @@ class UserSvc extends CommonService implements iRestHandler
             $result = $this->userTicket();
             break;
         case 'session':
-            $ticket = (isset($_REQUEST['ticket'])) ? $_REQUEST['ticket'] : '';
+            $ticket = Utilities::getArrayValue('ticket', $_REQUEST, '');
             $result = $this->userSession($ticket);
             break;
         default:
@@ -117,6 +121,10 @@ class UserSvc extends CommonService implements iRestHandler
         return $result;
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionPost()
     {
         $this->detectCommonParams();
@@ -179,6 +187,10 @@ class UserSvc extends CommonService implements iRestHandler
         return $result;
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionPut()
     {
         $this->detectCommonParams();
@@ -199,8 +211,14 @@ class UserSvc extends CommonService implements iRestHandler
            throw new Exception("PUT Request command '$this->command' is not currently supported by this User API.");
            break;
         }
+
+        return $result;
     }
 
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionMerge()
     {
         $this->detectCommonParams();
@@ -221,16 +239,24 @@ class UserSvc extends CommonService implements iRestHandler
            throw new Exception("MERGE Request command '$this->command' is not currently supported by this User API.");
            break;
         }
+
+        return $result;
     }
 
+    /**
+     * @throws Exception
+     */
     public function actionDelete()
     {
         throw new Exception("DELETE Request is not currently supported by this User API.");
     }
 
+    /**
+     *
+     */
     protected function detectCommonParams()
     {
-        $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+        $resource = Utilities::getArrayValue('resource', $_GET, '');
         $resource = (!empty($resource)) ? explode('/', $resource) : array();
         $this->command = (isset($resource[0])) ? strtolower($resource[0]) : '';
     }
@@ -473,7 +499,7 @@ class UserSvc extends CommonService implements iRestHandler
     /**
      * @param $username
      * @param $password
-     * @return mixed
+     * @return array
      * @throws Exception
      */
     public function userLogin($username, $password)
@@ -515,8 +541,8 @@ class UserSvc extends CommonService implements iRestHandler
             }
             unset($userInfo['is_active']);
 
-            $isSysAdmin = (isset($userInfo['is_sys_admin'])) ? Utilities::boolval($userInfo['is_sys_admin']) : false;
-            $roleId = (isset($userInfo['role_id'])) ? $userInfo['role_id'] : '';
+            $isSysAdmin = Utilities::boolval(Utilities::getArrayValue('is_sys_admin', $userInfo, false));
+            $roleId = Utilities::getArrayValue('role_id', $userInfo, '');
             $roleId = trim(trim($roleId, ',')); // todo
             if (empty($roleId) && !$isSysAdmin) {
                 throw new Exception("The username '$username' has not been assigned a role.");
@@ -532,11 +558,12 @@ class UserSvc extends CommonService implements iRestHandler
                 }
                 else {
                     $role = $result[0];
-                    $allowedAppIds = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
+                    $allowedAppIds = trim(Utilities::getArrayValue('app_ids', $role, ''), ',');
                     try {
                         $roleApps = array();
                         if (!empty($allowedAppIds)) {
-                            $temp = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
+                            $appFields = 'id,name,label,description,url,is_url_external,app_group_ids,is_active';
+                            $temp = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', $appFields);
                             foreach($temp as $app) {
                                 $roleApps[] = array('id'=>$app['id'], 'name'=>$app['name']);
                                 if ($app['is_active'])
@@ -549,13 +576,11 @@ class UserSvc extends CommonService implements iRestHandler
                     catch (Exception $ex) {
                         throw $ex;
                     }
-                    if ((isset($role['id']) && !empty($role['id']))) {
-                        $permsFields = 'service_id,service,component,read,create,update,delete';
-                        $permQuery = "role_id='" . $role['id'] . "'";
-                        $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
-                        unset($perms['total']);
-                        $role['services'] = $perms;
-                    }
+                    $permsFields = 'service_id,service,component,read,create,update,delete';
+                    $permQuery = "role_id='$roleId'";
+                    $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
+                    unset($perms['total']);
+                    $role['services'] = $perms;
                 }
                 $userInfo['role'] = $role;
             }
@@ -575,13 +600,40 @@ class UserSvc extends CommonService implements iRestHandler
 
             $apps = $allowedApps;
             if ($isSysAdmin) {
-                $apps = $db->retrieveSqlRecordsByFilter('app', '', "is_active = '1'");
+                $appFields = 'id,name,label,description,url,is_url_external,app_group_ids';
+                $apps = $db->retrieveSqlRecordsByFilter('app', $appFields, "is_active = '1'");
                 unset($apps['total']);
             }
-            $data['apps'] = $apps;
             $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
             unset($appGroups['total']);
+            $noGroupApps = array();
+            foreach ($apps as $a_key=>$app) {
+                $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
+                $groupIds = array_map('trim', explode(',', trim($groupIds, ',')));
+                $found = false;
+                foreach ($appGroups as $g_key=>$group) {
+                    $groupId = Utilities::getArrayValue('id', $group, '');
+                    if (false !== array_search($groupId, $groupIds)) {
+                        $found = true;
+                        $temp = Utilities::getArrayValue('apps', $group, array());
+                        $temp[] = $app;
+                        $appGroups[$g_key]['apps'] = $temp;
+                    }
+                }
+                if (!$found) {
+                    $noGroupApps[] = $app;
+                }
+            }
+            // clean out any empty groups
+            foreach ($appGroups as $g_key=>$group) {
+                $apps = Utilities::getArrayValue('apps', $group, null);
+                if (!isset($apps) || empty($apps)) {
+                    unset($appGroups[$g_key]);
+                }
+            }
+            $appGroups = array_values($appGroups); // reset indexing
             $data['app_groups'] = $appGroups;
+            $data['no_group_apps'] = $noGroupApps;
 
             return $data;
         }
@@ -590,43 +642,36 @@ class UserSvc extends CommonService implements iRestHandler
         }
     }
 
-    // userSession refreshes an existing session or
-    // allows the SSO creation of a new session for external apps via timed ticket
     /**
+     * userSession refreshes an existing session or
+     *     allows the SSO creation of a new session for external apps via timed ticket
+     *
      * @param string $ticket
      * @return mixed
      * @throws Exception
      */
     public function userSession($ticket = '')
     {
-        if (!isset($_SESSION)) {
-            session_start();
-        }
-        if (!isset($_SESSION['public']) || empty($_SESSION['public'])) {
-            if (empty($ticket)) {
+        if (empty($ticket)) {
+            try {
+                $userId = Utilities::validateSession();
+            }
+            catch (Exception $ex) {
                 $this->userLogout();
-                throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
-            }
-            else { // process ticket
-                $creds = Utilities::decryptCreds($ticket, "gorilla");
-                $pieces = explode(',', $creds);
-                $userId = $pieces[0];
-                $timestamp = $pieces[1];
-                $curtime = time();
-                $lapse = $curtime - $timestamp;
-                if ($lapse > 300) { // only lasts 5 minutes
-                    $this->userLogout();
-                    throw new Exception("[InvalidSession]: Ticket used for session generation is too old.");
-                }
+                throw $ex;
             }
         }
-        else {
-            $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
-        }
-        if (empty($userId)) {
-            // cleanup by calling logout
-            $this->userLogout();
-            throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
+        else { // process ticket
+            $creds = Utilities::decryptCreds($ticket, "gorilla");
+            $pieces = explode(',', $creds);
+            $userId = $pieces[0];
+            $timestamp = $pieces[1];
+            $curTime = time();
+            $lapse = $curTime - $timestamp;
+            if (empty($userId) || ($lapse > 300)) { // only lasts 5 minutes
+                $this->userLogout();
+                throw new Exception("[INVALIDSESSION]: Ticket used for session generation is too old.", 401);
+            }
         }
 
         try {
@@ -643,8 +688,8 @@ class UserSvc extends CommonService implements iRestHandler
             }
             unset($userInfo['is_active']);
 
-            $isSysAdmin = (isset($userInfo['is_sys_admin'])) ? Utilities::boolval($userInfo['is_sys_admin']) : false;
-            $roleId = (isset($userInfo['role_id'])) ? $userInfo['role_id'] : '';
+            $isSysAdmin = Utilities::boolval(Utilities::getArrayValue('is_sys_admin', $userInfo, false));
+            $roleId = Utilities::getArrayValue('role_id', $userInfo, '');
             $roleId = trim(trim($roleId, ',')); // todo
             if (empty($roleId) && !$isSysAdmin) {
                 throw new Exception("The user identified in the ticket has not been assigned a role.");
@@ -660,11 +705,12 @@ class UserSvc extends CommonService implements iRestHandler
                 }
                 else {
                     $role = $result[0];
-                    $allowedAppIds = trim((isset($role['app_ids']) ? $role['app_ids'] : ''), ',');
+                    $allowedAppIds = trim(Utilities::getArrayValue('app_ids', $role, ''), ',');
                     try {
                         $roleApps = array();
                         if (!empty($allowedAppIds)) {
-                            $temp = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id');
+                            $appFields = 'id,name,label,description,url,is_url_external,app_group_ids,is_active';
+                            $temp = $db->retrieveSqlRecordsByIds('app', $allowedAppIds, 'id', $appFields);
                             foreach($temp as $app) {
                                 $roleApps[] = array('id'=>$app['id'], 'name'=>$app['name']);
                                 if ($app['is_active'])
@@ -677,13 +723,11 @@ class UserSvc extends CommonService implements iRestHandler
                     catch (Exception $ex) {
                         throw $ex;
                     }
-                    if ((isset($role['id']) && !empty($role['id']))) {
-                        $permsFields = 'service_id,service,component,read,create,update,delete';
-                        $permQuery = "role_id='" . $role['id'] . "'";
-                        $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
-                        unset($perms['total']);
-                        $role['services'] = $perms;
-                    }
+                    $permsFields = 'service_id,service,component,read,create,update,delete';
+                    $permQuery = "role_id='$roleId'";
+                    $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
+                    unset($perms['total']);
+                    $role['services'] = $perms;
                 }
                 $userInfo['role'] = $role;
             }
@@ -703,13 +747,41 @@ class UserSvc extends CommonService implements iRestHandler
 
             $apps = $allowedApps;
             if ($isSysAdmin) {
-                $apps = $db->retrieveSqlRecordsByFilter('app', '', "is_active = '1'");
+                $appFields = 'id,name,label,description,url,is_url_external,app_group_ids';
+                $apps = $db->retrieveSqlRecordsByFilter('app', $appFields, "is_active = '1'");
                 unset($apps['total']);
             }
             $data['apps'] = $apps;
             $appGroups = $db->retrieveSqlRecordsByFilter('app_group', 'id,name,description');
             unset($appGroups['total']);
+            $noGroupApps = array();
+            foreach ($apps as $a_key=>$app) {
+                $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
+                $groupIds = array_map('trim', explode(',', trim($groupIds, ',')));
+                $found = false;
+                foreach ($appGroups as $g_key=>$group) {
+                    $groupId = Utilities::getArrayValue('id', $group, '');
+                    if (false !== array_search($groupId, $groupIds)) {
+                        $found = true;
+                        $temp = Utilities::getArrayValue('apps', $group, array());
+                        $temp[] = $app;
+                        $appGroups[$g_key]['apps'] = $temp;
+                    }
+                }
+                if (!$found) {
+                    $noGroupApps[] = $app;
+                }
+            }
+            // clean out any empty groups
+            foreach ($appGroups as $g_key=>$group) {
+                $apps = Utilities::getArrayValue('apps', $group, null);
+                if (!isset($apps) || empty($apps)) {
+                    unset($appGroups[$g_key]);
+                }
+            }
+            $appGroups = array_values($appGroups); // reset indexing
             $data['app_groups'] = $appGroups;
+            $data['no_group_apps'] = $noGroupApps;
 
             return $data;
         }
@@ -719,25 +791,20 @@ class UserSvc extends CommonService implements iRestHandler
         }
     }
 
-    // userTicket generates a SSO timed ticket for current valid session
     /**
+     * userTicket generates a SSO timed ticket for current valid session
+     *
      * @return array
      * @throws Exception
      */
     public function userTicket()
     {
-        if (!isset($_SESSION)) {
-            session_start();
+        try {
+            $userId = Utilities::validateSession();
         }
-        if (!isset($_SESSION['public']) || empty($_SESSION['public'])) {
+        catch (Exception $ex) {
             $this->userLogout();
-            throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
-        }
-        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
-        if (empty($userId)) {
-            // cleanup by calling logout
-            $this->userLogout();
-            throw new Exception("[InvalidSession]: There is no active session. Please login to use the API.");
+            throw $ex;
         }
         // regenerate new timed ticket
         $timestamp = time();
@@ -876,14 +943,14 @@ class UserSvc extends CommonService implements iRestHandler
                 throw new Exception("The supplied username was not found in the system.");
             }
             $userInfo = $result[0];
-            $question = (isset($userInfo['security_question'])) ? $userInfo['security_question'] : '';
+            $question = Utilities::getArrayValue('security_question', $userInfo, '');
             if (!empty($question)) {
                 unset($userInfo['email']);
 
                 return $userInfo;
             }
-            $email = (isset($userInfo['email'])) ? $userInfo['email'] : '';
-            $fullName = (isset($userInfo['full_name'])) ? $userInfo['full_name'] : '';
+            $email = Utilities::getArrayValue('email', $userInfo, '');
+            $fullName = Utilities::getArrayValue('full_name', $userInfo, '');
             if (!empty($email) && !empty($fullName)) {
                 $this->sendResetPasswordLink($email, $fullName);
             }
@@ -972,13 +1039,7 @@ class UserSvc extends CommonService implements iRestHandler
         // check valid session,
         // using userId from session, query with check for old password
         // then update with new password
-        if (!Utilities::validateSession()) {
-            throw new Exception("[INVALIDSESSION]: There is no valid session information for the current request.");
-        }
-        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
-        if (empty($userId)) {
-            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session. Please login to use the API.");
-        }
+        $userId = Utilities::validateSession();
 
         try {
             $db = $this->nativeDb;
@@ -1017,15 +1078,8 @@ class UserSvc extends CommonService implements iRestHandler
     public function changeProfile($record)
     {
         // check valid session,
-        // using userId from session, query with check for old password
-        // then update with new password
-        if (!Utilities::validateSession()) {
-            throw new Exception("[INVALIDSESSION]: There is no valid session information for the current request.");
-        }
-        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
-        if (empty($userId)) {
-            throw new Exception("[INVALIDSESSION]: There is no valid user data in the current session. Please login to use the API.");
-        }
+        // using userId from session, update with new profile elements
+        $userId = Utilities::validateSession();
 
         try {
             $db = $this->nativeDb;

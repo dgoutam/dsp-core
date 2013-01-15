@@ -85,37 +85,52 @@ class ApplicationSvc extends CommonFileSvc
 
     /**
      * @param string $app_root
+     * @param bool $include_files
+     * @param bool $include_schema
+     * @param bool $include_data
+     * @throws Exception
      * @return void
-     * @throws \Exception
      */
-    public function exportAppAsPackage($app_root)
+    public function exportAppAsPackage($app_root, $include_files=true, $include_schema=true, $include_data=false)
     {
+        if (empty($app_root)) {
+            throw new Exception("Application root name can not be empty.");
+        }
         try {
             $zip = new \ZipArchive();
-            $temp = $app_root;
-            if (empty($temp)) $temp = $this->$app_root;
             $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-            $zipFileName = $tempDir . $temp . '.zip';
+            $zipFileName = $tempDir . $app_root . '.zip';
             if (true !== $zip->open($zipFileName, \ZipArchive::CREATE)) {
                 throw new \Exception("Can not create zip file for this application.");
             }
 
-            $sys = ServiceHandler::getInstance()->getServiceObject('System');
-            $fields = 'name,label,description,is_active,url,is_url_external';
+            $sys = ServiceHandler::getInstance()->getServiceObject('system');
+            $fields = 'name,label,description,is_active,url,is_url_external,schemas';
+            $fields .= ',filter_by_device,filter_phone,filter_tablet,filter_desktop,requires_plugin';
             $records = $sys->retrieveRecordsByFilter('app', $fields, "name = '$app_root'", 1);
             if ((0 === count($records)) || !isset($records['record'][0]['fields'])) {
                 throw new \Exception("No database entry exists for this application '$app_root''");
             }
+            $record = $records['record'][0]['fields'];
             // add database entry file
-            if (!$zip->addFromString('description.json', json_encode($records['record'][0]['fields']))) {
+            if (!$zip->addFromString('description.json', json_encode($record))) {
                 throw new \Exception("Can not include description file in package file.");
             }
-            // add related/required database table schemas
-            if (!$zip->addFromString('schema.json', '')) {
-                throw new \Exception("Can not include database schema files in package file.");
+            $tables = Utilities::getArrayValue('schemas', $record, '');
+            if (!empty($tables) && $include_schema) {
+                // add related/required database table schemas
+                // todo assuming which service this came from
+                $db = ServiceHandler::getInstance()->getServiceObject('db');
+                $schema = $db->describeTables($tables);
+                if (!$zip->addFromString('schema.json', json_encode($schema))) {
+                    throw new \Exception("Can not include database schema files in package file.");
+                }
             }
-            // add files
-            $this->fileRestHandler->getFolderAsZip($app_root, $zip, $zipFileName, true);
+            $isExternal = Utilities::boolval(Utilities::getArrayValue('is_url_external', $record, false));
+            if (!$isExternal && $include_files) {
+                // add files
+                $this->fileRestHandler->getFolderAsZip($app_root, $zip, $zipFileName, true);
+            }
             $zip->close();
 
             $fd = fopen($zipFileName, "r");
@@ -133,7 +148,7 @@ class ApplicationSvc extends CommonFileSvc
             }
             fclose($fd);
             unlink($zipFileName);
-            exit;
+            Yii::app()->end();
         }
         catch (\Exception $ex) {
             throw $ex;
@@ -160,7 +175,7 @@ class ApplicationSvc extends CommonFileSvc
                 $msg = $result['record'][0]['fault']['faultString'];
                 throw new \Exception("Could not create the database entry for this application.\n$msg");
             }
-            $id = $result['record'][0]['fields']['Id'];
+            $id = $result['record'][0]['fields']['id'];
             $zip->deleteName('description.json');
             try {
                 $data = $zip->getFromName('schema.json');
