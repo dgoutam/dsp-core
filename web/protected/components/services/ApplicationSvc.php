@@ -12,7 +12,7 @@ class ApplicationSvc extends CommonFileSvc
 {
     /**
      * @param array $config
-     * @throws \Exception
+     * @throws Exception
      */
     public function __construct($config)
     {
@@ -36,7 +36,7 @@ class ApplicationSvc extends CommonFileSvc
     /**
      * @param $app_root
      * @return bool
-     * @throws \Exception
+     * @throws Exception
      */
     public function appExists($app_root)
     {
@@ -44,14 +44,14 @@ class ApplicationSvc extends CommonFileSvc
         try {
             return $this->fileRestHandler->folderExists($app_root);
         }
-        catch (\Exception $ex) {
+        catch (Exception $ex) {
             throw $ex;
         }
     }
 
     /**
      * @param $app_root
-     * @throws \Exception
+     * @throws Exception
      */
     public function createApp($app_root)
     {
@@ -61,14 +61,14 @@ class ApplicationSvc extends CommonFileSvc
             // also may include app folder permission properties
             $this->fileRestHandler->createFolder($app_root, true, array(), false);
         }
-        catch (\Exception $ex) {
+        catch (Exception $ex) {
             throw $ex;
         }
     }
 
     /**
      * @param $app_root
-     * @throws \Exception
+     * @throws Exception
      */
     public function deleteApp($app_root)
     {
@@ -78,7 +78,7 @@ class ApplicationSvc extends CommonFileSvc
                 $this->fileRestHandler->deleteFolder($app_root, true);
             }
         }
-        catch (\Exception $ex) {
+        catch (Exception $ex) {
             throw $ex;
         }
     }
@@ -96,12 +96,16 @@ class ApplicationSvc extends CommonFileSvc
         if (empty($app_root)) {
             throw new Exception("Application root name can not be empty.");
         }
+        if (!$this->appExists($app_root)) {
+            throw new Exception("Application '$app_root' does not exist in the system.");
+        }
+
         try {
-            $zip = new \ZipArchive();
+            $zip = new ZipArchive();
             $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-            $zipFileName = $tempDir . $app_root . '.zip';
+            $zipFileName = $tempDir . $app_root . '.dfpkg';
             if (true !== $zip->open($zipFileName, \ZipArchive::CREATE)) {
-                throw new \Exception("Can not create zip file for this application.");
+                throw new Exception("Can not create package file for this application.");
             }
 
             $sys = ServiceHandler::getInstance()->getServiceObject('system');
@@ -109,12 +113,12 @@ class ApplicationSvc extends CommonFileSvc
             $fields .= ',filter_by_device,filter_phone,filter_tablet,filter_desktop,requires_plugin';
             $records = $sys->retrieveRecordsByFilter('app', $fields, "name = '$app_root'", 1);
             if ((0 === count($records)) || !isset($records['record'][0]['fields'])) {
-                throw new \Exception("No database entry exists for this application '$app_root''");
+                throw new Exception("No database entry exists for this application '$app_root''");
             }
             $record = $records['record'][0]['fields'];
             // add database entry file
             if (!$zip->addFromString('description.json', json_encode($record))) {
-                throw new \Exception("Can not include description file in package file.");
+                throw new Exception("Can not include description file in package file.");
             }
             $tables = Utilities::getArrayValue('schemas', $record, '');
             if (!empty($tables) && $include_schema) {
@@ -123,7 +127,7 @@ class ApplicationSvc extends CommonFileSvc
                 $db = ServiceHandler::getInstance()->getServiceObject('db');
                 $schema = $db->describeTables($tables);
                 if (!$zip->addFromString('schema.json', json_encode($schema))) {
-                    throw new \Exception("Can not include database schema files in package file.");
+                    throw new Exception("Can not include database schema files in package file.");
                 }
             }
             $isExternal = Utilities::boolval(Utilities::getArrayValue('is_url_external', $record, false));
@@ -150,22 +154,70 @@ class ApplicationSvc extends CommonFileSvc
             unlink($zipFileName);
             Yii::app()->end();
         }
-        catch (\Exception $ex) {
+        catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    /**
+     * @param string $app_root
+     * @throws Exception
+     * @return void
+     */
+    public function exportAppContentAsZip($app_root)
+    {
+        if (empty($app_root)) {
+            throw new Exception("Application root name can not be empty.");
+        }
+        if (!$this->appExists($app_root)) {
+            throw new Exception("Application '$app_root' does not exist in the system.");
+        }
+
+        try {
+            $zip = new ZipArchive();
+            $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $zipFileName = $tempDir . $app_root . '.zip';
+            if (true !== $zip->open($zipFileName, \ZipArchive::CREATE)) {
+                throw new Exception("Can not create zip file for this application.");
+            }
+
+            $this->fileRestHandler->getFolderAsZip($app_root, $zip, $zipFileName, true);
+            $zip->close();
+
+            $fd = fopen($zipFileName, "r");
+            if ($fd) {
+                $fsize = filesize($zipFileName);
+                $path_parts = pathinfo($zipFileName);
+                header("Content-type: application/zip");
+                header("Content-Disposition: filename=\"".$path_parts["basename"]."\"");
+                header("Content-length: $fsize");
+                header("Cache-control: private"); //use this to open files directly
+                while(!feof($fd)) {
+                    $buffer = fread($fd, 2048);
+                    echo $buffer;
+                }
+            }
+            fclose($fd);
+            unlink($zipFileName);
+            Yii::app()->end();
+        }
+        catch (Exception $ex) {
             throw $ex;
         }
     }
 
     /**
      * @param $pkg_file
-     * @throws \Exception
+     * @return array
+     * @throws Exception
      */
     public function importAppFromPackage($pkg_file)
     {
-        $zip = new \ZipArchive();
+        $zip = new ZipArchive();
         if (true === $zip->open($pkg_file)) {
             $data = $zip->getFromName('description.json');
             if (false === $data) {
-                throw new \Exception('No application description file in this package file.');
+                throw new Exception('No application description file in this package file.');
             }
             $data = Utilities::jsonToArray($data);
             $records = array(array('fields' => $data)); // todo bad assumption of right format
@@ -173,7 +225,7 @@ class ApplicationSvc extends CommonFileSvc
             $result = $sys->createRecords('app', $records, false, 'Id');
             if (isset($result['record'][0]['fault'])) {
                 $msg = $result['record'][0]['fault']['faultString'];
-                throw new \Exception("Could not create the database entry for this application.\n$msg");
+                throw new Exception("Could not create the database entry for this application.\n$msg");
             }
             $id = $result['record'][0]['fields']['id'];
             $zip->deleteName('description.json');
@@ -187,7 +239,7 @@ class ApplicationSvc extends CommonFileSvc
                     $result = $db->createTables($tables);
                     if (isset($result['table'][0]['fault'])) {
                         $msg = $result['table'][0]['fault']['faultString'];
-                        throw new \Exception("Could not create the database tables for this application.\n$msg");
+                        throw new Exception("Could not create the database tables for this application.\n$msg");
                     }
                     $zip->deleteName('schema.json');
                 }
@@ -204,30 +256,106 @@ class ApplicationSvc extends CommonFileSvc
                             $result = $db->createRecords($tableName, $records);
                             if (isset($result['record'][0]['fault'])) {
                                 $msg = $result['record'][0]['fault']['faultString'];
-                                throw new \Exception("Could not insert the database entries for table '$tableName'' for this application.\n$msg");
+                                throw new Exception("Could not insert the database entries for table '$tableName'' for this application.\n$msg");
                             }
                         }
                         $zip->deleteName('data.json');
                     }
                 }
-                catch (\Exception $ex) {
+                catch (Exception $ex) {
                     // delete db record
                     // todo anyone else using schema created?
                     $sys->deleteRecordsByIds('app', $id);
                     throw $ex;
                 }
             }
-            catch (\Exception $ex) {
+            catch (Exception $ex) {
                 // delete db record
                 // todo anyone else using schema created?
                 $sys->deleteRecordsByIds('app', $id);
                 throw $ex;
             }
             // expand the rest of the zip file into storage
-            $this->fileRestHandler->expandZipFile('', $zip);
+            return $this->fileRestHandler->expandZipFile('', $zip);
         }
         else {
-            throw new \Exception('Error opening zip file.');
+            throw new Exception('Error opening zip file.');
+        }
+    }
+
+    /**
+     * @param $name
+     * @param $zip_file
+     * @return array
+     * @throws Exception
+     */
+    public function importAppFromZip($name, $zip_file)
+    {
+        $data = array('name'=>$name, 'label'=>$name, 'is_url_external'=>0, 'url'=>'/index.html');
+        $records = array(array('fields' => $data));
+        $sys = ServiceHandler::getInstance()->getServiceObject('system');
+        $result = $sys->createRecords('app', $records, false, 'Id');
+        if (isset($result['record'][0]['fault'])) {
+            $msg = $result['record'][0]['fault']['faultString'];
+            throw new Exception("Could not create the database entry for this application.\n$msg");
+        }
+        $id = $result['record'][0]['fields']['id'];
+
+        $zip = new ZipArchive();
+        if (true === $zip->open($zip_file)) {
+            // expand the rest of the zip file into storage
+            $dropPath = $zip->getNameIndex(0);
+            $dropPath = substr($dropPath, 0, strpos($dropPath, '/')) . '/';
+            return $this->fileRestHandler->expandZipFile($name . DIRECTORY_SEPARATOR, $zip, false, $dropPath);
+        }
+        else {
+            throw new Exception('Error opening zip file.');
+        }
+    }
+
+    /**
+     * @param string $url
+     * @param string $name name of the temporary file to create
+     * @return string temporary file path
+     * @throws Exception
+     */
+    public function importUrlFileToTemp($url, $name='')
+    {
+        if ($url){
+            $readFrom = fopen($url, 'rb');
+            if ($readFrom) {
+                $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                $validTypes = array('zip','pkg'); // default zip only extensions
+                $ext = end(explode(".", strtolower(basename($url))));
+                if (in_array($ext, $validTypes)) {
+                    if (empty($name))
+                        $name = basename($url, $ext);
+                    $newFile = $directory . $name . '.' . $ext;
+                    $writeTo = fopen($newFile, 'wb'); // creating new file on local server
+                    if ($writeTo) {
+                        while (!feof($readFrom)) {
+                            // Write the url file to the directory.
+                            fwrite($writeTo, fread($readFrom, 1024 * 8), 1024 * 8); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
+                        }
+                        fclose($readFrom);
+                        fclose($writeTo);
+                        error_log('File uploaded successfully! '.$newFile);
+                        return $newFile;
+                    }
+                    else {
+                        throw new Exception( "Could not establish new file ($directory$name) on local server.");
+                    }
+                }
+                else {
+                    throw new Exception('Invalid file type. Currently only URLs to repository zip files are accepted.');
+                }
+            }
+            else {
+                throw new Exception("Could not locate the file: $url");
+            }
+        }
+        else {
+            throw new Exception('Invalid URL entered. Please try again.');
         }
     }
 
@@ -241,25 +369,24 @@ class ApplicationSvc extends CommonFileSvc
         $this->checkPermission('read');
         $path_array = Utilities::getArrayValue('resource', $_GET, '');
         $path_array = (!empty($path_array)) ? explode('/', $path_array) : array();
-        if (empty($path_array) || ((1 === count($path_array)) && empty($path_array[0]))) {
+        $app_root = (isset($path_array[0]) ? $path_array[0] : '');
+        if (empty($app_root)) {
             $resources = array();
             return array('resource' => $resources);
             // currently don't allow 'all' access to root directory for get
-            //throw new \Exception("Application root directory is not available for GET requests.");
+            //throw new Exception("Application root directory is not available for GET requests.");
         }
-        $asPkg = Utilities::boolval(Utilities::getArrayValue('export', $_REQUEST, false));
-        if (((1 === count($path_array)) && !empty($path_array[0])) || (2 === count($path_array))) {
-            if ($asPkg) {
-                $this->exportAppAsPackage($path_array[0]);
-                Yii::app()->end();
-            }
+        $asPkg = Utilities::boolval(Utilities::getArrayValue('pkg', $_REQUEST, false));
+        if ($asPkg) {
+            $this->exportAppAsPackage($app_root);
+            Yii::app()->end();
         }
         return parent::actionGet();
     }
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionPost()
     {
@@ -268,52 +395,94 @@ class ApplicationSvc extends CommonFileSvc
         $path_array = (!empty($path_array)) ? explode('/', $path_array) : array();
         if (empty($path_array) || ((1 === count($path_array)) && empty($path_array[0]))) {
             // for application management at root directory,
-            // you can import application package files, but not post other files
-            $asPkg = Utilities::boolval(Utilities::getArrayValue('import', $_REQUEST, false));
+            // you can import an application package file, or from git repo, but not post other files
+            $asPkg = Utilities::boolval(Utilities::getArrayValue('pkg', $_REQUEST, false));
             if ($asPkg) {
                 if (isset($_FILES['files']) && !empty($_FILES['files'])) {
                     // older html multi-part/form-data post, single or multiple files
                     $files = $_FILES['files'];
-                    if (!is_array($files['error'])) {
-                        // single file
-                        $name = $files['name'];
-                        $error = $files['error'];
-                        if ($error == UPLOAD_ERR_OK) {
-                            $tmpName = $files['tmp_name'];
-                            $contentType = $files['type'];
-                            if (Utilities::isZipContent($contentType)) {
-                                try {
-                                    // need to expand zip file and move contents to storage
-                                    $this->importAppFromPackage($tmpName);
-                                    return array('file' => array(array('name' => $name, 'path' => $name)));
-                                }
-                                catch (\Exception $ex) {
-                                    throw new \Exception("Failed to import application package $name.\n{$ex->getMessage()}");
-                                }
-                            }
-                            else {
-                                throw new \Exception("Only application package files are allowed for import.");
-                            }
-                        }
-                        else {
-                            throw new \Exception("Failed to import application package $name.\n$error");
-                        }
+                    if (is_array($files['error'])) {
+                        throw new Exception("Only a single application package file is allowed for import.");
                     }
-                    else {
-                        throw new \Exception("Only a single application package file is allowed for import.");
+                    $filename = $files['name'];
+                    $error = $files['error'];
+                    if ($error !== UPLOAD_ERR_OK) {
+                        throw new Exception("Failed to import application package $filename.\n$error");
+                    }
+                    $tmpName = $files['tmp_name'];
+                    $contentType = $files['type'];
+                    if (!Utilities::isZipContent($contentType)) {
+                        throw new Exception("Only application package files are allowed for import.");
+                    }
+                    try {
+                        // need to expand zip file and move contents to storage
+                        return $this->importAppFromPackage($tmpName);
+                    }
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to import application package $filename.\n{$ex->getMessage()}");
                     }
                 }
             }
-            else {
-                throw new \Exception("Application root directory is not available for file creation.");
+            $pkgUrl = Utilities::getArrayValue('pkg_url', $_REQUEST, '');
+            if (!empty($pkgUrl)) {
+                try {
+                    // need to download and expand zip file and move contents to storage
+                    $filename = $this->importUrlFileToTemp($pkgUrl);
+                    return $this->importAppFromPackage($filename);
+                }
+                catch (Exception $ex) {
+                    throw new Exception("Failed to import application package $pkgUrl.\n{$ex->getMessage()}");
+                }
             }
+            $name = Utilities::getArrayValue('name', $_REQUEST, '');
+            $fromZip = Utilities::boolval(Utilities::getArrayValue('zip', $_REQUEST, false));
+            if ($fromZip) {
+                if (isset($_FILES['files']) && !empty($_FILES['files'])) {
+                    // older html multi-part/form-data post, single or multiple files
+                    $files = $_FILES['files'];
+                    if (is_array($files['error'])) {
+                        throw new Exception("Only a single application zip file is allowed for import.");
+                    }
+                    $filename = $files['name'];
+                    $error = $files['error'];
+                    if ($error !== UPLOAD_ERR_OK) {
+                        throw new Exception("Failed to import application zip $filename.\n$error");
+                    }
+                    $tmpName = $files['tmp_name'];
+                    $contentType = $files['type'];
+                    if (!Utilities::isZipContent($contentType)) {
+                        throw new Exception("Only application package files are allowed for import.");
+                    }
+                    try {
+                        // need to expand zip file and move contents to storage
+                        return $this->importAppFromZip($name, $tmpName);
+                    }
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to import application package $filename.\n{$ex->getMessage()}");
+                    }
+                }
+            }
+            // from repo or remote zip file
+            $zipUrl = Utilities::getArrayValue('zip_url', $_REQUEST, '');
+            if (!empty($name) && !empty($zipUrl)) {
+                try {
+                    // need to download and expand zip file and move contents to storage
+                    $filename = $this->importUrlFileToTemp($zipUrl);
+                    return $this->importAppFromZip($name, $filename);
+                }
+                catch (Exception $ex) {
+                    throw new Exception("Failed to import application package $pkgUrl.\n{$ex->getMessage()}");
+                }
+            }
+
+            throw new Exception("Application root directory is not available for file creation.");
         }
         return parent::actionPost();
     }
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionPut()
     {
@@ -323,14 +492,14 @@ class ApplicationSvc extends CommonFileSvc
         if (empty($path_array) || ((1 === count($path_array)) && empty($path_array[0]))) {
             // for application management at root directory,
             // you can import application package files, but not post other files
-            throw new \Exception("Application root directory is not available for file updates.");
+            throw new Exception("Application root directory is not available for file updates.");
         }
         return parent::actionPut();
     }
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionMerge()
     {
@@ -340,14 +509,14 @@ class ApplicationSvc extends CommonFileSvc
         if (empty($path_array) || ((1 === count($path_array)) && empty($path_array[0]))) {
             // for application management at root directory,
             // you can import application package files, but not post other files
-            throw new \Exception("Application root directory is not available for file updates.");
+            throw new Exception("Application root directory is not available for file updates.");
         }
         return parent::actionMerge();
     }
 
     /**
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionDelete()
     {
@@ -356,8 +525,8 @@ class ApplicationSvc extends CommonFileSvc
         $path_array = (!empty($path_array)) ? explode('/', $path_array) : array();
         if (empty($path_array) || ((1 === count($path_array)) && empty($path_array[0]))) {
             // for application management at root directory,
-            // you can delete everything
-            throw new \Exception("Application root directory is not available for file deletes.");
+            // you can not delete everything
+            throw new Exception("Application root directory is not available for file deletes.");
         }
         return parent::actionDelete();
     }

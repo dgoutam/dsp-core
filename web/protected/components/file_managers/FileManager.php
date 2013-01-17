@@ -651,9 +651,11 @@ class FileManager extends CommonFileManager
      * @param string $path
      * @param ZipArchive $zip
      * @param bool $clean
+     * @param string $drop_path
      * @throws Exception
+     * @return array
      */
-    public function expandZipFile($path, $zip, $clean = false)
+    public function expandZipFile($path, $zip, $clean = false, $drop_path='')
     {
         if (($clean)) {
             try {
@@ -670,6 +672,9 @@ class FileManager extends CommonFileManager
                 $name = $zip->getNameIndex($i);
                 if (empty($name))
                     continue;
+                if (!empty($drop_path)) {
+                    $name = str_ireplace($drop_path, '', $name);
+                }
                 $fullPathName = $path . $name;
                 $parent = FileUtilities::getParentFolder($fullPathName);
                 if (!empty($parent)) {
@@ -687,6 +692,7 @@ class FileManager extends CommonFileManager
                 throw $ex;
             }
         }
+        return array('folder'=>array('name'=>rtrim($path, DIRECTORY_SEPARATOR), 'path'=>$path));
     }
 
     /**

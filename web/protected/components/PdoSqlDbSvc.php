@@ -735,8 +735,8 @@ class PdoSqlDbSvc
         if (empty($fields)) {
             $fields = $this->listAllFieldsFromDescribe($avail_fields);
         }
-        $field_arr = array_map('trim', explode(",", $fields));
-        $as_arr = array_map('trim', explode(",", $fields_as));
+        $field_arr = array_map('trim', explode(',', $fields));
+        $as_arr = array_map('trim', explode(',', $fields_as));
         if (!$as_quoted_string) {
             // yii will not quote anything if any of the fields are expressions
         }
@@ -811,7 +811,7 @@ class PdoSqlDbSvc
         }
 
         $out_str = '';
-        $field_arr = array_map('trim', explode(",", $fields));
+        $field_arr = array_map('trim', explode(',', $fields));
         foreach ($field_arr as $field) {
             // find the type
             if (false === $this->findFieldFromDescribe($field, $avail_fields)) {
@@ -1069,7 +1069,7 @@ class PdoSqlDbSvc
             if (empty($record)) {
                 throw new Exception("No valid field values were passed in the request.");
             }
-            $ids = array_map('trim', explode(',', $id_list));
+            $ids = array_map('trim', explode(',', trim($id_list, ',')));
             $outIds = array();
             $errors = array();
             $count = count($ids);
@@ -1237,7 +1237,7 @@ class PdoSqlDbSvc
                 throw new Exception("Identifying values for '$id_field' can not be empty for update request.");
             }
 
-            $ids = array_map('trim', explode(",", $id_list));
+            $ids = array_map('trim', explode(',', $id_list));
             $errors = array();
             $count = count($ids);
             $command = $this->_sqlConn->createCommand();
@@ -2064,7 +2064,7 @@ class PdoSqlDbSvc
                 }
 
                 // labels
-                $label = (isset($field['label'])) ? $field['label'] : '';
+                $label = Utilities::getArrayValue('label', $field, '');
                 if (!empty($label) || !empty($picklist)) {
                     $labels[] = array('table' => $tableName,
                                       'field' => $name,
@@ -2098,7 +2098,7 @@ class PdoSqlDbSvc
             throw new Exception("A table with name '$tableName' already exist in the database.");
         }
         // add the table to the default schema
-        $fields = (isset($data['field'])) ? $data['field'] : array();
+        $fields = Utilities::getArrayValue('field', $data, array());
         if (empty($fields)) {
             $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : array();
         }
@@ -2192,7 +2192,7 @@ class PdoSqlDbSvc
         }
 
         // update column types
-        $fields = (isset($data['field'])) ? $data['field'] : array();
+        $fields = Utilities::getArrayValue('field', $data, array());
         if (empty($fields)) {
             $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : array();
         }
@@ -2263,11 +2263,11 @@ class PdoSqlDbSvc
                             break;
                         case "reference":
                             // special case for references because the table referenced may not be created yet
-                            $refTable = (isset($field['table'])) ? $field['table'] : '';
+                            $refTable = Utilities::getArrayValue('table', $field, '');
                             if (empty($refTable)) {
                                 throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no table element for reference type.");
                             }
-                            $refColumns = (isset($field['column'])) ? $field['column'] : 'id';
+                            $refColumns = Utilities::getArrayValue('column', $field, 'id');
 
                             // will get to it later, $refTable may not be there
                             $keyName = 'fk_' . $tableName . '_' . $name;
@@ -2282,7 +2282,7 @@ class PdoSqlDbSvc
                         default:
                         }
                         // need to add labels
-                        $label = (isset($field['label'])) ? $field['label'] : '';
+                        $label = Utilities::getArrayValue('label', $field, '');
                         if (!empty($label) || !empty($picklist)) {
                             $labels[] = array('table' => $tableName,
                                               'field' => $name,
