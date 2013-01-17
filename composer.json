@@ -13,6 +13,7 @@
         "microsoft/windowsazure":"*",
         "amazonwebservices/aws-sdk-for-php":"1.5.*",
         "dreamfactory/app-launchpad":"dev-master",
+        "dreamfactory/app-admin":"dev-master",
         "dreamfactory/web-core":"dev-master"
     },
     "repositories":[
@@ -33,6 +34,10 @@
         {
             "type":"vcs",
             "url":"http://bitbucket.org/dreamfactory/app-launchpad.git"
+        },
+        {
+            "type":"vcs",
+            "url":"http://bitbucket.org/dreamfactory/app-admin.git"
         },
         {
             "type":"vcs",

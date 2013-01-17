@@ -16,6 +16,7 @@ INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
 VERBOSE=1
+# change www-data to _www on Mac, see 'cat /etc/apache2/httpd.conf'
 WEB_USER="www-data"
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
 
@@ -108,11 +109,15 @@ if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
     ln -s "${VENDOR_DIR}/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
 fi
 
+if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
+    ln -s "${VENDOR_DIR}/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
+fi
+
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
     ln -s "${VENDOR_DIR}/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
 fi
 
-# make writable by web-server, change www-data to _www on Mac, see 'cat /etc/apache2/httpd.conf'
+# make writable by web-server
 chgrp -R ${WEB_USER} "${LOG_DIR}" "${STORAGE_DIR}" "${PUBLIC_DIR}"
 chmod -R 2755 "${PUBLIC_DIR}"
 chmod -R 2775 "${ASSETS_DIR}"
