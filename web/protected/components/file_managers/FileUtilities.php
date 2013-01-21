@@ -98,9 +98,14 @@ class FileUtilities
             (0 === strcasecmp('text/x-c++', $mime)) || (0 === strcasecmp('text/x-java', $mime))) {
             // need further guidance on these, as they are sometimes incorrect
             $ext = static::getFileExtension($path);
-            $extArray = static::getMimeTypeExtensionArray();
-            if (isset($extArray[$ext])) {
-                $mime = $extArray[$ext];
+            if (0 === strcasecmp('dfpkg', $ext)) {
+                $mime = 'application/zip';
+            }
+            else {
+                $extArray = static::getMimeTypeExtensionArray();
+                if (isset($extArray[$ext])) {
+                    $mime = $extArray[$ext];
+                }
             }
         }
         if (empty($mime)) {
@@ -108,6 +113,16 @@ class FileUtilities
         }
 
         return $mime;
+    }
+
+    /**
+     * @param $content_type
+     * @return bool
+     */
+    public static function isZipContent($content_type)
+    {
+        return ((0 == strcasecmp($content_type, 'application/zip')) ||
+                (0 == strcasecmp($content_type, 'application/x-zip-compressed')));
     }
 
     /**

@@ -325,7 +325,7 @@ class ApplicationSvc extends CommonFileSvc
             $readFrom = fopen($url, 'rb');
             if ($readFrom) {
                 $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-                $validTypes = array('zip','pkg'); // default zip only extensions
+                $validTypes = array('zip','dfpkg'); // default zip and package extensions
                 $ext = end(explode(".", strtolower(basename($url))));
                 if (in_array($ext, $validTypes)) {
                     if (empty($name))
@@ -411,7 +411,7 @@ class ApplicationSvc extends CommonFileSvc
                     }
                     $tmpName = $files['tmp_name'];
                     $contentType = $files['type'];
-                    if (!Utilities::isZipContent($contentType)) {
+                    if (!FileUtilities::isZipContent($contentType)) {
                         throw new Exception("Only application package files are allowed for import.");
                     }
                     try {
@@ -450,7 +450,7 @@ class ApplicationSvc extends CommonFileSvc
                     }
                     $tmpName = $files['tmp_name'];
                     $contentType = $files['type'];
-                    if (!Utilities::isZipContent($contentType)) {
+                    if (!FileUtilities::isZipContent($contentType)) {
                         throw new Exception("Only application package files are allowed for import.");
                     }
                     try {
@@ -471,7 +471,7 @@ class ApplicationSvc extends CommonFileSvc
                     return $this->importAppFromZip($name, $filename);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to import application package $pkgUrl.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to import application package $zipUrl.\n{$ex->getMessage()}");
                 }
             }
 
