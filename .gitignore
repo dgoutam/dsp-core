@@ -1,5 +1,4 @@
-.idea/workspace.xml
-.idea/tasks.xml
+.idea
 vendor
 log
 storage
@@ -7,3 +6,7 @@ composer.lock
 web/protected/runtime
 web/protected/tests
 web/protected/yiic*
+web/public/launchpad
+web/public/admin
+web/public/web-core
+web/public/assets
