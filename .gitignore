@@ -7,3 +7,4 @@ composer.lock
 web/protected/runtime
 web/protected/tests
 web/protected/yiic*
+web/public/assets
