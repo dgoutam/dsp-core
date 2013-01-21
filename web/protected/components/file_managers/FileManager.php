@@ -281,7 +281,7 @@ class FileManager extends CommonFileManager
                     $this->deleteFolder($path, $force);
                 }
                 catch (Exception $ex) {
-                    $folders[$key]['fault'] = array('faultString' => $ex->getMessage(), 'faultCode' => '');
+                    $folders[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
                 }
             }
             else {
@@ -597,7 +597,7 @@ class FileManager extends CommonFileManager
                     }
                 }
                 catch (Exception $ex) {
-                    $files[$key]['fault'] = array('faultString' => $ex->getMessage(), 'faultCode' => '');
+                    $files[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
                 }
             }
             else {

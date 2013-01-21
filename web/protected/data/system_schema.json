@@ -1,5 +1,22 @@
 {
+    "version": "0.1.0",
 	"table": [
+        {
+            "name": "config",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "db_version",
+                    "type": "varchar",
+                    "size": 8,
+                    "default": "0.1.0",
+                    "allow_null": false
+                }
+            ]
+        },
         {
             "name": "label",
             "field": [
@@ -75,7 +92,31 @@
                     "type": "pk"
                 },
                 {
-                    "name": "full_name",
+                    "name": "username",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "password",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": true
+                },
+                {
+                    "name": "first_name",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "last_name",
+                    "type": "nvarchar",
+                    "size": 40,
+                    "allow_null": false
+                },
+                {
+                    "name": "display_name",
                     "type": "nvarchar",
                     "size": 80,
                     "allow_null": false
@@ -90,18 +131,6 @@
                     "name": "phone",
                     "type": "nvarchar",
                     "size": 16,
-                    "allow_null": true
-                },
-                {
-                    "name": "username",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
-                },
-                {
-                    "name": "password",
-                    "type": "nvarchar",
-                    "size": 40,
                     "allow_null": true
                 },
                 {
@@ -123,23 +152,18 @@
                     "allow_null": true
                 },
                 {
+                    "name": "default_app_id",
+                    "type": "reference",
+                    "ref_table": "app",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
                     "name": "role_id",
                     "type": "reference",
                     "ref_table": "role",
                     "ref_fields": "id",
                     "allow_null": true
-                },
-                {
-                    "name": "first_name",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
-                },
-                {
-                    "name": "last_name",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
                 },
                 {
                     "name": "security_question",
@@ -200,6 +224,13 @@
                 {
                     "name": "app_ids",
                     "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "default_app_id",
+                    "type": "reference",
+                    "ref_table": "app",
+                    "ref_fields": "id",
                     "allow_null": true
                 },
                 {
@@ -304,6 +335,11 @@
                     "name": "label",
                     "type": "nvarchar",
                     "size": 80,
+                    "allow_null": true
+                },
+                {
+                    "name": "description",
+                    "type": "text",
                     "allow_null": true
                 },
                 {
@@ -463,6 +499,11 @@
                     "type": "boolean",
                     "default": 0,
                     "allow_null": false
+                },
+                {
+                    "name": "import_url",
+                    "type": "text",
+                    "allow_null": true
                 },
                 {
                     "name": "created_date",

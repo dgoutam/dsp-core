@@ -1,35 +1,24 @@
 {
     "service": [
         {
-            "name":"system","label":"System","is_active":1,"type":"Native"
+            "name":"db","label":"Database","is_active":1,"type":"Local SQL DB",
+            "description":"Local database access"
         },
         {
-            "name":"user","label":"User Login","is_active":1,"type":"Native"
+            "name":"email","label":"Email Service","is_active":1,"type":"Local Email Service",
+            "description":"Default system email utility access"
         },
         {
-            "name":"db","label":"Database","is_active":1,"type":"Local SQL DB"
+            "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage","storage_name":"applications",
+            "description":"Storage for application files"
         },
         {
-            "name":"email","label":"Email Service","is_active":1,"type":"Local Email Service"
+            "name":"lib","label":"Library Storage","is_active":1,"type":"Local File Storage","storage_name":"libraries",
+            "description":"Storage for library files shared by applications"
         },
         {
-            "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage",
-            "storage_name":"applications"
-        },
-        {
-            "name":"lib","label":"Library Storage","is_active":1,"type":"Local File Storage",
-            "storage_name":"libraries"
-        },
-        {
-            "name":"doc","label":"Document Storage","is_active":1,"type":"Local File Storage",
-            "storage_name":"documents"
-        }
-    ],
-    "app": [
-        {
-            "name":"admin","label":"System Admin","is_active":1,
-            "description":"DreamFactory Document Services Platform System Administration Application",
-            "url":"app/admin/index.html","is_url_external":1
+            "name":"doc","label":"Document Storage","is_active":1,"type":"Local File Storage","storage_name":"documents",
+            "description":"Default storage for documents"
         }
     ]
 }

@@ -1,5 +1,8 @@
 <?php
 
+/**
+ *
+ */
 class LibController extends Controller
 {
 
@@ -12,6 +15,9 @@ class LibController extends Controller
     }
 
     // Actions
+    /**
+     *
+     */
     public function actionStream()
     {
         $path = (isset($_GET['path']) ? $_GET['path'] : '');
@@ -35,7 +41,7 @@ class LibController extends Controller
                 }
             }
             else {
-                $app = ServiceHandler::getInstance()->getServiceObject('Lib');
+                $app = ServiceHandler::getInstance()->getServiceObject('lib');
                 $app->streamFile($path);
             }
             Yii::app()->end();
@@ -45,6 +51,9 @@ class LibController extends Controller
         }
     }
 
+    /**
+     *
+     */
     public function actionIndex()
     {
         Yii::app()->end();

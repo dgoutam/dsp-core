@@ -3,13 +3,13 @@
 /* @var $model InitSchemaForm */
 /* @var $form CActiveForm */
 
-$this->pageTitle=Yii::app()->name . ' - Schema Initialization';
+$this->pageTitle=Yii::app()->name . ' - Upgrade Schema';
 $this->breadcrumbs=array(
-	'Schema Initialization',
+	'Upgrade Schema',
 );
 ?>
 
-<h1>Schema Initialization</h1>
+<h1>Upgrade Schema</h1>
 
 <?php if(Yii::app()->user->hasFlash('init-schema')): ?>
 
@@ -20,8 +20,8 @@ $this->breadcrumbs=array(
 <?php else: ?>
 
 <p>
-Your Document Services Platform needs initializing.
-When you are ready, click the 'Initialize' button below.
+Your Document Services Platform database needs some schema that is missing to continue.
+When you are ready, click the 'Upgrade Schema' button below.
 </p>
 
 <div class="form">
@@ -41,7 +41,7 @@ When you are ready, click the 'Initialize' button below.
    	</div>
 
 	<div class="row buttons">
-		<?php echo CHtml::submitButton('Initialize'); ?>
+		<?php echo CHtml::submitButton('Upgrade Schema'); ?>
 	</div>
 
 <?php $this->endWidget(); ?>

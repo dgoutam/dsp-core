@@ -436,8 +436,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return array('fields' => $result);
         }
         else { // error
-            return array('fault' => array('faultString' => $result,
-                                          'faultCode' => 'RequestFailed'));
+            return array('error' => array('message' => $result, 'code' => 500));
         }
     }
 
@@ -772,7 +771,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function describeDatabase()
     {
         // check for system tables and deny
-        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
         try {
             return $this->sqlDb->describeDatabase('', $sysTables);
         }
@@ -789,7 +788,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function describeTable($table)
     {
         // check for system tables and deny
-        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
         if (Utilities::isInList($sysTables, $table, ',')) {
             throw new Exception("System table '$table' not available through this interface.");
         }
@@ -804,7 +803,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function describeTables($table_list)
     {
         // check for system tables and deny
-        $sysTables = SystemSvc::SYSTEM_TABLES . ',' . SystemSvc::INTERNAL_TABLES;
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
         $tables = array_map('trim', explode(',', trim($table_list, ',')));
         foreach ($tables as $table) {
             if (Utilities::isInList($sysTables, $table, ',')) {

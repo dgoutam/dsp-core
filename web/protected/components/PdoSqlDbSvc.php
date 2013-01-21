@@ -1717,6 +1717,7 @@ class PdoSqlDbSvc
                 $length = Utilities::getArrayValue('size', $field, null);
             }
             $default = Utilities::getArrayValue('default', $field, null);
+            $quoteDefault = false;
             $isPrimaryKey = Utilities::getArrayValue('is_primary_key', $field, false);
 
             /* abstract types handled by yii directly for each driver type
@@ -1845,9 +1846,11 @@ class PdoSqlDbSvc
             // string types
             case 'text':
                 $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text'; // microsoft recommended
+                $quoteDefault = true;
                 break;
             case 'ntext':
                 $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'nvarchar(max)' : 'text'; // microsoft recommended
+                $quoteDefault = true;
                 break;
             case 'varbinary':
             case 'varchar':
@@ -1862,6 +1865,7 @@ class PdoSqlDbSvc
                     }
                     $definition .= "($length)";
                 }
+                $quoteDefault = true;
                 break;
             case 'char':
                 $definition = 'char';
@@ -1875,6 +1879,7 @@ class PdoSqlDbSvc
                     }
                     $definition .= "($length)";
                 }
+                $quoteDefault = true;
                 break;
             case 'nvarchar':
                 $definition = 'nvarchar';
@@ -1888,6 +1893,7 @@ class PdoSqlDbSvc
                     }
                     $definition .= "($length)";
                 }
+                $quoteDefault = true;
                 break;
             case 'nchar':
                 $definition = 'nchar';
@@ -1901,6 +1907,7 @@ class PdoSqlDbSvc
                     }
                     $definition .= "($length)";
                 }
+                $quoteDefault = true;
                 break;
             // dreamfactory specific
             case 'id':
@@ -1914,6 +1921,7 @@ class PdoSqlDbSvc
                 break;
             case "textarea":
                 $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text';
+                $quoteDefault = true;
                 break;
             case 'picklist':
                 // use enum for mysql?
@@ -1925,6 +1933,7 @@ class PdoSqlDbSvc
                     }
                     $definition .= "($length)";
                 }
+                $quoteDefault = true;
                 break;
             case 'multipicklist':
                 // use set for mysql?
@@ -1936,15 +1945,19 @@ class PdoSqlDbSvc
                     }
                     $definition .= "($length)";
                 }
+                $quoteDefault = true;
                 break;
             case 'phone':
                 $definition = 'varchar(20)';
+                $quoteDefault = true;
                 break;
             case 'email':
                 $definition = 'varchar(320)';
+                $quoteDefault = true;
                 break;
             case 'url':
                 $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text';
+                $quoteDefault = true;
                 break;
             case "reference":
                 $definition = 'int';
@@ -1957,7 +1970,8 @@ class PdoSqlDbSvc
                 $definition .= ' NOT NULL';
             }
             if (isset($default)) {
-                if ('' === $default) $default = "''";
+                if ($quoteDefault)
+                    $default = "'" . $default . "'";
                 $definition .= ' DEFAULT ' . $default;
             }
             elseif ($isPrimaryKey) {
@@ -2360,7 +2374,7 @@ class PdoSqlDbSvc
                 try {
                     $name = Utilities::getArrayValue('name', $table, '');
                     if (empty($name)) {
-                        throw new Exception("Table schema received does not have a valid name.");
+                        throw new Exception("Table schema received does not have a valid name.", 400);
                     }
                     // does it already exist
                     if ($this->doesTableExist($name)) {
@@ -2368,7 +2382,7 @@ class PdoSqlDbSvc
                             $results = $this->updateTable($table, true);
                         }
                         else {
-                            throw new Exception("A table with name '$name' already exist in the database.");
+                            throw new Exception("A table with name '$name' already exist in the database.", 400);
                         }
                     }
                     else {
@@ -2386,8 +2400,8 @@ class PdoSqlDbSvc
                         // delete any created tables
                         throw $ex;
                     }
-                    $out[$count] = array('fault' => array('faultString' => $ex->getMessage(),
-                                                          'faultCode' => 'RequestFailed'));
+                    $out[$count] = array('error' => array('message' => $ex->getMessage(),
+                                                          'code' => $ex->getCode()));
                 }
                 $count++;
             }
@@ -2396,7 +2410,7 @@ class PdoSqlDbSvc
             try {
                 $name = Utilities::getArrayValue('name', $tables, '');
                 if (empty($name)) {
-                    throw new Exception("Table schema received does not have a valid name.");
+                    throw new Exception("Table schema received does not have a valid name.", 400);
                 }
                 // does it already exist
                 if ($this->doesTableExist($name)) {
@@ -2404,7 +2418,7 @@ class PdoSqlDbSvc
                         $results = $this->updateTable($tables, false);
                     }
                     else {
-                        throw new Exception("A table with name '$name' already exist in the database.");
+                        throw new Exception("A table with name '$name' already exist in the database.", 400);
                     }
                 }
                 else {
@@ -2419,8 +2433,8 @@ class PdoSqlDbSvc
                 if ($rollback) {
                     throw $ex;
                 }
-                $out[$count] = array('fault' => array('faultString' => $ex->getMessage(),
-                                                      'faultCode' => 'RequestFailed'));
+                $out[$count] = array('error' => array('message' => $ex->getMessage(),
+                                                      'code' => $ex->getCode()));
             }
         }
 

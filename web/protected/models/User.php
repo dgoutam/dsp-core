@@ -5,7 +5,7 @@
  *
  * The followings are the available columns in table 'user':
  * @property integer $id
- * @property string $full_name
+ * @property string display_name
  * @property string $first_name
  * @property string $last_name
  * @property string $email
@@ -55,9 +55,9 @@ class User extends CActiveRecord
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
 		return array(
-			array('full_name, email, username, first_name, last_name', 'required'),
+			array('display_name, email, username, first_name, last_name', 'required'),
 			array('role_id, created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
-			array('full_name, email, security_answer', 'length', 'max'=>80),
+			array('display_name, email, security_answer', 'length', 'max'=>80),
 			array('phone', 'length', 'max'=>16),
 			array('username, password', 'length', 'max'=>32),
 			array('confirm_code, first_name, last_name', 'length', 'max'=>40),
@@ -65,7 +65,7 @@ class User extends CActiveRecord
 			array('is_active, is_sys_admin, created_date, last_modified_date', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, full_name, email, phone, username, password, is_active, is_sys_admin, confirm_code, role_id, first_name, last_name, security_question, security_answer, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, display_name, email, phone, username, password, is_active, is_sys_admin, confirm_code, role_id, first_name, last_name, security_question, security_answer, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -89,7 +89,7 @@ class User extends CActiveRecord
 	{
 		return array(
 			'id' => 'Id',
-			'full_name' => 'Full Name',
+			'display_name' => 'Display Name',
 			'email' => 'Email',
 			'phone' => 'Phone',
 			'username' => 'Username',
@@ -121,7 +121,7 @@ class User extends CActiveRecord
 		$criteria=new CDbCriteria;
 
 		$criteria->compare('id',$this->id);
-		$criteria->compare('full_name',$this->full_name,true);
+		$criteria->compare('display_name',$this->display_name,true);
 		$criteria->compare('email',$this->email,true);
 		$criteria->compare('phone',$this->phone,true);
 		$criteria->compare('username',$this->username,true);

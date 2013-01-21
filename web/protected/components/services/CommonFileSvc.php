@@ -189,7 +189,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                         }
                         else {
-                            throw new \Exception('Error opening temporary zip file.');
+                            throw new Exception('Error opening temporary zip file.');
                         }
                     }
                     else {
@@ -237,7 +237,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                                 }
                                 else {
-                                    throw new \Exception('Error opening temporary zip file.');
+                                    throw new Exception('Error opening temporary zip file.');
                                 }
                             }
                             else {
@@ -245,13 +245,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             }
                         }
                         catch (Exception $ex) {
-                            $out[0]['fault'] = array('faultCode' => 'blah',
-                                                     'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                            $out[0]['error'] = array('code' => $ex->getCode(),
+                                                     'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                         }
                     }
                     else {
-                        $out[0]['fault'] = array('faultCode' => 'blah',
-                                                 'faultString' => "Failed to create application file $fullPathName.\n$error");
+                        $out[0]['error'] = array('code' => 500,
+                                                 'message' => "Failed to create application file $fullPathName.\n$error");
                     }
                 }
                 else {
@@ -273,7 +273,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                                     }
                                     else {
-                                        throw new \Exception('Error opening temporary zip file.');
+                                        throw new Exception('Error opening temporary zip file.');
                                     }
                                 }
                                 else {
@@ -281,13 +281,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 }
                             }
                             catch (Exception $ex) {
-                                $out[$key]['fault'] = array('faultCode' => 'blah',
-                                                            'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                                $out[$key]['error'] = array('code' => $ex->getCode(),
+                                                            'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                             }
                         }
                         else {
-                            $out[$key]['fault'] = array('faultCode' => 'blah',
-                                                        'faultString' => "Failed to create application file $fullPathName.\n$error");
+                            $out[$key]['error'] = array('code' => 500,
+                                                        'message' => "Failed to create application file $fullPathName.\n$error");
                         }
                     }
                 }
@@ -331,7 +331,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         }
                                     }
                                     catch (Exception $ex) {
-                                        $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                                 else {
@@ -346,7 +346,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
                                     catch (Exception $ex) {
-                                        $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                             }
@@ -378,7 +378,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         }
                                     }
                                     catch (Exception $ex) {
-                                        $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                                 elseif (isset($file['content'])) {
@@ -393,7 +393,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->writeFile($fullPathName, $content);
                                     }
                                     catch (Exception $ex) {
-                                        $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                             }
@@ -434,7 +434,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
                         }
                         else {
-                            throw new \Exception('Error opening temporary zip file.');
+                            throw new Exception('Error opening temporary zip file.');
                         }
                     }
                     else {
@@ -484,7 +484,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                             }
                             else {
-                                throw new \Exception('Error opening temporary zip file.');
+                                throw new Exception('Error opening temporary zip file.');
                             }
                         }
                         else {
@@ -552,7 +552,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                         }
                         else {
-                            throw new \Exception('Error opening temporary zip file.');
+                            throw new Exception('Error opening temporary zip file.');
                         }
                     }
                     else {
@@ -594,13 +594,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->moveFile($fullPathName, $tmp_name, false);
                         }
                         catch (Exception $ex) {
-                            $out[$key]['fault'] = array('faultCode' => 'blah',
-                                                        'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                            $out[$key]['error'] = array('code' => $ex->getCode(),
+                                                        'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                         }
                     }
                     else {
-                        $out[$key]['fault'] = array('faultCode' => 'blah',
-                                                    'faultString' => "Failed to create application file $fullPathName.\n$error");
+                        $out[$key]['error'] = array('code' => 500,
+                                                    'message' => "Failed to create application file $fullPathName.\n$error");
                     }
                 }
                 $result = array('file' => $out);
@@ -640,7 +640,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         }
                                     }
                                     catch (Exception $ex) {
-                                        $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                                 elseif (isset($folder['content'])) {
@@ -656,7 +656,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
                                     catch (Exception $ex) {
-                                        $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                             }
@@ -685,7 +685,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         }
                                     }
                                     catch (Exception $ex) {
-                                        $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                                 elseif (isset($file['content'])) {
@@ -701,7 +701,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->writeFile($fullPathName, $content);
                                     }
                                     catch (Exception $ex) {
-                                        $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                             }
@@ -742,7 +742,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
                         }
                         else {
-                            throw new \Exception('Error opening temporary zip file.');
+                            throw new Exception('Error opening temporary zip file.');
                         }
                     }
                     else {
@@ -792,7 +792,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                             }
                             else {
-                                throw new \Exception('Error opening temporary zip file.');
+                                throw new Exception('Error opening temporary zip file.');
                             }
                         }
                         else {
@@ -860,7 +860,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                         }
                         else {
-                            throw new \Exception('Error opening temporary zip file.');
+                            throw new Exception('Error opening temporary zip file.');
                         }
                     }
                     else {
@@ -902,13 +902,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->moveFile($fullPathName, $tmp_name, false);
                         }
                         catch (Exception $ex) {
-                            $out[$key]['fault'] = array('faultCode' => 'blah',
-                                                        'faultString' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                            $out[$key]['error'] = array('code' => $ex->getCode(),
+                                                        'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
                         }
                     }
                     else {
-                        $out[$key]['fault'] = array('faultCode' => 'blah',
-                                                    'faultString' => "Failed to create application file $fullPathName.\n$error");
+                        $out[$key]['error'] = array('code' => 500,
+                                                    'message' => "Failed to create application file $fullPathName.\n$error");
                     }
                 }
                 $result = array('file' => $out);
@@ -948,7 +948,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         }
                                     }
                                     catch (Exception $ex) {
-                                        $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                                 elseif (isset($folder['content'])) {
@@ -964,7 +964,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->createFolder($fullPathName, true, $content);
                                     }
                                     catch (Exception $ex) {
-                                        $out['folder'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                             }
@@ -993,7 +993,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         }
                                     }
                                     catch (Exception $ex) {
-                                        $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                                 elseif (isset($file['content'])) {
@@ -1009,7 +1009,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                         $this->fileRestHandler->writeFile($fullPathName, $content);
                                     }
                                     catch (Exception $ex) {
-                                        $out['file'][$key]['fault'] = array('faultString' => $ex->getMessage());
+                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
                                     }
                                 }
                             }
@@ -1050,7 +1050,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
                         }
                         else {
-                            throw new \Exception('Error opening temporary zip file.');
+                            throw new Exception('Error opening temporary zip file.');
                         }
                     }
                     else {
@@ -1100,7 +1100,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                 $this->fileRestHandler->expandZipFile($path, $zip, $clean);
                             }
                             else {
-                                throw new \Exception('Error opening temporary zip file.');
+                                throw new Exception('Error opening temporary zip file.');
                             }
                         }
                         else {

@@ -3,12 +3,12 @@
 /**
  * @category   DreamFactory
  * @package    DreamFactory
- * @subpackage SystemSvc
+ * @subpackage SystemManager
  * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
  * @license    http://www.dreamfactory.com/license
  */
 
-class SystemSvc extends CommonService implements iRestHandler
+class SystemManager implements iRestHandler
 {
 
     // constants
@@ -19,14 +19,20 @@ class SystemSvc extends CommonService implements iRestHandler
     /**
      *
      */
-    const INTERNAL_TABLES = 'label,role_service_access,session';
+    const INTERNAL_TABLES = 'config,label,role_service_access,session';
 
     // Members
+
+    /**
+     * @var ServiceHandler
+     */
+    private static $_instance = null;
 
     /**
      * @var
      */
     protected $modelName;
+
     /**
      * @var
      */
@@ -38,15 +44,11 @@ class SystemSvc extends CommonService implements iRestHandler
     protected $nativeDb;
 
     /**
-     * Creates a new SystemSvc instance
+     * Creates a new SystemManager instance
      *
-     * @param array $config
-     * @throws InvalidArgumentException
      */
-    public function __construct($config)
+    public function __construct()
     {
-        parent::__construct($config);
-
         $this->nativeDb = new PdoSqlDbSvc();
     }
 
@@ -55,7 +57,248 @@ class SystemSvc extends CommonService implements iRestHandler
      */
     public function __destruct()
     {
-        parent::__destruct();
+    }
+
+    /**
+     * Gets the static instance of this class.
+     *
+     * @return SystemManager
+     */
+    public static function getInstance()
+    {
+        if (!isset(self::$_instance)) {
+            self::$_instance = new SystemManager();
+        }
+
+        return self::$_instance;
+    }
+
+    /**
+     * Determines the current state of the system
+     */
+    public function getSystemState()
+    {
+        try {
+            // refresh the schema that we just added
+            Yii::app()->db->schema->refresh();
+            $tables = Yii::app()->db->schema->getTableNames();
+            if (empty($tables)) {
+                return 'init required';
+            }
+
+            // check for any missing necessary tables
+            $needed = explode(',', self::SYSTEM_TABLES . ',' . self::INTERNAL_TABLES);
+            foreach ($needed as $name) {
+                if (!in_array($name, $tables)) {
+                    return 'schema required';
+                }
+            }
+
+            // check for at least one system admin user
+            $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'username', "is_sys_admin = 1", 1);
+            unset($result['total']);
+            if (count($result) < 1) {
+                return 'admin required';
+            }
+
+            // need to check for db upgrade, based on tables or version
+
+            return 'ready';
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    /**
+     * Configures the system.
+     *
+     * @param array $data
+     * @return null
+     */
+    public function initSystem($data = array())
+    {
+        $this->initSchema();
+        $this->initAdmin($data);
+        $this->initData();
+    }
+
+    /**
+     * Configures the system schema.
+     *
+     * @throws Exception
+     * @return null
+     */
+    public function initSchema()
+    {
+        try {
+            $contents = file_get_contents(Yii::app()->basePath . '/data/system_schema.json');
+            if (empty($contents)) {
+                throw new \Exception("Empty or no system schema file found.");
+            }
+            $contents = Utilities::jsonToArray($contents);
+            $version = Utilities::getArrayValue('version', $contents);
+            $config = array();
+            if ($this->nativeDb->doesTableExist('config')) {
+                $config = $this->nativeDb->retrieveSqlRecordsByFilter('config', 'id', '', 1);
+                unset($config['total']);
+                $oldVersion = Utilities::getArrayValue('db_version', $config, '');
+            }
+            // create system tables
+            $tables = Utilities::getArrayValue('table', $contents);
+            if (empty($tables)) {
+                throw new \Exception("No default system schema found.");
+            }
+            $result = $this->nativeDb->createTables($tables, true, true);
+
+            // setup session stored procedure
+            $command = Yii::app()->db->createCommand();
+//            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
+//                      WHERE ROUTINE_TYPE="PROCEDURE"
+//                          AND ROUTINE_SCHEMA="dreamfactory"
+//                          AND ROUTINE_NAME="UpdateOrInsertSession";';
+//            $result = $db->singleSqlQuery($query);
+//            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
+            switch ($this->nativeDb->getDriverType()) {
+                case Utilities::DRV_SQLSRV:
+                    $contents = file_get_contents(Yii::app()->basePath . '/data/procedures.mssql.sql');
+                    if ((false === $contents) || empty($contents)) {
+                        throw new \Exception("Empty or no system db procedures file found.");
+                    }
+                    $query = "IF ( OBJECT_ID('dbo.UpdateOrInsertSession') IS NOT NULL )
+                                  DROP PROCEDURE dbo.UpdateOrInsertSession";
+                    $command->setText($query);
+                    $command->execute();
+                    $command->reset();
+                    $command->setText($contents);
+                    $command->execute();
+                    break;
+                case Utilities::DRV_MYSQL:
+                    $contents = file_get_contents(Yii::app()->basePath . '/data/procedures.mysql.sql');
+                    if ((false === $contents) || empty($contents)) {
+                        throw new \Exception("Empty or no system db procedures file found.");
+                    }
+                    $query = 'DROP PROCEDURE IF EXISTS `UpdateOrInsertSession`';
+                    $command->setText($query);
+                    $command->execute();
+                    $command->reset();
+                    $command->setText($contents);
+                    $command->execute();
+                    break;
+                default:
+                    break;
+            }
+//            }
+            // initialize config table if not already
+            if (empty($config)) {
+                $this->nativeDb->createSqlRecords('config', array('db_version'=>$version), true);
+            }
+            // refresh the schema that we just added
+            Yii::app()->db->schema->refresh();
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    /**
+     * Configures the system.
+     *
+     * @param array $data
+     * @throws Exception
+     * @return null
+     */
+    public function initAdmin($data = array())
+    {
+        try {
+            // create and login first admin user
+            // fill out the user fields for creation
+            $username = Utilities::getArrayValue('username', $data);
+            $firstName = Utilities::getArrayValue('firstName', $data);
+            $lastName = Utilities::getArrayValue('lastName', $data);
+            $fields = array('username' => $username,
+                'email' => Utilities::getArrayValue('email', $data),
+                'password' => UserManager::protectPassword(Utilities::getArrayValue('password', $data)),
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'display_name' => $firstName . ' ' . $lastName,
+                'is_active' => true,
+                'is_sys_admin' => true,
+                'confirm_code' => 'y'
+            );
+            $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id', "username = '$username'", 1);
+            unset($result['total']);
+            if (count($result) > 0) {
+                throw new \Exception("A user already exists with the username '$username'.");
+            }
+            $result = $this->nativeDb->createSqlRecord('user', $fields);
+            if (!isset($result[0])) {
+                error_log(print_r($result, true));
+                throw new \Exception("Failed to create user.");
+            }
+            $userId = Utilities::getArrayValue('id', $result[0]);
+            if (empty($userId)) {
+                error_log(print_r($result[0], true));
+                throw new \Exception("Failed to create user.");
+            }
+            Utilities::setCurrentUserId($userId);
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    /**
+     * Configures the default system data.
+     *
+     * @throws Exception
+     * @return boolean whether configuration is successful
+     */
+    public function initData()
+    {
+        try {
+            // for now use the first admin we find
+            $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id', "is_sys_admin = 1", 1);
+            unset($result['total']);
+            if (!isset($result[0])) {
+                error_log(print_r($result, true));
+                throw new \Exception("Failed to retrieve admin user.");
+            }
+            $userId = Utilities::getArrayValue('id', $result[0]);
+            if (empty($userId)) {
+                error_log(print_r($result[0], true));
+                throw new \Exception("Failed to retrieve user id.");
+            }
+            Utilities::setCurrentUserId($userId);
+
+            // init system tables with records
+            $contents = file_get_contents(Yii::app()->basePath . '/data/system_data.json');
+            if (empty($contents)) {
+                throw new \Exception("Empty or no system data file found.");
+            }
+            $contents = Utilities::jsonToArray($contents);
+            $result = $this->nativeDb->retrieveSqlRecordsByFilter('service', 'id', '', 1);
+            unset($result['total']);
+            if (empty($result)) {
+                $services = Utilities::getArrayValue('service', $contents);
+                if (empty($services)) {
+                    error_log(print_r($contents, true));
+                    throw new \Exception("No default system services found.");
+                }
+                $this->nativeDb->createSqlRecords('service', $services, true);
+            }
+            $result = $this->nativeDb->retrieveSqlRecordsByFilter('app', 'id', '', 1);
+            unset($result['total']);
+            if (empty($result)) {
+                $apps = Utilities::getArrayValue('app', $contents);
+                if (!empty($apps)) {
+                    $this->nativeDb->createSqlRecords('app', $apps, true);
+                }
+            }
+        }
+        catch (\Exception $ex) {
+            throw $ex;
+        }
     }
 
     // Controller based methods
@@ -74,7 +317,13 @@ class SystemSvc extends CommonService implements iRestHandler
             $extras = array();
             switch ($this->modelName) {
             case '':
-                $result = $this->describeSystem();
+                $result = array(array('name' => 'app', 'label' => 'Application'),
+                    array('name' => 'app_group', 'label' => 'Application Group'),
+                    array('name' => 'config', 'label' => 'Configuration'),
+                    array('name' => 'role', 'label' => 'Role'),
+                    array('name' => 'schema', 'label' => 'Schema'),
+                    array('name' => 'service', 'label' => 'Service'),
+                    array('name' => 'user', 'label' => 'User'));
                 $result = array('resource' => $result);
                 break;
             case 'schema':
@@ -481,7 +730,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('create', $table);
+        Utilities::checkPermission('create', 'system', $table);
         if (!isset($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
@@ -495,8 +744,7 @@ class SystemSvc extends CommonService implements iRestHandler
                 $out[] = $this->createRecordLow($table, $record, $fields);
             }
             catch (Exception $ex) {
-                $out[] = array('fault' => array('faultString' => $ex->getMessage(),
-                                                'faultCode' => 'RequestFailed'));
+                $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
             }
         }
 
@@ -616,7 +864,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('update', $table);
+        Utilities::checkPermission('update', 'system', $table);
         if (!isset($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
         }
@@ -631,8 +879,7 @@ class SystemSvc extends CommonService implements iRestHandler
                 $out[] = $this->updateRecordLow($table, $record, $fields);
             }
             catch (Exception $ex) {
-                $out[] = array('fault' => array('faultString' => $ex->getMessage(),
-                                                'faultCode' => 'RequestFailed'));
+                $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
             }
         }
 
@@ -651,7 +898,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('update', $table);
+        Utilities::checkPermission('update', 'system', $table);
 
         try {
             $result = $this->updateRecordLow($table, $record, $fields);
@@ -821,7 +1068,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('delete', $table);
+        Utilities::checkPermission('delete', 'system', $table);
 
         try {
             switch (strtolower($table)) {
@@ -846,8 +1093,7 @@ class SystemSvc extends CommonService implements iRestHandler
                     $out[] = array('fields' => $result);
                 }
                 else { // error
-                    $out[] = array('fault' => array('faultString' => $result,
-                                                    'faultCode' => 'RequestFailed'));
+                    $out[] = array('error' => array('message' => $result, 'code' => 500));
                 }
             }
 
@@ -871,7 +1117,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('read', $table);
+        Utilities::checkPermission('read', 'system', $table);
         $fields = $this->checkRetrievableSystemFields($table, $fields);
 
         try {
@@ -918,8 +1164,7 @@ class SystemSvc extends CommonService implements iRestHandler
                     $out[] = array('fields' => $result);
                 }
                 else { // error
-                    $out[] = array('fault' => array('faultString' => $result,
-                                                    'faultCode' => 'RequestFailed'));
+                    $out[] = array('error' => array('message' => $result, 'code' => 500));
                 }
             }
 
@@ -946,7 +1191,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('read', $table);
+        Utilities::checkPermission('read', 'system', $table);
         $fields = $this->checkRetrievableSystemFields($table, $fields);
 
         try {
@@ -995,8 +1240,7 @@ class SystemSvc extends CommonService implements iRestHandler
                     $out[] = array('fields' => $result);
                 }
                 else { // error
-                    $out[] = array('fault' => array('faultString' => $result,
-                                                    'faultCode' => 'RequestFailed'));
+                    $out[] = array('error' => array('message' => $result, 'code' => 500));
                 }
             }
 
@@ -1020,7 +1264,7 @@ class SystemSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('[InvalidParam]: Table name can not be empty.');
         }
-        $this->checkPermission('read', $table);
+        Utilities::checkPermission('read', 'system', $table);
         $fields = $this->checkRetrievableSystemFields($table, $fields);
 
         try {
@@ -1067,8 +1311,7 @@ class SystemSvc extends CommonService implements iRestHandler
                     $out[] = array('fields' => $result);
                 }
                 else { // error
-                    $out[] = array('fault' => array('faultString' => $result,
-                                                    'faultCode' => 'RequestFailed'));
+                    $out[] = array('error' => array('message' => $result, 'code' => 500));
                 }
             }
 
@@ -1206,7 +1449,7 @@ class SystemSvc extends CommonService implements iRestHandler
      */
     public function assignRole($role_id, $user_ids = '', $user_names = '', $override = false)
     {
-        $this->checkPermission('create', 'RoleAssign');
+        Utilities::checkPermission('create', 'system', 'RoleAssign');
         // ids have preference, if blank, use names for users
         // override is true/false, true allows overriding an existing role assignment
         // i.e. move user to a different role,
@@ -1248,7 +1491,7 @@ class SystemSvc extends CommonService implements iRestHandler
      */
     public function unassignRole($role_id, $user_ids = '', $user_names = '')
     {
-        $this->checkPermission('delete', 'RoleAssign');
+        Utilities::checkPermission('delete', 'system', 'RoleAssign');
         // ids have preference, if blank, use names for both role and users
         // use this to officially remove a user from the current app
         if (empty($role_id)) {
@@ -1496,7 +1739,7 @@ class SystemSvc extends CommonService implements iRestHandler
         switch (strtolower($table)) {
         case 'user':
             if (empty($fields)) {
-                $fields = 'id,full_name,first_name,last_name,username,email,phone,';
+                $fields = 'id,display_name,first_name,last_name,username,email,phone,';
                 $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
             }
             else {
@@ -1520,11 +1763,11 @@ class SystemSvc extends CommonService implements iRestHandler
     {
         $pwd = Utilities::getArrayValue('password', $fields, '');
         if (!empty($pwd)) {
-            $fields['password'] = md5($pwd);
+            $fields['password'] = UserManager::protectPassword($pwd);
             $fields['confirm_code'] = 'y';
         }
         else {
-            // autogenerate ?
+            // todo autogenerate ?
         }
     }
 

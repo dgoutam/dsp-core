@@ -3,14 +3,17 @@
 /**
  * @category   DreamFactory
  * @package    DreamFactory
- * @subpackage SessionSvc
+ * @subpackage SessionManager
  * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
  * @license    http://www.dreamfactory.com/license
  */
 
-class SessionSvc
+class SessionManager
 {
-    // Database Variables
+    /**
+     * @var SessionManager
+     */
+    private static $_instance = null;
 
     /**
      * @var \CDbConnection
@@ -37,6 +40,20 @@ class SessionSvc
     public function __destruct()
     {
         session_write_close(); // IMPORTANT!
+    }
+
+    /**
+     * Gets the static instance of this class.
+     *
+     * @return SessionManager
+     */
+    public static function getInstance()
+    {
+        if (!isset(self::$_instance)) {
+            self::$_instance = new SessionManager();
+        }
+
+        return self::$_instance;
     }
 
     public function open()

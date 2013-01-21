@@ -44,11 +44,17 @@ When you are ready, click the 'Add Admin' button below.
 		<?php echo $form->error($model,'username'); ?>
 	</div>
 
-	<div class="row">
-		<?php echo $form->labelEx($model,'password'); ?>
-		<?php echo $form->passwordField($model,'password'); ?>
-		<?php echo $form->error($model,'password'); ?>
-	</div>
+    <div class="row">
+        <?php echo $form->labelEx($model,'password'); ?>
+        <?php echo $form->passwordField($model,'password'); ?>
+        <?php echo $form->error($model,'password'); ?>
+    </div>
+
+    <div class="row">
+        <?php echo $form->labelEx($model,'passwordRepeat'); ?>
+        <?php echo $form->passwordField($model,'passwordRepeat'); ?>
+        <?php echo $form->error($model,'passwordRepeat'); ?>
+    </div>
 
     <div class="row">
    		<?php echo $form->labelEx($model,'email'); ?>

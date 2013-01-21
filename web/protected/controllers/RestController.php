@@ -21,6 +21,23 @@ class RestController extends Controller
         return array();
     }
 
+    /**
+     * Initializes the controller.
+     * This method is called by the application before the controller starts to execute.
+     */
+    public function init()
+    {
+        // need this running at startup
+        try {
+            SessionManager::getInstance();
+        }
+        catch (Exception $ex) {
+            $ex = new Exception("Failed to create session service.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR);
+            $this->handleErrors($ex);
+        }
+
+    }
+
     // Actions
 
     /**
@@ -29,14 +46,16 @@ class RestController extends Controller
     public function actionIndex()
     {
         try {
-            $svc = ServiceHandler::getInstance();
-            $result = $svc->getServiceListing();
-            $this->handleResults($result);
+            // add non-service managers
+            $managers = array(array('name' => 'system', 'label' => 'System Configuration'),
+                              array('name' => 'user', 'label' => 'User Login'));
+            $services = ServiceHandler::getInstance()->getServiceListing();
+            $result = array_merge($managers, $services);
+            $this->handleResults(array('resources'=>$result));
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            $this->handleErrors($ex);
         }
-        Yii::app()->end();
     }
 
     /**
@@ -45,23 +64,31 @@ class RestController extends Controller
     public function actionGet($service='')
     {
         try {
-            $svc = ServiceHandler::getInstance();
-            $svcObj = $svc->getServiceObject($service);
-            $result = $svcObj->actionGet();
+            switch (strtolower($service)) {
+            case 'system':
+                $result = SystemManager::getInstance()->actionGet();
+                break;
+            case 'user':
+                $result = UserManager::getInstance()->actionGet();
+                break;
+            default:
+                $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                $result = $svcObj->actionGet();
 
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Remote Web Service')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
+                $type = $svcObj->getType();
+                if (0 === strcasecmp($type, 'Remote Web Service')) {
+                    $nativeFormat = $svcObj->getNativeFormat();
+                    if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                        // reformat the code here
+                    }
                 }
+                break;
             }
             $this->handleResults($result);
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            $this->handleErrors($ex);
         }
-        Yii::app()->end();
     }
 
     /**
@@ -71,9 +98,9 @@ class RestController extends Controller
     {
         try {
             // check for verb tunneling
-            $tunnel_method = (isset($_SERVER['HTTP_X_HTTP_METHOD'])) ? $_SERVER['HTTP_X_HTTP_METHOD'] : '';
+            $tunnel_method = Utilities::getArrayValue('HTTP_X_HTTP_METHOD', $_SERVER, '');
             if (empty($tunnel_method)) {
-                $tunnel_method = (isset($_REQUEST['method'])) ? $_REQUEST['method'] : '';
+                $tunnel_method = Utilities::getArrayValue('method', $_REQUEST, '');
             }
             if (!empty($tunnel_method)) {
                 switch (strtolower($tunnel_method)) {
@@ -94,28 +121,36 @@ class RestController extends Controller
                     break;
                 default:
                     if (!empty($tunnel_method)) {
-                        throw new Exception("Unknown verb tunneling method '$tunnel_method' in REST request.");
+                        throw new Exception("Unknown tunneling verb '$tunnel_method' in REST request.", ErrorCodes::BAD_REQUEST);
                     }
                     break;
                 }
             }
-            $svc = ServiceHandler::getInstance();
-            $svcObj = $svc->getServiceObject($service);
-            $result = $svcObj->actionPost();
+            switch (strtolower($service)) {
+                case 'system':
+                    $result = SystemManager::getInstance()->actionPost();
+                    break;
+                case 'user':
+                    $result = UserManager::getInstance()->actionPost();
+                    break;
+                default:
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $result = $svcObj->actionPost();
 
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Remote Web Service')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
+                    $type = $svcObj->getType();
+                    if (0 === strcasecmp($type, 'Remote Web Service')) {
+                        $nativeFormat = $svcObj->getNativeFormat();
+                        if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                            // reformat the code here
+                        }
+                    }
+                    break;
             }
             $this->handleResults($result);
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            $this->handleErrors($ex);
         }
-        Yii::app()->end();
     }
 
     /**
@@ -124,23 +159,31 @@ class RestController extends Controller
     public function actionMerge($service='')
     {
         try {
-            $svc = ServiceHandler::getInstance();
-            $svcObj = $svc->getServiceObject($service);
-            $result = $svcObj->actionMerge();
+            switch (strtolower($service)) {
+                case 'system':
+                    $result = SystemManager::getInstance()->actionMerge();
+                    break;
+                case 'user':
+                    $result = UserManager::getInstance()->actionMerge();
+                    break;
+                default:
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $result = $svcObj->actionMerge();
 
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Remote Web Service')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
+                    $type = $svcObj->getType();
+                    if (0 === strcasecmp($type, 'Remote Web Service')) {
+                        $nativeFormat = $svcObj->getNativeFormat();
+                        if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                            // reformat the code here
+                        }
+                    }
+                    break;
             }
             $this->handleResults($result);
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            $this->handleErrors($ex);
         }
-        Yii::app()->end();
     }
 
     /**
@@ -149,23 +192,31 @@ class RestController extends Controller
     public function actionPut($service='')
     {
         try {
-            $svc = ServiceHandler::getInstance();
-            $svcObj = $svc->getServiceObject($service);
-            $result = $svcObj->actionMerge();
+            switch (strtolower($service)) {
+                case 'system':
+                    $result = SystemManager::getInstance()->actionPut();
+                    break;
+                case 'user':
+                    $result = UserManager::getInstance()->actionPut();
+                    break;
+                default:
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $result = $svcObj->actionPut();
 
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Remote Web Service')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
+                    $type = $svcObj->getType();
+                    if (0 === strcasecmp($type, 'Remote Web Service')) {
+                        $nativeFormat = $svcObj->getNativeFormat();
+                        if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                            // reformat the code here
+                        }
+                    }
+                    break;
             }
             $this->handleResults($result);
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            $this->handleErrors($ex);
         }
-        Yii::app()->end();
     }
 
     /**
@@ -174,23 +225,31 @@ class RestController extends Controller
     public function actionDelete($service='')
     {
         try {
-            $svc = ServiceHandler::getInstance();
-            $svcObj = $svc->getServiceObject($service);
-            $result = $svcObj->actionDelete();
+            switch (strtolower($service)) {
+                case 'system':
+                    $result = SystemManager::getInstance()->actionDelete();
+                    break;
+                case 'user':
+                    $result = UserManager::getInstance()->actionDelete();
+                    break;
+                default:
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $result = $svcObj->actionDelete();
 
-            $type = $svcObj->getType();
-            if (0 === strcasecmp($type, 'Remote Web Service')) {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                    // reformat the code here
-                }
+                    $type = $svcObj->getType();
+                    if (0 === strcasecmp($type, 'Remote Web Service')) {
+                        $nativeFormat = $svcObj->getNativeFormat();
+                        if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                            // reformat the code here
+                        }
+                    }
+                    break;
             }
             $this->handleResults($result);
         }
         catch (Exception $ex) {
-            $this->handleErrors($ex->getMessage());
+            $this->handleErrors($ex);
         }
-        Yii::app()->end();
     }
 
     /**
@@ -198,27 +257,28 @@ class RestController extends Controller
      *
      * @param CAction $action
      * @return bool
-     * @throws Exception
+     * @throws CHttpException
      */
     protected function beforeAction($action)
     {
-        $temp = (isset($_REQUEST['format'])) ? strtolower($_REQUEST['format']) : '';
+        $temp = strtolower(Utilities::getArrayValue('format', $_REQUEST, ''));
         if (!empty($temp)) {
             $this->format = $temp;
         }
 
         // determine application if any
-        $appName = (isset($_SERVER['HTTP_X_APPLICATION_NAME'])) ? $_SERVER['HTTP_X_APPLICATION_NAME'] : '';
+        $appName = Utilities::getArrayValue('HTTP_X_APPLICATION_NAME', $_SERVER, '');
         if (empty($appName)) {
-            $appName = (isset($_REQUEST['app_name'])) ? $_REQUEST['app_name'] : '';
+            $appName = Utilities::getArrayValue('app_name', $_REQUEST, '');
         }
         if (empty($appName)) {
-            throw new Exception("No application name header or parameter value in REST request.");
+            $ex = new Exception("No application name header or parameter value in REST request.", ErrorCodes::BAD_REQUEST);
+            $this->handleErrors($ex);
         }
         $GLOBALS['app_name'] = $appName;
 
         // fix removal of trailing slashes from resource
-        $resource = (isset($_GET['resource']) ? $_GET['resource'] : '');
+        $resource = Utilities::getArrayValue('resource', $_GET, '');
         if (!empty($resource)) {
             $requestUri = yii::app()->request->requestUri;
             if ((false === strpos($requestUri, '?') &&
@@ -233,25 +293,28 @@ class RestController extends Controller
     }
 
     /**
-     * @param $error
+     * @param Exception $ex
+     * @return void
      */
-    private function handleErrors($error)
+    private function handleErrors(Exception $ex)
     {
-        $result = array("fault" => array("faultString" => htmlentities($error),
-                                         "faultCode" => htmlentities('Sender')));
+        $code = ErrorCodes::getHttpStatusCode($ex->getCode());
+        $title = ErrorCodes::getHttpStatusCodeTitle($code);
+        $msg = $ex->getMessage();
+        $result = array("error" => array(array("message" => htmlentities($msg),
+                                               "code" => $code)));
+        header("HTTP/1.1 $code $title");
         switch ($this->format) {
         case 'json':
             $result = json_encode($result);
             Utilities::sendJsonResponse($result);
             break;
         case 'xml':
-            $result = '<fault>';
-            $result .= '<faultString>' . htmlentities($error) . '</faultString>';
-            $result .= '<faultCode>' . htmlentities('Sender') . '</faultCode>';
-            $result .= '</fault>';
+            $result = Utilities::arrayToXml('', $result);
             Utilities::sendXmlResponse($result);
             break;
         }
+        Yii::app()->end();
     }
 
     /**
@@ -259,20 +322,17 @@ class RestController extends Controller
      */
     private function handleResults($result)
     {
-        if (0 === strcasecmp('xml', $this->format)) {
-            $result = Utilities::arrayToXml('', $result);
-        }
-        else {
-            $result = json_encode($result);
-        }
         switch ($this->format) {
         case 'json':
+            $result = json_encode($result);
             Utilities::sendJsonResponse($result);
             break;
         case 'xml':
+            $result = Utilities::arrayToXml('', $result);
             Utilities::sendXmlResponse($result);
             break;
         }
+        Yii::app()->end();
     }
 
 }

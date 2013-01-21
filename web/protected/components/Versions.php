@@ -8,21 +8,15 @@
  * @license    http://www.dreamfactory.com/license
  */
 
-class Defaults
+class Versions
 {
     /**
      * Constants
      */
+    const REST_VERSION = "0.1";
 
-    /**
-     * Storage Service Directory Defaults
-     */
-    const APPS_STORAGE_NAME = 'applications';
+    const SOAP_VERSION = "0.1";
 
-    const ATTACHMENTS_STORAGE_NAME = 'attachments';
-
-    const DOCS_STORAGE_NAME = 'documents';
-
-    const LIBS_STORAGE_NAME = 'libraries';
+    const SYSTEM_DB_VERSION = "0.1";
 
 }

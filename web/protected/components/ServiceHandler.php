@@ -54,29 +54,11 @@ class ServiceHandler
     private $_services = array();
 
     /**
-     * SQL Session Service
-     *
-     * storing session information in the sql db
-     *
-     * @access protected
-     * @var object
-     */
-    protected $sessionSvc;
-
-    /**
-     * Creates a new DreamFactory_Services instance
+     * Creates a new ServiceHandler instance
      *
      */
     public function __construct()
     {
-        // need this running at startup
-        try {
-            $this->sessionSvc = new SessionSvc();
-        }
-        catch (Exception $ex) {
-            throw new Exception("Failed to create session service.\n{$ex->getMessage()}");
-        }
-
         // create services as needed, store local pointer in array for speed
         $this->_services = array();
     }
@@ -92,7 +74,6 @@ class ServiceHandler
             }
             $this->_services = null;
         }
-        unset($this->sessionSvc);
     }
 
     /**
@@ -118,12 +99,12 @@ class ServiceHandler
         try {
             $criteria = new CDbCriteria(array('select' => 'name,label'));
             $result = Service::model()->findAll($criteria);
-            $out = array(array('name' => 'user', 'label' => 'User Login'));
+            $out = array();
             foreach ($result as $service) {
                 $out[] = array('name' => $service->name, 'label' => $service->label);
             }
 
-            return array('resource' => $out);
+            return $out;
         }
         catch (Exception $ex) {
             throw $ex;
@@ -182,32 +163,24 @@ class ServiceHandler
         try {
             $record = $this->getService($name);
             switch (strtolower($name)) {
+            // some special cases first
             case 'app':
                 $service = new ApplicationSvc($record);
                 break;
-            case 'attachment':
-                $service = new AttachmentSvc($record);
+            case 'lib':
+                $service = new LibrarySvc($record);
                 break;
             case 'db':
                 $service = new DatabaseSvc($record);
+                break;
+            case 'attachment':
+                $service = new AttachmentSvc($record);
                 break;
             case 'doc':
                 $service = new DocumentSvc($record);
                 break;
             case 'email':
                 $service = new EmailSvc($record);
-                break;
-            case 'lib':
-                $service = new LibrarySvc($record);
-                break;
-            case 'session':
-                $service = $this->sessionSvc;
-                break;
-            case 'system':
-                $service = new SystemSvc($record);
-                break;
-            case 'user':
-                $service = new UserSvc(array('name'=>'user','label'=>'User Login','is_active'=>1,'type'=>'native'));
                 break;
             default:
                 $type = Utilities::getArrayValue('type', $record, '');
@@ -219,6 +192,7 @@ class ServiceHandler
                 case 'Remote File Storage':
                     $service = new CommonFileSvc($record);
                     break;
+                case 'Local SQL DB':
                 case 'Remote SQL DB':
                     $service = new DatabaseSvc($record);
                     break;

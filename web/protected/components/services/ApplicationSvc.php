@@ -108,7 +108,7 @@ class ApplicationSvc extends CommonFileSvc
                 throw new Exception("Can not create package file for this application.");
             }
 
-            $sys = ServiceHandler::getInstance()->getServiceObject('system');
+            $sys = SystemManager::getInstance();
             $fields = 'name,label,description,is_active,url,is_url_external,schemas';
             $fields .= ',filter_by_device,filter_phone,filter_tablet,filter_desktop,requires_plugin';
             $records = $sys->retrieveRecordsByFilter('app', $fields, "name = '$app_root'", 1);
@@ -221,10 +221,10 @@ class ApplicationSvc extends CommonFileSvc
             }
             $data = Utilities::jsonToArray($data);
             $records = array(array('fields' => $data)); // todo bad assumption of right format
-            $sys = ServiceHandler::getInstance()->getServiceObject('system');
+            $sys = SystemManager::getInstance();
             $result = $sys->createRecords('app', $records, false, 'Id');
-            if (isset($result['record'][0]['fault'])) {
-                $msg = $result['record'][0]['fault']['faultString'];
+            if (isset($result['record'][0]['error'])) {
+                $msg = $result['record'][0]['error']['message'];
                 throw new Exception("Could not create the database entry for this application.\n$msg");
             }
             $id = $result['record'][0]['fields']['id'];
@@ -237,8 +237,8 @@ class ApplicationSvc extends CommonFileSvc
                     $tables = Utilities::getArrayValue('table', $data, array());
                     $db = ServiceHandler::getInstance()->getServiceObject('db');
                     $result = $db->createTables($tables);
-                    if (isset($result['table'][0]['fault'])) {
-                        $msg = $result['table'][0]['fault']['faultString'];
+                    if (isset($result['table'][0]['error'])) {
+                        $msg = $result['table'][0]['error']['message'];
                         throw new Exception("Could not create the database tables for this application.\n$msg");
                     }
                     $zip->deleteName('schema.json');
@@ -254,8 +254,8 @@ class ApplicationSvc extends CommonFileSvc
                             $tableName = Utilities::getArrayValue('name', $table, '');
                             $records = Utilities::getArrayValue('record', $table, '');
                             $result = $db->createRecords($tableName, $records);
-                            if (isset($result['record'][0]['fault'])) {
-                                $msg = $result['record'][0]['fault']['faultString'];
+                            if (isset($result['record'][0]['error'])) {
+                                $msg = $result['record'][0]['error']['message'];
                                 throw new Exception("Could not insert the database entries for table '$tableName'' for this application.\n$msg");
                             }
                         }
@@ -293,10 +293,10 @@ class ApplicationSvc extends CommonFileSvc
     {
         $data = array('name'=>$name, 'label'=>$name, 'is_url_external'=>0, 'url'=>'/index.html');
         $records = array(array('fields' => $data));
-        $sys = ServiceHandler::getInstance()->getServiceObject('system');
+        $sys = SystemManager::getInstance();
         $result = $sys->createRecords('app', $records, false, 'Id');
-        if (isset($result['record'][0]['fault'])) {
-            $msg = $result['record'][0]['fault']['faultString'];
+        if (isset($result['record'][0]['error'])) {
+            $msg = $result['record'][0]['error']['message'];
             throw new Exception("Could not create the database entry for this application.\n$msg");
         }
         $id = $result['record'][0]['fields']['id'];

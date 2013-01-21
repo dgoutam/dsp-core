@@ -27,7 +27,7 @@
  *
  * @category   DreamFactory
  * @package    DreamFactory
- * @subpackage UserSvc
+ * @subpackage UserManager
  * @copyright  Copyright (c) 2009 - 2012, DreamFactory Software, Inc. (http://www.dreamfactory.com)
  * @license    http://phpazure.codeplex.com/license
  * @version    $Id: Services.php 66505 2012-04-02 08:45:51Z unknown $
@@ -36,8 +36,13 @@
 /**
  *
  */
-class UserSvc extends CommonService implements iRestHandler
+class UserManager implements iRestHandler
 {
+    /**
+     * @var ServiceHandler
+     */
+    private static $_instance = null;
+
     /**
      * @var PdoSqlDbSvc
      */
@@ -59,13 +64,11 @@ class UserSvc extends CommonService implements iRestHandler
     protected $randKey;
 
     /**
-     * Creates a new UserSvc instance
+     * Creates a new UserManager instance
      *
      */
-    public function __construct($config)
+    public function __construct()
     {
-        parent::__construct($config);
-
         $this->nativeDb = new PdoSqlDbSvc();
 
         $this->siteName = Yii::app()->params['companyLabel'];
@@ -82,9 +85,26 @@ class UserSvc extends CommonService implements iRestHandler
      */
     public function __destruct()
     {
-        parent::__destruct();
-
         unset($this->nativeDb);
+    }
+
+    /**
+     * Gets the static instance of this class.
+     *
+     * @return UserManager
+     */
+    public static function getInstance()
+    {
+        if (!isset(self::$_instance)) {
+            self::$_instance = new UserManager();
+        }
+
+        return self::$_instance;
+    }
+
+    public static function protectPassword($raw)
+    {
+        return md5($raw);
     }
 
     // Controller based methods
@@ -98,11 +118,18 @@ class UserSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         switch ($this->command) {
         case '':
-            $resources = array(array('name' => 'login'), array('name' => 'logout'),
-                               array('name' => 'register'), array('name' => 'confirm'),
-                               array('name' => 'ChangePassword'), array('name' => 'ForgotPassword'),
-                               array('name' => 'NewPassword'), array('name' => 'SecurityAnswer'),
-                               array('name' => 'ticket'), array('name' => 'session'));
+            $resources = array(
+                array('name' => 'login'),
+                array('name' => 'logout'),
+                array('name' => 'register'),
+                array('name' => 'confirm'),
+                array('name' => 'change_profile'),
+                array('name' => 'change_password'),
+                array('name' => 'forgot_password'),
+                array('name' => 'new_password'),
+                array('name' => 'security_answer'),
+                array('name' => 'ticket'),
+                array('name' => 'session'));
             $result = array('resource' => $resources);
             break;
         case 'ticket':
@@ -114,7 +141,7 @@ class UserSvc extends CommonService implements iRestHandler
             break;
         default:
            // unsupported GET request
-           throw new Exception("GET Request command '$this->command' is not currently supported by this User API.");
+           throw new Exception("GET Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST);
            break;
         }
 
@@ -153,34 +180,34 @@ class UserSvc extends CommonService implements iRestHandler
             $code = Utilities::getArrayValue('code', $data, '');
             $result = $this->userConfirm($code);
             break;
-        case 'forgotpassword':
+        case 'forgot_password':
             $username = Utilities::getArrayValue('username', $data, '');
             $result = $this->forgotPassword($username);
             break;
-        case 'securityanswer':
+        case 'security_answer':
             $username = Utilities::getArrayValue('username', $data, '');
             $answer = Utilities::getArrayValue('username', $data, '');
             $result = $this->securityAnswer($username, $answer);
             break;
-        case 'newpassword':
+        case 'new_password':
             $code = Utilities::getArrayValue('code', $data, '');
             $newPassword = Utilities::getArrayValue('newpassword', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->newPassword($code, $newPassword);
             break;
-        case 'changepassword':
+        case 'change_password':
             $oldPassword = Utilities::getArrayValue('oldpassword', $data, '');
             //$oldPassword = Utilities::decryptPassword($oldPassword);
             $newPassword = Utilities::getArrayValue('newpassword', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->changePassword($oldPassword, $newPassword);
             break;
-        case 'changeprofile':
+        case 'change_profile':
             $result = $this->changeProfile($data);
             break;
         default:
            // unsupported GET request
-           throw new Exception("POST Request command '$this->command' is not currently supported by this User API.");
+           throw new Exception("POST Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST);
            break;
         }
 
@@ -196,19 +223,19 @@ class UserSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch ($this->command) {
-        case 'changepassword':
+        case 'change_password':
             $oldPassword = Utilities::getArrayValue('oldpassword', $data, '');
             //$oldPassword = Utilities::decryptPassword($oldPassword);
             $newPassword = Utilities::getArrayValue('newpassword', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->changePassword($oldPassword, $newPassword);
             break;
-        case 'changeprofile':
+        case 'change_profile':
             $result = $this->changeProfile($data);
             break;
         default:
            // unsupported GET request
-           throw new Exception("PUT Request command '$this->command' is not currently supported by this User API.");
+           throw new Exception("PUT Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST);
            break;
         }
 
@@ -224,19 +251,19 @@ class UserSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch ($this->command) {
-        case 'changepassword':
+        case 'change_password':
             $oldPassword = Utilities::getArrayValue('oldpassword', $data, '');
             //$oldPassword = Utilities::decryptPassword($oldPassword);
             $newPassword = Utilities::getArrayValue('newpassword', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->changePassword($oldPassword, $newPassword);
             break;
-        case 'changeprofile':
+        case 'change_profile':
             $result = $this->changeProfile($data);
             break;
         default:
            // unsupported GET request
-           throw new Exception("MERGE Request command '$this->command' is not currently supported by this User API.");
+           throw new Exception("MERGE Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST);
            break;
         }
 
@@ -244,11 +271,12 @@ class UserSvc extends CommonService implements iRestHandler
     }
 
     /**
+     * @return array
      * @throws Exception
      */
     public function actionDelete()
     {
-        throw new Exception("DELETE Request is not currently supported by this User API.");
+        throw new Exception("DELETE Request is not currently supported by this User API.", ErrorCodes::METHOD_NOT_ALLOWED);
     }
 
     /**
@@ -282,7 +310,8 @@ class UserSvc extends CommonService implements iRestHandler
 
         $html = str_replace("\r\n", "<br />", $body);
         try {
-            $result = ServiceHandler::getInstance()->getServiceObject('Email')->sendEmail($to, '', '', $subject, $body, $html);
+            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send user welcome email.";
                 if (is_string($result)) {
@@ -311,7 +340,8 @@ class UserSvc extends CommonService implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $result = ServiceHandler::getInstance()->getServiceObject('Email')->sendEmailToAdmin('', '', $subject, $body, $html);
+            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $result = ($svc) ? $svc->sendEmailToAdmin('', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send registration complete email.";
                 if (is_string($result)) {
@@ -350,7 +380,8 @@ class UserSvc extends CommonService implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $result = ServiceHandler::getInstance()->getServiceObject('Email')->sendEmail($to, '', '', $subject, $body, $html);
+            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send user password change email.";
                 if (is_string($result)) {
@@ -390,7 +421,8 @@ class UserSvc extends CommonService implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $result = ServiceHandler::getInstance()->getServiceObject('Email')->sendEmail($to, '', '', $subject, $body, $html);
+            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send new password email.";
                 if (is_string($result)) {
@@ -428,7 +460,8 @@ class UserSvc extends CommonService implements iRestHandler
 
         $html = str_replace("\r\n", "<br />", $body);
         try {
-            $result = ServiceHandler::getInstance()->getServiceObject('Email')->sendEmail($to, '', '', $subject, $body, $html);
+            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed sending registration confirmation email.";
                 if (is_string($result)) {
@@ -459,7 +492,8 @@ class UserSvc extends CommonService implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $result = ServiceHandler::getInstance()->getServiceObject('Email')->sendEmailToAdmin('', '', $subject, $body, $html);
+            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $result = ($svc) ? $svc->sendEmailToAdmin('', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send admin notification email.";
                 if (is_string($result)) {
@@ -505,18 +539,19 @@ class UserSvc extends CommonService implements iRestHandler
     public function userLogin($username, $password)
     {
         if (empty($username)) {
-            throw new Exception("[InvalidParam]: Login request is missing required username.");
+            throw new Exception("[InvalidParam]: Login request is missing required username.", ErrorCodes::BAD_REQUEST);
         }
         if (empty($password)) {
-            throw new Exception("[InvalidParam]: Login request is missing required password.");
+            throw new Exception("[InvalidParam]: Login request is missing required password.", ErrorCodes::BAD_REQUEST);
         }
 
         try {
             $db = $this->nativeDb;
-            $pwd_md5 = md5($password);
-            $query = "username='$username' and password='$pwd_md5' and confirm_code='y'";
-            $fields = 'id,full_name,first_name,last_name,username,email,phone,';
-            $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
+            $pwd = static::protectPassword($password);
+            $query = "username='$username' and password='$pwd' and confirm_code='y'";
+            $fields = 'id,display_name,first_name,last_name,username,email,phone';
+            $fields .= ',is_active,is_sys_admin,role_id,default_app_id';
+            $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
             $result = $db->retrieveSqlRecordsByFilter('user', $fields, $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
@@ -525,7 +560,7 @@ class UserSvc extends CommonService implements iRestHandler
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
-                    throw new Exception("Either the username or password supplied does not match system records.");
+                    throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::BAD_REQUEST);
                 }
                 $query = "username='$username'";
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
@@ -533,11 +568,11 @@ class UserSvc extends CommonService implements iRestHandler
                 if (count($result) > 0) {
                     throw new Exception("Login registration has not been confirmed.");
                 }
-                throw new Exception("Either the username or password supplied does not match system records.");
+                throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::BAD_REQUEST);
             }
             $userInfo = $result[0];
             if (!$userInfo['is_active']) {
-                throw new Exception("The login with username '$username' is not currently active.");
+                throw new Exception("The login with username '$username' is not currently active.", ErrorCodes::FORBIDDEN);
             }
             unset($userInfo['is_active']);
 
@@ -545,16 +580,17 @@ class UserSvc extends CommonService implements iRestHandler
             $roleId = Utilities::getArrayValue('role_id', $userInfo, '');
             $roleId = trim(trim($roleId, ',')); // todo
             if (empty($roleId) && !$isSysAdmin) {
-                throw new Exception("The username '$username' has not been assigned a role.");
+                throw new Exception("The username '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN);
             }
             unset($userInfo['role_id']);
 
-            $data = $userInfo; // session data
+            $data = $userInfo; // reply data
+            $defaultAppId = Utilities::getArrayValue('default_app_id', $userInfo, null);
             $allowedApps = array();
             if (!empty($roleId)) {
                 $result = $db->retrieveSqlRecordsByIds('role', $roleId, 'id', '');
                 if (0 >= count($result) && !$isSysAdmin) {
-                    throw new Exception("The username '$username' has not been assigned a valid role.");
+                    throw new Exception("The username '$username' has not been assigned a valid role.", ErrorCodes::FORBIDDEN);
                 }
                 else {
                     $role = $result[0];
@@ -581,8 +617,11 @@ class UserSvc extends CommonService implements iRestHandler
                     $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
                     unset($perms['total']);
                     $role['services'] = $perms;
+                    if (!isset($defaultAppId)) {
+                        $defaultAppId = Utilities::getArrayValue('default_app_id', $role, null);
+                    }
+                    $userInfo['role'] = $role;
                 }
-                $userInfo['role'] = $role;
             }
 
             if (!isset($_SESSION)) {
@@ -608,6 +647,10 @@ class UserSvc extends CommonService implements iRestHandler
             unset($appGroups['total']);
             $noGroupApps = array();
             foreach ($apps as $a_key=>$app) {
+                $appId = Utilities::getArrayValue('id', $app, '');
+                if (isset($defaultAppId) && ($defaultAppId == $appId)) {
+                    $app['is_default'] = 1;
+                }
                 $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
                 $groupIds = array_map('trim', explode(',', trim($groupIds, ',')));
                 $found = false;
@@ -638,7 +681,7 @@ class UserSvc extends CommonService implements iRestHandler
             return $data;
         }
         catch (Exception $ex) {
-            throw new Exception("Error logging in.\n{$ex->getMessage()}");
+            throw $ex;
         }
     }
 
@@ -670,21 +713,22 @@ class UserSvc extends CommonService implements iRestHandler
             $lapse = $curTime - $timestamp;
             if (empty($userId) || ($lapse > 300)) { // only lasts 5 minutes
                 $this->userLogout();
-                throw new Exception("[INVALIDSESSION]: Ticket used for session generation is too old.", 401);
+                throw new Exception("[INVALIDSESSION]: Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED);
             }
         }
 
         try {
             $db = $this->nativeDb;
-            $fields = 'id,full_name,first_name,last_name,username,email,phone,';
-            $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
+            $fields = 'id,display_name,first_name,last_name,username,email,phone';
+            $fields .= ',is_active,is_sys_admin,role_id,default_app_id';
+            $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
             $result = $db->retrieveSqlRecordsByIds('user', $userId, 'id', $fields);
             if (count($result) < 1) {
                 throw new Exception("The user identified in the ticket does not exist in the system.");
             }
             $userInfo = $result[0];
             if (!$userInfo['is_active']) {
-                throw new Exception("The user identified in the ticket is not currently active.");
+                throw new Exception("The user identified in the ticket is not currently active.", ErrorCodes::FORBIDDEN);
             }
             unset($userInfo['is_active']);
 
@@ -692,16 +736,17 @@ class UserSvc extends CommonService implements iRestHandler
             $roleId = Utilities::getArrayValue('role_id', $userInfo, '');
             $roleId = trim(trim($roleId, ',')); // todo
             if (empty($roleId) && !$isSysAdmin) {
-                throw new Exception("The user identified in the ticket has not been assigned a role.");
+                throw new Exception("The user identified in the ticket has not been assigned a role.", ErrorCodes::FORBIDDEN);
             }
             unset($userInfo['role_id']);
 
             $data = $userInfo;
+            $defaultAppId = Utilities::getArrayValue('default_app_id', $userInfo, null);
             $allowedApps = array();
             if (!empty($roleId)) {
                 $result = $db->retrieveSqlRecordsByIds('role', $roleId, 'id', '');
                 if (0 >= count($result) && !$isSysAdmin) {
-                    throw new Exception("The user identified in the ticket has not been assigned a valid role.");
+                    throw new Exception("The user identified in the ticket has not been assigned a valid role.", ErrorCodes::FORBIDDEN);
                 }
                 else {
                     $role = $result[0];
@@ -728,8 +773,11 @@ class UserSvc extends CommonService implements iRestHandler
                     $perms = $db->retrieveSqlRecordsByFilter('role_service_access', $permsFields, $permQuery);
                     unset($perms['total']);
                     $role['services'] = $perms;
+                    if (!isset($defaultAppId)) {
+                        $defaultAppId = Utilities::getArrayValue('default_app_id', $role, null);
+                    }
+                    $userInfo['role'] = $role;
                 }
-                $userInfo['role'] = $role;
             }
 
             if (!isset($_SESSION)) {
@@ -755,6 +803,10 @@ class UserSvc extends CommonService implements iRestHandler
             unset($appGroups['total']);
             $noGroupApps = array();
             foreach ($apps as $a_key=>$app) {
+                $appId = Utilities::getArrayValue('id', $app, '');
+                if (isset($defaultAppId) && ($defaultAppId == $appId)) {
+                    $app['is_default'] = 1;
+                }
                 $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
                 $groupIds = array_map('trim', explode(',', trim($groupIds, ',')));
                 $found = false;
@@ -786,7 +838,7 @@ class UserSvc extends CommonService implements iRestHandler
         }
         catch (Exception $ex) {
             $this->userLogout();
-            throw new Exception("Error generating session.\n{$ex->getMessage()}");
+            throw $ex;
         }
     }
 
@@ -840,27 +892,27 @@ class UserSvc extends CommonService implements iRestHandler
     {
         $confirmCode = $this->makeConfirmationMd5($username);
         // fill out the user fields for creation
-        $fields = array('username' => $username, 'email' => $email, 'password' => md5($password));
+        $fields = array('username' => $username, 'email' => $email, 'password' => static::protectPassword($password));
         $fields['first_name'] = (!empty($first_name)) ? $first_name : $username;
         $fields['last_name'] = (!empty($last_name)) ? $last_name : $username;
         $fullName = (!empty($first_name) && !empty($last_name)) ? $first_name . ' ' . $last_name : $username;
-        $fields['full_name'] = $fullName;
+        $fields['display_name'] = $fullName;
         $fields['confirm_code'] = $confirmCode;
         $record = Utilities::array_key_lower($fields);
         $db = $this->nativeDb;
         try {
             if (empty($username)) {
-                throw new Exception("The username field for User can not be empty.");
+                throw new Exception("The username field for User can not be empty.", ErrorCodes::BAD_REQUEST);
             }
             $result = $db->retrieveSqlRecordsByFilter('user', 'id', "username = '$username'", 1);
             unset($result['total']);
             if (count($result) > 0) {
-                throw new Exception("A User already exists with the username '$username'.");
+                throw new Exception("A User already exists with the username '$username'.", ErrorCodes::BAD_REQUEST);
             }
             $result = $db->createSqlRecord('user', $record, 'id');
         }
         catch (Exception $ex) {
-            throw new Exception("Failed to register new user!\n{$ex->getMessage()}");
+            throw new Exception("Failed to register new user!\n{$ex->getMessage()}", $ex->getCode());
         }
 
         try {
@@ -869,7 +921,7 @@ class UserSvc extends CommonService implements iRestHandler
         catch (Exception $ex) {
             // need to remove from database here, otherwise they can't register again
             $db->deleteSqlRecordsByIds('user', $result[0]['id'], 'id');
-            throw new Exception("Failed to register new user!\nError sending registration email.");
+            throw new Exception("Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR);
         }
         $this->sendAdminIntimationEmail($email, $username, $fullName);
 
@@ -887,14 +939,14 @@ class UserSvc extends CommonService implements iRestHandler
     {
         try {
             $db = $this->nativeDb;
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id,full_name,email', "confirm_code='$code'", 1);
+            $result = $db->retrieveSqlRecordsByFilter('user', 'id,display_name,email', "confirm_code='$code'", 1);
             unset($result['total']);
             if (count($result) < 1) {
-                throw new Exception("Invalid confirm code.");
+                throw new Exception("Invalid confirm code.", ErrorCodes::BAD_REQUEST);
             }
         }
         catch (Exception $ex) {
-            throw new Exception("Error validating confirmation.\n{$ex->getMessage()}");
+            throw new Exception("Error validating confirmation.\n{$ex->getMessage()}", $ex->getCode());
         }
 
         $result[0]['confirm_code'] = 'y';
@@ -903,11 +955,11 @@ class UserSvc extends CommonService implements iRestHandler
             $db->updateSqlRecords('user', $record, 'id');
         }
         catch (Exception $ex) {
-            throw new Exception("Error updating confirmation.\n{$ex->getMessage()}");
+            throw new Exception("Error updating confirmation.\n{$ex->getMessage()}", $ex->getCode());
         }
 
         try {
-            $fullName = $result[0]['full_name'];
+            $fullName = $result[0]['display_name'];
             $email = $result[0]['email'];
             $this->sendUserWelcomeEmail($email, $fullName);
             $this->sendAdminIntimationOnRegComplete($email, $fullName);
@@ -929,7 +981,7 @@ class UserSvc extends CommonService implements iRestHandler
             $db = $this->nativeDb;
             // if security question available ask, otherwise if email svc available send tmp password
             $query = "username='$username' and confirm_code='y'";
-            $result = $db->retrieveSqlRecordsByFilter('user', 'security_question,email,full_name', $query, 1);
+            $result = $db->retrieveSqlRecordsByFilter('user', 'security_question,email,display_name', $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
                 // Check if the confirmation was never completed
@@ -949,7 +1001,7 @@ class UserSvc extends CommonService implements iRestHandler
                 return $userInfo;
             }
             $email = Utilities::getArrayValue('email', $userInfo, '');
-            $fullName = Utilities::getArrayValue('full_name', $userInfo, '');
+            $fullName = Utilities::getArrayValue('display_name', $userInfo, '');
             if (!empty($email) && !empty($fullName)) {
                 $this->sendResetPasswordLink($email, $fullName);
             }
@@ -957,7 +1009,7 @@ class UserSvc extends CommonService implements iRestHandler
             return '';
         }
         catch (Exception $ex) {
-            throw new Exception("Error sending new password.\n{$ex->getMessage()}");
+            throw new Exception("Error sending new password.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -980,9 +1032,9 @@ class UserSvc extends CommonService implements iRestHandler
                 $result = $db->retrieveSqlRecordsByFilter('user', '', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
-                    throw new Exception("The user has not confirmed registration.");
+                    throw new Exception("The user has not confirmed registration.", ErrorCodes::BAD_REQUEST);
                 }
-                throw new Exception("The supplied answer to the security question is invalid.");
+                throw new Exception("The supplied answer to the security question is invalid.", ErrorCodes::BAD_REQUEST);
             }
 
             $userId = $result[0]['id'];
@@ -992,7 +1044,7 @@ class UserSvc extends CommonService implements iRestHandler
             return $this->userSession($ticket);
         }
         catch (Exception $ex) {
-            throw new Exception("Error processing security answer.\n{$ex->getMessage()}");
+            throw new Exception("Error processing security answer.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -1012,12 +1064,12 @@ class UserSvc extends CommonService implements iRestHandler
             $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
-                throw new Exception("Reset code could not be found. Please contact your administrator.");
+                throw new Exception("Reset code could not be found. Please contact your administrator.", ErrorCodes::BAD_REQUEST);
             }
-            $userInfo = array('password' => md5($new_password));
+            $userInfo = array('password' => static::protectPassword($new_password));
             $result = $db->updateSqlRecordsByIds('user', $userInfo, $result[0]['id'], 'id');
             if (count($result) < 1) {
-                throw new Exception("The user identified in the ticket does not exist in the system.");
+                throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::BAD_REQUEST);
             }
         }
         catch (Exception $ex) {
@@ -1042,8 +1094,8 @@ class UserSvc extends CommonService implements iRestHandler
 
         try {
             $db = $this->nativeDb;
-            $pwdmd5 = md5($old_password);
-            $query = "id='$userId' and password='$pwdmd5' and confirm_code='y'";
+            $pwd = static::protectPassword($old_password);
+            $query = "id='$userId' and password='$pwd' and confirm_code='y'";
             $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
@@ -1052,14 +1104,14 @@ class UserSvc extends CommonService implements iRestHandler
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
-                    throw new Exception("The password supplied does not match.");
+                    throw new Exception("The password supplied does not match.", ErrorCodes::BAD_REQUEST);
                 }
-                throw new Exception("Login registration has not been confirmed.");
+                throw new Exception("Login registration has not been confirmed.", ErrorCodes::BAD_REQUEST);
             }
-            $userInfo = array('password' => md5($new_password));
+            $userInfo = array('password' => static::protectPassword($new_password));
             $result = $db->updateSqlRecordsByIds('user', $userInfo, $userId, 'id');
             if (count($result) < 1) {
-                throw new Exception("The user identified in the ticket does not exist in the system.");
+                throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::BAD_REQUEST);
             }
         }
         catch (Exception $ex) {
@@ -1085,7 +1137,7 @@ class UserSvc extends CommonService implements iRestHandler
             $record = Utilities::removeOneFromArray('password', $record);
             $result = $db->updateSqlRecordsByIds('user', $record, $userId, 'id');
             if (count($result) < 1) {
-                throw new Exception("The user identified in the ticket does not exist in the system.");
+                throw new Exception("The user profile for this session does not exist in the system.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
         }
         catch (Exception $ex) {

@@ -28,32 +28,35 @@ class SiteController extends Controller
     public function actionIndex()
     {
         try {
-            $state = $this->getSystemState();
-            if ('ready' === $state) {
+            $state = SystemManager::getInstance()->getSystemState();
+            switch ($state) {
+            case 'ready':
                 $svc = ServiceHandler::getInstance();
-                $app = $svc->getServiceObject('App');
-                // check if loaded in blob storage as app
-                if ($app->appExists('LaunchPad')) {
+                $app = $svc->getServiceObject('app');
+                // check if loaded in storage as app
+                if ($app && $app->appExists('LaunchPad')) {
                     header("Location: ./app/LaunchPad/index.html");
-                    exit;
                 }
-                // otherwise use local copy
-                header("Location: ./public/launchpad/index.html");
-                //$this->render( 'index' );
-                Yii::app()->end();
+                else {
+                    // otherwise use local copy
+                    header("Location: ./public/launchpad/index.html");
+                }
+                break;
+            case 'init required':
+                $this->actionInitSystem();
+                break;
+            case 'schema required':
+                $this->actionUpgradeSchema();
+                break;
+            case 'admin required':
+                $this->actionInitAdmin();
+                break;
+            case 'upgrade required':
+                $this->actionUpgradeSchema();
+                break;
             }
-            else {
-                if ('schema required' === $state) {
-                    $this->actionInitSchema();
-                }
-                if ('admin required' === $state) {
-                    $this->actionInitAdmin();
-                }
-                if ('data required' === $state) {
-                    $this->actionInitData();
-                }
-                Yii::app()->end();
-            }
+            //$this->render( 'index' );
+            Yii::app()->end();
         }
         catch (Exception $ex) {
             die($ex->getMessage());
@@ -137,24 +140,43 @@ class SiteController extends Controller
     /**
      * Displays the system init schema page
      */
-    public function actionInitSchema()
+    public function actionUpgradeSchema()
     {
         $model = new InitSchemaForm;
 
         // collect user input data
-        error_log(print_r($_POST, true));
         if (isset($_POST['InitSchemaForm'])) {
             $model->attributes = $_POST['InitSchemaForm'];
             // validate user input, configure the system and redirect to the home page
             if ($model->validate()) {
-                error_log('in valid');
-                $this->initSchema();
+                SystemManager::getInstance()->initSchema();
                 $this->redirect(Yii::app()->user->returnUrl);
             }
             $this->refresh();
         }
         // display the init form
         $this->render('initSchema', array('model' => $model));
+    }
+
+    /**
+     * Displays the system init admin page
+     */
+    public function actionInitSystem()
+    {
+        $model = new InitAdminForm;
+
+        // collect user input data
+        if (isset($_POST['InitAdminForm'])) {
+            $model->attributes = $_POST['InitAdminForm'];
+            // validate user input, configure the system and redirect to the previous page
+            if ($model->validate()) {
+                SystemManager::getInstance()->initSystem($model->attributes);
+                $this->redirect(Yii::app()->user->returnUrl);
+            }
+            $this->refresh();
+        }
+        // display the init form
+        $this->render('initAdmin', array('model' => $model));
     }
 
     /**
@@ -169,7 +191,7 @@ class SiteController extends Controller
             $model->attributes = $_POST['InitAdminForm'];
             // validate user input, configure the system and redirect to the previous page
             if ($model->validate()) {
-                $this->initAdmin($model->attributes);
+                SystemManager::getInstance()->initAdmin($model->attributes);
                 $this->redirect(Yii::app()->user->returnUrl);
             }
             $this->refresh();
@@ -190,7 +212,7 @@ class SiteController extends Controller
             $model->attributes = $_POST['InitDataForm'];
             // validate user input, configure the system and redirect to the previous page
             if ($model->validate()) {
-                $this->initData();
+                SystemManager::getInstance()->initData();
                 $this->redirect(Yii::app()->user->returnUrl);
             }
             $this->refresh();
@@ -213,251 +235,6 @@ class SiteController extends Controller
     public function actionEnvironment()
     {
         $this->render('environment');
-    }
-
-    /**
-     * Determines the current state of the system
-     */
-    public function getSystemState()
-    {
-        try {
-            // refresh the schema that we just added
-            Yii::app()->db->schema->refresh();
-            $tables = Yii::app()->db->schema->getTableNames();
-            if (!in_array('app', $tables) ||
-                !in_array('app_group', $tables) ||
-                !in_array('label', $tables) ||
-                !in_array('role', $tables) ||
-                !in_array('role_service_access', $tables) ||
-                !in_array('service', $tables) ||
-                !in_array('session', $tables) ||
-                !in_array('user', $tables)
-            ) {
-                return 'schema required';
-            }
-
-            $db = new PdoSqlDbSvc();
-            // check for at least one system admin user
-            $result = $db->retrieveSqlRecordsByFilter('user', 'username', "is_sys_admin = 1", 1);
-            unset($result['total']);
-            if (count($result) < 1) {
-                return 'admin required';
-            }
-
-            $result = $db->retrieveSqlRecordsByFilter('service', 'name');
-            unset($result['total']);
-            if (count($result) < 1) {
-                return 'data required';
-            }
-            $result = $db->retrieveSqlRecordsByFilter('app', 'name');
-            unset($result['total']);
-            if (count($result) < 1) {
-                return 'data required';
-            }
-
-            return 'ready';
-        }
-        catch (\Exception $ex) {
-            throw $ex;
-        }
-    }
-
-    /**
-     * Configures the system schema.
-     *
-     * @throws Exception
-     * @return null
-     */
-    public function initSchema()
-    {
-        try {
-            $contents = file_get_contents(Yii::app()->basePath . '/data/system_schema.json');
-            if (empty($contents)) {
-                throw new \Exception("Empty or no system schema file found.");
-            }
-            $contents = Utilities::jsonToArray($contents);
-            // create system tables
-            $tables = Utilities::getArrayValue('table', $contents);
-            if (empty($tables)) {
-                throw new \Exception("No default system schema found.");
-            }
-            $db = new PdoSqlDbSvc();
-            $result = $db->createTables($tables, true, true);
-
-            // setup session stored procedure
-            $command = Yii::app()->db->createCommand();
-//            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
-//                      WHERE ROUTINE_TYPE="PROCEDURE"
-//                          AND ROUTINE_SCHEMA="dreamfactory"
-//                          AND ROUTINE_NAME="UpdateOrInsertSession";';
-//            $result = $db->singleSqlQuery($query);
-//            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
-            switch ($db->getDriverType()) {
-            case Utilities::DRV_SQLSRV:
-                $query = "IF ( OBJECT_ID('dbo.UpdateOrInsertSession') IS NOT NULL )
-                                  DROP PROCEDURE dbo.UpdateOrInsertSession";
-                $command->setText($query);
-                $command->execute();
-                $query =
-                    'CREATE PROCEDURE dbo.UpdateOrInsertSession
-                           @id nvarchar(32),
-                           @start_time int,
-                           @data nvarchar(4000)
-                        AS
-                        BEGIN
-                            IF EXISTS (SELECT id FROM session WHERE id = @id)
-                                BEGIN
-                                    UPDATE session
-                                    SET  data = @data, start_time = @start_time
-                                    WHERE id = @id
-                                END
-                            ELSE
-                                BEGIN
-                                    INSERT INTO session (id, start_time, data)
-                                    VALUES ( @id, @start_time, @data )
-                                END
-                        END';
-                $command->reset();
-                $command->setText($query);
-                $command->execute();
-                break;
-            case Utilities::DRV_MYSQL:
-            default:
-                $query = 'DROP PROCEDURE IF EXISTS `UpdateOrInsertSession`';
-                $command->setText($query);
-                $command->execute();
-                $query =
-                    'CREATE PROCEDURE `UpdateOrInsertSession`(IN the_id nvarchar(32),
-                                                                  IN the_start int,
-                                                                  IN the_data nvarchar(4000))
-                        BEGIN
-                            IF EXISTS (SELECT `id` FROM `session` WHERE `id` = the_id) THEN
-                                UPDATE session
-                                SET  `data` = the_data, `start_time` = the_start
-                                WHERE `id` = the_id;
-                            ELSE
-                                INSERT INTO session (`id`, `start_time`, `data`)
-                                VALUES ( the_id, the_start, the_data );
-                            END IF;
-                        END';
-                $command->reset();
-                $command->setText($query);
-                $command->execute();
-                break;
-            }
-//            }
-            // refresh the schema that we just added
-            Yii::app()->db->schema->refresh();
-        }
-        catch (\Exception $ex) {
-            throw $ex;
-        }
-    }
-
-    /**
-     * Configures the system.
-     *
-     * @param array $data
-     * @throws Exception
-     * @return null
-     */
-    public function initAdmin($data = array())
-    {
-        try {
-            // create and login first admin user
-            // fill out the user fields for creation
-            $db = new PdoSqlDbSvc();
-            $username = Utilities::getArrayValue('username', $data);
-            $firstName = Utilities::getArrayValue('firstName', $data);
-            $lastName = Utilities::getArrayValue('lastName', $data);
-            $fields = array('username' => $username,
-                            'email' => Utilities::getArrayValue('email', $data),
-                            'password' => md5(Utilities::getArrayValue('password', $data)),
-                            'first_name' => $firstName,
-                            'last_name' => $lastName,
-                            'full_name' => $firstName . ' ' . $lastName,
-                            'is_active' => true,
-                            'is_sys_admin' => true,
-                            'confirm_code' => 'y'
-            );
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id', "username = '$username'", 1);
-            unset($result['total']);
-            if (count($result) > 0) {
-                throw new \Exception("A user already exists with the username '$username'.");
-            }
-            $result = $db->createSqlRecord('user', $fields);
-            if (!isset($result[0])) {
-                error_log(print_r($result, true));
-                throw new \Exception("Failed to create user.");
-            }
-            $userId = Utilities::getArrayValue('id', $result[0]);
-            if (empty($userId)) {
-                error_log(print_r($result[0], true));
-                throw new \Exception("Failed to create user.");
-            }
-            Utilities::setCurrentUserId($userId);
-        }
-        catch (\Exception $ex) {
-            throw $ex;
-        }
-    }
-
-    /**
-     * Configures the default system data.
-     *
-     * @throws Exception
-     * @return boolean whether configuration is successful
-     */
-    public function initData()
-    {
-        try {
-            $db = new PdoSqlDbSvc();
-
-            // for now use the first admin we find
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id', "is_sys_admin = 1", 1);
-            unset($result['total']);
-            if (!isset($result[0])) {
-                error_log(print_r($result, true));
-                throw new \Exception("Failed to retrieve user.");
-            }
-            $userId = Utilities::getArrayValue('id', $result[0]);
-            if (empty($userId)) {
-                error_log(print_r($result[0], true));
-                throw new \Exception("Failed to retrieve user id.");
-            }
-            Utilities::setCurrentUserId($userId);
-
-
-            // init system tables with records
-            $contents = file_get_contents(Yii::app()->basePath . '/data/system_data.json');
-            if (empty($contents)) {
-                throw new \Exception("Empty or no system data file found.");
-            }
-            $contents = Utilities::jsonToArray($contents);
-            $result = $db->retrieveSqlRecordsByFilter('service', 'id', '', 1);
-            unset($result['total']);
-            if (empty($result)) {
-                $services = Utilities::getArrayValue('service', $contents);
-                if (empty($services)) {
-                    error_log(print_r($contents, true));
-                    throw new \Exception("No default system services found.");
-                }
-                $db->createSqlRecords('service', $services, true);
-            }
-            $result = $db->retrieveSqlRecordsByFilter('app', 'id', '', 1);
-            unset($result['total']);
-            if (empty($result)) {
-                $apps = Utilities::getArrayValue('app', $contents);
-                if (empty($apps)) {
-                    error_log(print_r($contents, true));
-                    throw new \Exception("No default system apps found.");
-                }
-                $db->createSqlRecords('app', $apps, true);
-            }
-        }
-        catch (\Exception $ex) {
-            throw $ex;
-        }
     }
 
 }

@@ -9,6 +9,7 @@ class InitAdminForm extends CFormModel
 {
 	public $username;
     public $password;
+    public $passwordRepeat;
 	public $email;
     public $firstName;
     public $lastName;
@@ -21,7 +22,10 @@ class InitAdminForm extends CFormModel
 		return array(
 			// names, password, and email are required
 			array('username, password, email, lastName, firstName', 'required'),
-			// email has to be a valid email address
+            // password repeat must match password
+            array('passwordRepeat', 'required'),
+            array('password', 'compare', 'compareAttribute'=>'passwordRepeat'),
+            // email has to be a valid email address
 			array('email', 'email'),
 		);
 	}
@@ -36,9 +40,10 @@ class InitAdminForm extends CFormModel
 		return array(
             'username'=>'Desired UserName',
             'password'=>'Desired Password',
+            'passwordRepeat'=>'Verify Password',
             'firstName'=>'First Name',
             'lastName'=>'Last Name',
-            'email'=>'Currently Valid Email',
+            'email'=>'Valid Email Address',
 		);
 	}
 
