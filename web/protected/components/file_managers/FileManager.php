@@ -569,6 +569,9 @@ class FileManager extends CommonFileManager
     {
         try {
             $key = self::addContainerToName($this->storageContainer, $path);
+            if (!is_file($key)) {
+                throw new Exception("'$key' is not a valid filename.");
+            }
             $result = unlink($key);
             if (!$result) {
                 throw new Exception('Failed to delete file.');
@@ -590,11 +593,7 @@ class FileManager extends CommonFileManager
             $path = $file['path'];
             if (!empty($path)) {
                 try {
-                    $key = self::addContainerToName($this->storageContainer, $path);
-                    $result = unlink($key);
-                    if (!$result) {
-                        throw new Exception('Failed to delete file.');
-                    }
+                    $this->deleteFile($path);
                 }
                 catch (Exception $ex) {
                     $files[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
@@ -855,7 +854,15 @@ class FileManager extends CommonFileManager
             }
             foreach ($files as $file) {
                 $delPath = $dir . DIRECTORY_SEPARATOR . $file;
-                (is_dir($delPath)) ? static::deleteTree($delPath, $force) : unlink($delPath);
+                if (is_dir($delPath)) {
+                    static::deleteTree($delPath, $force);
+                }
+                elseif (is_file($delPath)) {
+                    unlink($delPath);
+                }
+                else {
+                    // bad path?
+                }
             }
             rmdir($dir);
         }

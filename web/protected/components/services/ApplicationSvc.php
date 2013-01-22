@@ -224,12 +224,13 @@ class ApplicationSvc extends CommonFileSvc
         $data = Utilities::jsonToArray($data);
         $records = array(array('fields' => $data)); // todo bad assumption of right format
         $sys = SystemManager::getInstance();
-        $result = $sys->createRecords('app', $records, false, 'Id');
+        $result = $sys->createRecords('app', $records, false, 'id,name');
         if (isset($result['record'][0]['error'])) {
             $msg = $result['record'][0]['error']['message'];
             throw new Exception("Could not create the database entry for this application.\n$msg");
         }
-        $id = $result['record'][0]['fields']['id'];
+        $id = (isset($result['record'][0]['fields']['id'])) ? $result['record'][0]['fields']['id'] : '';
+        $name = (isset($result['record'][0]['fields']['name'])) ? $result['record'][0]['fields']['name'] : '';
         $zip->deleteName('description.json');
         try {
             $data = $zip->getFromName('schema.json');
@@ -278,7 +279,8 @@ class ApplicationSvc extends CommonFileSvc
             throw $ex;
         }
         // extract the rest of the zip file into storage
-        return $this->fileRestHandler->extractZipFile('', $zip);
+        $result = $this->fileRestHandler->extractZipFile('', $zip);
+        return array('folder'=>array('name'=>$name, 'path'=>$name.'/'));
     }
 
     /**
@@ -297,7 +299,7 @@ class ApplicationSvc extends CommonFileSvc
             $msg = $result['record'][0]['error']['message'];
             throw new Exception("Could not create the database entry for this application.\n$msg");
         }
-        $id = $result['record'][0]['fields']['id'];
+        $id = (isset($result['record'][0]['fields']['id'])) ? $result['record'][0]['fields']['id'] : '';
 
         $zip = new ZipArchive();
         if (true === $zip->open($zip_file)) {
