@@ -277,8 +277,8 @@ class ApplicationSvc extends CommonFileSvc
             $sys->deleteRecordsByIds('app', $id);
             throw $ex;
         }
-        // expand the rest of the zip file into storage
-        return $this->fileRestHandler->expandZipFile('', $zip);
+        // extract the rest of the zip file into storage
+        return $this->fileRestHandler->extractZipFile('', $zip);
     }
 
     /**
@@ -301,10 +301,10 @@ class ApplicationSvc extends CommonFileSvc
 
         $zip = new ZipArchive();
         if (true === $zip->open($zip_file)) {
-            // expand the rest of the zip file into storage
+            // extract the rest of the zip file into storage
             $dropPath = $zip->getNameIndex(0);
             $dropPath = substr($dropPath, 0, strpos($dropPath, '/')) . '/';
-            return $this->fileRestHandler->expandZipFile($name . DIRECTORY_SEPARATOR, $zip, false, $dropPath);
+            return $this->fileRestHandler->extractZipFile($name . DIRECTORY_SEPARATOR, $zip, false, $dropPath);
         }
         else {
             throw new Exception('Error opening zip file.');
@@ -403,7 +403,7 @@ class ApplicationSvc extends CommonFileSvc
             $pkgUrl = Utilities::getArrayValue('pkg_url', $_REQUEST, '');
             if (!empty($pkgUrl)) {
                 try {
-                    // need to download and expand zip file and move contents to storage
+                    // need to download and extract zip file and move contents to storage
                     $filename = $this->importUrlFileToTemp($pkgUrl);
                     return $this->importAppFromPackage($filename);
                     // todo save url for later updates
@@ -417,7 +417,7 @@ class ApplicationSvc extends CommonFileSvc
             $zipUrl = Utilities::getArrayValue('zip_url', $_REQUEST, '');
             if (!empty($name) && !empty($zipUrl)) {
                 try {
-                    // need to download and expand zip file and move contents to storage
+                    // need to download and extract zip file and move contents to storage
                     $filename = $this->importUrlFileToTemp($zipUrl);
                     return $this->importAppFromZip($name, $filename);
                     // todo save url for later updates
@@ -441,7 +441,7 @@ class ApplicationSvc extends CommonFileSvc
                 $contentType = $files['type'];
                 if (0 === strcasecmp('dfpkg', FileUtilities::getFileExtension($filename))) {
                     try {
-                        // need to expand zip file and move contents to storage
+                        // need to extract zip file and move contents to storage
                         return $this->importAppFromPackage($tmpName);
                     }
                     catch (Exception $ex) {
@@ -450,7 +450,7 @@ class ApplicationSvc extends CommonFileSvc
                 }
                 if (!FileUtilities::isZipContent($contentType)) {
                     try {
-                        // need to expand zip file and move contents to storage
+                        // need to extract zip file and move contents to storage
                         return $this->importAppFromZip($name, $tmpName);
                     }
                     catch (Exception $ex) {
