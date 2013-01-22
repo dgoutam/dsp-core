@@ -560,7 +560,7 @@ class UserManager implements iRestHandler
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
-                    throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::BAD_REQUEST);
+                    throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
                 }
                 $query = "username='$username'";
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
@@ -568,7 +568,7 @@ class UserManager implements iRestHandler
                 if (count($result) > 0) {
                     throw new Exception("Login registration has not been confirmed.");
                 }
-                throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::BAD_REQUEST);
+                throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
             }
             $userInfo = $result[0];
             if (!$userInfo['is_active']) {
@@ -724,7 +724,7 @@ class UserManager implements iRestHandler
             $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
             $result = $db->retrieveSqlRecordsByIds('user', $userId, 'id', $fields);
             if (count($result) < 1) {
-                throw new Exception("The user identified in the ticket does not exist in the system.");
+                throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED);
             }
             $userInfo = $result[0];
             if (!$userInfo['is_active']) {

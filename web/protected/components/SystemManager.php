@@ -191,7 +191,7 @@ class SystemManager implements iRestHandler
 //            }
             // initialize config table if not already
             if (empty($config)) {
-                $this->nativeDb->createSqlRecords('config', array('db_version'=>$version), true);
+                $this->nativeDb->createSqlRecord('config', array('db_version'=>$version));
             }
             // refresh the schema that we just added
             Yii::app()->db->schema->refresh();
