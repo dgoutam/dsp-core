@@ -172,7 +172,7 @@ abstract class CommonFileManager
      * @return array
      * @throws Exception
      */
-    abstract public function expandZipFile($path, $zip, $clean = false, $drop_path = '');
+    abstract public function extractZipFile($path, $zip, $clean = false, $drop_path = '');
 
     /**
      * @param string $path

@@ -655,7 +655,7 @@ class FileManager extends CommonFileManager
      * @throws Exception
      * @return array
      */
-    public function expandZipFile($path, $zip, $clean = false, $drop_path='')
+    public function extractZipFile($path, $zip, $clean = false, $drop_path='')
     {
         if (($clean)) {
             try {

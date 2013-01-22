@@ -681,7 +681,7 @@ class BlobFileManager extends CommonFileManager
      * @return array
      * @throws Exception
      */
-    public function expandZipFile($path, $zip, $clean = false, $drop_path = '')
+    public function extractZipFile($path, $zip, $clean = false, $drop_path = '')
     {
         if (($clean)) {
             try {

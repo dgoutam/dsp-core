@@ -82,22 +82,13 @@ class CommonFileSvc extends CommonService implements iRestHandler
         if (empty($path) || empty($path_array[count($path_array) - 1])) {
             // list from root
             // or if ending in '/' then resource is a folder
-            $full_tree = (isset($_REQUEST['full_tree'])) ? true : false;
-            $include_files = true;
-            $include_folders = true;
-            if (isset($_REQUEST['files_only'])) {
-                $include_folders = false;
-            }
-            elseif (isset($_REQUEST['folders_only'])) {
-                $include_files = false;
-            }
             try {
                 if (isset($_REQUEST['properties'])) {
                     // just properties of the directory itself
                     $result = $this->fileRestHandler->getFolderProperties($path);
                 }
                 else {
-                    $asZip = (isset($_REQUEST['zip'])) ? Utilities::boolval($_REQUEST['zip']) : false;
+                    $asZip = Utilities::boolval(Utilities::getArrayValue('zip', $_REQUEST, false));
                     if ($asZip) {
                         $zipFileName = $this->fileRestHandler->getFolderAsZip($path);
                         $fd = fopen ($zipFileName, "r");
@@ -115,15 +106,24 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                         fclose($fd);
                         unlink($zipFileName);
-                        exit;
+                        Yii::app()->end();
                     }
                     else {
+                        $full_tree = (isset($_REQUEST['full_tree'])) ? true : false;
+                        $include_files = true;
+                        $include_folders = true;
+                        if (isset($_REQUEST['files_only'])) {
+                            $include_folders = false;
+                        }
+                        elseif (isset($_REQUEST['folders_only'])) {
+                            $include_files = false;
+                        }
                         $result = $this->fileRestHandler->getFolderContent($path, $include_files, $include_folders, $full_tree);
                     }
                 }
             }
             catch (Exception $ex) {
-                throw new Exception("Failed to retrieve application folder content for '$path''.\n{$ex->getMessage()}");
+                throw new Exception("Failed to retrieve folder content for '$path''.\n{$ex->getMessage()}");
             }
         }
         else {
@@ -131,11 +131,11 @@ class CommonFileSvc extends CommonService implements iRestHandler
             try {
                 if (isset($_REQUEST['properties'])) {
                     // just properties of the file itself
-                    $content = (isset($_REQUEST['content'])) ? Utilities::boolval($_REQUEST['content']) : false;
+                    $content = Utilities::boolval(Utilities::getArrayValue('content', $_REQUEST, false));
                     $result = $this->fileRestHandler->getFileProperties($path, $content);
                 }
                 else {
-                    $download = (isset($_REQUEST['download'])) ? Utilities::boolval($_REQUEST['download']) : false;
+                    $download = Utilities::boolval(Utilities::getArrayValue('download', $_REQUEST, false));
                     if ($download) {
                         // stream the file, exits processing
                         $this->fileRestHandler->downloadFile($path);
@@ -147,7 +147,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 }
             }
             catch (Exception $ex) {
-                throw new Exception("Failed to retrieve application file '$path''.\n{$ex->getMessage()}");
+                throw new Exception("Failed to retrieve file '$path''.\n{$ex->getMessage()}");
             }
         }
 
@@ -174,19 +174,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $content = Utilities::getPostData();
                     if (empty($content)) {
                         // empty post?
-                        error_log("Empty content in create application file $fullPathName.");
+                        error_log("Empty content in create file $fullPathName.");
                     }
-                    $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if (FileUtilities::isZipContent($contentType) && $expand) {
-                        // need to expand zip file and move contents to storage
-                        $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                    $contentType = Utilities::getArrayValue('CONTENT_TYPE', $_SERVER, '');
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
+                    if (FileUtilities::isZipContent($contentType) && $extract) {
+                        // need to extract zip file and move contents to storage
+                        $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $zip = new ZipArchive();
                         if (true === $zip->open($tmpName)) {
-                            $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                            $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                         }
                         else {
                             throw new Exception('Error opening temporary zip file.');
@@ -197,7 +197,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to create file $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -210,7 +210,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $this->fileRestHandler->createFolder($fullPathName, true, $content, true);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to create application folder $fullPathName.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to create folder $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -227,14 +227,14 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     if ($error == UPLOAD_ERR_OK) {
                         $tmpName = $files['tmp_name'];
                         $contentType = $files['type'];
-                        $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
+                        $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
                         try {
-                            if (FileUtilities::isZipContent($contentType) && $expand) {
-                                // need to expand zip file and move contents to storage
-                                $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                            if (FileUtilities::isZipContent($contentType) && $extract) {
+                                // need to extract zip file and move contents to storage
+                                $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                                 $zip = new ZipArchive();
                                 if (true === $zip->open($tmpName)) {
-                                    $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                    $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                                 }
                                 else {
                                     throw new Exception('Error opening temporary zip file.');
@@ -246,12 +246,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                         catch (Exception $ex) {
                             $out[0]['error'] = array('code' => $ex->getCode(),
-                                                     'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                                                     'message' => "Failed to create file $fullPathName.\n{$ex->getMessage()}");
                         }
                     }
                     else {
                         $out[0]['error'] = array('code' => 500,
-                                                 'message' => "Failed to create application file $fullPathName.\n$error");
+                                                 'message' => "Failed to create file $fullPathName.\n$error");
                     }
                 }
                 else {
@@ -263,14 +263,14 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         if ($error == UPLOAD_ERR_OK) {
                             $tmpName = $files['tmp_name'][$key];
                             $contentType = $files['type'][$key];
-                            $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
+                            $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
                             try {
-                                if (FileUtilities::isZipContent($contentType) && $expand) {
-                                    // need to expand zip file and move contents to storage
-                                    $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                                if (FileUtilities::isZipContent($contentType) && $extract) {
+                                    // need to extract zip file and move contents to storage
+                                    $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                                     $zip = new ZipArchive();
                                     if (true === $zip->open($tmpName)) {
-                                        $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                        $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                                     }
                                     else {
                                         throw new Exception('Error opening temporary zip file.');
@@ -282,12 +282,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             }
                             catch (Exception $ex) {
                                 $out[$key]['error'] = array('code' => $ex->getCode(),
-                                                            'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                                                            'message' => "Failed to create file $fullPathName.\n{$ex->getMessage()}");
                             }
                         }
                         else {
                             $out[$key]['error'] = array('code' => 500,
-                                                        'message' => "Failed to create application file $fullPathName.\n$error");
+                                                        'message' => "Failed to create file $fullPathName.\n$error");
                         }
                     }
                 }
@@ -325,7 +325,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
                                     try {
                                         $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
-                                        $deleteSource = (isset($folder['delete_source'])) ? Utilities::boolval($folder['delete_source']) : false;
+                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
                                         if ($deleteSource) {
                                             $this->fileRestHandler->deleteFolder($srcPath, true);
                                         }
@@ -372,7 +372,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                                     $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
                                     try {
                                         $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
-                                        $deleteSource = (isset($file['delete_source'])) ? Utilities::boolval($file['delete_source']) : false;
+                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
                                         if ($deleteSource) {
                                             $this->fileRestHandler->deleteFile($srcPath);
                                         }
@@ -402,7 +402,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to create application folders or files from request.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to create folders or files from request.\n{$ex->getMessage()}");
                 }
             }
         }
@@ -419,19 +419,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
                     if (empty($content)) {
                         // empty post?
-                        error_log("Empty content in write application file $path to storage.");
+                        error_log("Empty content in write file $path to storage.");
                     }
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if (FileUtilities::isZipContent($contentType) && $expand) {
-                        // need to expand zip file and move contents to storage
-                        $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
+                    if (FileUtilities::isZipContent($contentType) && $extract) {
+                        // need to extract zip file and move contents to storage
+                        $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
                         $zip = new ZipArchive();
                         if (true === $zip->open($tmpName)) {
-                            $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
+                            $this->fileRestHandler->extractZipFile($folder, $zip, $clean);
                         }
                         else {
                             throw new Exception('Error opening temporary zip file.');
@@ -442,7 +442,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to create application file $path.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to create file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $path)));
             }
@@ -456,7 +456,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $this->fileRestHandler->createFolder($path, true, $content);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to create application file $path.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to create file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $path)));
             }
@@ -473,15 +473,15 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 if (UPLOAD_ERR_OK == $error) {
                     $tmpName = $files["tmp_name"][0];
                     $contentType = $files['type'][0];
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
                     // create in permanent storage
                     try {
-                        if (FileUtilities::isZipContent($contentType) && $expand) {
-                            // need to expand zip file and move contents to storage
-                            $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                        if (FileUtilities::isZipContent($contentType) && $extract) {
+                            // need to extract zip file and move contents to storage
+                            $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                             $zip = new ZipArchive();
                             if (true === $zip->open($tmpName)) {
-                                $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                             }
                             else {
                                 throw new Exception('Error opening temporary zip file.');
@@ -492,11 +492,11 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                     }
                     catch (Exception $ex) {
-                        throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                        throw new Exception("Failed to create file $fullPathName.\n{$ex->getMessage()}");
                     }
                 }
                 else {
-                    throw new Exception("Failed to create application file $fullPathName.\n$error");
+                    throw new Exception("Failed to create file $fullPathName.\n$error");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -537,19 +537,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $content = Utilities::getPostData();
                     if (empty($content)) {
                         // empty post?
-                        error_log("Empty content in update application file $fullPathName.");
+                        error_log("Empty content in update file $fullPathName.");
                     }
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if (FileUtilities::isZipContent($contentType) && $expand) {
-                        // need to expand zip file and move contents to storage
-                        $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
+                    if (FileUtilities::isZipContent($contentType) && $extract) {
+                        // need to extract zip file and move contents to storage
+                        $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $zip = new ZipArchive();
                         if (true === $zip->open($tmpName)) {
-                            $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                            $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                         }
                         else {
                             throw new Exception('Error opening temporary zip file.');
@@ -560,7 +560,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application file $fullPathName.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update file $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -573,7 +573,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $this->fileRestHandler->updateFolderProperties($fullPathName, $content);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application folder $fullPathName.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update folder $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -595,12 +595,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                         catch (Exception $ex) {
                             $out[$key]['error'] = array('code' => $ex->getCode(),
-                                                        'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                                                        'message' => "Failed to create file $fullPathName.\n{$ex->getMessage()}");
                         }
                     }
                     else {
                         $out[$key]['error'] = array('code' => 500,
-                                                    'message' => "Failed to create application file $fullPathName.\n$error");
+                                                    'message' => "Failed to create file $fullPathName.\n$error");
                     }
                 }
                 $result = array('file' => $out);
@@ -710,7 +710,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application folders or files from request.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
                 }
             }
         }
@@ -727,19 +727,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
                     if (empty($content)) {
                         // empty post?
-                        error_log("Empty content in write application file $path to storage.");
+                        error_log("Empty content in write file $path to storage.");
                     }
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if (FileUtilities::isZipContent($contentType) && $expand) {
-                        // need to expand zip file and move contents to storage
-                        $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
+                    if (FileUtilities::isZipContent($contentType) && $extract) {
+                        // need to extract zip file and move contents to storage
+                        $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
                         $zip = new ZipArchive();
                         if (true === $zip->open($tmpName)) {
-                            $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
+                            $this->fileRestHandler->extractZipFile($folder, $zip, $clean);
                         }
                         else {
                             throw new Exception('Error opening temporary zip file.');
@@ -750,7 +750,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application file $path.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $path)));
             }
@@ -764,7 +764,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $this->fileRestHandler->updateFolderProperties($path, $content);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application folder $path.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update folder $path.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $path)));
             }
@@ -781,15 +781,15 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 if (UPLOAD_ERR_OK == $error) {
                     $tmpName = $files["tmp_name"][0];
                     $contentType = $files['type'][0];
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
                     // create in permanent storage
                     try {
-                        if (FileUtilities::isZipContent($contentType) && $expand) {
-                            // need to expand zip file and move contents to storage
-                            $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                        if (FileUtilities::isZipContent($contentType) && $extract) {
+                            // need to extract zip file and move contents to storage
+                            $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                             $zip = new ZipArchive();
                             if (true === $zip->open($tmpName)) {
-                                $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                             }
                             else {
                                 throw new Exception('Error opening temporary zip file.');
@@ -800,11 +800,11 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                     }
                     catch (Exception $ex) {
-                        throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                        throw new Exception("Failed to create file $fullPathName.\n{$ex->getMessage()}");
                     }
                 }
                 else {
-                    throw new Exception("Failed to create application file $fullPathName.\n$error");
+                    throw new Exception("Failed to create file $fullPathName.\n$error");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -845,19 +845,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $content = Utilities::getPostData();
                     if (empty($content)) {
                         // empty post?
-                        error_log("Empty content in update application file $fullPathName.");
+                        error_log("Empty content in update file $fullPathName.");
                     }
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if (FileUtilities::isZipContent($contentType) && $expand) {
-                        // need to expand zip file and move contents to storage
-                        $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
+                    if (FileUtilities::isZipContent($contentType) && $extract) {
+                        // need to extract zip file and move contents to storage
+                        $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $zip = new ZipArchive();
                         if (true === $zip->open($tmpName)) {
-                            $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                            $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                         }
                         else {
                             throw new Exception('Error opening temporary zip file.');
@@ -868,7 +868,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application file $fullPathName.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update file $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -881,7 +881,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $this->fileRestHandler->updateFolderProperties($fullPathName, $content);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application folder $fullPathName.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update folder $fullPathName.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -903,12 +903,12 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                         catch (Exception $ex) {
                             $out[$key]['error'] = array('code' => $ex->getCode(),
-                                                        'message' => "Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                                                        'message' => "Failed to create file $fullPathName.\n{$ex->getMessage()}");
                         }
                     }
                     else {
                         $out[$key]['error'] = array('code' => 500,
-                                                    'message' => "Failed to create application file $fullPathName.\n$error");
+                                                    'message' => "Failed to create file $fullPathName.\n$error");
                     }
                 }
                 $result = array('file' => $out);
@@ -1018,7 +1018,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application folders or files from request.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
                 }
             }
         }
@@ -1035,19 +1035,19 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $contentType = (isset($_SERVER['CONTENT_TYPE'])) ? $_SERVER['CONTENT_TYPE'] : '';
                     if (empty($content)) {
                         // empty post?
-                        error_log("Empty content in write application file $path to storage.");
+                        error_log("Empty content in write file $path to storage.");
                     }
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
-                    if (FileUtilities::isZipContent($contentType) && $expand) {
-                        // need to expand zip file and move contents to storage
-                        $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
+                    if (FileUtilities::isZipContent($contentType) && $extract) {
+                        // need to extract zip file and move contents to storage
+                        $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                         $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                         $tmpName = $tempDir  . $name;
                         file_put_contents($tmpName, $content);
                         $folder = FileUtilities::getParentFolder($path);
                         $zip = new ZipArchive();
                         if (true === $zip->open($tmpName)) {
-                            $this->fileRestHandler->expandZipFile($folder, $zip, $clean);
+                            $this->fileRestHandler->extractZipFile($folder, $zip, $clean);
                         }
                         else {
                             throw new Exception('Error opening temporary zip file.');
@@ -1058,7 +1058,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application file $path.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update file $path.\n{$ex->getMessage()}");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $path)));
             }
@@ -1072,7 +1072,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     $this->fileRestHandler->updateFolderProperties($path, $content);
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to update application folder $path.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to update folder $path.\n{$ex->getMessage()}");
                 }
                 $result = array('folder' => array(array('name' => $name, 'path' => $path)));
             }
@@ -1089,15 +1089,15 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 if (UPLOAD_ERR_OK == $error) {
                     $tmpName = $files["tmp_name"][0];
                     $contentType = $files['type'][0];
-                    $expand = (isset($_REQUEST['expand'])) ? Utilities::boolval($_REQUEST['expand']) : false;
+                    $extract = Utilities::boolval(Utilities::getArrayValue('extract', $_REQUEST, false));
                     // create in permanent storage
                     try {
-                        if (FileUtilities::isZipContent($contentType) && $expand) {
-                            // need to expand zip file and move contents to storage
-                            $clean = (isset($_REQUEST['clean'])) ? Utilities::boolval($_REQUEST['clean']) : false;
+                        if (FileUtilities::isZipContent($contentType) && $extract) {
+                            // need to extract zip file and move contents to storage
+                            $clean = Utilities::boolval(Utilities::getArrayValue('clean', $_REQUEST, false));
                             $zip = new ZipArchive();
                             if (true === $zip->open($tmpName)) {
-                                $this->fileRestHandler->expandZipFile($path, $zip, $clean);
+                                $this->fileRestHandler->extractZipFile($path, $zip, $clean);
                             }
                             else {
                                 throw new Exception('Error opening temporary zip file.');
@@ -1108,11 +1108,11 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         }
                     }
                     catch (Exception $ex) {
-                        throw new Exception("Failed to create application file $fullPathName.\n{$ex->getMessage()}");
+                        throw new Exception("Failed to create file $fullPathName.\n{$ex->getMessage()}");
                     }
                 }
                 else {
-                    throw new Exception("Failed to create application file $fullPathName.\n$error");
+                    throw new Exception("Failed to create file $fullPathName.\n$error");
                 }
                 $result = array('file' => array(array('name' => $name, 'path' => $fullPathName)));
             }
@@ -1147,7 +1147,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
             try {
                 $content = Utilities::getPostDataAsArray();
                 if (empty($content)) {
-                    throw new Exception("Empty file or folder path given for application storage delete.");
+                    throw new Exception("Empty file or folder path given for storage delete.");
                 }
                 else {
                     $out = array();
@@ -1163,17 +1163,17 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 }
             }
             catch (Exception $ex) {
-                throw new Exception("Failed to delete application storage folders.\n{$ex->getMessage()}");
+                throw new Exception("Failed to delete storage folders.\n{$ex->getMessage()}");
             }
         }
         elseif (empty($path_array[count($path_array) - 1])) {
             // delete directory of files and the directory itself
-            $force = (isset($_REQUEST['force'])) ? Utilities::boolval($_REQUEST['force']) : false;
+            $force = Utilities::boolval(Utilities::getArrayValue('force', $_REQUEST, false));
             try {
                 $this->fileRestHandler->deleteFolder($path, $force);
             }
             catch (Exception $ex) {
-                throw new Exception("Failed to delete application storage folder '$path'.\n{$ex->getMessage()}");
+                throw new Exception("Failed to delete storage folder '$path'.\n{$ex->getMessage()}");
             }
             $result = array('folder' => array(array('path' => $path)));
         }
@@ -1183,7 +1183,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 $this->fileRestHandler->deleteFile($path);
             }
             catch (Exception $ex) {
-                throw new Exception("Failed to delete application storage file '$path'.\n{$ex->getMessage()}");
+                throw new Exception("Failed to delete storage file '$path'.\n{$ex->getMessage()}");
             }
             $result = array('file' => array(array('path' => $path)));
         }
