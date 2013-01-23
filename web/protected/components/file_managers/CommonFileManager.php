@@ -70,7 +70,7 @@ abstract class CommonFileManager
     abstract public function copyFolder($dest_path, $src_path, $check_exist = false);
 
     /**
-     * @param string $path
+     * @param string $path Folder path relative to the service root directory
      * @param  bool $force
      * @return void
      * @throws Exception
@@ -78,12 +78,13 @@ abstract class CommonFileManager
     abstract public function deleteFolder($path, $force = false);
 
     /**
-     * @param array $folders
+     * @param array $folders Array of folder paths that are relative to the root directory
+     * @param string $root directory from which to delete
      * @param  bool $force
      * @return array
      * @throws Exception
      */
-    abstract  public function deleteFolders($folders, $force = false);
+    abstract  public function deleteFolders($folders, $root = '', $force = false);
 
     /**
      * @param $path
@@ -151,18 +152,19 @@ abstract class CommonFileManager
     abstract public function copyFile($dest_path, $src_path, $check_exist = false);
 
     /**
-     * @param $path
+     * @param $path File path relative to the service root directory
      * @return void
      * @throws Exception
      */
     abstract public function deleteFile($path);
 
     /**
-     * @param array $files
+     * @param array $files Array of file paths relative to root
+     * @param string $root
      * @return array
      * @throws Exception
      */
-    abstract public function deleteFiles($files);
+    abstract public function deleteFiles($files, $root='');
 
     /**
      * @param $path

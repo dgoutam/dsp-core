@@ -1142,50 +1142,55 @@ class CommonFileSvc extends CommonService implements iRestHandler
         $this->checkPermission('delete');
         $path = Utilities::getArrayValue('resource', $_GET, '');
         $path_array = (!empty($path)) ? explode('/', $path) : array();
-        if (empty($path)) {
+        if (empty($path) || empty($path_array[count($path_array) - 1])) {
+            // delete directory of files and the directory itself
+            $force = Utilities::boolval(Utilities::getArrayValue('force', $_REQUEST, false));
             // multi-file or folder delete via post data
             try {
                 $content = Utilities::getPostDataAsArray();
-                if (empty($content)) {
-                    throw new Exception("Empty file or folder path given for storage delete.");
-                }
-                else {
-                    $out = array();
-                    if (isset($content['file'])) {
-                        $files = $content['file'];
-                        $out['file'] = $this->fileRestHandler->deleteFiles($files);
-                    }
-                    if (isset($content['folder'])) {
-                        $folders = $content['folder'];
-                        $out['folder'] = $this->fileRestHandler->deleteFolders($folders);
-                    }
-                    $result = $out;
-                }
             }
             catch (Exception $ex) {
                 throw new Exception("Failed to delete storage folders.\n{$ex->getMessage()}");
             }
-        }
-        elseif (empty($path_array[count($path_array) - 1])) {
-            // delete directory of files and the directory itself
-            $force = Utilities::boolval(Utilities::getArrayValue('force', $_REQUEST, false));
-            try {
-                $this->fileRestHandler->deleteFolder($path, $force);
+            if (empty($content)) {
+                if (empty($path)) {
+                    throw new Exception("Empty file or folder path given for storage delete.");
+                }
+                try {
+                    $this->fileRestHandler->deleteFolder($path, $force);
+                    $result = array('folder' => array(array('path' => $path)));
+                }
+                catch (Exception $ex) {
+                    throw new Exception("Failed to delete storage folder '$path'.\n{$ex->getMessage()}");
+                }
             }
-            catch (Exception $ex) {
-                throw new Exception("Failed to delete storage folder '$path'.\n{$ex->getMessage()}");
+            else {
+                try {
+                    $out = array();
+                    if (isset($content['file'])) {
+                        $files = $content['file'];
+                        $out['file'] = $this->fileRestHandler->deleteFiles($files, $path);
+                    }
+                    if (isset($content['folder'])) {
+                        $folders = $content['folder'];
+                        $out['folder'] = $this->fileRestHandler->deleteFolders($folders, $path, $force);
+                    }
+                    $result = $out;
+                }
+                catch (Exception $ex) {
+                    throw new Exception("Failed to delete storage folders.\n{$ex->getMessage()}");
+                }
             }
-            $result = array('folder' => array(array('path' => $path)));
         }
         else {
             // delete file from permanent storage
             try {
                 $this->fileRestHandler->deleteFile($path);
+                $result = array('file' => array(array('path' => $path)));
             }
             catch (Exception $ex) {
                 throw new Exception("Failed to delete storage file '$path'.\n{$ex->getMessage()}");
             }
-            $result = array('file' => array(array('path' => $path)));
         }
 
         return $result;

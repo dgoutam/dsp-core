@@ -109,6 +109,9 @@ class FileManager extends CommonFileManager
                     }
                 }
             }
+            else {
+                throw new Exception("Storage container does not exist in storage.", ErrorCodes::NOT_FOUND);
+            }
 
             return array("folder" => $folders, "file" => $files);
         }
@@ -127,7 +130,7 @@ class FileManager extends CommonFileManager
         $path = FileUtilities::fixFolderPath($path);
         try {
             if (!$this->folderExists($path)) {
-                throw new Exception("Folder '$path' does not exist in storage.");
+                throw new Exception("Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND);
             }
             return array('folder' => array(array('path' => $path, 'properties' => array())));
         }
@@ -162,7 +165,7 @@ class FileManager extends CommonFileManager
         // does this folder's parent exist?
         if (!empty($parent) && (!$this->folderExists($parent))) {
             if ($check_exist) {
-                throw new Exception("Folder '$parent' does not exists.");
+                throw new Exception("Folder '$parent' does not exist.");
             }
             $this->createFolder($parent, $is_public, $properties, false);
         }
@@ -206,7 +209,7 @@ class FileManager extends CommonFileManager
         // does this file's parent folder exist?
         $parent = FileUtilities::getParentFolder($dest_path);
         if (!empty($parent) && (!$this->folderExists($parent))) {
-            throw new Exception("Folder '$parent' does not exists.");
+            throw new Exception("Folder '$parent' does not exist.");
         }
         try {
             // create the folder
@@ -230,7 +233,7 @@ class FileManager extends CommonFileManager
         $path = FileUtilities::fixFolderPath($path);
         // does this folder exist?
         if (!$this->folderExists($path)) {
-            throw new Exception("Folder '$path' does not exists.");
+            throw new Exception("Folder '$path' does not exist.");
         }
         try {
             // update the file that holds folder properties
@@ -267,25 +270,37 @@ class FileManager extends CommonFileManager
 
     /**
      * @param array $folders
+     * @param string $root
      * @param bool $force If true, delete folder content as well,
      *                    otherwise return error when content present.
-     * @return array
      * @throws Exception
+     * @return array
      */
-    public function deleteFolders($folders, $force = false)
+    public function deleteFolders($folders, $root = '', $force = false)
     {
+        $root = FileUtilities::fixFolderPath($root);
         foreach ($folders as $key=>$folder) {
-            $path = $folder['path'];
-            if (!empty($path)) {
-                try {
+            try {
+                // path is full path, name is relative to root, take either
+                if (isset($folder['path'])) {
+                    $path = $folder['path'];
+                }
+                elseif (isset($folder['name'])) {
+                    $path = $root . $folder['name'];
+                }
+                else {
+                    throw new Exception('No path or name found for folder in delete request.');
+                }
+                if (!empty($path)) {
                     $this->deleteFolder($path, $force);
                 }
-                catch (Exception $ex) {
-                    $folders[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
+                else {
+                    throw new Exception('No path or name found for folder in delete request.');
                 }
             }
-            else {
+            catch (Exception $ex) {
                 // error whole batch here?
+                $folders[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
             }
         }
         return $folders;
@@ -584,23 +599,35 @@ class FileManager extends CommonFileManager
 
     /**
      * @param array $files
-     * @return array
+     * @param string $root
      * @throws Exception
+     * @return array
      */
-    public function deleteFiles($files)
+    public function deleteFiles($files, $root = '')
     {
+        $root = FileUtilities::fixFolderPath($root);
         foreach ($files as $key=>$file) {
-            $path = $file['path'];
-            if (!empty($path)) {
-                try {
+            try {
+                // path is full path, name is relative to root, take either
+                if (isset($file['path'])) {
+                    $path = $file['path'];
+                }
+                elseif (isset($file['name'])) {
+                    $path = $root . $file['name'];
+                }
+                else {
+                    throw new Exception('No path or name found for file in delete request.');
+                }
+                if (!empty($path)) {
                     $this->deleteFile($path);
                 }
-                catch (Exception $ex) {
-                    $files[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
+                else {
+                    throw new Exception('No path or name found for file in delete request.');
                 }
             }
-            else {
+            catch (Exception $ex) {
                 // error whole batch here?
+                $files[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
             }
         }
         return $files;
@@ -832,6 +859,9 @@ class FileManager extends CommonFileManager
                         error_log($key);
                     }
                 }
+            }
+            else {
+                throw new Exception("Folder '$prefix' does not exist in storage.");
             }
             return $out;
         }
