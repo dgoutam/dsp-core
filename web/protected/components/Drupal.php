@@ -34,6 +34,15 @@ class Drupal
 	{
 		$_url = '/' . ltrim( $url, '/' );
 
+		$options = array_merge(
+			$options,
+			array(
+				CURLOPT_HTTPHEADER => array(
+					'Content-Type: application/json',
+				)
+			)
+		);
+
 		return Curl::request( $method, static::Endpoint . $_url, $payload, $options );
 	}
 
