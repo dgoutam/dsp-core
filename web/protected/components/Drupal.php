@@ -34,14 +34,24 @@ class Drupal
 	{
 		$_url = '/' . ltrim( $url, '/' );
 
-		$options = array_merge(
-			$options,
-			array(
-				CURLOPT_HTTPHEADER => array(
-					'Content-Type: application/json',
-				)
-			)
-		);
+		if ( empty( $options ) )
+		{
+			$options = array();
+		}
+
+		if ( !isset( $options[CURLOPT_HTTPHEADER] ) )
+		{
+			$options[CURLOPT_HTTPHEADER] = array( 'Content-Type: application/json' );
+		}
+		else
+		{
+			$options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
+		}
+
+		if ( !is_scalar( $payload ) )
+		{
+			$payload = json_encode( $payload );
+		}
 
 		return Curl::request( $method, static::Endpoint . $_url, $payload, $options );
 	}
@@ -59,7 +69,7 @@ class Drupal
 			'password' => $password,
 		);
 
-		if ( false !== ( $_response = static::_drupal( 'drupalValidate', $_payload ) ) )
+		if ( false !== ( $_response = self::_drupal( 'drupalValidate', $_payload ) ) )
 		{
 			if ( 'true' == $_response->success )
 			{
