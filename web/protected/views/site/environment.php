@@ -8,7 +8,9 @@ $this->pageTitle=Yii::app()->name;
 
 <?php
 
-session_start();
+if (!isset($_SESSION)) {
+    session_start();
+}
 echo "Session Info: <br />";
 echo 'Module: ' . session_module_name() . ' Name: ' . session_name() . ' Id: ' . session_id();
 echo "<br /><br />";

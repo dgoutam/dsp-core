@@ -13,6 +13,7 @@ class InitAdminForm extends CFormModel
 	public $email;
     public $firstName;
     public $lastName;
+    public $displayName;
 
 	/**
 	 * Declares the validation rules.
@@ -43,7 +44,8 @@ class InitAdminForm extends CFormModel
             'passwordRepeat'=>'Verify Password',
             'firstName'=>'First Name',
             'lastName'=>'Last Name',
-            'email'=>'Valid Email Address',
+            'displayName'=>'Display Name',
+            'email'=>'Email Address',
 		);
 	}
 

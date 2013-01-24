@@ -216,9 +216,10 @@ class SystemManager implements iRestHandler
             $username = Utilities::getArrayValue('username', $data);
             $firstName = Utilities::getArrayValue('firstName', $data);
             $lastName = Utilities::getArrayValue('lastName', $data);
+            $pwd = Utilities::getArrayValue('password', $data, '');
             $fields = array('username' => $username,
                 'email' => Utilities::getArrayValue('email', $data),
-                'password' => UserManager::protectPassword(Utilities::getArrayValue('password', $data)),
+                'password' => CPasswordHelper::hashPassword($pwd),
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'display_name' => $firstName . ' ' . $lastName,
@@ -1763,7 +1764,7 @@ class SystemManager implements iRestHandler
     {
         $pwd = Utilities::getArrayValue('password', $fields, '');
         if (!empty($pwd)) {
-            $fields['password'] = UserManager::protectPassword($pwd);
+            $fields['password'] = CPasswordHelper::hashPassword($pwd);
             $fields['confirm_code'] = 'y';
         }
         else {
