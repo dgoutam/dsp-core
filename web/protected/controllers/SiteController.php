@@ -26,7 +26,7 @@ class SiteController extends Controller
 	public function actionTestDrupalValidate( $l, $p )
 	{
 		$this->layout = false;
-		var_export( Drupal::authenticateUser( $l, $p ), true );
+		print_r( Drupal::authenticateUser( $l, $p ) );
 	}
 
 	/**
