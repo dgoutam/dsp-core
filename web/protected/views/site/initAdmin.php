@@ -20,8 +20,11 @@ $this->breadcrumbs=array(
 <?php else: ?>
 
 <p>
-Your Document Services Platform needs a system administrator.
-When you are ready, click the 'Add Admin' button below.
+Your Document Services Platform needs a system administrator.<br/>
+This admin will be a separate admin account just for this server, not your www.dreamfactory.com account.<br/>
+More administrators and users can be added using the 'System Admin' application once this admin account is created.<br/>
+<br/>
+Click the 'Submit' button below to proceed.
 </p>
 
 <div class="form">
@@ -69,13 +72,19 @@ When you are ready, click the 'Add Admin' button below.
    	</div>
 
     <div class="row">
-   		<?php echo $form->labelEx($model,'lastName'); ?>
-   		<?php echo $form->textField($model,'lastName'); ?>
-   		<?php echo $form->error($model,'lastName'); ?>
-   	</div>
+        <?php echo $form->labelEx($model,'lastName'); ?>
+        <?php echo $form->textField($model,'lastName'); ?>
+        <?php echo $form->error($model,'lastName'); ?>
+    </div>
 
-	<div class="row buttons">
-		<?php echo CHtml::submitButton('Add Admin'); ?>
+    <div class="row">
+        <?php echo $form->labelEx($model,'displayName'); ?>
+        <?php echo $form->textField($model,'displayName'); ?>
+        <?php echo $form->error($model,'displayName'); ?>
+    </div>
+
+    <div class="row buttons">
+		<?php echo CHtml::submitButton('Submit'); ?>
 	</div>
 
 <?php $this->endWidget(); ?>

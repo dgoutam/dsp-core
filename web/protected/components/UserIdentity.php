@@ -7,27 +7,40 @@
  */
 class UserIdentity extends CUserIdentity
 {
-	/**
-	 * Authenticates a user.
-	 * The example implementation makes sure if the username and password
-	 * are both 'demo'.
-	 * In practical applications, this should be changed to authenticate
-	 * against some persistent user identity storage (e.g. database).
-	 * @return boolean whether authentication succeeds.
-	 */
-	public function authenticate()
-	{
-		$users=array(
-			// username => password
-			'demo'=>'demo',
-			'admin'=>'admin',
-		);
-		if(!isset($users[$this->username]))
-			$this->errorCode=self::ERROR_USERNAME_INVALID;
-		else if($users[$this->username]!==$this->password)
-			$this->errorCode=self::ERROR_PASSWORD_INVALID;
-		else
-			$this->errorCode=self::ERROR_NONE;
-		return !$this->errorCode;
-	}
+    private $_id;
+
+    public function authenticate()
+    {
+        $record = Drupal::authenticateUser($this->username, $this->password);
+        if (false === $record) {
+            $this->errorCode = self::ERROR_USERNAME_INVALID;
+        }
+        else {
+            $this->_id = $record->drupal_id;
+            $this->setState('email', $this->username);
+            $this->setState('first_name', $record->first_name);
+            $this->setState('last_name', $record->last_name);
+            $this->setState('display_name', $record->display_name);
+            $this->errorCode = self::ERROR_NONE;
+        }
+        /* not currently used
+        $record = User::model()->findByAttributes(array('username'=>$this->username));
+        if ($record === null)
+            $this->errorCode = self::ERROR_USERNAME_INVALID;
+        else if (!CPasswordHelper::verifyPassword($this->password, $record->password))
+            $this->errorCode = self::ERROR_PASSWORD_INVALID;
+        else
+        {
+            $this->_id = $record->id;
+            $this->setState('email', $record->email);
+            $this->errorCode = self::ERROR_NONE;
+        }
+        */
+        return !$this->errorCode;
+    }
+
+    public function getId()
+    {
+        return $this->_id;
+    }
 }

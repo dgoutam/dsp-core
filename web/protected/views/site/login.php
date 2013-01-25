@@ -11,7 +11,7 @@ $this->breadcrumbs=array(
 
 <h1>Login</h1>
 
-<p>Please fill out the following form with your login credentials:</p>
+<p>Please login using your Dreamfactory developer account credentials:</p>
 
 <div class="form">
 <?php $form=$this->beginWidget('CActiveForm', array(
@@ -28,6 +28,9 @@ $this->breadcrumbs=array(
 		<?php echo $form->labelEx($model,'username'); ?>
 		<?php echo $form->textField($model,'username'); ?>
 		<?php echo $form->error($model,'username'); ?>
+        <p class="hint">
+            Hint: This is your email address from your <b>www.dreamfactory.com</b> account.
+        </p>
 	</div>
 
 	<div class="row">
@@ -35,7 +38,7 @@ $this->breadcrumbs=array(
 		<?php echo $form->passwordField($model,'password'); ?>
 		<?php echo $form->error($model,'password'); ?>
 		<p class="hint">
-			Hint: You may login with <kbd>demo</kbd>/<kbd>demo</kbd> or <kbd>admin</kbd>/<kbd>admin</kbd>.
+			Hint: This is your email address from your <b>www.dreamfactory.com</b> account.
 		</p>
 	</div>
 

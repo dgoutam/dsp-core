@@ -9,7 +9,7 @@
     ],
     "require":{
         "php":">=5.3.8",
-        "yiisoft/yii":"1.1.*",
+        "lucifurious/yii":"dev-master",
         "microsoft/windowsazure":"*",
         "amazonwebservices/aws-sdk-for-php":"1.5.*",
         "dreamfactory/app-launchpad":"dev-master",
@@ -17,20 +17,6 @@
         "dreamfactory/web-core":"dev-master"
     },
     "repositories":[
-        {
-            "type":"package",
-            "package":{
-                "name":"yiisoft/yii",
-                "version":"1.1.12",
-                "dist":{
-                    "url":"https://github.com/yiisoft/yii/zipball/1.1.12/",
-                    "type":"zip"
-                },
-                "autoload":{
-                    "files":["framework/yii.php"]
-                }
-            }
-        },
         {
             "type":"vcs",
             "url":"http://bitbucket.org/dreamfactory/app-launchpad.git"

@@ -481,7 +481,7 @@ class FileManager extends CommonFileManager
         // does this folder's parent exist?
         $parent = FileUtilities::getParentFolder($path);
         if (!empty($parent) && (!$this->folderExists($parent))) {
-            throw new Exception("Folder '$parent' does not exists.");
+            throw new Exception("Folder '$parent' does not exist.");
         }
         try {
             // create the file
@@ -522,7 +522,7 @@ class FileManager extends CommonFileManager
         // does this file's parent folder exist?
         $parent = FileUtilities::getParentFolder($path);
         if (!empty($parent) && (!$this->folderExists($parent))) {
-            throw new Exception("Folder '$parent' does not exists.");
+            throw new Exception("Folder '$parent' does not exist.");
         }
         try {
             // create the file
@@ -558,7 +558,7 @@ class FileManager extends CommonFileManager
         // does this file's parent folder exist?
         $parent = FileUtilities::getParentFolder($dest_path);
         if (!empty($parent) && (!$this->folderExists($parent))) {
-            throw new Exception("Folder '$parent' does not exists.");
+            throw new Exception("Folder '$parent' does not exist.");
         }
         try {
             // create the file

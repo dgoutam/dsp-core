@@ -102,11 +102,6 @@ class UserManager implements iRestHandler
         return self::$_instance;
     }
 
-    public static function protectPassword($raw)
-    {
-        return md5($raw);
-    }
-
     // Controller based methods
 
     /**
@@ -547,30 +542,28 @@ class UserManager implements iRestHandler
 
         try {
             $db = $this->nativeDb;
-            $pwd = static::protectPassword($password);
-            $query = "username='$username' and password='$pwd' and confirm_code='y'";
-            $fields = 'id,display_name,first_name,last_name,username,email,phone';
+            $fields = 'password,id,display_name,first_name,last_name,username,email,phone';
             $fields .= ',is_active,is_sys_admin,role_id,default_app_id';
             $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
+            $query = "username='$username' and confirm_code='y'";
             $result = $db->retrieveSqlRecordsByFilter('user', $fields, $query, 1);
             unset($result['total']);
             if (count($result) < 1) {
                 // Check if the password is wrong
-                $query = "username='$username' and confirm_code='y'";
-                $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
-                unset($result['total']);
-                if (count($result) > 0) {
-                    throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
-                }
                 $query = "username='$username'";
                 $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
                 unset($result['total']);
                 if (count($result) > 0) {
                     throw new Exception("Login registration has not been confirmed.");
                 }
+                // bad username
                 throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
             }
             $userInfo = $result[0];
+            if (!CPasswordHelper::verifyPassword($password, Utilities::getArrayValue('password', $userInfo, ''))) {
+                throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
+            }
+            unset($userInfo['password']);
             if (!$userInfo['is_active']) {
                 throw new Exception("The login with username '$username' is not currently active.", ErrorCodes::FORBIDDEN);
             }
@@ -892,7 +885,7 @@ class UserManager implements iRestHandler
     {
         $confirmCode = $this->makeConfirmationMd5($username);
         // fill out the user fields for creation
-        $fields = array('username' => $username, 'email' => $email, 'password' => static::protectPassword($password));
+        $fields = array('username' => $username, 'email' => $email, 'password' => CPasswordHelper::hashPassword($password));
         $fields['first_name'] = (!empty($first_name)) ? $first_name : $username;
         $fields['last_name'] = (!empty($last_name)) ? $last_name : $username;
         $fullName = (!empty($first_name) && !empty($last_name)) ? $first_name . ' ' . $last_name : $username;
@@ -1066,7 +1059,7 @@ class UserManager implements iRestHandler
             if (count($result) < 1) {
                 throw new Exception("Reset code could not be found. Please contact your administrator.", ErrorCodes::BAD_REQUEST);
             }
-            $userInfo = array('password' => static::protectPassword($new_password));
+            $userInfo = array('password' => CPasswordHelper::hashPassword($new_password));
             $result = $db->updateSqlRecordsByIds('user', $userInfo, $result[0]['id'], 'id');
             if (count($result) < 1) {
                 throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::BAD_REQUEST);
@@ -1094,7 +1087,7 @@ class UserManager implements iRestHandler
 
         try {
             $db = $this->nativeDb;
-            $pwd = static::protectPassword($old_password);
+            $pwd = CPasswordHelper::hashPassword($old_password);
             $query = "id='$userId' and password='$pwd' and confirm_code='y'";
             $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
             unset($result['total']);
@@ -1108,7 +1101,7 @@ class UserManager implements iRestHandler
                 }
                 throw new Exception("Login registration has not been confirmed.", ErrorCodes::BAD_REQUEST);
             }
-            $userInfo = array('password' => static::protectPassword($new_password));
+            $userInfo = array('password' => CPasswordHelper::hashPassword($new_password));
             $result = $db->updateSqlRecordsByIds('user', $userInfo, $userId, 'id');
             if (count($result) < 1) {
                 throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::BAD_REQUEST);
