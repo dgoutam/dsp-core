@@ -44,13 +44,13 @@ class AppGroup extends CActiveRecord
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
 		return array(
-			array('name, created_by_id, last_modified_by_id', 'required'),
+			array('name, created_date, last_modified_date, created_by_id, last_modified_by_id', 'required'),
 			array('created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
-			array('name', 'length', 'max'=>80),
-			array('description, created_date, last_modified_date', 'safe'),
+			array('name', 'length', 'max'=>40),
+			array('description', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, description, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -73,7 +73,7 @@ class AppGroup extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'Id',
+			'id' => 'ID',
 			'name' => 'Name',
 			'description' => 'Description',
 			'created_date' => 'Created Date',
@@ -96,6 +96,7 @@ class AppGroup extends CActiveRecord
 
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
+		$criteria->compare('description',$this->description,true);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);
 		$criteria->compare('created_by_id',$this->created_by_id);

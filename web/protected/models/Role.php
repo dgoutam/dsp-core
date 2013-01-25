@@ -8,10 +8,18 @@
  * @property string $name
  * @property string $description
  * @property string $app_ids
+ * @property integer $default_app_id
  * @property string $created_date
  * @property string $last_modified_date
  * @property integer $created_by_id
  * @property integer $last_modified_by_id
+ *
+ * The followings are the available model relations:
+ * @property User $createdBy
+ * @property App $defaultApp
+ * @property User $lastModifiedBy
+ * @property RoleServiceAccess[] $roleServiceAccesses
+ * @property User[] $users
  */
 class Role extends CActiveRecord
 {
@@ -41,13 +49,13 @@ class Role extends CActiveRecord
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
 		return array(
-			array('name, created_by_id, last_modified_by_id', 'required'),
-			array('created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
-			array('name', 'length', 'max'=>80),
-			array('description, app_ids, created_date, last_modified_date', 'safe'),
+			array('name, created_date, last_modified_date, created_by_id, last_modified_by_id', 'required'),
+			array('default_app_id, created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
+			array('name', 'length', 'max'=>40),
+			array('description, app_ids', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, app_ids, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, description, app_ids, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -58,7 +66,13 @@ class Role extends CActiveRecord
 	{
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
-		return array();
+		return array(
+			'createdBy' => array(self::BELONGS_TO, 'User', 'created_by_id'),
+			'defaultApp' => array(self::BELONGS_TO, 'App', 'default_app_id'),
+			'lastModifiedBy' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+			'roleServiceAccesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
+			'users' => array(self::HAS_MANY, 'User', 'role_id'),
+		);
 	}
 
 	/**
@@ -67,10 +81,11 @@ class Role extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'Id',
+			'id' => 'ID',
 			'name' => 'Name',
 			'description' => 'Description',
 			'app_ids' => 'App Ids',
+			'default_app_id' => 'Default App',
 			'created_date' => 'Created Date',
 			'last_modified_date' => 'Last Modified Date',
 			'created_by_id' => 'Created By',
@@ -91,7 +106,9 @@ class Role extends CActiveRecord
 
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
+		$criteria->compare('description',$this->description,true);
 		$criteria->compare('app_ids',$this->app_ids,true);
+		$criteria->compare('default_app_id',$this->default_app_id);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);
 		$criteria->compare('created_by_id',$this->created_by_id);

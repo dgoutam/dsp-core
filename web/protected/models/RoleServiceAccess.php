@@ -1,18 +1,22 @@
 <?php
 
 /**
- * This is the model class for table "df_role_service_access".
+ * This is the model class for table "role_service_access".
  *
- * The followings are the available columns in table 'df_role_service_access':
+ * The followings are the available columns in table 'role_service_access':
  * @property integer $id
  * @property integer $role_id
  * @property integer $service_id
  * @property string $service
  * @property string $component
- * @property boolean $read
- * @property boolean $create
- * @property boolean $update
- * @property boolean $delete
+ * @property integer $read
+ * @property integer $create
+ * @property integer $update
+ * @property integer $delete
+ *
+ * The followings are the available model relations:
+ * @property Role $role
+ * @property Service $service0
  */
 class RoleServiceAccess extends CActiveRecord
 {
@@ -31,7 +35,7 @@ class RoleServiceAccess extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_role_service_access';
+		return 'role_service_access';
 	}
 
 	/**
@@ -43,10 +47,9 @@ class RoleServiceAccess extends CActiveRecord
 		// will receive user inputs.
 		return array(
 			array('role_id, service, component', 'required'),
-			array('role_id, service_id', 'numerical', 'integerOnly'=>true),
+			array('role_id, service_id, read, create, update, delete', 'numerical', 'integerOnly'=>true),
 			array('service', 'length', 'max'=>40),
 			array('component', 'length', 'max'=>80),
-			array('read, create, update, delete', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
 			array('id, role_id, service_id, service, component, read, create, update, delete', 'safe', 'on'=>'search'),
@@ -61,6 +64,8 @@ class RoleServiceAccess extends CActiveRecord
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
 		return array(
+			'role' => array(self::BELONGS_TO, 'Role', 'role_id'),
+			'service0' => array(self::BELONGS_TO, 'Service', 'service_id'),
 		);
 	}
 

@@ -8,20 +8,27 @@
  * @property string $name
  * @property string $label
  * @property string $description
- * @property boolean $is_active
+ * @property integer $is_active
  * @property string $url
- * @property boolean $is_url_external
+ * @property integer $is_url_external
  * @property string $app_group_ids
  * @property string $schemas
- * @property boolean $filter_by_device
- * @property boolean $filter_phone
- * @property boolean $filter_tablet
- * @property boolean $filter_desktop
- * @property boolean $requires_plugin
+ * @property integer $filter_by_device
+ * @property integer $filter_phone
+ * @property integer $filter_tablet
+ * @property integer $filter_desktop
+ * @property integer $requires_plugin
+ * @property string $import_url
  * @property string $created_date
  * @property string $last_modified_date
  * @property integer $created_by_id
  * @property integer $last_modified_by_id
+ *
+ * The followings are the available model relations:
+ * @property User $createdBy
+ * @property User $lastModifiedBy
+ * @property Role[] $roles
+ * @property User[] $users
  */
 class App extends CActiveRecord
 {
@@ -51,13 +58,14 @@ class App extends CActiveRecord
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
 		return array(
-			array('name, label', 'required'),
+			array('name, label, created_date, last_modified_date, created_by_id, last_modified_by_id', 'required'),
+			array('is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
 			array('name', 'length', 'max'=>40),
 			array('label', 'length', 'max'=>80),
-			array('description, is_active, url, is_url_external, app_group_ids, created_date, last_modified_date', 'safe'),
+			array('description, url, app_group_ids, schemas, import_url', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, label, is_active, is_url_external, app_group_ids, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, label, description, is_active, url, is_url_external, app_group_ids, schemas, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, import_url, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -68,7 +76,12 @@ class App extends CActiveRecord
 	{
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
-		return array();
+		return array(
+			'createdBy' => array(self::BELONGS_TO, 'User', 'created_by_id'),
+			'lastModifiedBy' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+			'roles' => array(self::HAS_MANY, 'Role', 'default_app_id'),
+			'users' => array(self::HAS_MANY, 'User', 'default_app_id'),
+		);
 	}
 
 	/**
@@ -77,7 +90,7 @@ class App extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'Id',
+			'id' => 'ID',
 			'name' => 'Name',
 			'label' => 'Label',
 			'description' => 'Description',
@@ -85,6 +98,13 @@ class App extends CActiveRecord
 			'url' => 'Url',
 			'is_url_external' => 'Is Url External',
 			'app_group_ids' => 'App Group Ids',
+			'schemas' => 'Schemas',
+			'filter_by_device' => 'Filter By Device',
+			'filter_phone' => 'Filter Phone',
+			'filter_tablet' => 'Filter Tablet',
+			'filter_desktop' => 'Filter Desktop',
+			'requires_plugin' => 'Requires Plugin',
+			'import_url' => 'Import Url',
 			'created_date' => 'Created Date',
 			'last_modified_date' => 'Last Modified Date',
 			'created_by_id' => 'Created By',
@@ -106,9 +126,18 @@ class App extends CActiveRecord
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
 		$criteria->compare('label',$this->label,true);
+		$criteria->compare('description',$this->description,true);
 		$criteria->compare('is_active',$this->is_active);
+		$criteria->compare('url',$this->url,true);
 		$criteria->compare('is_url_external',$this->is_url_external);
 		$criteria->compare('app_group_ids',$this->app_group_ids,true);
+		$criteria->compare('schemas',$this->schemas,true);
+		$criteria->compare('filter_by_device',$this->filter_by_device);
+		$criteria->compare('filter_phone',$this->filter_phone);
+		$criteria->compare('filter_tablet',$this->filter_tablet);
+		$criteria->compare('filter_desktop',$this->filter_desktop);
+		$criteria->compare('requires_plugin',$this->requires_plugin);
+		$criteria->compare('import_url',$this->import_url,true);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);
 		$criteria->compare('created_by_id',$this->created_by_id);

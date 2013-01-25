@@ -7,10 +7,11 @@
  * @property integer $id
  * @property string $name
  * @property string $label
- * @property boolean $is_active
+ * @property string $description
+ * @property integer $is_active
  * @property string $type
- * @property string $storage_type
  * @property string $storage_name
+ * @property string $storage_type
  * @property string $credentials
  * @property string $native_format
  * @property string $base_url
@@ -20,6 +21,11 @@
  * @property string $last_modified_date
  * @property integer $created_by_id
  * @property integer $last_modified_by_id
+ *
+ * The followings are the available model relations:
+ * @property RoleServiceAccess[] $roleServiceAccesses
+ * @property User $createdBy
+ * @property User $lastModifiedBy
  */
 class Service extends CActiveRecord
 {
@@ -49,17 +55,15 @@ class Service extends CActiveRecord
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
 		return array(
-			array('name, type, created_by_id, last_modified_by_id', 'required'),
-			array('created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
-			array('name', 'length', 'max'=>50),
-			array('label', 'length', 'max'=>80),
-			array('type', 'length', 'max'=>40),
-			array('native_format', 'length', 'max'=>32),
-			array('base_url', 'length', 'max'=>120),
-			array('is_active, parameters, headers, created_date, last_modified_date', 'safe'),
+			array('name, type, created_date, last_modified_date, created_by_id, last_modified_by_id', 'required'),
+			array('is_active, created_by_id, last_modified_by_id', 'numerical', 'integerOnly'=>true),
+			array('name, type, storage_type, native_format', 'length', 'max'=>40),
+			array('label, storage_name', 'length', 'max'=>80),
+			array('base_url', 'length', 'max'=>255),
+			array('description, credentials, parameters, headers', 'safe'),
 			// The following rule is used by search().
 			// Please remove those attributes that should not be searched.
-			array('id, name, label, is_active, type, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
+			array('id, name, label, description, is_active, type, storage_name, storage_type, credentials, native_format, base_url, parameters, headers, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -71,6 +75,9 @@ class Service extends CActiveRecord
 		// NOTE: you may need to adjust the relation name and the related
 		// class name for the relations automatically generated below.
 		return array(
+			'roleServiceAccesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'service_id'),
+			'createdBy' => array(self::BELONGS_TO, 'User', 'created_by_id'),
+			'lastModifiedBy' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
 		);
 	}
 
@@ -80,11 +87,15 @@ class Service extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id' => 'Id',
+			'id' => 'ID',
 			'name' => 'Name',
 			'label' => 'Label',
+			'description' => 'Description',
 			'is_active' => 'Is Active',
 			'type' => 'Type',
+			'storage_name' => 'Storage Name',
+			'storage_type' => 'Storage Type',
+			'credentials' => 'Credentials',
 			'native_format' => 'Native Format',
 			'base_url' => 'Base Url',
 			'parameters' => 'Parameters',
@@ -110,8 +121,16 @@ class Service extends CActiveRecord
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
 		$criteria->compare('label',$this->label,true);
+		$criteria->compare('description',$this->description,true);
 		$criteria->compare('is_active',$this->is_active);
 		$criteria->compare('type',$this->type,true);
+		$criteria->compare('storage_name',$this->storage_name,true);
+		$criteria->compare('storage_type',$this->storage_type,true);
+		$criteria->compare('credentials',$this->credentials,true);
+		$criteria->compare('native_format',$this->native_format,true);
+		$criteria->compare('base_url',$this->base_url,true);
+		$criteria->compare('parameters',$this->parameters,true);
+		$criteria->compare('headers',$this->headers,true);
 		$criteria->compare('created_date',$this->created_date,true);
 		$criteria->compare('last_modified_date',$this->last_modified_date,true);
 		$criteria->compare('created_by_id',$this->created_by_id);
