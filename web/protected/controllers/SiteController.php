@@ -59,11 +59,11 @@ class SiteController extends Controller
                 $app = $svc->getServiceObject('app');
                 // check if loaded in storage as app
                 if ($app && $app->appExists('LaunchPad')) {
-                    header("Location: ./app/LaunchPad/index.html");
+                    $this->redirect('./app/LaunchPad/index.html');
                 }
                 // otherwise try local copy
                 elseif (is_file('./public/launchpad/index.html')) {
-                    header("Location: ./public/launchpad/index.html");
+                    $this->redirect('./public/launchpad/index.html');
                 }
                 // fall back to this app default site
                 else {
@@ -83,7 +83,6 @@ class SiteController extends Controller
                 $this->redirect(array('site/upgradeSchema'));
                 break;
             }
-            Yii::app()->end();
         }
         catch (Exception $ex) {
             die($ex->getMessage());
@@ -274,4 +273,9 @@ class SiteController extends Controller
         $this->render('environment');
     }
 
+    public function actionTestDrupalValidate($e, $p)
+    {
+        $this->layout = false;
+        print_r(Drupal::authenticateUser($e, $p));
+    }
 }

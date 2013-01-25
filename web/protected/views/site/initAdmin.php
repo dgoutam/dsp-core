@@ -21,7 +21,7 @@ $this->breadcrumbs=array(
 
 <p>
 Your Document Services Platform needs a system administrator.<br/>
-This admin will be a separate admin account just for this server, not your www.dreamfactory.com account.<br/>
+This admin will be a separate admin account just for this site, not your www.dreamfactory.com account.<br/>
 More administrators and users can be added using the 'System Admin' application once this admin account is created.<br/>
 <br/>
 Click the 'Submit' button below to proceed.

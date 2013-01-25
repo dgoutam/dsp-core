@@ -11,7 +11,7 @@ $this->breadcrumbs=array(
 
 <h1>Login</h1>
 
-<p>Please login using your Dreamfactory developer account credentials:</p>
+<p>Please login using your DreamFactory.com account credentials:</p>
 
 <div class="form">
 <?php $form=$this->beginWidget('CActiveForm', array(
@@ -38,7 +38,7 @@ $this->breadcrumbs=array(
 		<?php echo $form->passwordField($model,'password'); ?>
 		<?php echo $form->error($model,'password'); ?>
 		<p class="hint">
-			Hint: This is your email address from your <b>www.dreamfactory.com</b> account.
+			Hint: This is your password from your <b>www.dreamfactory.com</b> account.
 		</p>
 	</div>
 
