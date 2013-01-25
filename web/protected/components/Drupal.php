@@ -50,6 +50,12 @@ class Drupal
 
 		if ( !is_scalar( $payload ) )
 		{
+			//	Add in a source block
+			$payload['source'] = array(
+				'host'    => gethostname(),
+				'address' => gethostbynamel( gethostname() ),
+			);
+
 			$payload = json_encode( $payload );
 		}
 
@@ -69,7 +75,7 @@ class Drupal
 			'password' => $password,
 		);
 
-		if ( false !== ( $_response = self::_drupal( 'drupalValidate', $_payload ) ) )
+		if ( false !== ( $_response = static::_drupal( 'drupalValidate', $_payload ) ) )
 		{
 			if ( 'true' == $_response->success )
 			{
