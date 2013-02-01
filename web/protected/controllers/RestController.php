@@ -104,20 +104,20 @@ class RestController extends Controller
             }
             if (!empty($tunnel_method)) {
                 switch (strtolower($tunnel_method)) {
-                case 'post': // in case they use it in the header as well
-                    break;
-                case 'delete':
-                    $this->actionDelete($service);
-                    break;
                 case 'get': // complex retrieves, non-standard
                     $this->actionGet($service);
+                    break;
+                case 'post': // in case they use it in the header as well
+                    break;
+                case 'put':
+                    $this->actionPut($service);
                     break;
                 case 'merge':
                 case 'patch':
                     $this->actionMerge($service);
                     break;
-                case 'put':
-                    $this->actionPut($service);
+                case 'delete':
+                    $this->actionDelete($service);
                     break;
                 default:
                     if (!empty($tunnel_method)) {

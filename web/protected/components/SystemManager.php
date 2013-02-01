@@ -16,6 +16,7 @@ class SystemManager implements iRestHandler
      *
      */
     const SYSTEM_TABLES = 'app,app_group,role,user,service';
+
     /**
      *
      */
@@ -138,10 +139,12 @@ class SystemManager implements iRestHandler
             $contents = Utilities::jsonToArray($contents);
             $version = Utilities::getArrayValue('version', $contents);
             $config = array();
+            $oldVersion = '';
             if ($this->nativeDb->doesTableExist('config')) {
-                $config = $this->nativeDb->retrieveSqlRecordsByFilter('config', 'id', '', 1);
-                unset($config['total']);
-                $oldVersion = Utilities::getArrayValue('db_version', $config, '');
+                $config = Config::model()->findAll();
+                if (!empty($config)) {
+                    $oldVersion = $config->getAttribute('db_version');
+                }
             }
             // create system tables
             $tables = Utilities::getArrayValue('table', $contents);
@@ -1356,7 +1359,7 @@ class SystemManager implements iRestHandler
             $command = new CDbCriteria();
             //$command->select = $return_fields;
             if (!empty($filter)) {
-                $command->where = $filter;
+                $command->condition = $filter;
             }
             if (!empty($order)) {
                 $command->order = $order;
