@@ -159,4 +159,15 @@ class RoleServiceAccess extends CActiveRecord
 
         return $fields;
     }
+
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->read = intval($this->read);
+        $this->create = intval($this->create);
+        $this->update = intval($this->update);
+        $this->delete = intval($this->delete);
+    }
 }

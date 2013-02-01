@@ -214,4 +214,18 @@ class App extends CActiveRecord
 
         return $fields;
     }
+
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->is_active = intval($this->is_active);
+        $this->is_url_external = intval($this->is_url_external);
+        $this->filter_by_device = intval($this->filter_by_device);
+        $this->filter_phone = intval($this->filter_phone);
+        $this->filter_tablet = intval($this->filter_tablet);
+        $this->filter_desktop = intval($this->filter_desktop);
+        $this->requires_plugin = intval($this->requires_plugin);
+    }
 }

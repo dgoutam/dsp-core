@@ -257,4 +257,14 @@ class User extends CActiveRecord
 
         return $fields;
     }
+
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->is_active = intval($this->is_active);
+        $this->is_sys_admin = intval($this->is_sys_admin);
+    }
+
 }

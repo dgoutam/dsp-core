@@ -203,4 +203,12 @@ class Service extends CActiveRecord
 
         return $fields;
     }
+
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->is_active = intval($this->is_active);
+    }
 }
