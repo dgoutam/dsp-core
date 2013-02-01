@@ -71,13 +71,58 @@ class FileUtilities
     }
 
     /**
-     * @param $path
+     * @param string $url
+     * @param string $name name of the temporary file to create
+     * @return string temporary file path
+     * @throws Exception
+     */
+    public static function importUrlFileToTemp($url, $name='')
+    {
+        if (!empty($url)){
+            $readFrom = fopen($url, 'rb');
+            if ($readFrom) {
+                $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                $ext = end(explode(".", strtolower(basename($url))));
+//                $validTypes = array('zip','dfpkg'); // default zip and package extensions
+//                if (in_array($ext, $validTypes)) {
+                    if (empty($name))
+                        $name = basename($url);
+                    $newFile = $directory . $name;
+                    $writeTo = fopen($newFile, 'wb'); // creating new file on local server
+                    if ($writeTo) {
+                        while (!feof($readFrom)) {
+                            // Write the url file to the directory.
+                            fwrite($writeTo, fread($readFrom, 1024 * 8), 1024 * 8); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
+                        }
+                        fclose($readFrom);
+                        fclose($writeTo);
+                        return $newFile;
+                    }
+                    else {
+                        throw new Exception("Could not establish new file ($directory$name) on local server.");
+                    }
+//                }
+//                else {
+//                    throw new Exception('Invalid file type. Currently only URLs to repository zip files are accepted.');
+//                }
+            }
+            else {
+                throw new Exception("Could not locate the file: $url");
+            }
+        }
+        else {
+            throw new Exception('Invalid URL entered. Please try again.');
+        }
+    }
+
+    /**
+     * @param string $ext
      * @param string $content
      * @param string $local_file
      * @param string $default
      * @return string
      */
-    public static function determineContentType($path, $content='', $local_file='', $default='')
+    public static function determineContentType($ext='', $content='', $local_file='', $default='')
     {
         $defaultMime = 'application/octet-stream';
         if (!empty($default)) {
@@ -97,7 +142,6 @@ class FileUtilities
             (0 === strcasecmp('text/plain', $mime)) || (0 === strcasecmp('text/x-c', $mime)) ||
             (0 === strcasecmp('text/x-c++', $mime)) || (0 === strcasecmp('text/x-java', $mime))) {
             // need further guidance on these, as they are sometimes incorrect
-            $ext = static::getFileExtension($path);
             if (0 === strcasecmp('dfpkg', $ext)) {
                 $mime = 'application/zip';
             }

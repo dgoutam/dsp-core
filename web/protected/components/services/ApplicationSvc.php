@@ -222,15 +222,16 @@ class ApplicationSvc extends CommonFileSvc
             throw new Exception('No application description file in this package file.');
         }
         $data = Utilities::jsonToArray($data);
-        $records = array(array('fields' => $data)); // todo bad assumption of right format
+        $record = array('fields' => $data);
         $sys = SystemManager::getInstance();
-        $result = $sys->createRecords('app', $records, false, 'id,name');
-        if (isset($result['record'][0]['error'])) {
-            $msg = $result['record'][0]['error']['message'];
-            throw new Exception("Could not create the database entry for this application.\n$msg");
+        try {
+            $result = $sys->createRecord('app', $record, 'id,name');
         }
-        $id = (isset($result['record'][0]['fields']['id'])) ? $result['record'][0]['fields']['id'] : '';
-        $name = (isset($result['record'][0]['fields']['name'])) ? $result['record'][0]['fields']['name'] : '';
+        catch (Exception $ex) {
+            throw new Exception("Could not create the database entry for this application.\n{$ex->getMessage()}");
+        }
+        $id = (isset($result['fields']['id'])) ? $result['fields']['id'] : '';
+        $name = (isset($result['fields']['name'])) ? $result['fields']['name'] : '';
         $zip->deleteName('description.json');
         try {
             $data = $zip->getFromName('schema.json');
@@ -268,14 +269,14 @@ class ApplicationSvc extends CommonFileSvc
             catch (Exception $ex) {
                 // delete db record
                 // todo anyone else using schema created?
-                $sys->deleteRecordsByIds('app', $id);
+                $sys->deleteRecordById('app', $id);
                 throw $ex;
             }
         }
         catch (Exception $ex) {
             // delete db record
             // todo anyone else using schema created?
-            $sys->deleteRecordsByIds('app', $id);
+            $sys->deleteRecordById('app', $id);
             throw $ex;
         }
         // extract the rest of the zip file into storage
@@ -292,14 +293,15 @@ class ApplicationSvc extends CommonFileSvc
     public function importAppFromZip($name, $zip_file)
     {
         $data = array('name'=>$name, 'label'=>$name, 'is_url_external'=>0, 'url'=>'/index.html');
-        $records = array(array('fields' => $data));
+        $record = array('fields' => $data);
         $sys = SystemManager::getInstance();
-        $result = $sys->createRecords('app', $records, false, 'Id');
-        if (isset($result['record'][0]['error'])) {
-            $msg = $result['record'][0]['error']['message'];
-            throw new Exception("Could not create the database entry for this application.\n$msg");
+        try {
+            $result = $sys->createRecord('app', $record);
         }
-        $id = (isset($result['record'][0]['fields']['id'])) ? $result['record'][0]['fields']['id'] : '';
+        catch (Exception $ex) {
+            throw new Exception("Could not create the database entry for this application.\n{$ex->getMessage()}");
+        }
+        $id = (isset($result['fields']['id'])) ? $result['fields']['id'] : '';
 
         $zip = new ZipArchive();
         if (true === $zip->open($zip_file)) {
@@ -310,51 +312,6 @@ class ApplicationSvc extends CommonFileSvc
         }
         else {
             throw new Exception('Error opening zip file.');
-        }
-    }
-
-    /**
-     * @param string $url
-     * @param string $name name of the temporary file to create
-     * @return string temporary file path
-     * @throws Exception
-     */
-    public function importUrlFileToTemp($url, $name='')
-    {
-        if ($url){
-            $readFrom = fopen($url, 'rb');
-            if ($readFrom) {
-                $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-                $validTypes = array('zip','dfpkg'); // default zip and package extensions
-                $ext = end(explode(".", strtolower(basename($url))));
-                if (in_array($ext, $validTypes)) {
-                    if (empty($name))
-                        $name = basename($url, $ext);
-                    $newFile = $directory . $name . '.' . $ext;
-                    $writeTo = fopen($newFile, 'wb'); // creating new file on local server
-                    if ($writeTo) {
-                        while (!feof($readFrom)) {
-                            // Write the url file to the directory.
-                            fwrite($writeTo, fread($readFrom, 1024 * 8), 1024 * 8); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
-                        }
-                        fclose($readFrom);
-                        fclose($writeTo);
-                        return $newFile;
-                    }
-                    else {
-                        throw new Exception( "Could not establish new file ($directory$name) on local server.");
-                    }
-                }
-                else {
-                    throw new Exception('Invalid file type. Currently only URLs to repository zip files are accepted.');
-                }
-            }
-            else {
-                throw new Exception("Could not locate the file: $url");
-            }
-        }
-        else {
-            throw new Exception('Invalid URL entered. Please try again.');
         }
     }
 
@@ -402,30 +359,29 @@ class ApplicationSvc extends CommonFileSvc
         if (empty($app_root)) {
             // for application management at root directory,
             // you can import an application package file, local or remote, or from zip, but nothing else
-            $pkgUrl = Utilities::getArrayValue('pkg_url', $_REQUEST, '');
-            if (!empty($pkgUrl)) {
+            $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
+            if (0 === strcasecmp('dfpkg', FileUtilities::getFileExtension($fileUrl))) {
                 try {
                     // need to download and extract zip file and move contents to storage
-                    $filename = $this->importUrlFileToTemp($pkgUrl);
+                    $filename = FileUtilities::importUrlFileToTemp($fileUrl);
                     return $this->importAppFromPackage($filename);
                     // todo save url for later updates
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to import application package $pkgUrl.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to import application package $fileUrl.\n{$ex->getMessage()}");
                 }
             }
             $name = Utilities::getArrayValue('name', $_REQUEST, '');
             // from repo or remote zip file
-            $zipUrl = Utilities::getArrayValue('zip_url', $_REQUEST, '');
-            if (!empty($name) && !empty($zipUrl)) {
+            if (!empty($name) && (0 === strcasecmp('zip', FileUtilities::getFileExtension($fileUrl)))) {
                 try {
                     // need to download and extract zip file and move contents to storage
-                    $filename = $this->importUrlFileToTemp($zipUrl);
+                    $filename = FileUtilities::importUrlFileToTemp($fileUrl);
                     return $this->importAppFromZip($name, $filename);
                     // todo save url for later updates
                 }
                 catch (Exception $ex) {
-                    throw new Exception("Failed to import application package $zipUrl.\n{$ex->getMessage()}");
+                    throw new Exception("Failed to import application package $fileUrl.\n{$ex->getMessage()}");
                 }
             }
             if (isset($_FILES['files']) && !empty($_FILES['files'])) {
@@ -450,7 +406,7 @@ class ApplicationSvc extends CommonFileSvc
                         throw new Exception("Failed to import application package $filename.\n{$ex->getMessage()}");
                     }
                 }
-                if (!FileUtilities::isZipContent($contentType)) {
+                if (!empty($name) && !FileUtilities::isZipContent($contentType)) {
                     try {
                         // need to extract zip file and move contents to storage
                         return $this->importAppFromZip($name, $tmpName);

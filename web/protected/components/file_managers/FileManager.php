@@ -377,10 +377,11 @@ class FileManager extends CommonFileManager
             }
             $key = self::addContainerToName($this->storageContainer, $path);
             $shortName = FileUtilities::getNameFromPath($path);
+            $ext = end(explode(".", strtolower($key)));
             $data = array(
                 'path' => $path,
                 'name' => $shortName,
-                'contentType' => FileUtilities::determineContentType($key),
+                'contentType' => FileUtilities::determineContentType($ext, '', $key),
                 'lastModified' => gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)),
                 'size' => filesize($key)
             );
@@ -412,9 +413,10 @@ class FileManager extends CommonFileManager
         try {
             $key = static::addContainerToName($this->storageContainer, $path);
             if (is_file($key)) {
+                $ext = end(explode(".", strtolower($key)));
                 $result = file_get_contents($key);
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
-                header('Content-type: ' . FileUtilities::determineContentType($key));
+                header('Content-type: ' . FileUtilities::determineContentType($ext, '', $key));
                 header('Content-Length:' . filesize($key));
                 $disposition = 'inline';
                 header("Content-Disposition: $disposition; filename=\"$path\";");
@@ -443,8 +445,9 @@ class FileManager extends CommonFileManager
             $key = static::addContainerToName($this->storageContainer, $path);
             if (is_file($key)) {
                 $result = file_get_contents($key);
+                $ext = end(explode(".", strtolower($key)));
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
-                header('Content-type: ' . FileUtilities::determineContentType($key));
+                header('Content-type: ' . FileUtilities::determineContentType($ext, '', $key));
                 header('Content-Length:' . filesize($key));
                 $disposition = 'attachment';
                 header("Content-Disposition: $disposition; filename=\"$path\";");
@@ -510,7 +513,7 @@ class FileManager extends CommonFileManager
     public function moveFile($path, $local_path, $check_exist=true)
     {
         // does local file exist?
-        if (file_exists($local_path)) {
+        if (!file_exists($local_path)) {
             throw new Exception("File '$local_path' does not exist.");
         }
         // does this file already exist?
@@ -848,9 +851,10 @@ class FileManager extends CommonFileManager
                             $out = array_merge($out, self::listTree($root, $local . DIRECTORY_SEPARATOR));
                     }
                     elseif (is_file($key)) {
+                        $ext = end(explode(".", strtolower($key)));
                         $out[] = array(
                             'name' => str_replace(DIRECTORY_SEPARATOR, '/', $local),
-                            'contentType' => FileUtilities::determineContentType($key),
+                            'contentType' => FileUtilities::determineContentType($ext, '', $key),
                             'lastModified' => gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)),
                             'size' => filesize($key)
                         );
