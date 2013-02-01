@@ -44,11 +44,6 @@ class UserManager implements iRestHandler
     private static $_instance = null;
 
     /**
-     * @var PdoSqlDbSvc
-     */
-    protected $nativeDb;
-
-    /**
      * @var string
      */
     protected $command;
@@ -69,8 +64,6 @@ class UserManager implements iRestHandler
      */
     public function __construct()
     {
-        $this->nativeDb = new PdoSqlDbSvc();
-
         $this->siteName = Yii::app()->params['companyLabel'];
         if (empty($this->siteName)) {
             $this->siteName = $_SERVER['HTTP_HOST'];
@@ -85,7 +78,6 @@ class UserManager implements iRestHandler
      */
     public function __destruct()
     {
-        unset($this->nativeDb);
     }
 
     /**
@@ -114,25 +106,29 @@ class UserManager implements iRestHandler
         switch ($this->command) {
         case '':
             $resources = array(
-                array('name' => 'login'),
-                array('name' => 'logout'),
+                array('name' => 'session'),
+                array('name' => 'profile'),
+                array('name' => 'password'),
+                array('name' => 'challenge'),
                 array('name' => 'register'),
                 array('name' => 'confirm'),
-                array('name' => 'change_profile'),
-                array('name' => 'change_password'),
-                array('name' => 'forgot_password'),
-                array('name' => 'new_password'),
-                array('name' => 'security_answer'),
-                array('name' => 'ticket'),
-                array('name' => 'session'));
+                array('name' => 'ticket')
+            );
             $result = array('resource' => $resources);
             break;
-        case 'ticket':
-            $result = $this->userTicket();
+        case 'challenge':
+            $username = Utilities::getArrayValue('username', $_REQUEST, '');
+            $result = $this->forgotPassword($username);
+            break;
+        case 'profile':
+            $result = $this->getProfile();
             break;
         case 'session':
             $ticket = Utilities::getArrayValue('ticket', $_REQUEST, '');
             $result = $this->userSession($ticket);
+            break;
+        case 'ticket':
+            $result = $this->userTicket();
             break;
         default:
            // unsupported GET request
@@ -152,52 +148,42 @@ class UserManager implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch ($this->command) {
-        case 'login':
+        case 'session':
             $username = Utilities::getArrayValue('username', $data, '');
             $password = Utilities::getArrayValue('password', $data, '');
             //$password = Utilities::decryptPassword($password);
             $result = $this->userLogin($username, $password);
             break;
-        case 'logout':
-            $this->userLogout();
-            $result = array('result' => 'OK');
-            break;
         case 'register':
-            $firstname = Utilities::getArrayValue('firstname', $data, '');
-            $lastname = Utilities::getArrayValue('lastname', $data, '');
+            $firstName = Utilities::getArrayValue('first_name', $data, '');
+            $lastName = Utilities::getArrayValue('last_name', $data, '');
             $username = Utilities::getArrayValue('username', $data, '');
             $email = Utilities::getArrayValue('email', $data, '');
             $password = Utilities::getArrayValue('password', $data, '');
             //$password = Utilities::decryptPassword($password);
-            $result = $this->userRegister($username, $email, $password, $firstname, $lastname);
+            $result = $this->userRegister($username, $email, $password, $firstName, $lastName);
             break;
         case 'confirm':
-            $code = Utilities::getArrayValue('code', $data, '');
+            $code = Utilities::getArrayValue('code', $_REQUEST, '');
+            if (empty($code))
+                $code = Utilities::getArrayValue('code', $data, '');
             $result = $this->userConfirm($code);
             break;
-        case 'forgot_password':
-            $username = Utilities::getArrayValue('username', $data, '');
-            $result = $this->forgotPassword($username);
-            break;
-        case 'security_answer':
-            $username = Utilities::getArrayValue('username', $data, '');
-            $answer = Utilities::getArrayValue('username', $data, '');
+        case 'challenge':
+            $username = Utilities::getArrayValue('username', $_REQUEST, '');
+            if (empty($username))
+                $username = Utilities::getArrayValue('username', $data, '');
+            $answer = Utilities::getArrayValue('security_answer', $data, '');
             $result = $this->securityAnswer($username, $answer);
             break;
-        case 'new_password':
-            $code = Utilities::getArrayValue('code', $data, '');
-            $newPassword = Utilities::getArrayValue('newpassword', $data, '');
-            //$newPassword = Utilities::decryptPassword($newPassword);
-            $result = $this->newPassword($code, $newPassword);
-            break;
-        case 'change_password':
-            $oldPassword = Utilities::getArrayValue('oldpassword', $data, '');
+        case 'password':
+            $oldPassword = Utilities::getArrayValue('old_password', $data, '');
             //$oldPassword = Utilities::decryptPassword($oldPassword);
-            $newPassword = Utilities::getArrayValue('newpassword', $data, '');
+            $newPassword = Utilities::getArrayValue('new_password', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->changePassword($oldPassword, $newPassword);
             break;
-        case 'change_profile':
+        case 'profile':
             $result = $this->changeProfile($data);
             break;
         default:
@@ -218,14 +204,14 @@ class UserManager implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch ($this->command) {
-        case 'change_password':
-            $oldPassword = Utilities::getArrayValue('oldpassword', $data, '');
+        case 'password':
+            $oldPassword = Utilities::getArrayValue('old_password', $data, '');
             //$oldPassword = Utilities::decryptPassword($oldPassword);
-            $newPassword = Utilities::getArrayValue('newpassword', $data, '');
+            $newPassword = Utilities::getArrayValue('new_password', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->changePassword($oldPassword, $newPassword);
             break;
-        case 'change_profile':
+        case 'profile':
             $result = $this->changeProfile($data);
             break;
         default:
@@ -246,14 +232,14 @@ class UserManager implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch ($this->command) {
-        case 'change_password':
-            $oldPassword = Utilities::getArrayValue('oldpassword', $data, '');
+        case 'password':
+            $oldPassword = Utilities::getArrayValue('old_password', $data, '');
             //$oldPassword = Utilities::decryptPassword($oldPassword);
-            $newPassword = Utilities::getArrayValue('newpassword', $data, '');
+            $newPassword = Utilities::getArrayValue('new_password', $data, '');
             //$newPassword = Utilities::decryptPassword($newPassword);
             $result = $this->changePassword($oldPassword, $newPassword);
             break;
-        case 'change_profile':
+        case 'profile':
             $result = $this->changeProfile($data);
             break;
         default:
@@ -271,7 +257,19 @@ class UserManager implements iRestHandler
      */
     public function actionDelete()
     {
-        throw new Exception("DELETE Request is not currently supported by this User API.", ErrorCodes::METHOD_NOT_ALLOWED);
+        $this->detectCommonParams();
+        switch ($this->command) {
+        case 'session':
+            $this->userLogout();
+            $result = array('success' => 'true');
+            break;
+        default:
+            // unsupported GET request
+            throw new Exception("DELETE Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST);
+            break;
+        }
+
+        return $result;
     }
 
     /**
@@ -541,14 +539,13 @@ class UserManager implements iRestHandler
         }
 
         try {
-            $theUser = User::model()->find('username=:un and confirm_code=:cc',
-                                           array(':un'=>$username, ':cc'=>'y'));
+            $theUser = User::model()->find('username=:un', array(':un'=>$username));
             if (null === $theUser) {
-                if (User::model()->exists('username=:un', array(':un'=>$username))) {
-                    throw new Exception("Login registration has not been confirmed.");
-                }
                 // bad username
                 throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
+            }
+            if ('y' !== $theUser->getAttribute('confirm_code')) {
+                throw new Exception("Login registration has not been confirmed.");
             }
             if (!CPasswordHelper::verifyPassword($password, $theUser->getAttribute('password'))) {
                 throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
@@ -681,7 +678,7 @@ class UserManager implements iRestHandler
     {
         if (empty($ticket)) {
             try {
-                $userId = Utilities::validateSession();
+                $userId = SessionManager::validateSession();
             }
             catch (Exception $ex) {
                 $this->userLogout();
@@ -697,7 +694,7 @@ class UserManager implements iRestHandler
             $lapse = $curTime - $timestamp;
             if (empty($userId) || ($lapse > 300)) { // only lasts 5 minutes
                 $this->userLogout();
-                throw new Exception("[INVALIDSESSION]: Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED);
+                throw new Exception("Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED);
             }
         }
 
@@ -832,7 +829,7 @@ class UserManager implements iRestHandler
     public function userTicket()
     {
         try {
-            $userId = Utilities::validateSession();
+            $userId = SessionManager::validateSession();
         }
         catch (Exception $ex) {
             $this->userLogout();
@@ -880,30 +877,32 @@ class UserManager implements iRestHandler
         $fields['display_name'] = $fullName;
         $fields['confirm_code'] = $confirmCode;
         $record = Utilities::array_key_lower($fields);
-        $db = $this->nativeDb;
         try {
             if (empty($username)) {
                 throw new Exception("The username field for User can not be empty.", ErrorCodes::BAD_REQUEST);
             }
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id', "username = '$username'", 1);
-            unset($result['total']);
-            if (count($result) > 0) {
+            $theUser = User::model()->find('username=:un', array(':un'=>$username));
+            if (null !== $theUser) {
                 throw new Exception("A User already exists with the username '$username'.", ErrorCodes::BAD_REQUEST);
             }
-            $result = $db->createSqlRecord('user', $record, 'id');
+            $user = new User();
+            $user->setAttributes($record);
+            if (!$user->save()) {
+                throw new Exception("Failed to create a new user.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
+            try {
+                $this->sendUserConfirmationEmail($email, $confirmCode, $fullName);
+            }
+            catch (Exception $ex) {
+                // need to remove from database here, otherwise they can't register again
+                $user->delete();
+                throw new Exception("Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
         }
         catch (Exception $ex) {
             throw new Exception("Failed to register new user!\n{$ex->getMessage()}", $ex->getCode());
         }
 
-        try {
-            $this->sendUserConfirmationEmail($email, $confirmCode, $fullName);
-        }
-        catch (Exception $ex) {
-            // need to remove from database here, otherwise they can't register again
-            $db->deleteSqlRecordsByIds('user', $result[0]['id'], 'id');
-            throw new Exception("Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR);
-        }
         $this->sendAdminIntimationEmail($email, $username, $fullName);
 
         unset($fields['password']);
@@ -919,36 +918,28 @@ class UserManager implements iRestHandler
     public function userConfirm($code)
     {
         try {
-            $db = $this->nativeDb;
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id,display_name,email', "confirm_code='$code'", 1);
-            unset($result['total']);
-            if (count($result) < 1) {
+            $theUser = User::model()->find('confirm_code=:cc', array(':cc'=>$code));
+            if (null === $theUser) {
                 throw new Exception("Invalid confirm code.", ErrorCodes::BAD_REQUEST);
+            }
+            $theUser->setAttribute('confirm_code', 'y');
+            if (!$theUser->save()) {
+                throw new Exception("Failed to update user.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
+            try {
+                $fullName = $theUser->display_name;
+                $email = $theUser->email;
+                $this->sendUserWelcomeEmail($email, $fullName);
+                $this->sendAdminIntimationOnRegComplete($email, $fullName);
+            }
+            catch (Exception $ex) {
             }
         }
         catch (Exception $ex) {
             throw new Exception("Error validating confirmation.\n{$ex->getMessage()}", $ex->getCode());
         }
 
-        $result[0]['confirm_code'] = 'y';
-        try {
-            $record = Utilities::array_key_lower(array('fields' => $result[0]));
-            $db->updateSqlRecords('user', $record, 'id');
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating confirmation.\n{$ex->getMessage()}", $ex->getCode());
-        }
-
-        try {
-            $fullName = $result[0]['display_name'];
-            $email = $result[0]['email'];
-            $this->sendUserWelcomeEmail($email, $fullName);
-            $this->sendAdminIntimationOnRegComplete($email, $fullName);
-        }
-        catch (Exception $ex) {
-        }
-
-        return $result;
+        return array();
     }
 
     /**
@@ -959,35 +950,25 @@ class UserManager implements iRestHandler
     public function forgotPassword($username)
     {
         try {
-            $db = $this->nativeDb;
-            // if security question available ask, otherwise if email svc available send tmp password
-            $query = "username='$username' and confirm_code='y'";
-            $result = $db->retrieveSqlRecordsByFilter('user', 'security_question,email,display_name', $query, 1);
-            unset($result['total']);
-            if (count($result) < 1) {
-                // Check if the confirmation was never completed
-                $query = "username='$username'";
-                $result = $db->retrieveSqlRecordsByFilter('user', '', $query, 1);
-                unset($result['total']);
-                if (count($result) > 0) {
-                    throw new Exception("The user has not confirmed registration.");
-                }
+            $theUser = User::model()->find('username=:un', array(':un'=>$username));
+            if (null === $theUser) {
+                // bad username
                 throw new Exception("The supplied username was not found in the system.");
             }
-            $userInfo = $result[0];
-            $question = Utilities::getArrayValue('security_question', $userInfo, '');
-            if (!empty($question)) {
-                unset($userInfo['email']);
-
-                return $userInfo;
+            if ('y' !== $theUser->getAttribute('confirm_code')) {
+                throw new Exception("Login registration has not been confirmed.");
             }
-            $email = Utilities::getArrayValue('email', $userInfo, '');
-            $fullName = Utilities::getArrayValue('display_name', $userInfo, '');
+            $question = $theUser->getAttribute('security_question');
+            if (!empty($question)) {
+                return array('security_question'=>$question);
+            }
+            $email = $theUser->getAttribute('email');
+            $fullName = $theUser->getAttribute('display_name');
             if (!empty($email) && !empty($fullName)) {
                 $this->sendResetPasswordLink($email, $fullName);
             }
 
-            return '';
+            return array('success' => true);
         }
         catch (Exception $ex) {
             throw new Exception("Error sending new password.\n{$ex->getMessage()}", $ex->getCode());
@@ -1003,22 +984,20 @@ class UserManager implements iRestHandler
     public function securityAnswer($username, $answer)
     {
         try {
-            $db = $this->nativeDb;
-            $query = "username='$username' and security_answer='$answer' and confirm_code='y'";
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id,email', $query, 1);
-            unset($result['total']);
-            if (count($result) < 1) {
-                // Check if the confirmation was never completed
-                $query = "username='$username'";
-                $result = $db->retrieveSqlRecordsByFilter('user', '', $query, 1);
-                unset($result['total']);
-                if (count($result) > 0) {
-                    throw new Exception("The user has not confirmed registration.", ErrorCodes::BAD_REQUEST);
-                }
-                throw new Exception("The supplied answer to the security question is invalid.", ErrorCodes::BAD_REQUEST);
+            $theUser = User::model()->find('username=:un', array(':un'=>$username));
+            if (null === $theUser) {
+                // bad username
+                throw new Exception("The supplied username was not found in the system.");
+            }
+            if ('y' !== $theUser->getAttribute('confirm_code')) {
+                throw new Exception("Login registration has not been confirmed.");
+            }
+            // validate answer
+            if (!CPasswordHelper::verifyPassword($answer, $theUser->getAttribute('security_answer'))) {
+                throw new Exception("The challenge response supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
             }
 
-            $userId = $result[0]['id'];
+            $userId = $theUser->getPrimaryKey();
             $timestamp = time();
             $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
 
@@ -1027,37 +1006,6 @@ class UserManager implements iRestHandler
         catch (Exception $ex) {
             throw new Exception("Error processing security answer.\n{$ex->getMessage()}", $ex->getCode());
         }
-    }
-
-    /**
-     * @param $code
-     * @param $new_password
-     * @throws Exception
-     * @return bool
-     */
-    public function newPassword($code, $new_password)
-    {
-        // query user with reset code
-        // then update with new password
-        try {
-            $db = $this->nativeDb;
-            $query = "confirm_code='$code'";
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
-            unset($result['total']);
-            if (count($result) < 1) {
-                throw new Exception("Reset code could not be found. Please contact your administrator.", ErrorCodes::BAD_REQUEST);
-            }
-            $userInfo = array('password' => CPasswordHelper::hashPassword($new_password));
-            $result = $db->updateSqlRecordsByIds('user', $userInfo, $result[0]['id'], 'id');
-            if (count($result) < 1) {
-                throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::BAD_REQUEST);
-            }
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-
-        return array('status' => true);
     }
 
     /**
@@ -1071,35 +1019,28 @@ class UserManager implements iRestHandler
         // check valid session,
         // using userId from session, query with check for old password
         // then update with new password
-        $userId = Utilities::validateSession();
+        $userId = SessionManager::validateSession();
 
         try {
-            $db = $this->nativeDb;
-            $pwd = CPasswordHelper::hashPassword($old_password);
-            $query = "id='$userId' and password='$pwd' and confirm_code='y'";
-            $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
-            unset($result['total']);
-            if (count($result) < 1) {
-                // Check if the password is wrong
-                $query = "id='$userId' and confirm_code='y'";
-                $result = $db->retrieveSqlRecordsByFilter('user', 'id', $query, 1);
-                unset($result['total']);
-                if (count($result) > 0) {
-                    throw new Exception("The password supplied does not match.", ErrorCodes::BAD_REQUEST);
-                }
-                throw new Exception("Login registration has not been confirmed.", ErrorCodes::BAD_REQUEST);
+            $theUser = User::model()->findByPk($userId);
+            if (null === $theUser) {
+                // bad session
+                throw new Exception("The user for the current session was not found in the system.");
             }
-            $userInfo = array('password' => CPasswordHelper::hashPassword($new_password));
-            $result = $db->updateSqlRecordsByIds('user', $userInfo, $userId, 'id');
-            if (count($result) < 1) {
-                throw new Exception("The user identified in the ticket does not exist in the system.", ErrorCodes::BAD_REQUEST);
+            // validate answer
+            if (!CPasswordHelper::verifyPassword($old_password, $theUser->getAttribute('password'))) {
+                throw new Exception("The password supplied does not match.", ErrorCodes::BAD_REQUEST);
             }
+            $theUser->setAttribute('password', CPasswordHelper::hashPassword($new_password));
+            if (!$theUser->save()) {
+                throw new Exception("Failed to change the password.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
+
+            return array('success' => true);
         }
         catch (Exception $ex) {
             throw $ex;
         }
-
-        return array('status' => true);
     }
 
     /**
@@ -1111,21 +1052,58 @@ class UserManager implements iRestHandler
     {
         // check valid session,
         // using userId from session, update with new profile elements
-        $userId = Utilities::validateSession();
+        $userId = SessionManager::validateSession();
 
         try {
-            $db = $this->nativeDb;
-            $record = Utilities::removeOneFromArray('password', $record);
-            $result = $db->updateSqlRecordsByIds('user', $record, $userId, 'id');
-            if (count($result) < 1) {
-                throw new Exception("The user profile for this session does not exist in the system.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            $theUser = User::model()->findByPk($userId);
+            if (null === $theUser) {
+                // bad session
+                throw new Exception("The user for the current session was not found in the system.");
             }
+            // todo protect certain attributes here
+            if (isset($record['password'])) {
+                $theUser->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
+                unset($record['password']);
+            }
+            if (isset($record['security_answer'])) {
+                $theUser->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
+                unset($record['security_answer']);
+            }
+            $theUser->setAttributes($record);
+            if (!$theUser->save()) {
+                throw new Exception("Failed to update the user profile.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
+
+            return array('success' => true);
         }
         catch (Exception $ex) {
             throw $ex;
         }
-
-        return array('status' => true);
     }
 
+    /**
+     * @return bool
+     * @throws Exception
+     */
+    public function getProfile()
+    {
+        // check valid session,
+        // using userId from session, update with new profile elements
+        $userId = SessionManager::validateSession();
+
+        try {
+            $theUser = User::model()->findByPk($userId);
+            if (null === $theUser) {
+                // bad session
+                throw new Exception("The user for the current session was not found in the system.");
+            }
+            // todo protect certain attributes here
+            $fields = $theUser->getAttributes(array('first_name','last_name','display_name','email','phone'));
+
+            return $fields;
+        }
+        catch (Exception $ex) {
+            throw $ex;
+        }
+    }
 }

@@ -111,6 +111,6 @@ abstract class CommonService
      */
     protected function checkPermission($request, $component = '')
     {
-        Utilities::checkPermission($request, $this->_name, $component);
+        SessionManager::checkPermission($request, $this->_name, $component);
     }
 }

@@ -126,9 +126,11 @@ class RestController extends Controller
                     break;
                 }
             }
+            $code = ErrorCodes::OK;
             switch (strtolower($service)) {
                 case 'system':
                     $result = SystemManager::getInstance()->actionPost();
+                    $code = ErrorCodes::CREATED;
                     break;
                 case 'user':
                     $result = UserManager::getInstance()->actionPost();
@@ -146,7 +148,7 @@ class RestController extends Controller
                     }
                     break;
             }
-            $this->handleResults($result);
+            $this->handleResults($result, $code);
         }
         catch (Exception $ex) {
             $this->handleErrors($ex);
@@ -319,9 +321,13 @@ class RestController extends Controller
 
     /**
      * @param $result
+     * @param int $code
      */
-    private function handleResults($result)
+    private function handleResults($result, $code=200)
     {
+        $code = ErrorCodes::getHttpStatusCode($code);
+        $title = ErrorCodes::getHttpStatusCodeTitle($code);
+        header("HTTP/1.1 $code $title");
         switch ($this->format) {
         case 'json':
             $result = json_encode($result);

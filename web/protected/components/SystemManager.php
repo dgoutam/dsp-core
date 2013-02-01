@@ -95,9 +95,8 @@ class SystemManager implements iRestHandler
             }
 
             // check for at least one system admin user
-            $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'username', "is_sys_admin = 1", 1);
-            unset($result['total']);
-            if (count($result) < 1) {
+            $theUser = User::model()->find('is_sys_admin=:is', array(':is'=>1));
+            if (null === $theUser) {
                 return 'admin required';
             }
 
@@ -160,7 +159,7 @@ class SystemManager implements iRestHandler
 //            $result = $db->singleSqlQuery($query);
 //            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
             switch ($this->nativeDb->getDriverType()) {
-                case Utilities::DRV_SQLSRV:
+                case DbUtilities::DRV_SQLSRV:
                     $contents = file_get_contents(Yii::app()->basePath . '/data/procedures.mssql.sql');
                     if ((false === $contents) || empty($contents)) {
                         throw new \Exception("Empty or no system db procedures file found.");
@@ -173,7 +172,7 @@ class SystemManager implements iRestHandler
                     $command->setText($contents);
                     $command->execute();
                     break;
-                case Utilities::DRV_MYSQL:
+                case DbUtilities::DRV_MYSQL:
                     $contents = file_get_contents(Yii::app()->basePath . '/data/procedures.mysql.sql');
                     if ((false === $contents) || empty($contents)) {
                         throw new \Exception("Empty or no system db procedures file found.");
@@ -214,35 +213,31 @@ class SystemManager implements iRestHandler
             // create and login first admin user
             // fill out the user fields for creation
             $username = Utilities::getArrayValue('username', $data);
+            $theUser = User::model()->find('username=:un', array(':un'=>$username));
+            if (null !== $theUser) {
+                throw new Exception("A User already exists with the username '$username'.", ErrorCodes::BAD_REQUEST);
+            }
             $firstName = Utilities::getArrayValue('firstName', $data);
             $lastName = Utilities::getArrayValue('lastName', $data);
+            $displayName = Utilities::getArrayValue('displayName', $data);
             $pwd = Utilities::getArrayValue('password', $data, '');
             $fields = array('username' => $username,
-                'email' => Utilities::getArrayValue('email', $data),
-                'password' => CPasswordHelper::hashPassword($pwd),
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'display_name' => $firstName . ' ' . $lastName,
-                'is_active' => true,
-                'is_sys_admin' => true,
-                'confirm_code' => 'y'
+                            'email' => Utilities::getArrayValue('email', $data),
+                            'password' => CPasswordHelper::hashPassword($pwd),
+                            'first_name' => $firstName,
+                            'last_name' => $lastName,
+                            'display_name' => (empty($displayName) ? $firstName . ' ' . $lastName : $displayName),
+                            'is_active' => true,
+                            'is_sys_admin' => true,
+                            'confirm_code' => 'y'
             );
-            $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id', "username = '$username'", 1);
-            unset($result['total']);
-            if (count($result) > 0) {
-                throw new \Exception("A user already exists with the username '$username'.");
+            $user = new User();
+            $user->setAttributes($fields);
+            if (!$user->save()) {
+                throw new Exception("Failed to create a new user.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
-            $result = $this->nativeDb->createSqlRecord('user', $fields);
-            if (!isset($result[0])) {
-                error_log(print_r($result, true));
-                throw new \Exception("Failed to create user.");
-            }
-            $userId = Utilities::getArrayValue('id', $result[0]);
-            if (empty($userId)) {
-                error_log(print_r($result[0], true));
-                throw new \Exception("Failed to create user.");
-            }
-            Utilities::setCurrentUserId($userId);
+            $userId = $user->getPrimaryKey();
+            SessionManager::setCurrentUserId($userId);
         }
         catch (\Exception $ex) {
             throw $ex;
@@ -259,18 +254,16 @@ class SystemManager implements iRestHandler
     {
         try {
             // for now use the first admin we find
-            $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id', "is_sys_admin = 1", 1);
-            unset($result['total']);
-            if (!isset($result[0])) {
-                error_log(print_r($result, true));
+            $theUser = User::model()->find('is_sys_admin=:is', array(':is'=>1));
+            if (null === $theUser) {
                 throw new \Exception("Failed to retrieve admin user.");
             }
-            $userId = Utilities::getArrayValue('id', $result[0]);
+            $userId = $theUser->getPrimaryKey();
             if (empty($userId)) {
-                error_log(print_r($result[0], true));
+                error_log(print_r($theUser, true));
                 throw new \Exception("Failed to retrieve user id.");
             }
-            Utilities::setCurrentUserId($userId);
+            SessionManager::setCurrentUserId($userId);
 
             // init system tables with records
             $contents = file_get_contents(Yii::app()->basePath . '/data/system_data.json');
@@ -278,8 +271,7 @@ class SystemManager implements iRestHandler
                 throw new \Exception("Empty or no system data file found.");
             }
             $contents = Utilities::jsonToArray($contents);
-            $result = $this->nativeDb->retrieveSqlRecordsByFilter('service', 'id', '', 1);
-            unset($result['total']);
+            $result = Service::model()->findAll();
             if (empty($result)) {
                 $services = Utilities::getArrayValue('service', $contents);
                 if (empty($services)) {
@@ -288,8 +280,7 @@ class SystemManager implements iRestHandler
                 }
                 $this->nativeDb->createSqlRecords('service', $services, true);
             }
-            $result = $this->nativeDb->retrieveSqlRecordsByFilter('app', 'id', '', 1);
-            unset($result['total']);
+            $result = App::model()->findAll();
             if (empty($result)) {
                 $apps = Utilities::getArrayValue('app', $contents);
                 if (!empty($apps)) {
@@ -312,10 +303,6 @@ class SystemManager implements iRestHandler
     {
         try {
             $this->detectCommonParams();
-            $data = Utilities::getPostDataAsArray();
-            // Most requests contain 'returned fields' parameter
-            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
-            $extras = array();
             switch ($this->modelName) {
             case '':
                 $result = array(array('name' => 'app', 'label' => 'Application'),
@@ -341,6 +328,9 @@ class SystemManager implements iRestHandler
             case 'role':
             case 'service':
             case 'user':
+                // Most requests contain 'returned fields' parameter
+                $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+                $extras = array();
                 if (isset($_REQUEST['apps'])) {
                     $extras['apps'] = $_REQUEST['apps'];
                 }
@@ -356,42 +346,50 @@ class SystemManager implements iRestHandler
                         $result = $this->retrieveRecordsByIds($this->modelName, $ids, $fields, $extras);
                     }
                     else { // get by filter or all
+                        $data = Utilities::getPostDataAsArray();
                         if (!empty($data)) { // complex filters or large numbers of ids require post
                             $ids = Utilities::getArrayValue('ids', $data, '');
-                            $records = Utilities::getArrayValue('record', $data, null);
-                            if (empty($records)) {
-                                // xml to array conversion leaves them in plural wrapper
-                                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-                            }
                             if (!empty($ids)) {
                                 $result = $this->retrieveRecordsByIds($this->modelName, $ids, $fields, $extras);
                             }
-                            elseif (!empty($records)) {
-                                $result = $this->retrieveRecords($this->modelName, $records, $fields, $extras);
-                            }
-                            else { // if not specified use empty filter
-                                $filter = Utilities::getArrayValue('filter', $data, '');
-                                $limit = intval(Utilities::getArrayValue('limit', $data, 0));
-                                $order = Utilities::getArrayValue('order', $data, '');
-                                $offset = intval(Utilities::getArrayValue('offset', $data, 0));
-                                $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
+                            else {
+                                $records = Utilities::getArrayValue('record', $data, null);
+                                if (empty($records)) {
+                                    // xml to array conversion leaves them in plural wrapper
+                                    $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                                }
+                                if (!empty($records)) {
+                                    // passing records to have them updated with new or more values, id field required
+                                    $result = $this->retrieveRecords($this->modelName, $records, $fields, $extras);
+                                }
+                                elseif (isset($data['fields']) && !empty($data['fields'])) {
+                                    // passing record to have it updated with new or more values, id field required
+                                    $result = $this->retrieveRecord($this->modelName, $data, $fields, $extras);
+                                }
+                                else { // if not specified use filter
+                                    $filter = Utilities::getArrayValue('filter', $data, '');
+                                    $limit = intval(Utilities::getArrayValue('limit', $data, 0));
+                                    $order = Utilities::getArrayValue('order', $data, '');
+                                    $offset = intval(Utilities::getArrayValue('offset', $data, 0));
+                                    $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
+                                }
                             }
                         }
                         else {
-                            $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : '';
-                            $limit = (isset($_REQUEST['limit'])) ? intval($_REQUEST['limit']) : 0;
-                            $order = (isset($_REQUEST['order'])) ? $_REQUEST['order'] : '';
-                            $offset = (isset($_REQUEST['offset'])) ? intval($_REQUEST['offset']) : 0;
+                            $filter = Utilities::getArrayValue('filter', $_REQUEST, '');
+                            $limit = intval(Utilities::getArrayValue('limit', $_REQUEST, 0));
+                            $order = Utilities::getArrayValue('order', $_REQUEST, '');
+                            $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
                             $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
                         }
                     }
                 }
                 else { // single entity by id
-                    $result = $this->retrieveRecordsByIds($this->modelName, $this->modelId, $fields, $extras);
+                    $result = $this->retrieveRecordById($this->modelName, $this->modelId, $fields, $extras);
                 }
                 break;
             default:
-                throw new Exception("GET received to an unsupported system resource named '$this->modelName'.");
+                throw new Exception("GET request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST);
                 break;
             }
             return $result;
@@ -415,29 +413,35 @@ class SystemManager implements iRestHandler
             switch ($this->modelName) {
             case '':
             case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.");
+                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
             case 'role':
             case 'service':
             case 'user':
-                $records = Utilities::getArrayValue('record', $data, null);
+                $records = Utilities::getArrayValue('record', $data, array());
                 if (empty($records)) {
                     // xml to array conversion leaves them in plural wrapper
                     $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                 }
                 if (empty($records)) {
-                    throw new Exception('No records in POST create request.');
+                    $single = Utilities::getArrayValue('fields', $data, array());
+                    if (empty($single)) {
+                        throw new Exception('No record in POST create request.', ErrorCodes::BAD_REQUEST);
+                    }
+                    $result = $this->createRecord($this->modelName, $data, $fields);
                 }
-                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                if (!isset($rollback)) {
-                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                else {
+                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                    if (!isset($rollback)) {
+                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    }
+                    $result = $this->createRecords($this->modelName, $records, $rollback, $fields);
                 }
-                $result = $this->createRecords($this->modelName, $records, $rollback, $fields);
                 break;
             default:
-                throw new Exception("POST received to an unsupported system resource named '$this->modelName'.");
+                throw new Exception("POST request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST);
                 break;
             }
             return $result;
@@ -461,29 +465,49 @@ class SystemManager implements iRestHandler
             switch ($this->modelName) {
             case '':
             case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.");
+                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
             case 'role':
             case 'service':
             case 'user':
-                $records = Utilities::getArrayValue('record', $data, null);
-                if (empty($records)) {
-                    // xml to array conversion leaves them in plural wrapper
-                    $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                if (empty($this->modelId)) {
+                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                    if (!isset($rollback)) {
+                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    }
+                    $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                    if (empty($ids)) {
+                        $ids = Utilities::getArrayValue('ids', $data, '');
+                    }
+                    if (!empty($ids)) {
+                        $result = $this->updateRecordsByIds($this->modelName, $ids, $data, $rollback, $fields);
+                    }
+                    else {
+                        $records = Utilities::getArrayValue('record', $data, null);
+                        if (empty($records)) {
+                            // xml to array conversion leaves them in plural wrapper
+                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        }
+                        if (empty($records)) {
+                            $single = Utilities::getArrayValue('fields', $data, array());
+                            if (empty($single)) {
+                                throw new Exception('No record in PUT update request.', ErrorCodes::BAD_REQUEST);
+                            }
+                            $result = $this->updateRecord($this->modelName, $data, $fields);
+                        }
+                        else {
+                            $result = $this->updateRecords($this->modelName, $records, $rollback, $fields);
+                        }
+                    }
                 }
-                if (empty($records)) {
-                    throw new Exception('No records in POST update request.');
+                else {
+                    $result = $this->updateRecordById($this->modelName, $this->modelId, $data, $fields);
                 }
-                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                if (!isset($rollback)) {
-                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
-                }
-                $result = $this->updateRecords($this->modelName, $records, $rollback, $fields);
                 break;
             default:
-                throw new Exception("PUT received to an unsupported system resource named '$this->modelName'.");
+                throw new Exception("PUT request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST);
                 break;
             }
             return $result;
@@ -507,29 +531,49 @@ class SystemManager implements iRestHandler
             switch ($this->modelName) {
             case '':
             case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.");
+                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
             case 'role':
             case 'service':
             case 'user':
-                $records = Utilities::getArrayValue('record', $data, null);
-                if (empty($records)) {
-                    // xml to array conversion leaves them in plural wrapper
-                    $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                if (empty($this->modelId)) {
+                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                    if (!isset($rollback)) {
+                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    }
+                    $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                    if (empty($ids)) {
+                        $ids = Utilities::getArrayValue('ids', $data, '');
+                    }
+                    if (!empty($ids)) {
+                        $result = $this->updateRecordsByIds($this->modelName, $ids, $data, $rollback, $fields);
+                    }
+                    else {
+                        $records = Utilities::getArrayValue('record', $data, null);
+                        if (empty($records)) {
+                            // xml to array conversion leaves them in plural wrapper
+                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        }
+                        if (empty($records)) {
+                            $single = Utilities::getArrayValue('fields', $data, array());
+                            if (empty($single)) {
+                                throw new Exception('No record in MERGE update request.', ErrorCodes::BAD_REQUEST);
+                            }
+                            $result = $this->updateRecord($this->modelName, $data, $fields);
+                        }
+                        else {
+                            $result = $this->updateRecords($this->modelName, $records, $rollback, $fields);
+                        }
+                    }
                 }
-                if (empty($records)) {
-                    throw new Exception('No records in POST update request.');
+                else {
+                    $result = $this->updateRecordById($this->modelName, $this->modelId, $data, $fields);
                 }
-                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                if (!isset($rollback)) {
-                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
-                }
-                $result = $this->updateRecords($this->modelName, $records, $rollback, $fields);
                 break;
             default:
-                throw new Exception("MERGE/PATCH received to an unsupported system resource named '$this->modelName'.");
+                throw new Exception("MERGE/PATCH request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST);
                 break;
             }
             return $result;
@@ -547,12 +591,11 @@ class SystemManager implements iRestHandler
     {
         try {
             $this->detectCommonParams();
-            $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
             $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
             switch ($this->modelName) {
             case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.");
+                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
@@ -560,39 +603,38 @@ class SystemManager implements iRestHandler
             case 'service':
             case 'user':
                 if (empty($this->modelId)) {
+                    $data = Utilities::getPostDataAsArray();
                     $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                    if (empty($ids)) {
+                        $ids = Utilities::getArrayValue('ids', $data, '');
+                    }
                     if (!empty($ids)) {
                         $result = $this->deleteRecordsByIds($this->modelName, $ids, $fields);
                     }
                     else {
-                        if (!empty($data)) {
-                            $ids = Utilities::getArrayValue('ids', $data, '');
-                            $records = Utilities::getArrayValue('record', $data, null);
-                            if (empty($records)) {
-                                // xml to array conversion leaves them in plural wrapper
-                                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        $records = Utilities::getArrayValue('record', $data, null);
+                        if (empty($records)) {
+                            // xml to array conversion leaves them in plural wrapper
+                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        }
+                        if (empty($records)) {
+                            $single = Utilities::getArrayValue('fields', $data, array());
+                            if (empty($single)) {
+                                throw new Exception("Id list or record containing Id field required to delete $this->modelName records.", ErrorCodes::BAD_REQUEST);
                             }
-                            if (!empty($ids)) {
-                                $result = $this->deleteRecordsByIds($this->modelName, $ids, $fields);
-                            }
-                            elseif (!empty($records)) {
-                                $result = $this->deleteRecords($this->modelName, $records, $fields);
-                            }
-                            else {
-                                throw new Exception("Id list or record sets containing Id fields required to delete $this->modelName records.");
-                            }
+                            $result = $this->deleteRecord($this->modelName, $data, $fields);
                         }
                         else {
-                            throw new Exception("Id list or record sets containing Id fields required to delete $this->modelName records.");
+                            $result = $this->deleteRecords($this->modelName, $records, $fields);
                         }
                     }
                 }
                 else {
-                    $result = $this->deleteRecordsByIds($this->modelName, $this->modelId, $fields);
+                    $result = $this->deleteRecordById($this->modelName, $this->modelId, $fields);
                 }
                 break;
             default:
-                throw new Exception("DELETE received to an unsupported system resource named '$this->modelName'.");
+                throw new Exception("DELETE request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST);
                 break;
             }
             return $result;
@@ -613,67 +655,112 @@ class SystemManager implements iRestHandler
         $this->modelId = (isset($resource[1])) ? $resource[1] : '';
     }
 
+    public static function getResourceModel($resource)
+    {
+        switch (strtolower($resource)) {
+        case 'app':
+            $model = App::model();
+            break;
+        case 'app_group':
+            $model = AppGroup::model();
+            break;
+        case 'role':
+            $model = Role::model();
+            break;
+        case 'service':
+            $model = Service::model();
+            break;
+        case 'user':
+            $model = User::model();
+            break;
+        default:
+            throw new Exception("Invalid system resource '$resource' requested.", ErrorCodes::BAD_REQUEST);
+            break;
+        }
+
+        return $model;
+    }
+
+    public static function getNewResource($resource)
+    {
+        switch (strtolower($resource)) {
+        case 'app':
+            $obj = new App;
+            break;
+        case 'app_group':
+            $obj = new AppGroup;
+            break;
+        case 'role':
+            $obj = new Role;
+            break;
+        case 'service':
+            $obj = new Service;
+            break;
+        case 'user':
+            $obj = new User;
+            break;
+        default:
+            throw new Exception("Attempting to create an invalid system resource '$resource'.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            break;
+        }
+
+        return $obj;
+    }
+
     //-------- System Records Operations ---------------------
     // records is an array of field arrays
 
     /**
      * @param $table
      * @param $record
-     * @param string $fields
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    protected function createRecordLow($table, $record, $fields = '')
+    protected function createRecordLow($table, $record, $return_fields = '')
     {
-        if (!isset($record['fields']) || empty($record['fields'])) {
-            throw new Exception('[InvalidParam]: There are no fields in the record set.');
+        $fields = Utilities::getArrayValue('fields', $record);
+        if (empty($fields)) {
+            throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
         }
+        $model = static::getResourceModel($table);
         try {
-            // before record create - all
-            $this->validateUniqueSystemName($table, $record['fields']);
-            // specific
-            switch (strtolower($table)) {
-            case 'user':
-                $this->validateUser($record['fields']);
-                break;
-            case 'app':
-                // need name and isUrlExternal to create app directory in storage
-                $fields = Utilities::addOnceToList($fields, 'name', ',');
-                $fields = Utilities::addOnceToList($fields, 'is_url_external', ',');
-                break;
-            }
-
             // create DB record
-            $fields = Utilities::addOnceToList($fields, 'id', ',');
-            $results = $this->nativeDb->createSqlRecord($table, $record['fields'], $fields);
-            if (!isset($results[0])) {
-                error_log(print_r($results, true));
-                throw new Exception("Failed to create user.");
+            $obj = static::getNewResource($table);
+            $obj->setAttributes($fields);
+            if (!$obj->save()) {
+                error_log(print_r($obj->errors, true));
+                throw new Exception("Failed to create $table.\n" . print_r($obj->errors, true), ErrorCodes::INTERNAL_SERVER_ERROR);
             }
-            $id = Utilities::getArrayValue('id', $results[0]);
+            $id = $obj->primaryKey;
             if (empty($id)) {
-                error_log(print_r($results[0], true));
-                throw new Exception("Failed to create user.");
+                error_log(print_r($obj, true));
+                throw new Exception("Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
+            if (empty($return_fields)) {
+                $data = array('id' => $id);
+            }
+            else {
+                $return_fields = explode(',', $model->checkRetrievableFields($return_fields));
+                $data = $obj->getAttributes($return_fields);
+            }
             // after record create
             switch (strtolower($table)) {
             case 'app':
                 // need name and isUrlExternal to create app directory in storage
-                if (isset($results[0]['is_url_external'])) {
-                    $isExternal = Utilities::boolval($results[0]['is_url_external']);
-                    if (!$isExternal) {
-                        $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
-                        if ($appSvc) {
-                            $appSvc->createApp($results[0]['name']);
-                        }
+                error_log(print_r($obj->attributes, true));
+                if (0 === $obj->is_url_external) {
+                    $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
+                    if ($appSvc) {
+                        $appSvc->createApp($obj->name);
                     }
                 }
                 break;
             case 'app_group':
-                if (isset($record['fields']['app_ids'])) {
+                if (isset($fields['app_ids'])) {
                     try {
-                        $appIds = $record['fields']['app_ids'];
+                        $appIds = $fields['app_ids'];
                         $this->assignAppGroups($id, $appIds);
                     }
                     catch (Exception $ex) {
@@ -695,9 +782,9 @@ class SystemManager implements iRestHandler
                         throw $ex;
                     }
                 }
-                if (isset($record['fields']['services'])) {
+                if (isset($fields['services'])) {
                     try {
-                        $services = $record['fields']['services'];
+                        $services = $fields['services'];
                         $this->assignServiceAccess($id, $services);
                     }
                     catch (Exception $ex) {
@@ -707,12 +794,12 @@ class SystemManager implements iRestHandler
                 break;
             }
 
-            return array('fields' => (isset($results[0]) ? $results[0] : $results));
+            return array('fields' => $data);
         }
         catch (Exception $ex) {
             // need to delete the above table entry and clean up
-            if (isset($id) && !empty($id)) {
-                $this->nativeDb->deleteSqlRecordsByIds($table, $id, 'id');
+            if (isset($obj) && !$obj->getIsNewRecord()) {
+                $obj->delete();
             }
             throw $ex;
         }
@@ -722,27 +809,27 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $records
      * @param bool $rollback
-     * @param string $fields
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    public function createRecords($table, $records, $rollback = false, $fields = '')
+    public function createRecords($table, $records, $rollback = false, $return_fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('create', 'system', $table);
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
         if (!isset($records[0])) { // isArrayNumeric($records)
             // conversion from xml can pull single record out of array format
             $records = array($records);
         }
+        SessionManager::checkPermission('create', 'system', $table);
         $out = array();
         foreach ($records as $record) {
             try {
-                $out[] = $this->createRecordLow($table, $record, $fields);
+                $out[] = $this->createRecordLow($table, $record, $return_fields);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -755,59 +842,85 @@ class SystemManager implements iRestHandler
     /**
      * @param $table
      * @param $record
-     * @param $fields
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    protected function updateRecordLow($table, $record, $fields)
+    public function createRecord($table, $record, $return_fields = '')
     {
-        if (!isset($record['fields']) || empty($record['fields'])) {
-            throw new Exception('[InvalidParam]: There are no fields in the record set.');
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        SessionManager::checkPermission('create', 'system', $table);
+        return $this->createRecordLow($table, $record, $return_fields);
+    }
+
+    /**
+     * @param $table
+     * @param $id
+     * @param $record
+     * @param $return_fields
+     * @return array
+     * @throws Exception
+     */
+    protected function updateRecordLow($table, $id, $record, $return_fields = '')
+    {
+        $fields = Utilities::getArrayValue('fields', $record, array());
+        if (empty($fields)) {
+            throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
+        }
+        if (empty($id)) {
+            throw new Exception("Identifying field 'id' can not be empty for update request.", ErrorCodes::BAD_REQUEST);
+        }
+        $model = static::getResourceModel($table);
         try {
-            // before record update
-            $this->validateUniqueSystemName($table, $record['fields'], true);
-            // specific
-            switch (strtolower($table)) {
-            case 'user':
-                $this->validateUser($record['fields'], true);
-                break;
-            case 'app':
-                // need name and isUrlExternal to create app directory in storage
-                $fields = Utilities::addOnceToList($fields, 'name', ',');
-                break;
+            $fields = Utilities::removeOneFromArray('id', $fields);
+            $obj = $model->findByPk($id);
+            if (!$obj) {
+                throw new Exception("Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND);
             }
-            $id = Utilities::getArrayValue('id', $record['fields'], '');
-            if (empty($id)) {
-                throw new Exception("Identifying field 'id' can not be empty for update request.");
+            // todo move this to model rules
+            if (isset($fields['password'])) {
+                $obj->setAttribute('password', CPasswordHelper::hashPassword($fields['password']));
+                unset($fields['password']);
             }
-            $record['fields'] = Utilities::removeOneFromArray('id', $record['fields']);
-
-            $results = $this->nativeDb->updateSqlRecordsByIds($table, $record['fields'], $id, 'id', false, $fields);
-
+            if (isset($fields['security_answer'])) {
+                $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($fields['security_answer']));
+                unset($fields['security_answer']);
+            }
+            $obj->setAttributes($fields);
+            if (!$obj->save()) {
+                error_log(print_r($obj->errors, true));
+                throw new Exception("Failed to update user.\n" . print_r($obj->errors, true));
+            }
+            if (empty($return_fields)) {
+                $data = array('id' => $id);
+            }
+            else {
+                $return_fields = $model->checkRetrievableFields($return_fields);
+                $data = $obj->getAttributes(explode(',', $return_fields));
+            }
             // after record update
             switch (strtolower($table)) {
             case 'app':
                 // need name and isExternal to create app directory in storage
                 $isUrlExternal = Utilities::getArrayValue('is_url_external', $record, null);
                 if (isset($isUrlExternal)) {
-                    $name = (isset($results[0]['name'])) ? $results[0]['name'] : '';
-                    if (!empty($name)) {
-                        if (!Utilities::boolval($isUrlExternal)) {
-                            $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
-                            if ($appSvc) {
-                                if (!$appSvc->appExists($name)) {
-                                    $appSvc->createApp($name);
-                                }
+                    $name = $obj->name;
+                    if (!Utilities::boolval($isUrlExternal)) {
+                        $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
+                        if ($appSvc) {
+                            if (!$appSvc->appExists($name)) {
+                                $appSvc->createApp($name);
                             }
                         }
                     }
                 }
                 break;
             case 'app_group':
-                if (isset($record['fields']['app_ids'])) {
+                if (isset($fields['app_ids'])) {
                     try {
-                        $appIds = $record['fields']['app_ids'];
+                        $appIds = $fields['app_ids'];
                         $this->assignAppGroups($id, $appIds, true);
                     }
                     catch (Exception $ex) {
@@ -833,9 +946,9 @@ class SystemManager implements iRestHandler
                         throw $ex;
                     }
                 }
-                if (isset($record['fields']['services'])) {
+                if (isset($fields['services'])) {
                     try {
-                        $services = $record['fields']['services'];
+                        $services = $fields['services'];
                         $this->assignServiceAccess($id, $services);
                     }
                     catch (Exception $ex) {
@@ -845,7 +958,7 @@ class SystemManager implements iRestHandler
                 break;
             }
 
-            return array('fields' => (isset($results[0]) ? $results[0] : $results));
+            return array('fields' => $data);
         }
         catch (Exception $ex) {
             throw $ex;
@@ -856,28 +969,29 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $records
      * @param bool $rollback
-     * @param string $fields
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    public function updateRecords($table, $records, $rollback = false, $fields = '')
+    public function updateRecords($table, $records, $rollback = false, $return_fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('update', 'system', $table);
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
-
         if (!isset($records[0])) {
             // conversion from xml can pull single record out of array format
             $records = array($records);
         }
+        SessionManager::checkPermission('update', 'system', $table);
         $out = array();
         foreach ($records as $record) {
             try {
-                $out[] = $this->updateRecordLow($table, $record, $fields);
+                // todo this needs to use $model->getPrimaryKey()
+                $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields']) : '';
+                $out[] = $this->updateRecordLow($table, $id, $record, $return_fields);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -890,25 +1004,74 @@ class SystemManager implements iRestHandler
     /**
      * @param $table
      * @param $record
-     * @param string $fields
+    * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    public function updateRecordById($table, $record, $fields = '')
+    public function updateRecord($table, $record, $return_fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('update', 'system', $table);
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There is no record in the request.', ErrorCodes::BAD_REQUEST);
+        }
+        SessionManager::checkPermission('update', 'system', $table);
+        // todo this needs to use $model->getPrimaryKey()
+        $id = Utilities::getArrayValue('id', $record['fields']);
+        return $this->updateRecordLow($table, $id, $record, $return_fields);
+    }
 
-        try {
-            $result = $this->updateRecordLow($table, $record, $fields);
+    /**
+     * @param $table
+     * @param $id_list
+     * @param $record
+     * @param bool $rollback
+     * @param string $return_fields
+     * @return array
+     * @throws Exception
+     */
+    public function updateRecordsByIds($table, $id_list, $record, $rollback = false, $return_fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        if (!isset($record) || empty($record)) {
+            throw new Exception('There is no record in the request.', ErrorCodes::BAD_REQUEST);
+        }
+        SessionManager::checkPermission('update', 'system', $table);
+        $ids = array_map('trim', explode(',', $id_list));
+        $out = array();
+        foreach ($ids as $id) {
+            try {
+                $out[] = $this->updateRecordLow($table, $id, $record, $return_fields);
+            }
+            catch (Exception $ex) {
+                $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+            }
+        }
 
-            return (isset($result[0]) ? $result[0] : $result);
+        return array('record' => $out);
+    }
+
+    /**
+     * @param $table
+     * @param $id
+     * @param $record
+     * @param string $return_fields
+     * @return array
+     * @throws Exception
+     */
+    public function updateRecordById($table, $id, $record, $return_fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        catch (Exception $ex) {
-            throw new Exception("Error updating $table records.\n{$ex->getMessage()}");
+        if (!isset($record) || empty($record)) {
+            throw new Exception('There is no record in the request.', ErrorCodes::BAD_REQUEST);
         }
+        SessionManager::checkPermission('update', 'system', $table);
+        return $this->updateRecordLow($table, $id, $record, $return_fields);
     }
 
     /**
@@ -918,14 +1081,6 @@ class SystemManager implements iRestHandler
     protected function preDeleteUsers($id_list)
     {
         try {
-            $currUser = Utilities::getCurrentUserId();
-            $ids = array_map('trim', explode(',', $id_list));
-            foreach ($ids as $id) {
-                if ($currUser === $id) {
-                    throw new Exception("The current logged in user with Id '$id' can not be deleted.");
-                }
-            }
-            // todo check and make sure this is not the last admin user
         }
         catch (Exception $ex) {
             throw $ex;
@@ -939,11 +1094,7 @@ class SystemManager implements iRestHandler
     protected function preDeleteRoles($id_list)
     {
         try {
-            $currentRole = Utilities::getCurrentRoleId();
             $ids = array_map('trim', explode(',', $id_list));
-            if (false !== array_search($currentRole, $ids)) {
-                throw new Exception("Your current role with Id '$currentRole' can not be deleted.");
-            }
             foreach ($ids as $id) {
                 // clean up User.RoleIds pointing here
                 $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id,role_id', "role_id = '$id'");
@@ -971,35 +1122,10 @@ class SystemManager implements iRestHandler
     protected function preDeleteApps($id_list)
     {
         try {
-            $currApp = Utilities::getCurrentAppName();
+            $store = ServiceHandler::getInstance()->getServiceObject('app');
             $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $id_list, 'id', 'id,name');
             foreach ($result as $appInfo) {
-                if (!is_array($appInfo) || empty($appInfo)) {
-                    throw new Exception("One of the application ids is invalid.");
-                }
-                $name = $appInfo['name'];
-                if ($currApp === $name) {
-                    throw new Exception("The currently running application '$name' can not be deleted.");
-                }
-            }
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-        try {
-            $store = ServiceHandler::getInstance()->getServiceObject('app');
-            foreach ($result as $appInfo) {
                 $id = $appInfo['id'];
-                // delete roles - which need cleaning of users first
-                $roles = $this->nativeDb->retrieveSqlRecordsByFilter('role', 'id', "app_ids='$id'");
-                unset($roles['total']);
-                $roleIdList = '';
-                foreach ($roles as $role) {
-                    $roleIdList .= (!empty($roleIdList)) ? ',' . $role['id'] : $role['id'];
-                }
-                if (!empty($roleIdList)) {
-                    $this->deleteRecordsByIds('role', $roleIdList);
-                }
                 // remove file storage
                 $name = $appInfo['name'];
                 $store->deleteApp($name);
@@ -1031,16 +1157,15 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $records
      * @param bool $rollback
-     * @param string $fields
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    public function deleteRecords($table, $records, $rollback = false, $fields = '')
+    public function deleteRecords($table, $records, $rollback = false, $return_fields = '')
     {
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
-
         if (!isset($records[0])) {
             // conversion from xml can pull single record out of array format
             $records = array($records);
@@ -1054,22 +1179,38 @@ class SystemManager implements iRestHandler
             $idList .= $record['fields']['id'];
         }
 
-        return $this->deleteRecordsByIds($table, $idList, $fields);
+        return $this->deleteRecordsByIds($table, $idList, $return_fields);
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param string $return_fields
+     * @return array
+     * @throws Exception
+     */
+    public function deleteRecord($table, $record, $return_fields = '')
+    {
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
+        }
+        $id = $record['fields']['id'];
+        return $this->deleteRecordById($table, $id, $return_fields);
     }
 
     /**
      * @param $table
      * @param $id_list
-     * @param string $fields
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    public function deleteRecordsByIds($table, $id_list, $fields = '')
+    public function deleteRecordsByIds($table, $id_list, $return_fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('delete', 'system', $table);
+        SessionManager::checkPermission('delete', 'system', $table);
 
         try {
             switch (strtolower($table)) {
@@ -1087,7 +1228,7 @@ class SystemManager implements iRestHandler
                 break;
             }
 
-            $results = $this->nativeDb->deleteSqlRecordsByIds($table, $id_list, 'id', false, $fields);
+            $results = $this->nativeDb->deleteSqlRecordsByIds($table, $id_list, 'id', false, $return_fields);
             $out = array();
             foreach ($results as $result) {
                 if (empty($result) || is_array($result)) {
@@ -1107,78 +1248,93 @@ class SystemManager implements iRestHandler
 
     /**
      * @param $table
-     * @param $records
-     * @param string $fields
-     * @param null $extras
+     * @param $id
+     * @param string $return_fields
      * @return array
      * @throws Exception
      */
-    public function retrieveRecords($table, $records, $fields = '', $extras = null)
+    public function deleteRecordById($table, $id, $return_fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('read', 'system', $table);
-        $fields = $this->checkRetrievableSystemFields($table, $fields);
+        SessionManager::checkPermission('delete', 'system', $table);
 
         try {
-            $results = $this->nativeDb->retrieveSqlRecords($table, $records, 'id', $fields);
-            $out = array();
-            foreach ($results as $result) {
-                if (empty($result) || is_array($result)) {
-                    switch (strtolower($table)) {
-                    case 'app_group':
-                        break;
-                    case 'role':
-                        if ((isset($result['id']) && !empty($result['id'])) &&
-                            (empty($fields) || (false !== stripos($fields, 'services')))) {
-                            $permFields = 'service_id,service,component,read,create,update,delete';
-                            $permQuery = "role_id='" . $result['id'] . "'";
-                            $perms = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', $permFields, $permQuery, 0, 'service');
-                            unset($perms['total']);
-                            $result['services'] = $perms;
-                        }
-                        break;
-                    case 'service':
-                        if (isset($result['type']) && !empty($result['type'])) {
-                            switch (strtolower($result['type'])) {
-                            case 'native':
-                            case 'managed':
-                                unset($result['base_url']);
-                                unset($result['parameters']);
-                                unset($result['headers']);
-                                break;
-                            case 'web':
-                                break;
-                            }
-                        }
-                        break;
-                    case 'user':
-                        if (isset($extras['role'])) {
-                            if (isset($result['role_id']) && !empty($result['role_id'])) {
-                                $roleInfo = $this->retrieveRecordsByIds('role', $result['role_id'], 'id', '');
-                                $result['role'] = $roleInfo[0];
-                            }
-                        }
-                        break;
-                    }
-                    $out[] = array('fields' => $result);
-                }
-                else { // error
-                    $out[] = array('error' => array('message' => $result, 'code' => 500));
-                }
+            switch (strtolower($table)) {
+            case "app_group":
+                $this->preDeleteAppGroups($id);
+                break;
+            case "app":
+                $this->preDeleteApps($id);
+                break;
+            case "role":
+                $this->preDeleteRoles($id);
+                break;
+            case "user":
+                $this->preDeleteUsers($id);
+                break;
             }
 
-            return array('record' => $out);
+            $model = static::getResourceModel($table);
+            $record = $model->findByPk($id);
+            if (empty($return_fields)) {
+                $data = array('id' => $id);
+            }
+            else {
+                $data = $record->getAttributes(explode(',', $return_fields));
+            }
+            $out = array('fields' => $data);
+            if (!$record->delete()) {
+                throw new Exception("Failed to delete $table record.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
+
+            return $out;
         }
         catch (Exception $ex) {
-            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error deleting $table record.\n{$ex->getMessage()}");
         }
     }
 
     /**
      * @param $table
-     * @param string $fields
+     * @param $records
+     * @param string $return_fields
+     * @param null $extras
+     * @return array
+     * @throws Exception
+     */
+    public function retrieveRecords($table, $records, $return_fields = '', $extras = null)
+    {
+        $ids = array();
+        foreach ($records as $key => $record) {
+            $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields'], '') : '';
+            if (empty($id)) {
+                throw new Exception("Identifying field 'id' can not be empty for retrieve record [$key] request.");
+            }
+            $ids[] = $id;
+        }
+        $idList = implode(',', $ids);
+        return $this->retrieveRecordsByIds($table, $idList, $return_fields, $extras);
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param string $return_fields
+     * @param null $extras
+     * @return array
+     * @throws Exception
+     */
+    public function retrieveRecord($table, $record, $return_fields = '', $extras = null)
+    {
+        $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields'], '') : '';
+        return $this->retrieveRecordById($table, $id, $return_fields, $extras);
+    }
+
+    /**
+     * @param $table
+     * @param string $return_fields
      * @param string $filter
      * @param int $limit
      * @param string $order
@@ -1187,64 +1343,84 @@ class SystemManager implements iRestHandler
      * @return array
      * @throws Exception
      */
-    public function retrieveRecordsByFilter($table, $fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = null)
+    public function retrieveRecordsByFilter($table, $return_fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = null)
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('read', 'system', $table);
-        $fields = $this->checkRetrievableSystemFields($table, $fields);
+        SessionManager::checkPermission('read', 'system', $table);
+        $model = static::getResourceModel($table);
+        $return_fields = $model->checkRetrievableFields($return_fields);
 
         try {
-            $results = $this->nativeDb->retrieveSqlRecordsByFilter($table, $fields, $filter, $limit, $order, $offset);
-            $total = (isset($results['total'])) ? $results['total'] : '';
-            unset($results['total']);
+            $command = new CDbCriteria();
+            //$command->select = $return_fields;
+            if (!empty($filter)) {
+                $command->where = $filter;
+            }
+            if (!empty($order)) {
+                $command->order = $order;
+            }
+            if ($offset > 0) {
+                $command->offset = $offset;
+            }
+            if ($limit > 0) {
+                $command->limit = $limit;
+            }
+            else {
+                // todo impose a limit to protect server
+            }
             $out = array();
-            foreach ($results as $result) {
-                if (empty($result) || is_array($result)) {
-                    switch (strtolower($table)) {
-                    case 'app_group':
-                        break;
-                    case 'role':
-                        if ((isset($result['id']) && !empty($result['id'])) &&
-                            (empty($fields) || (false !== stripos($fields, 'services')))) {
-                            $permFields = 'service_id,service,component,read,create,update,delete';
-                            $permQuery = "role_id='" . $result['id'] . "'";
-                            $perms = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', $permFields, $permQuery, 0, 'service');
-                            unset($perms['total']);
-                            $result['services'] = $perms;
+            $records = $model->findAll($command);
+            foreach ($records as $record) {
+                $pk = $record->primaryKey;
+                if (empty($return_fields)) {
+                    $data = $record->getAttributes();
+                }
+                else {
+                    $data = $record->getAttributes(explode(',', $return_fields));
+                }
+                switch (strtolower($table)) {
+                case 'app_group':
+                    break;
+                case 'role':
+                    if ((empty($return_fields) || (false !== stripos($return_fields, 'services')))) {
+                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
+                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
+                        $perms = array();
+                        foreach ($rsa as $access) {
+                            $perms[] = $access->getAttributes($permFields);
                         }
-                        break;
-                    case 'service':
-                        if (isset($result['type']) && !empty($result['type'])) {
-                            switch (strtolower($result['type'])) {
-                            case 'native':
-                            case 'managed':
-                                unset($result['base_url']);
-                                unset($result['parameters']);
-                                unset($result['headers']);
-                                break;
-                            case 'web':
-                                break;
-                            }
-                        }
-                        break;
-                    case 'user':
-                        if (isset($extras['role'])) {
-                            if (isset($result['role_id']) && !empty($result['role_id'])) {
-                                $roleInfo = $this->retrieveRecordsByIds('role', $result['role_id'], 'id', '');
-                                $result['role'] = $roleInfo[0];
-                            }
-                        }
-                        break;
+                        $data['services'] = $perms;
                     }
-                    $out[] = array('fields' => $result);
+                    break;
+                case 'service':
+                    if (isset($data['type']) && !empty($data['type'])) {
+                        switch (strtolower($data['type'])) {
+                        case 'native':
+                        case 'managed':
+                            unset($data['base_url']);
+                            unset($data['parameters']);
+                            unset($data['headers']);
+                            break;
+                        case 'web':
+                            break;
+                        }
+                    }
+                    break;
+                case 'user':
+                    if (isset($extras['role'])) {
+                        if (isset($data['role_id']) && !empty($data['role_id'])) {
+                            $roleInfo = $this->retrieveRecordsByIds('role', $data['role_id'], 'id', '');
+                            $data['role'] = $roleInfo[0];
+                        }
+                    }
+                    break;
                 }
-                else { // error
-                    $out[] = array('error' => array('message' => $result, 'code' => 500));
-                }
+                $out[] = array('fields' => $data);
             }
 
+            $total = $model->count($command);
             return array('record' => $out, 'meta' => array('total' => $total));
         }
         catch (Exception $ex) {
@@ -1255,68 +1431,152 @@ class SystemManager implements iRestHandler
     /**
      * @param $table
      * @param $id_list
-     * @param string $fields
+     * @param string $return_fields
      * @param null $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecordsByIds($table, $id_list, $fields = '', $extras = null)
+    public function retrieveRecordsByIds($table, $id_list, $return_fields = '', $extras = null)
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        Utilities::checkPermission('read', 'system', $table);
-        $fields = $this->checkRetrievableSystemFields($table, $fields);
+        SessionManager::checkPermission('read', 'system', $table);
+        $model = static::getResourceModel($table);
+        $return_fields = $model->checkRetrievableFields($return_fields);
+        $ids = array_map('trim', explode(',', $id_list));
 
         try {
-            $results = $this->nativeDb->retrieveSqlRecordsByIds($table, $id_list, 'id', $fields);
-            $out = array();
-            foreach ($results as $result) {
-                if (empty($result) || is_array($result)) {
-                    switch (strtolower($table)) {
-                    case 'app_group':
-                        break;
-                    case 'role':
-                        if ((isset($result['id']) && !empty($result['id'])) &&
-                            (empty($fields) || (false !== stripos($fields, 'services')))) {
-                            $permFields = 'service_id,service,component,read,create,update,delete';
-                            $permQuery = "role_id='" . $result['id'] . "'";
-                            $perms = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', $permFields, $permQuery, 0, 'service');
-                            unset($perms['total']);
-                            $result['services'] = $perms;
-                        }
-                        break;
-                    case 'service':
-                        if (isset($result['type']) && !empty($result['type'])) {
-                            switch (strtolower($result['type'])) {
-                            case 'native':
-                            case 'managed':
-                                unset($result['base_url']);
-                                unset($result['parameters']);
-                                unset($result['headers']);
-                                break;
-                            case 'web':
-                                break;
-                            }
-                        }
-                        break;
-                    case 'user':
-                        if (isset($extras['role'])) {
-                            if (isset($result['role_id']) && !empty($result['role_id'])) {
-                                $roleInfo = $this->retrieveRecordsByIds('role', $result['role_id'], 'id', '');
-                                $result['role'] = $roleInfo[0];
-                            }
-                        }
-                        break;
-                    }
-                    $out[] = array('fields' => $result);
+            $records = $model->findAllByPk($ids);
+            foreach ($records as $record) {
+                $pk = $record->primaryKey;
+                $key = array_search($pk, $ids);
+                if (false === $key) {
+                    throw new Exception('Bad returned data from query');
                 }
-                else { // error
-                    $out[] = array('error' => array('message' => $result, 'code' => 500));
+                if (empty($return_fields)) {
+                    $data = $record->getAttributes();
+                }
+                else {
+                    $data = $record->getAttributes(explode(',', $return_fields));
+                }
+                switch (strtolower($table)) {
+                case 'app_group':
+                    break;
+                case 'role':
+                    if ((empty($return_fields) || (false !== stripos($return_fields, 'services')))) {
+                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
+                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
+                        $perms = array();
+                        foreach ($rsa as $access) {
+                            $perms[] = $access->getAttributes($permFields);
+                        }
+                        $data['services'] = $perms;
+                    }
+                    break;
+                case 'service':
+                    if (isset($data['type']) && !empty($data['type'])) {
+                        switch (strtolower($data['type'])) {
+                        case 'native':
+                        case 'managed':
+                            unset($data['base_url']);
+                            unset($data['parameters']);
+                            unset($data['headers']);
+                            break;
+                        case 'web':
+                            break;
+                        }
+                    }
+                    break;
+                case 'user':
+                    if (isset($extras['role'])) {
+                        if (isset($data['role_id']) && !empty($data['role_id'])) {
+                            $roleInfo = $this->retrieveRecordsByIds('role', $data['role_id'], 'id', '');
+                            $data['role'] = $roleInfo[0];
+                        }
+                    }
+                    break;
+                }
+                $ids[$key] = array('fields' => $data);
+            }
+            foreach ($ids as $key=>$id) {
+                if (!is_array($id)) {
+                    $message = "A $table resource with id '$id' could not be found'";
+                    $ids[$key] = array('error' => array('message' => $message, 'code' => ErrorCodes::NOT_FOUND));
                 }
             }
 
-            return array('record' => $out);
+            return array('record' => $ids);
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $id
+     * @param string $return_fields
+     * @param null $extras
+     * @return array
+     * @throws Exception
+     */
+    public function retrieveRecordById($table, $id, $return_fields = '', $extras = null)
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        SessionManager::checkPermission('read', 'system', $table);
+        $model = static::getResourceModel($table);
+        $return_fields = $model->checkRetrievableFields($return_fields);
+
+        try {
+            $record = $model->findByPk($id);
+            if (empty($return_fields)) {
+                $data = $record->getAttributes();
+            }
+            else {
+                $data = $record->getAttributes(explode(',', $return_fields));
+            }
+            switch (strtolower($table)) {
+            case 'app_group':
+                break;
+            case 'role':
+                if ((empty($return_fields) || (false !== stripos($return_fields, 'services')))) {
+                    $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
+                    $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $id));
+                    $perms = array();
+                    foreach ($rsa as $access) {
+                        $perms[] = $access->getAttributes($permFields);
+                    }
+                    $data['services'] = $perms;
+                }
+                break;
+            case 'service':
+                if (isset($data['type']) && !empty($data['type'])) {
+                    switch (strtolower($data['type'])) {
+                    case 'native':
+                    case 'managed':
+                        unset($data['base_url']);
+                        unset($data['parameters']);
+                        unset($data['headers']);
+                        break;
+                    case 'web':
+                        break;
+                    }
+                }
+                break;
+            case 'user':
+                if (isset($extras['role'])) {
+                    if (isset($data['role_id']) && !empty($data['role_id'])) {
+                        $roleInfo = $this->retrieveRecordsByIds('role', $data['role_id'], 'id', '');
+                        $data['role'] = $roleInfo[0];
+                    }
+                }
+                break;
+            }
+
+            return array('fields' => $data);
         }
         catch (Exception $ex) {
             throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
@@ -1374,17 +1634,17 @@ class SystemManager implements iRestHandler
     {
         if (!empty($id)) {
             try {
-                $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $id, 'id', 'name');
-                if (count($result) > 0) {
-                    return $result[0]['name'];
+                $app = App::model()->findByPk($id);
+                if (isset($app)) {
+                    return $app->getAttribute('name');
                 }
+
+                return '';
             }
             catch (Exception $ex) {
                 throw $ex;
             }
         }
-
-        return '';
     }
 
     /**
@@ -1396,17 +1656,17 @@ class SystemManager implements iRestHandler
     {
         if (!empty($name)) {
             try {
-                $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $name, 'name', 'id');
-                if (count($result) > 0) {
-                    return $result[0]['id'];
+                $app = App::model()->find('name=:name', array(':name'=>$name));
+                if (isset($app)) {
+                    return $app->getPrimaryKey();
                 }
+
+                return '';
             }
             catch (Exception $ex) {
                 throw $ex;
             }
         }
-
-        return '';
     }
 
     /**
@@ -1414,7 +1674,7 @@ class SystemManager implements iRestHandler
      */
     public function getCurrentAppId()
     {
-        return $this->getAppIdFromName(Utilities::getCurrentAppName());
+        return $this->getAppIdFromName(SessionManager::getCurrentAppName());
     }
 
     /**
@@ -1450,7 +1710,7 @@ class SystemManager implements iRestHandler
      */
     public function assignRole($role_id, $user_ids = '', $user_names = '', $override = false)
     {
-        Utilities::checkPermission('create', 'system', 'RoleAssign');
+        SessionManager::checkPermission('create', 'system', 'RoleAssign');
         // ids have preference, if blank, use names for users
         // override is true/false, true allows overriding an existing role assignment
         // i.e. move user to a different role,
@@ -1492,7 +1752,7 @@ class SystemManager implements iRestHandler
      */
     public function unassignRole($role_id, $user_ids = '', $user_names = '')
     {
-        Utilities::checkPermission('delete', 'system', 'RoleAssign');
+        SessionManager::checkPermission('delete', 'system', 'RoleAssign');
         // ids have preference, if blank, use names for both role and users
         // use this to officially remove a user from the current app
         if (empty($role_id)) {
@@ -1551,23 +1811,19 @@ class SystemManager implements iRestHandler
                 }
                 if ('*' !== $serviceName) { // special 'All Services' designation
                     if (!empty($serviceId)) {
-                        $temp = $this->nativeDb->retrieveSqlRecordsByIds('service', $serviceId, 'id', 'id,name');
-                        if ((count($temp) > 0) && isset($temp[0]['name']) && !empty($temp[0]['name'])) {
-                            $serviceName = $temp[0]['name'];
-                            $services[$key]['service'] = $serviceName;
-                        }
-                        else {
+                        $temp = Service::model()->findByPk($serviceId);
+                        if (!isset($temp)) {
                             throw new Exception("Invalid service id '$serviceId' in role service access.");
                         }
+                        $serviceName = $temp->getAttribute('name');
+                        $services[$key]['service'] = $serviceName;
                     }
                     elseif (!empty($serviceName)) {
-                        $temp = $this->nativeDb->retrieveSqlRecordsByIds('service', $serviceName, 'name', 'id,name');
-                        if ((count($temp) > 0) && isset($temp[0]['id']) && !empty($temp[0]['id'])) {
-                            $services[$key]['service_id'] = $temp[0]['id'];
-                        }
-                        else {
+                        $temp = Service::model()->find('name = :name', array(':name'=>$serviceName));
+                        if (!isset($temp)) {
                             throw new Exception("Invalid service name '$serviceName' in role service access.");
                         }
+                        $services[$key]['service_id'] = $temp->getPrimaryKey();
                     }
                 }
                 $test = $serviceName.'.'.$component;
@@ -1643,132 +1899,6 @@ class SystemManager implements iRestHandler
         }
         catch (Exception $ex) {
             throw new Exception("Error updating users.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $table
-     * @param $fields
-     * @param bool $for_update
-     * @throws Exception
-     */
-    protected function validateUniqueSystemName($table, $fields, $for_update = false)
-    {
-        $id = Utilities::getArrayValue('id', $fields, '');
-        if ($for_update && empty($id)) {
-            throw new Exception("The Id field for $table can not be empty for updates.");
-        }
-        // make sure it is named
-        $nameField = 'name';
-        if (0 == strcasecmp('user', $table)) {
-            $nameField = 'username';
-        }
-        $name = Utilities::getArrayValue($nameField, $fields, '');
-        if (empty($name)) {
-            if ($for_update) {
-                return; // no need to check
-            }
-            throw new Exception("The $nameField field for $table can not be empty.");
-        }
-        if ($for_update && (0 == strcasecmp('app', $table))) {
-            throw new Exception("Application names can not change. Change the label instead.");
-        }
-        $appId = '';
-        if (0 == strcasecmp('role', $table)) {
-            $appId = Utilities::getArrayValue('app_ids', $fields, '');
-            if (empty($appId) && $for_update) {
-                // get the appId from the db for this role id
-                try {
-                    $result = $this->nativeDb->retrieveSqlRecordsByIds('role', $id, 'id', 'app_ids');
-
-                    if (count($result) > 0) {
-                        $appId = (isset($result[0]['app_ids'])) ? $result[0]['app_ids'] : '';
-                    }
-                }
-                catch (Exception $ex) {
-                    throw new Exception("A Role with this id does not exist.");
-                }
-            }
-            // make sure it is unique
-            try {
-                $result = $this->nativeDb->retrieveSqlRecordsByFilter('role', 'id', "name='$name' AND app_ids='$appId'", 1);
-                unset($result['total']);
-                if (count($result) > 0) {
-                    if ($for_update) {
-                        if ($id != $result[0]['id']) { // not self
-                            throw new Exception("A $table already exists with the $nameField '$name'.");
-                        }
-                    }
-                    else {
-                        throw new Exception("A $table already exists with the $nameField '$name'.");
-                    }
-                }
-            }
-            catch (Exception $ex) {
-                throw $ex;
-            }
-        }
-        else {
-            // make sure it is unique
-            try {
-                $result = $this->nativeDb->retrieveSqlRecordsByFilter($table, 'id', "$nameField = '$name'", 1);
-                unset($result['total']);
-                if (count($result) > 0) {
-                    if ($for_update) {
-                        if ($id != $result[0]['id']) { // not self
-                            throw new Exception("A $table already exists with the $nameField '$name'.");
-                        }
-                    }
-                    else {
-                        throw new Exception("A $table already exists with the $nameField '$name'.");
-                    }
-                }
-            }
-            catch (Exception $ex) {
-                throw $ex;
-            }
-        }
-    }
-
-    /**
-     * @param $table
-     * @param $fields
-     * @return string
-     */
-    protected function checkRetrievableSystemFields($table, $fields)
-    {
-        switch (strtolower($table)) {
-        case 'user':
-            if (empty($fields)) {
-                $fields = 'id,display_name,first_name,last_name,username,email,phone,';
-                $fields .= 'is_active,is_sys_admin,role_id,created_date,created_by_id,last_modified_date,last_modified_by_id';
-            }
-            else {
-                $fields = Utilities::removeOneFromList($fields, 'password', ',');
-                $fields = Utilities::removeOneFromList($fields, 'security_question', ',');
-                $fields = Utilities::removeOneFromList($fields, 'security_answer', ',');
-                $fields = Utilities::removeOneFromList($fields, 'confirm_code', ',');
-            }
-            break;
-        default:
-        }
-
-        return $fields;
-    }
-
-    /**
-     * @param $fields
-     * @param bool $for_update
-     */
-    protected function validateUser(&$fields, $for_update = false)
-    {
-        $pwd = Utilities::getArrayValue('password', $fields, '');
-        if (!empty($pwd)) {
-            $fields['password'] = CPasswordHelper::hashPassword($pwd);
-            $fields['confirm_code'] = 'y';
-        }
-        else {
-            // todo autogenerate ?
         }
     }
 

@@ -26,7 +26,7 @@ class PdoSqlDbSvc
      */
     protected $_fieldCache;
 
-    protected $_driverType = Utilities::DRV_OTHER;
+    protected $_driverType = DbUtilities::DRV_OTHER;
 
     public function getDriverType()
     {
@@ -48,7 +48,7 @@ class PdoSqlDbSvc
     {
         if (empty($dsn) && empty($user) && empty($pwd)) {
             $this->_sqlConn = Yii::app()->db;
-            $this->_driverType = Utilities::getDbDriverType($this->_sqlConn->driverName);
+            $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn->driverName);
         }
         else {
             // Validate other parameters
@@ -65,13 +65,13 @@ class PdoSqlDbSvc
             // create pdo connection, activate later
             Utilities::markTimeStart('DB_TIME');
             $this->_sqlConn = new CDbConnection($dsn, $user, $pwd);
-            $this->_driverType = Utilities::getDbDriverType($this->_sqlConn->driverName);
+            $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn->driverName);
             switch ($this->_driverType) {
-            case Utilities::DRV_MYSQL:
+            case DbUtilities::DRV_MYSQL:
                 $this->_sqlConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
                 $this->_sqlConn->setAttribute('charset', 'utf8');
                 break;
-            case Utilities::DRV_SQLSRV:
+            case DbUtilities::DRV_SQLSRV:
                 $this->_sqlConn->setAttribute(constant('PDO::SQLSRV_ATTR_DIRECT_QUERY'), true);
                 $this->_sqlConn->setAttribute("MultipleActiveResultSets", false);
                 $this->_sqlConn->setAttribute("ReturnDatesAsStrings", true);
@@ -584,14 +584,14 @@ class PdoSqlDbSvc
                     else {
                         if (!is_null($fieldVal)) {
                             switch ($this->_driverType) {
-                            case Utilities::DRV_SQLSRV:
+                            case DbUtilities::DRV_SQLSRV:
                                 switch ($dbType) {
                                 case 'bit':
                                     $fieldVal = (Utilities::boolval($fieldVal) ? 1 : 0);
                                     break;
                                 }
                                 break;
-                            case Utilities::DRV_MYSQL:
+                            case DbUtilities::DRV_MYSQL:
                                 switch ($dbType) {
                                 case 'tinyint(1)':
                                     $fieldVal = (Utilities::boolval($fieldVal) ? 1 : 0);
@@ -648,10 +648,10 @@ class PdoSqlDbSvc
             case 'created_date':
                 if (!$for_update) {
                     switch ($this->_driverType) {
-                    case Utilities::DRV_SQLSRV:
+                    case DbUtilities::DRV_SQLSRV:
                         $parsed[$name] = new CDbExpression('(SYSDATETIMEOFFSET())');
                         break;
-                    case Utilities::DRV_MYSQL:
+                    case DbUtilities::DRV_MYSQL:
                         $parsed[$name] = new CDbExpression('(NOW())');
                         break;
                     }
@@ -660,10 +660,10 @@ class PdoSqlDbSvc
             case 'lastmodifieddate':
             case 'last_modified_date':
                 switch ($this->_driverType) {
-                case Utilities::DRV_SQLSRV:
+                case DbUtilities::DRV_SQLSRV:
                     $parsed[$name] = new CDbExpression('(SYSDATETIMEOFFSET())');
                     break;
-                case Utilities::DRV_MYSQL:
+                case DbUtilities::DRV_MYSQL:
                     $parsed[$name] = new CDbExpression('(NOW())');
                     break;
                 }
@@ -671,7 +671,7 @@ class PdoSqlDbSvc
             case 'createdbyid':
             case 'created_by_id':
                 if (!$for_update) {
-                    $userId = Utilities::getCurrentUserId();
+                    $userId = SessionManager::getCurrentUserId();
                     if (isset($userId)) {
                         $parsed[$name] = $userId;
                     }
@@ -679,7 +679,7 @@ class PdoSqlDbSvc
                 break;
             case 'lastmodifiedbyid':
             case 'last_modified_by_id':
-                $userId = Utilities::getCurrentUserId();
+                $userId = SessionManager::getCurrentUserId();
                 if (isset($userId)) {
                     $parsed[$name] = $userId;
                 }
@@ -772,7 +772,7 @@ class PdoSqlDbSvc
             case 'datetime':
             case 'datetimeoffset':
                 switch ($this->_driverType) {
-                case Utilities::DRV_SQLSRV:
+                case DbUtilities::DRV_SQLSRV:
                     if (!$as_quoted_string) {
                         $context = $this->_sqlConn->quoteColumnName($context);
                         $out_as = $this->_sqlConn->quoteColumnName($out_as);
@@ -1751,7 +1751,7 @@ class PdoSqlDbSvc
                 break;
             case 'datetimeoffset':
                 switch ($this->_driverType) {
-                case Utilities::DRV_SQLSRV:
+                case DbUtilities::DRV_SQLSRV:
                     $definition = 'datetimeoffset';
                     break;
                 default:
@@ -1761,10 +1761,10 @@ class PdoSqlDbSvc
                 }
                 break;
             case 'datetime':
-                $definition = (Utilities::DRV_SQLSRV === $this->_driverType) ? 'datetime2' : 'datetime'; // microsoft recommends
+                $definition = (DbUtilities::DRV_SQLSRV === $this->_driverType) ? 'datetime2' : 'datetime'; // microsoft recommends
                 break;
             case 'year':
-                $definition = (Utilities::DRV_MYSQL === $this->_driverType) ? 'year' : 'date';
+                $definition = (DbUtilities::DRV_MYSQL === $this->_driverType) ? 'year' : 'date';
                 break;
             // numbers
             case 'bool':
@@ -1776,10 +1776,10 @@ class PdoSqlDbSvc
             case 'int':
             case 'bigint':
             case 'integer':
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType) && ('mediumint' == $type)) ? 'int' : $type;
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ('mediumint' == $type)) ? 'int' : $type;
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_MYSQL === $this->_driverType) && ($length <= 255) && ($length > 0)) {
+                    if ((DbUtilities::DRV_MYSQL === $this->_driverType) && ($length <= 255) && ($length > 0)) {
                         $definition .= "($length)"; // sets the viewable length
                     }
                 }
@@ -1792,8 +1792,8 @@ class PdoSqlDbSvc
                 $precision = Utilities::getArrayValue('precision', $field, $length);
                 if (isset($precision)) {
                     $precision = intval($precision);
-                    if (((Utilities::DRV_MYSQL === $this->_driverType) && ($precision > 65)) ||
-                        ((Utilities::DRV_SQLSRV === $this->_driverType) && ($precision > 38))) {
+                    if (((DbUtilities::DRV_MYSQL === $this->_driverType) && ($precision > 65)) ||
+                        ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($precision > 38))) {
                         throw new Exception("Decimal precision '$precision' is out of valid range.");
                     }
                     $scale = Utilities::getArrayValue('scale', $field, null);
@@ -1801,8 +1801,8 @@ class PdoSqlDbSvc
                         $scale = Utilities::getArrayValue('decimals', $field, null);
                     }
                     if (!empty($scale)) {
-                        if (((Utilities::DRV_MYSQL === $this->_driverType) && ($scale > 30)) ||
-                            ((Utilities::DRV_SQLSRV === $this->_driverType) && ($scale > 18)) ||
+                        if (((DbUtilities::DRV_MYSQL === $this->_driverType) && ($scale > 30)) ||
+                            ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($scale > 18)) ||
                             ($scale > $precision)) {
                             throw new Exception("Decimal scale '$scale' is out of valid range.");
                         }
@@ -1815,20 +1815,20 @@ class PdoSqlDbSvc
                 break;
             case 'float':
             case 'double':
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'float' : $type;
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType)) ? 'float' : $type;
                 $precision = Utilities::getArrayValue('precision', $field, $length);
                 if (isset($precision)) {
                     $precision = intval($precision);
-                    if (((Utilities::DRV_MYSQL === $this->_driverType) && ($precision > 53)) ||
-                        ((Utilities::DRV_SQLSRV === $this->_driverType) && ($precision > 38))) {
+                    if (((DbUtilities::DRV_MYSQL === $this->_driverType) && ($precision > 53)) ||
+                        ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($precision > 38))) {
                         throw new Exception("Decimal precision '$precision' is out of valid range.");
                     }
                     $scale = Utilities::getArrayValue('scale', $field, null);
                     if (empty($scale)) {
                         $scale = Utilities::getArrayValue('decimals', $field, null);
                     }
-                    if (!empty($scale) && !(Utilities::DRV_SQLSRV === $this->_driverType)) {
-                        if (((Utilities::DRV_MYSQL === $this->_driverType) && ($scale > 30)) ||
+                    if (!empty($scale) && !(DbUtilities::DRV_SQLSRV === $this->_driverType)) {
+                        if (((DbUtilities::DRV_MYSQL === $this->_driverType) && ($scale > 30)) ||
                             ($scale > $precision)) {
                             throw new Exception("Decimal scale '$scale' is out of valid range.");
                         }
@@ -1841,15 +1841,15 @@ class PdoSqlDbSvc
                 break;
             case 'money':
             case 'smallmoney':
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? $type : 'money'; // let yii handle it
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType)) ? $type : 'money'; // let yii handle it
                 break;
             // string types
             case 'text':
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text'; // microsoft recommended
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text'; // microsoft recommended
                 $quoteDefault = true;
                 break;
             case 'ntext':
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'nvarchar(max)' : 'text'; // microsoft recommended
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType)) ? 'nvarchar(max)' : 'text'; // microsoft recommended
                 $quoteDefault = true;
                 break;
             case 'varbinary':
@@ -1857,10 +1857,10 @@ class PdoSqlDbSvc
                 $definition = 'varchar';
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_SQLSRV === $this->_driverType) && ($length > 8000)) {
+                    if ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($length > 8000)) {
                         $length = 'max';
                     }
-                    if ((Utilities::DRV_MYSQL === $this->_driverType) && ($length > 65535)) {
+                    if ((DbUtilities::DRV_MYSQL === $this->_driverType) && ($length > 65535)) {
                         throw new Exception("String length '$length' is out of valid range.");
                     }
                     $definition .= "($length)";
@@ -1871,10 +1871,10 @@ class PdoSqlDbSvc
                 $definition = 'char';
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_SQLSRV === $this->_driverType) && ($length > 8000)) {
+                    if ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($length > 8000)) {
                         throw new Exception("String length '$length' is out of valid range.");
                     }
-                    if ((Utilities::DRV_MYSQL === $this->_driverType) && ($length > 255)) {
+                    if ((DbUtilities::DRV_MYSQL === $this->_driverType) && ($length > 255)) {
                         throw new Exception("String length '$length' is out of valid range.");
                     }
                     $definition .= "($length)";
@@ -1885,10 +1885,10 @@ class PdoSqlDbSvc
                 $definition = 'nvarchar';
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
+                    if ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
                         $length = 'max';
                     }
-                    if ((Utilities::DRV_MYSQL === $this->_driverType) && ($length > 65535)) {
+                    if ((DbUtilities::DRV_MYSQL === $this->_driverType) && ($length > 65535)) {
                         throw new Exception("String length '$length' is out of valid range.");
                     }
                     $definition .= "($length)";
@@ -1899,10 +1899,10 @@ class PdoSqlDbSvc
                 $definition = 'nchar';
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
+                    if ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
                         throw new Exception("String length '$length' is out of valid range.");
                     }
-                    if ((Utilities::DRV_MYSQL === $this->_driverType) && ($length > 255)) {
+                    if ((DbUtilities::DRV_MYSQL === $this->_driverType) && ($length > 255)) {
                         throw new Exception("String length '$length' is out of valid range.");
                     }
                     $definition .= "($length)";
@@ -1920,7 +1920,7 @@ class PdoSqlDbSvc
                 $definition = 'money';
                 break;
             case "textarea":
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text';
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text';
                 $quoteDefault = true;
                 break;
             case 'picklist':
@@ -1928,7 +1928,7 @@ class PdoSqlDbSvc
                 $definition = 'nvarchar';
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
+                    if ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
                         $length = 'max';
                     }
                     $definition .= "($length)";
@@ -1940,7 +1940,7 @@ class PdoSqlDbSvc
                 $definition = 'nvarchar';
                 if (isset($length)) {
                     $length = intval($length);
-                    if ((Utilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
+                    if ((DbUtilities::DRV_SQLSRV === $this->_driverType) && ($length > 4000)) {
                         $length = 'max';
                     }
                     $definition .= "($length)";
@@ -1956,7 +1956,7 @@ class PdoSqlDbSvc
                 $quoteDefault = true;
                 break;
             case 'url':
-                $definition = ((Utilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text';
+                $definition = ((DbUtilities::DRV_SQLSRV === $this->_driverType)) ? 'varchar(max)' : 'text';
                 $quoteDefault = true;
                 break;
             case "reference":
