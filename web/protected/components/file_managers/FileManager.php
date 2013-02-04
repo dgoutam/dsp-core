@@ -690,7 +690,7 @@ class FileManager extends CommonFileManager
             try {
                 // clear out anything in this directory
                 $dirPath = static::addContainerToName($this->storageContainer, $path);
-                static::deleteTree($dirPath);
+                static::deleteTree($dirPath, true);
             }
             catch (Exception $ex) {
                 throw new Exception("Could not clean out existing directory $path.\n{$ex->getMessage()}");
@@ -877,9 +877,10 @@ class FileManager extends CommonFileManager
     /**
      * @param $dir
      * @param bool $force
+     * @param bool $delete_self
      * @throws Exception
      */
-    public static function deleteTree($dir, $force = false)
+    public static function deleteTree($dir, $force = false, $delete_self = true)
     {
         if (is_dir($dir)) {
             $files = array_diff(scandir($dir), array('.','..'));
@@ -889,7 +890,7 @@ class FileManager extends CommonFileManager
             foreach ($files as $file) {
                 $delPath = $dir . DIRECTORY_SEPARATOR . $file;
                 if (is_dir($delPath)) {
-                    static::deleteTree($delPath, $force);
+                    static::deleteTree($delPath, $force, true);
                 }
                 elseif (is_file($delPath)) {
                     unlink($delPath);
@@ -898,7 +899,8 @@ class FileManager extends CommonFileManager
                     // bad path?
                 }
             }
-            rmdir($dir);
+            if ($delete_self)
+                rmdir($dir);
         }
     }
 
