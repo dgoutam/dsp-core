@@ -228,7 +228,7 @@ class ApplicationSvc extends CommonFileSvc
             $result = $sys->createRecord('app', $record, 'id,name');
         }
         catch (Exception $ex) {
-            throw new Exception("Could not create the database entry for this application.\n{$ex->getMessage()}");
+            throw new Exception("Could not create the application.\n{$ex->getMessage()}");
         }
         $id = (isset($result['fields']['id'])) ? $result['fields']['id'] : '';
         $name = (isset($result['fields']['name'])) ? $result['fields']['name'] : '';

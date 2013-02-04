@@ -237,7 +237,13 @@ class SystemManager implements iRestHandler
             $user = new User();
             $user->setAttributes($fields);
             if (!$user->save()) {
-                throw new Exception("Failed to create a new user.", ErrorCodes::INTERNAL_SERVER_ERROR);
+                $msg = '';
+                if ($user->hasErrors()) {
+                    foreach ($user->errors as $error) {
+                        $msg .= implode(PHP_EOL, $error);
+                    }
+                }
+                throw new Exception("Failed to create a new user.\n$msg", ErrorCodes::BAD_REQUEST);
             }
             $userId = $user->getPrimaryKey();
             SessionManager::setCurrentUserId($userId);
@@ -667,6 +673,9 @@ class SystemManager implements iRestHandler
         case 'app_group':
             $model = AppGroup::model();
             break;
+        case 'label':
+            $model = Label::model();
+            break;
         case 'role':
             $model = Role::model();
             break;
@@ -692,6 +701,9 @@ class SystemManager implements iRestHandler
             break;
         case 'app_group':
             $obj = new AppGroup;
+            break;
+        case 'label':
+            $obj = new Label;
             break;
         case 'role':
             $obj = new Role;
@@ -732,8 +744,14 @@ class SystemManager implements iRestHandler
             $obj = static::getNewResource($table);
             $obj->setAttributes($fields);
             if (!$obj->save()) {
+                $msg = '';
+                if ($obj->hasErrors()) {
+                    foreach ($obj->errors as $error) {
+                        $msg .= implode(PHP_EOL, $error);
+                    }
+                }
                 error_log(print_r($obj->errors, true));
-                throw new Exception("Failed to create $table.\n" . print_r($obj->errors, true), ErrorCodes::INTERNAL_SERVER_ERROR);
+                throw new Exception("Failed to create $table.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
             $id = $obj->primaryKey;
             if (empty($id)) {
@@ -829,6 +847,7 @@ class SystemManager implements iRestHandler
             $records = array($records);
         }
         SessionManager::checkPermission('create', 'system', $table);
+        // todo implement rollback
         $out = array();
         foreach ($records as $record) {
             try {
@@ -894,7 +913,13 @@ class SystemManager implements iRestHandler
             $obj->setAttributes($fields);
             if (!$obj->save()) {
                 error_log(print_r($obj->errors, true));
-                throw new Exception("Failed to update user.\n" . print_r($obj->errors, true));
+                $msg = '';
+                if ($obj->hasErrors()) {
+                    foreach ($obj->errors as $error) {
+                        $msg .= implode(PHP_EOL, $error);
+                    }
+                }
+                throw new Exception("Failed to update user.\n$msg", ErrorCodes::BAD_REQUEST);
             }
             if (empty($return_fields)) {
                 $data = array('id' => $id);

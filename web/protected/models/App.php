@@ -59,6 +59,7 @@ class App extends CActiveRecord
         // will receive user inputs.
         return array(
             array('name, label', 'required'),
+            array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 40),
             array('label', 'length', 'max' => 80),

@@ -45,6 +45,7 @@ class AppGroup extends CActiveRecord
         // will receive user inputs.
         return array(
             array('name', 'required'),
+            array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 40),
             array('description', 'safe'),

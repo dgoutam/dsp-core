@@ -90,8 +90,6 @@ class Label extends CActiveRecord
         $criteria->compare('label', $this->label, true);
         $criteria->compare('plural', $this->plural, true);
 
-        return new CActiveDataProvider($this, array(
-                                                   'criteria' => $criteria,
-                                              ));
+        return new CActiveDataProvider($this, array('criteria' => $criteria,));
     }
 }

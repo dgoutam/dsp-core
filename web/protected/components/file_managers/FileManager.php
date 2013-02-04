@@ -690,7 +690,7 @@ class FileManager extends CommonFileManager
             try {
                 // clear out anything in this directory
                 $dirPath = static::addContainerToName($this->storageContainer, $path);
-                static::deleteTree($dirPath, true);
+                static::deleteTree($dirPath, true, false);
             }
             catch (Exception $ex) {
                 throw new Exception("Could not clean out existing directory $path.\n{$ex->getMessage()}");

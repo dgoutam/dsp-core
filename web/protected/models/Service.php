@@ -56,6 +56,7 @@ class Service extends CActiveRecord
         // will receive user inputs.
         return array(
             array('name, type', 'required'),
+            array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
             array('name, type, storage_type, native_format', 'length', 'max' => 40),
             array('label, storage_name', 'length', 'max' => 80),
