@@ -70,7 +70,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
     protected function handleFile($dest_path, $dest_name, $source_file, $contentType='',
                                   $extract=false, $clean=false, $check_exist=false)
     {
-        $ext = end(explode(".", strtolower($source_file)));
+        $ext = FileUtilities::getFileExtension($source_file);
         if (empty($contentType)) {
             $contentType = FileUtilities::determineContentType($ext, '', $source_file);
         }
@@ -95,7 +95,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
     protected function handleFileContent($dest_path, $dest_name, $content, $contentType='',
                                          $extract=false, $clean=false, $check_exist=false)
     {
-        $ext = end(explode(".", strtolower($dest_name)));
+        $ext = FileUtilities::getFileExtension($dest_name);
         if (empty($contentType)) {
             $contentType = FileUtilities::determineContentType($ext, $content);
         }

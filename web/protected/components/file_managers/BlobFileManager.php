@@ -511,7 +511,7 @@ class BlobFileManager extends CommonFileManager
             if ($content_is_base) {
                 $content = base64_decode($content);
             }
-            $ext = end(explode(".", strtolower($path)));
+            $ext = FileUtilities::getFileExtension($path);
             $mime = FileUtilities::determineContentType($ext, $content);
             $this->blobSvc->putBlobData($this->storageContainer, $path, $content, $mime);
         }
@@ -547,7 +547,7 @@ class BlobFileManager extends CommonFileManager
         try {
             // create the file
             $this->checkContainerForWrite(); // need to be able to write to storage
-            $ext = end(explode(".", strtolower($path)));
+            $ext = FileUtilities::getFileExtension($path);
             $mime = FileUtilities::determineContentType($ext, '', $local_path);
             $this->blobSvc->putBlobFromFile($this->storageContainer, $path, $local_path, $mime);
         }

@@ -377,7 +377,7 @@ class FileManager extends CommonFileManager
             }
             $key = self::addContainerToName($this->storageContainer, $path);
             $shortName = FileUtilities::getNameFromPath($path);
-            $ext = end(explode(".", strtolower($key)));
+            $ext = FileUtilities::getFileExtension($key);
             $data = array(
                 'path' => $path,
                 'name' => $shortName,
@@ -413,7 +413,7 @@ class FileManager extends CommonFileManager
         try {
             $key = static::addContainerToName($this->storageContainer, $path);
             if (is_file($key)) {
-                $ext = end(explode(".", strtolower($key)));
+                $ext = FileUtilities::getFileExtension($key);
                 $result = file_get_contents($key);
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
                 header('Content-type: ' . FileUtilities::determineContentType($ext, '', $key));
@@ -445,7 +445,7 @@ class FileManager extends CommonFileManager
             $key = static::addContainerToName($this->storageContainer, $path);
             if (is_file($key)) {
                 $result = file_get_contents($key);
-                $ext = end(explode(".", strtolower($key)));
+                $ext = FileUtilities::getFileExtension($key);
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
                 header('Content-type: ' . FileUtilities::determineContentType($ext, '', $key));
                 header('Content-Length:' . filesize($key));
@@ -851,7 +851,7 @@ class FileManager extends CommonFileManager
                             $out = array_merge($out, self::listTree($root, $local . DIRECTORY_SEPARATOR));
                     }
                     elseif (is_file($key)) {
-                        $ext = end(explode(".", strtolower($key)));
+                        $ext = FileUtilities::getFileExtension($key);
                         $out[] = array(
                             'name' => str_replace(DIRECTORY_SEPARATOR, '/', $local),
                             'contentType' => FileUtilities::determineContentType($ext, '', $key),

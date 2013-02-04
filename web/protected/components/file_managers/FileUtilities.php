@@ -82,7 +82,7 @@ class FileUtilities
             $readFrom = fopen($url, 'rb');
             if ($readFrom) {
                 $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-                $ext = end(explode(".", strtolower(basename($url))));
+                $ext = FileUtilities::getFileExtension(basename($url));
 //                $validTypes = array('zip','dfpkg'); // default zip and package extensions
 //                if (in_array($ext, $validTypes)) {
                     if (empty($name))

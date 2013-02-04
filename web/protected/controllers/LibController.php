@@ -26,7 +26,7 @@ class LibController extends Controller
                 $key = Yii::app()->basePath . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR;
                 $key .= 'public' . DIRECTORY_SEPARATOR . $path;
                 if (is_file($key)) {
-                    $ext = end(explode(".", strtolower($key)));
+                    $ext = FileUtilities::getFileExtension($key);
                     $result = file_get_contents($key);
                     header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($key)));
                     header('Content-type: ' . FileUtilities::determineContentType($ext, '', $key));
