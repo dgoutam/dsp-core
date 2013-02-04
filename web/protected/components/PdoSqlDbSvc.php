@@ -2111,6 +2111,11 @@ class PdoSqlDbSvc
         if ($this->doesTableExist($tableName)) {
             throw new Exception("A table with name '$tableName' already exist in the database.");
         }
+        // check for system tables and deny
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+        if (Utilities::isInList($sysTables, $tableName, ',')) {
+            throw new Exception("System table '$tableName' not available through this interface.");
+        }
         // add the table to the default schema
         $fields = Utilities::getArrayValue('field', $data, array());
         if (empty($fields)) {
@@ -2193,6 +2198,10 @@ class PdoSqlDbSvc
         $tableName = Utilities::getArrayValue('name', $data, '');
         if (empty($tableName)) {
             throw new Exception("Table schema received does not have a valid name.");
+        }
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+        if (Utilities::isInList($sysTables, $tableName, ',')) {
+            throw new Exception("System table '$tableName' not available through this interface.");
         }
         // does it already exist
         if (!$this->doesTableExist($tableName)) {
@@ -2369,12 +2378,18 @@ class PdoSqlDbSvc
         $out = array();
         $count = 0;
         $created = array();
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+
         if (isset($tables[0])) {
             foreach ($tables as $table) {
                 try {
                     $name = Utilities::getArrayValue('name', $table, '');
                     if (empty($name)) {
                         throw new Exception("Table schema received does not have a valid name.", 400);
+                    }
+                    // check for system tables and deny
+                    if (Utilities::isInList($sysTables, $name, ',')) {
+                        throw new Exception("System table '$name' not available through this interface.");
                     }
                     // does it already exist
                     if ($this->doesTableExist($name)) {
@@ -2486,6 +2501,40 @@ class PdoSqlDbSvc
         // refresh the schema that we just added
         Yii::app()->db->schema->refresh();
         return $out;
+    }
+
+    /**
+     * @param $tableName
+     * @throws Exception
+     * @return array
+     */
+    public function dropTable($tableName)
+    {
+        if (empty($tableName)) {
+            throw new Exception("Table name received is empty.", ErrorCodes::BAD_REQUEST);
+        }
+        // check for system tables and deny
+        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+        if (Utilities::isInList($sysTables, $tableName, ',')) {
+            throw new Exception("System table '$tableName' not available through this interface.");
+        }
+        // does it already exist
+        if (!$this->doesTableExist($tableName)) {
+            throw new Exception("A table with name '$tableName' does not exist in the database.", ErrorCodes::NOT_FOUND);
+        }
+        try {
+            $command = $this->_sqlConn->createCommand();
+            $command->dropTable($tableName);
+            if ($this->doesTableExist('label')) {
+//                Label::model()->deleteAll('table = :tn', array(':tn' => $tableName));
+            }
+
+            return array('name' => $tableName);
+        }
+        catch (Exception $ex) {
+            error_log($ex->getMessage());
+            throw $ex;
+        }
     }
 
 }

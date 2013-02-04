@@ -344,7 +344,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         switch (strtolower($this->tableName)) {
         case 'schema':
             if (empty($this->recordId)) {
-                throw new Exception('[INVALIDREQUEST]: Invalid format for DELETE Table request.');
+                throw new Exception('Invalid format for DELETE Table request.');
             }
             $result = $this->deleteTable($this->recordId);
             $result = array('table' => $result);
@@ -827,7 +827,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $this->checkPermission('create', 'Schema');
         if (!isset($tables) || empty($tables)) {
-            throw new Exception('[InvalidParam]: There are no table sets in the request.');
+            throw new Exception('There are no table sets in the request.');
         }
 
         return $this->sqlDb->createTables($tables);
@@ -842,24 +842,25 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         $this->checkPermission('update', 'Schema');
         if (!isset($tables) || empty($tables)) {
-            throw new Exception('[InvalidParam]: There are no table sets in the request.');
+            throw new Exception('There are no table sets in the request.');
         }
 
-        return $this->sqlDb->alterTables($tables);
+        return $this->sqlDb->createTables($tables, true);
     }
 
     /**
      * @param $table
+     * @return array
      * @throws Exception
      */
     public function deleteTable($table)
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.');
         }
         $this->checkPermission('delete', 'Schema');
 
-        return $this->sqlDb->dropTables($table);
+        return $this->sqlDb->dropTable($table);
     }
 
 }
