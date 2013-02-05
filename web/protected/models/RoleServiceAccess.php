@@ -145,19 +145,24 @@ class RoleServiceAccess extends CActiveRecord
     }
 
     /**
-     * @param $fields
-     * @return string
+     * @param string $requested
+     * @return array
      */
-    public function checkRetrievableFields($fields)
+    public function getRetrievableAttributes($requested)
     {
-        if (empty($fields)) {
-            $fields = '';
+        if (empty($requested)) {
+            // primary keys only
+            return array('id');
+        }
+        elseif ('*' == $requested) {
+            return array('id','role_id','service_id','service','component',
+                         'read','create','update','delete');
         }
         else {
-//            $fields = Utilities::removeOneFromList($fields, 'fieldname', ',');
+            // remove any undesired retrievable fields
+//            $requested = Utilities::removeOneFromList($requested, 'password', ',');
+            return explode(',', $requested);
         }
-
-        return $fields;
     }
 
     public function afterFind()

@@ -156,18 +156,24 @@ class AppGroup extends CActiveRecord
     }
 
     /**
-     * @param $fields
-     * @return string
+     * @param string $requested
+     * @return array
      */
-    public function checkRetrievableFields($fields)
+    public function getRetrievableAttributes($requested)
     {
-        if (empty($fields)) {
-            $fields = '';
+        if (empty($requested)) {
+            // primary keys only
+            return array('id');
+        }
+        elseif ('*' == $requested) {
+            return array('id','name','description',
+                         'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
         else {
-//            $fields = Utilities::removeOneFromList($fields, 'fieldname', ',');
+            // remove any undesired retrievable fields
+//            $requested = Utilities::removeOneFromList($requested, 'password', ',');
+            return explode(',', $requested);
         }
-
-        return $fields;
     }
+
 }

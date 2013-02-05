@@ -238,24 +238,28 @@ class User extends CActiveRecord
     }
 
     /**
-     * @param $fields
-     * @return string
+     * @param string $requested
+     * @return array
      */
-    public function checkRetrievableFields($fields)
+    public function getRetrievableAttributes($requested)
     {
-        if (empty($fields)) {
-            $fields = 'id,display_name,first_name,last_name,username,email,phone,';
-            $fields .= 'is_active,is_sys_admin,role_id,';
-            $fields .= 'created_date,created_by_id,last_modified_date,last_modified_by_id';
+        if (empty($requested)) {
+            // primary keys only
+            return array('id');
+        }
+        elseif ('*' == $requested) {
+            return array('id','display_name','first_name','last_name',
+                         'username','email','phone','is_active','is_sys_admin','role_id','default_app_id',
+                         'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
         else {
-            $fields = Utilities::removeOneFromList($fields, 'password', ',');
-            $fields = Utilities::removeOneFromList($fields, 'security_question', ',');
-            $fields = Utilities::removeOneFromList($fields, 'security_answer', ',');
-            $fields = Utilities::removeOneFromList($fields, 'confirm_code', ',');
+            // remove any undesired retrievable fields
+            $requested = Utilities::removeOneFromList($requested, 'password', ',');
+            $requested = Utilities::removeOneFromList($requested, 'security_question', ',');
+            $requested = Utilities::removeOneFromList($requested, 'security_answer', ',');
+            $requested = Utilities::removeOneFromList($requested, 'confirm_code', ',');
+            return explode(',', $requested);
         }
-
-        return $fields;
     }
 
     public function afterFind()

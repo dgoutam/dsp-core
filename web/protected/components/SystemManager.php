@@ -337,8 +337,8 @@ class SystemManager implements iRestHandler
             case 'role':
             case 'service':
             case 'user':
-                // Most requests contain 'returned fields' parameter
-                $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+                // Most requests contain 'returned fields' parameter, all by default
+                $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '*';
                 $extras = array();
                 if (isset($_REQUEST['apps'])) {
                     $extras['apps'] = $_REQUEST['apps'];
@@ -759,18 +759,11 @@ class SystemManager implements iRestHandler
                 throw new Exception("Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
-            if (empty($return_fields)) {
-                $data = array('id' => $id);
-            }
-            else {
-                $return_fields = explode(',', $model->checkRetrievableFields($return_fields));
-                $data = $obj->getAttributes($return_fields);
-            }
+            $return_fields = $model->getRetrievableAttributes($return_fields);
+            $data = $obj->getAttributes($return_fields);
             // after record create
             switch (strtolower($table)) {
             case 'app':
-                // need name and isUrlExternal to create app directory in storage
-                error_log(print_r($obj->attributes, true));
                 if (0 === $obj->is_url_external) {
                     $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
                     if ($appSvc) {
@@ -921,17 +914,12 @@ class SystemManager implements iRestHandler
                 }
                 throw new Exception("Failed to update user.\n$msg", ErrorCodes::BAD_REQUEST);
             }
-            if (empty($return_fields)) {
-                $data = array('id' => $id);
-            }
-            else {
-                $return_fields = $model->checkRetrievableFields($return_fields);
-                $data = $obj->getAttributes(explode(',', $return_fields));
-            }
+
+            $return_fields = $model->getRetrievableAttributes($return_fields);
+            $data = $obj->getAttributes($return_fields);
             // after record update
             switch (strtolower($table)) {
             case 'app':
-                // need name and isExternal to create app directory in storage
                 $isUrlExternal = Utilities::getArrayValue('is_url_external', $record, null);
                 if (isset($isUrlExternal)) {
                     $name = $obj->name;
@@ -1306,12 +1294,8 @@ class SystemManager implements iRestHandler
 
             $model = static::getResourceModel($table);
             $record = $model->findByPk($id);
-            if (empty($return_fields)) {
-                $data = array('id' => $id);
-            }
-            else {
-                $data = $record->getAttributes(explode(',', $return_fields));
-            }
+            $return_fields = $model->getRetrievableAttributes($return_fields);
+            $data = $record->getAttributes($return_fields);
             $out = array('fields' => $data);
             if (!$record->delete()) {
                 throw new Exception("Failed to delete $table record.", ErrorCodes::INTERNAL_SERVER_ERROR);
@@ -1378,7 +1362,7 @@ class SystemManager implements iRestHandler
         }
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
-        $return_fields = $model->checkRetrievableFields($return_fields);
+        $return_fields = $model->getRetrievableAttributes($return_fields);
 
         try {
             $command = new CDbCriteria();
@@ -1402,12 +1386,7 @@ class SystemManager implements iRestHandler
             $records = $model->findAll($command);
             foreach ($records as $record) {
                 $pk = $record->primaryKey;
-                if (empty($return_fields)) {
-                    $data = $record->getAttributes();
-                }
-                else {
-                    $data = $record->getAttributes(explode(',', $return_fields));
-                }
+                $data = $record->getAttributes($return_fields);
                 switch (strtolower($table)) {
                 case 'app_group':
                     break;
@@ -1471,7 +1450,7 @@ class SystemManager implements iRestHandler
         }
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
-        $return_fields = $model->checkRetrievableFields($return_fields);
+        $return_fields = $model->getRetrievableAttributes($return_fields);
         $ids = array_map('trim', explode(',', $id_list));
 
         try {
@@ -1482,17 +1461,12 @@ class SystemManager implements iRestHandler
                 if (false === $key) {
                     throw new Exception('Bad returned data from query');
                 }
-                if (empty($return_fields)) {
-                    $data = $record->getAttributes();
-                }
-                else {
-                    $data = $record->getAttributes(explode(',', $return_fields));
-                }
+                $data = $record->getAttributes($return_fields);
                 switch (strtolower($table)) {
                 case 'app_group':
                     break;
                 case 'role':
-                    if ((empty($return_fields) || (false !== stripos($return_fields, 'services')))) {
+                    if ((empty($return_fields) || (false !== array_search('services', $return_fields)))) {
                         $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                         $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
                         $perms = array();
@@ -1556,21 +1530,16 @@ class SystemManager implements iRestHandler
         }
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
-        $return_fields = $model->checkRetrievableFields($return_fields);
+        $return_fields = $model->getRetrievableAttributes($return_fields);
 
         try {
             $record = $model->findByPk($id);
-            if (empty($return_fields)) {
-                $data = $record->getAttributes();
-            }
-            else {
-                $data = $record->getAttributes(explode(',', $return_fields));
-            }
+            $data = $record->getAttributes($return_fields);
             switch (strtolower($table)) {
             case 'app_group':
                 break;
             case 'role':
-                if ((empty($return_fields) || (false !== stripos($return_fields, 'services')))) {
+                if ((empty($return_fields) || (false !== array_search('services', $return_fields)))) {
                     $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                     $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $id));
                     $perms = array();

@@ -201,19 +201,26 @@ class App extends CActiveRecord
     }
 
     /**
-     * @param $fields
-     * @return string
+     * @param string $requested
+     * @return array
      */
-    public function checkRetrievableFields($fields)
+    public function getRetrievableAttributes($requested)
     {
-        if (empty($fields)) {
-            $fields = '';
+        if (empty($requested)) {
+            // primary keys only
+            return array('id');
+        }
+        elseif ('*' == $requested) {
+            return array('id','name','label','description','is_active',
+                         'url','is_url_external','import_url','app_group_ids','schemas',
+                         'filter_by_device','filter_phone','filter_tablet','filter_desktop','requires_plugin',
+                         'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
         else {
-//            $fields = Utilities::removeOneFromList($fields, 'fieldname', ',');
+            // remove any undesired retrievable fields
+//            $requested = Utilities::removeOneFromList($requested, 'password', ',');
+            return explode(',', $requested);
         }
-
-        return $fields;
     }
 
     public function afterFind()
