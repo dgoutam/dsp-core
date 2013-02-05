@@ -173,6 +173,9 @@ class ServiceHandler
             case 'db':
                 $service = new DatabaseSvc($record);
                 break;
+            case 'schema':
+                $service = new SchemaSvc($record);
+                break;
             case 'attachment':
                 $service = new AttachmentSvc($record);
                 break;
@@ -195,6 +198,10 @@ class ServiceHandler
                 case 'Local SQL DB':
                 case 'Remote SQL DB':
                     $service = new DatabaseSvc($record);
+                    break;
+                case 'Local SQL DB Schema':
+                case 'Remote SQL DB Schema':
+                    $service = new SchemaSvc($record);
                     break;
                 case 'Local Email Service':
                 case 'Remote Email Service':

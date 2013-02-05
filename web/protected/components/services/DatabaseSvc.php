@@ -60,6 +60,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     // Controller based methods
 
     /**
+     * @throws Exception
      * @return array
      */
     public function actionGet()
@@ -67,22 +68,19 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         switch (strtolower($this->tableName)) {
         case '':
-            $result = $this->describeDatabase();
-            $commands = array(array('name' => 'schema', 'label' => 'Schema', 'plural' => 'Schemas'));
-            $result = array('resource' => array_merge($commands, $result['table']));
-            break;
-        case 'schema':
-            if (empty($this->recordId)) {
-                $result = $this->describeDatabase();
+            // check for system tables and deny
+            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+            try {
+                $result = $this->sqlDb->describeDatabase('', $sysTables);
+                $result = array('resource' => $result['table']);
             }
-            else {
-                $result = $this->describeTable($this->recordId);
+            catch (Exception $ex) {
+                throw new Exception("Error describing database tables.\n{$ex->getMessage()}");
             }
             break;
         default:
-            $data = Utilities::getPostDataAsArray();
-            // Most requests contain 'returned fields' parameter
-            $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
+            // Most requests contain 'returned fields' parameter, all by default
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
             $idField = Utilities::getArrayValue('id_field', $_REQUEST, '');
             if (empty($this->recordId)) {
                 $ids = Utilities::getArrayValue('ids', $_REQUEST, '');
@@ -94,36 +92,43 @@ class DatabaseSvc extends CommonService implements iRestHandler
                     $order = Utilities::getArrayValue('order', $_REQUEST, '');
                     $limit = intval(Utilities::getArrayValue('limit', $_REQUEST, 0));
                     $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
+                    $data = Utilities::getPostDataAsArray();
                     if (!empty($data)) { // complex filters or large numbers of ids require post
                         $ids = Utilities::getArrayValue('ids', $data, '');
-                        $records = Utilities::getArrayValue('record', $data, null);
-                        if (empty($records)) {
-                            // xml to array conversion leaves them in plural wrapper
-                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-                        }
                         if (empty($idField)) {
                             $idField = Utilities::getArrayValue('id_field', $data, '');
                         }
                         if (!empty($ids)) {
                             $result = $this->retrieveRecordsByIds($this->tableName, $ids, $idField, $fields);
                         }
-                        elseif (!empty($records)) {
-                            $result = $this->retrieveRecords($this->tableName, $records, $idField, $fields);
-                        }
                         else {
-                            if (empty($filter)) {
-                                $filter = Utilities::getArrayValue('filter', $data, '');
+                            $records = Utilities::getArrayValue('record', $data, null);
+                            if (empty($records)) {
+                                // xml to array conversion leaves them in plural wrapper
+                                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                             }
-                            if (empty($order)) {
-                                $order = Utilities::getArrayValue('order', $data, '');
+                            if (!empty($records)) {
+                                $result = $this->retrieveRecords($this->tableName, $records, $idField, $fields);
                             }
-                            if (0 >= $limit) {
-                                $limit = intval(Utilities::getArrayValue('limit', $data, 0));
+                            elseif (isset($data['fields']) && !empty($data['fields'])) {
+                                // passing record to have it updated with new or more values, id field required
+                                $result = $this->retrieveRecord($this->tableName, $data, $idField, $fields);
                             }
-                            if (0 >= $offset) {
-                                $offset = intval(Utilities::getArrayValue('offset', $data, 0));
+                            else {
+                                if (empty($filter)) {
+                                    $filter = Utilities::getArrayValue('filter', $data, '');
+                                }
+                                if (empty($order)) {
+                                    $order = Utilities::getArrayValue('order', $data, '');
+                                }
+                                if (0 >= $limit) {
+                                    $limit = intval(Utilities::getArrayValue('limit', $data, 0));
+                                }
+                                if (0 >= $offset) {
+                                    $offset = intval(Utilities::getArrayValue('offset', $data, 0));
+                                }
+                                $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter, $limit, $order, $offset);
                             }
-                            $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter, $limit, $order, $offset);
                         }
                     }
                     else {
@@ -132,7 +137,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                 }
             }
             else { // single entity by id
-                $result = $this->retrieveRecordsByIds($this->tableName, $this->recordId, $idField, $fields);
+                $result = $this->retrieveRecordById($this->tableName, $this->recordId, $idField, $fields);
             }
             break;
         }
@@ -149,17 +154,9 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch (strtolower($this->tableName)) {
-        case 'schema':
-            $tables = Utilities::getArrayValue('table', $data, '');
-            if (empty($tables)) {
-                // temporary, layer created from xml to array conversion
-                $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
-            }
-            if (empty($tables)) {
-                throw new Exception('No tables in schema create request.');
-            }
-            $result = $this->createTables($tables);
-            $result = array('table' => $result);
+        case '':
+            // batch support for multiple tables
+            throw new Exception('Mutli-table batch request not yet implemented.');
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -170,13 +167,19 @@ class DatabaseSvc extends CommonService implements iRestHandler
                 $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
             }
             if (empty($records)) {
-                throw new Exception('No records in POST create request.');
+                $single = Utilities::getArrayValue('fields', $data, array());
+                if (empty($single)) {
+                    throw new Exception('No record in POST create request.', ErrorCodes::BAD_REQUEST);
+                }
+                $result = $this->createRecord($this->tableName, $data, $fields);
             }
-            $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-            if (!isset($rollback)) {
-                $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+            else {
+                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                if (!isset($rollback)) {
+                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                }
+                $result = $this->createRecords($this->tableName, $records, $rollback, $fields);
             }
-            $result = $this->createRecords($this->tableName, $records, $rollback, $fields);
             break;
         }
 
@@ -192,31 +195,9 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch (strtolower($this->tableName)) {
-        case 'schema':
-            if (empty($this->recordId)) {
-                $tables = Utilities::getArrayValue('table', $data, '');
-                if (empty($tables)) {
-                    // temporary, layer created from xml to array conversion
-                    $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
-                }
-                if (empty($tables)) {
-                    throw new Exception('No tables in schema update request.');
-                }
-                $result = $this->updateTables($tables);
-            }
-            else {
-                // possibly a table name for single schema updates or deletes
-                $tables = Utilities::getArrayValue('table', $data, '');
-                if (empty($tables)) {
-                    // temporary, layer created from xml to array conversion
-                    $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
-                }
-                if (empty($tables)) {
-                    throw new Exception('No tables in schema update request.');
-                }
-                $result = $this->updateTables($tables);
-            }
-            $result = array('table' => $result);
+        case '':
+            // batch support for multiple tables
+            throw new Exception('Mutli-table batch request not yet implemented.');
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -225,32 +206,38 @@ class DatabaseSvc extends CommonService implements iRestHandler
             if (empty($idField)) {
                 $idField = Utilities::getArrayValue('id_field', $data, '');
             }
-            $records = Utilities::getArrayValue('record', $data, null);
-            if (empty($records)) {
-                // xml to array conversion leaves them in plural wrapper
-                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-            }
-            if (empty($records)) {
-                throw new Exception('No records in MERGE/PATCH update request.');
-            }
             if (empty($this->recordId)) {
-                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                if (!isset($rollback)) {
-                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
-                }
                 $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
                 if (!isset($filter)) {
                     $filter = Utilities::getArrayValue('filter', $data, null);
                 }
                 if (isset($filter)) {
-                    $result = $this->updateRecordsByFilter($this->tableName, $filter, $records, $fields);
+                    $result = $this->updateRecordsByFilter($this->tableName, $filter, $data, $fields);
                 }
                 else {
-                    $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                    if (!isset($rollback)) {
+                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    }
+                    $records = Utilities::getArrayValue('record', $data, null);
+                    if (empty($records)) {
+                        // xml to array conversion leaves them in plural wrapper
+                        $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                    }
+                    if (empty($records)) {
+                        $single = Utilities::getArrayValue('fields', $data, array());
+                        if (empty($single)) {
+                            throw new Exception('No record in PUT update request.', ErrorCodes::BAD_REQUEST);
+                        }
+                        $result = $this->updateRecord($this->tableName, $data, $idField, $fields);
+                    }
+                    else {
+                        $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                    }
                 }
             }
             else {
-                $result = $this->updateRecordById($this->tableName, $records, $this->recordId, $idField, $fields);
+                $result = $this->updateRecordById($this->tableName, $data, $this->recordId, $idField, $fields);
             }
             break;
         }
@@ -267,31 +254,9 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch (strtolower($this->tableName)) {
-        case 'schema':
-            if (empty($this->recordId)) {
-                $tables = Utilities::getArrayValue('table', $data, '');
-                if (empty($tables)) {
-                    // temporary, layer created from xml to array conversion
-                    $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
-                }
-                if (empty($tables)) {
-                    throw new Exception('No tables in schema update request.');
-                }
-                $result = $this->updateTables($tables);
-            }
-            else {
-                // possibly a table name for single schema updates or deletes
-                $tables = Utilities::getArrayValue('table', $data, '');
-                if (empty($tables)) {
-                    // temporary, layer created from xml to array conversion
-                    $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
-                }
-                if (empty($tables)) {
-                    throw new Exception('No tables in schema update request.');
-                }
-                $result = $this->updateTables($tables);
-            }
-            $result = array('table' => $result);
+        case '':
+            // batch support for multiple tables
+            throw new Exception('Mutli-table batch request not yet implemented.');
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -300,32 +265,38 @@ class DatabaseSvc extends CommonService implements iRestHandler
             if (empty($idField)) {
                 $idField = Utilities::getArrayValue('id_field', $data, '');
             }
-            $records = Utilities::getArrayValue('record', $data, null);
-            if (empty($records)) {
-                // xml to array conversion leaves them in plural wrapper
-                $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-            }
-            if (empty($records)) {
-                throw new Exception('No records in MERGE/PATCH update request.');
-            }
             if (empty($this->recordId)) {
-                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                if (!isset($rollback)) {
-                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
-                }
                 $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
                 if (!isset($filter)) {
                     $filter = Utilities::getArrayValue('filter', $data, null);
                 }
                 if (isset($filter)) {
-                    $result = $this->updateRecordsByFilter($this->tableName, $filter, $records, $fields);
+                    $result = $this->updateRecordsByFilter($this->tableName, $filter, $data, $fields);
                 }
                 else {
-                    $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                    if (!isset($rollback)) {
+                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    }
+                    $records = Utilities::getArrayValue('record', $data, null);
+                    if (empty($records)) {
+                        // xml to array conversion leaves them in plural wrapper
+                        $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                    }
+                    if (empty($records)) {
+                        $single = Utilities::getArrayValue('fields', $data, array());
+                        if (empty($single)) {
+                            throw new Exception('No record in MERGE update request.', ErrorCodes::BAD_REQUEST);
+                        }
+                        $result = $this->updateRecord($this->tableName, $data, $idField, $fields);
+                    }
+                    else {
+                        $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                    }
                 }
             }
             else {
-                $result = $this->updateRecordById($this->tableName, $records, $this->recordId, $idField, $fields);
+                $result = $this->updateRecordById($this->tableName, $data, $this->recordId, $idField, $fields);
             }
             break;
         }
@@ -342,60 +313,49 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         $data = Utilities::getPostDataAsArray();
         switch (strtolower($this->tableName)) {
-        case 'schema':
-            if (empty($this->recordId)) {
-                throw new Exception('Invalid format for DELETE Table request.');
-            }
-            $result = $this->deleteTable($this->recordId);
-            $result = array('table' => $result);
+        case '':
+            // batch support for multiple tables
+            throw new Exception('Mutli-table batch request not yet implemented.', ErrorCodes::BAD_REQUEST);
             break;
         default:
             // Most requests contain 'returned fields' parameter
             $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
             $idField = Utilities::getArrayValue('id_field', $_REQUEST, '');
+            if (empty($idField)) {
+                $idField = Utilities::getArrayValue('id_field', $data, '');
+            }
             if (empty($this->recordId)) {
-                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : false;
-                $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
-                $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : '';
-                if (!empty($ids)) {
-                    $result = $this->deleteRecordsByIds($this->tableName, $ids, $idField, $rollback, $fields);
+                $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
+                if (!isset($filter)) {
+                    $filter = Utilities::getArrayValue('filter', $data, null);
                 }
-                elseif (!empty($filter)) {
+                if (isset($filter)) {
                     $result = $this->deleteRecordsByFilter($this->tableName, $filter, $fields);
                 }
-                elseif (!empty($data)) {
-                    if (empty($idField)) {
-                        $idField = Utilities::getArrayValue('id_field', $data, '');
+                else {
+                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                    if (!isset($rollback)) {
+                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
                     }
-                    $ids = Utilities::getArrayValue('ids', $data, '');
                     $records = Utilities::getArrayValue('record', $data, null);
                     if (empty($records)) {
                         // xml to array conversion leaves them in plural wrapper
                         $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                     }
-                    $filter = Utilities::getArrayValue('filter', $data, '');
-                    if (isset($data['rollback'])) {
-                        $rollback = Utilities::boolval($data['rollback']);
-                    }
-                    if (!empty($ids)) {
-                        $result = $this->deleteRecordsByIds($this->tableName, $ids, $idField, $rollback, $fields);
-                    }
-                    elseif (!empty($records)) {
-                        $result = $this->deleteRecords($this->tableName, $records, $idField, $rollback, $fields);
-                    }
-                    elseif (!empty($filter)) {
-                        $result = $this->deleteRecordsByFilter($this->tableName, $filter, $fields);
+                    if (empty($records)) {
+                        $single = Utilities::getArrayValue('fields', $data, array());
+                        if (empty($single)) {
+                            throw new Exception('No record in DELETE request.', ErrorCodes::BAD_REQUEST);
+                        }
+                        $result = $this->deleteRecord($this->tableName, $data, $idField, $fields);
                     }
                     else {
-                        throw new Exception("Ids or filter required to delete $this->tableName records.");
+                        $result = $this->deleteRecords($this->tableName, $records, $idField, $rollback, $fields);
                     }
-                }
-                else {
-                    throw new Exception("Ids or filter required to delete $this->tableName records.");
                 }
             }
             else {
-                $result = $this->deleteRecordsByIds($this->tableName, $this->recordId, $idField, false, $fields);
+                $result = $this->deleteRecordById($this->tableName, $this->recordId, $idField, $fields);
             }
             break;
         }
@@ -451,11 +411,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function createRecords($table, $records, $rollback = false, $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('create', $table);
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
 
         if (isset($records[0])) {
@@ -463,7 +423,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         }
         else { // single record
             if (!isset($records['fields']) || empty($records['fields'])) {
-                throw new Exception('[InvalidParam]: There are no fields in the record.');
+                throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
             }
             $fields_array = array($records['fields']);
         }
@@ -471,6 +431,33 @@ class DatabaseSvc extends CommonService implements iRestHandler
             $results = $this->sqlDb->createSqlRecords($table, $fields_array, $rollback, $fields);
 
             return array('record' => array_map(array($this, 'addFieldsLevel'), $results));
+        }
+        catch (Exception $ex) {
+            throw $ex; // whole batch failed
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
+    public function createRecord($table, $record, $fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        $this->checkPermission('create', $table);
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
+        }
+        $fields_array = array($record['fields']);
+        try {
+            $result = $this->sqlDb->createSqlRecords($table, $fields_array, false, $fields);
+
+            return array('fields' => $result[0]);
         }
         catch (Exception $ex) {
             throw $ex; // whole batch failed
@@ -489,18 +476,18 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function updateRecords($table, $records, $idField = '', $rollback = false, $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('update', $table);
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
         if (isset($records[0])) {
             $fields_array = array_map(array($this, 'removeFieldsLevel'), $records);
         }
         else { // single record
             if (!isset($records['fields']) || empty($records['fields'])) {
-                throw new Exception('[InvalidParam]: There are no fields in the record.');
+                throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
             }
             $fields_array = array($records['fields']);
         }
@@ -516,28 +503,50 @@ class DatabaseSvc extends CommonService implements iRestHandler
 
     /**
      * @param $table
-     * @param $records
+     * @param $record
+     * @param string $idField
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
+    public function updateRecord($table, $record, $idField = '', $fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        $this->checkPermission('update', $table);
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
+        }
+        $fields_array = array($record['fields']);
+        try {
+            $results = $this->sqlDb->updateSqlRecords($table, $fields_array, $idField, false, $fields);
+
+            return array('fields' => $results[0]);
+        }
+        catch (Exception $ex) {
+            throw $ex; // whole batch failed
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $record
      * @param string $filter
      * @param string $fields
      * @return array
      * @throws Exception
      */
-    public function updateRecordsByFilter($table, $records, $filter = '', $fields = '')
+    public function updateRecordsByFilter($table, $record, $filter = '', $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('update', $table);
-        if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
-        if (isset($records[0])) {
-            $records = $records[0];
-        }
-        if (!isset($records['fields']) || empty($records['fields'])) {
-            throw new Exception('[InvalidParam]: There are no fields in the record.');
-        }
-        $fields_array = $records['fields'];
+        $fields_array = $record['fields'];
         try {
             $results = $this->sqlDb->updateSqlRecordsByFilter($table, $fields_array, $filter, $fields);
 
@@ -550,33 +559,27 @@ class DatabaseSvc extends CommonService implements iRestHandler
 
     /**
      * @param $table
-     * @param $records
+     * @param $record
      * @param $id
      * @param string $idField
      * @param string $fields
      * @return array
      * @throws Exception
      */
-    public function updateRecordById($table, $records, $id, $idField = '', $fields = '')
+    public function updateRecordById($table, $record, $id, $idField = '', $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('update', $table);
-        if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
-        if (isset($records[0])) {
-            $records = $records[0];
-        }
-        if (!isset($records['fields']) || empty($records['fields'])) {
-            throw new Exception('[InvalidParam]: There are no fields in the record.');
-        }
-        $fields_array = $records['fields'];
+        $fields_array = $record['fields'];
         try {
             $results = $this->sqlDb->updateSqlRecordsByIds($table, $fields_array, $id, $idField, false, $fields);
 
-            return $results;
+            return array('fields' => $results[0]);
         }
         catch (Exception $ex) {
             throw new Exception("Error updating $table records.\n{$ex->getMessage()}");
@@ -595,18 +598,18 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function deleteRecords($table, $records, $idField = '', $rollback = false, $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('delete', $table);
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
         if (isset($records[0])) {
             $fields_array = array_map(array($this, 'removeFieldsLevel'), $records);
         }
         else { // single record
             if (!isset($records['fields']) || empty($records['fields'])) {
-                throw new Exception('[InvalidParam]: There are no fields in the record.');
+                throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
             }
             $fields_array = array($records['fields']);
         }
@@ -614,6 +617,34 @@ class DatabaseSvc extends CommonService implements iRestHandler
             $results = $this->sqlDb->deleteSqlRecords($table, $fields_array, $idField, $rollback, $fields);
 
             return array('record' => array_map(array($this, 'addFieldsLevel'), $results));
+        }
+        catch (Exception $ex) {
+            throw $ex; // whole batch failed
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param string $idField
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
+    public function deleteRecord($table, $record, $idField = '', $fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        $this->checkPermission('delete', $table);
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
+        }
+        $fields_array = array($record['fields']);
+        try {
+            $results = $this->sqlDb->deleteSqlRecords($table, $fields_array, $idField, false, $fields);
+
+            return array('fields' => $results[0]);
         }
         catch (Exception $ex) {
             throw $ex; // whole batch failed
@@ -630,7 +661,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function deleteRecordsByFilter($table, $filter, $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('delete', $table);
 
@@ -656,7 +687,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function deleteRecordsByIds($table, $id_list, $idField = '', $rollback = false, $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('delete', $table);
 
@@ -664,6 +695,31 @@ class DatabaseSvc extends CommonService implements iRestHandler
             $results = $this->sqlDb->deleteSqlRecordsByIds($table, $id_list, $idField, $rollback, $fields);
 
             return array('record' => array_map(array($this, 'addFieldsLevel'), $results));
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $id
+     * @param string $idField
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
+    public function deleteRecordById($table, $id, $idField = '', $fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        $this->checkPermission('delete', $table);
+
+        try {
+            $results = $this->sqlDb->deleteSqlRecordsByIds($table, $id, $idField, false, $fields);
+
+            return array('fields' => $results[0]);
         }
         catch (Exception $ex) {
             throw new Exception("Error deleting $table records.\n{$ex->getMessage()}");
@@ -683,15 +739,16 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function retrieveRecordsByFilter($table, $fields = '', $filter = '', $limit = 0, $order = '', $offset = 0)
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('read', $table);
 
         try {
             $results = $this->sqlDb->retrieveSqlRecordsByFilter($table, $fields, $filter, $limit, $order, $offset);
-            $total = (isset($results['total'])) ? $results['total'] : '';
+            $total = Utilities::getArrayValue('total', $results, 0);
             unset($results['total']);
-            $results = array('record' => array_map(array($this, 'addFieldsLevel'), $results));
+            $results = array('record' => array_map(array($this, 'addFieldsLevel'), $results),
+                             'meta' => array('total' => $total));
 
             return $results;
         }
@@ -711,11 +768,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function retrieveRecords($table, $records, $id_field = '', $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('read', $table);
         if (!isset($records) || empty($records)) {
-            throw new Exception('[InvalidParam]: There are no record sets in the request.');
+            throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
         }
 
         if (isset($records[0])) {
@@ -723,7 +780,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         }
         else { // single record
             if (!isset($records['fields']) || empty($records['fields'])) {
-                throw new Exception('[InvalidParam]: There are no fields in the record.');
+                throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
             }
             $fields_array = array($records['fields']);
         }
@@ -731,6 +788,34 @@ class DatabaseSvc extends CommonService implements iRestHandler
             $results = $this->sqlDb->retrieveSqlRecords($table, $fields_array, $id_field, $fields);
 
             return array('record' => array_map(array($this, 'addFieldsLevel'), $results));
+        }
+        catch (Exception $ex) {
+            throw $ex; // whole batch failed
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param string $id_field
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
+    public function retrieveRecord($table, $record, $id_field = '', $fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        $this->checkPermission('read', $table);
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
+        }
+        $fields_array = array($record['fields']);
+        try {
+            $results = $this->sqlDb->retrieveSqlRecords($table, $fields_array, $id_field, $fields);
+
+            return array('fields' => $results[0]);
         }
         catch (Exception $ex) {
             throw $ex; // whole batch failed
@@ -748,7 +833,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
     public function retrieveRecordsByIds($table, $id_list, $id_field = '', $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('[InvalidParam]: Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $this->checkPermission('read', $table);
 
@@ -762,105 +847,29 @@ class DatabaseSvc extends CommonService implements iRestHandler
         }
     }
 
-    //-------- Schema Operations ---------------------
-
-    /**
-     * @return array
-     * @throws Exception
-     */
-    public function describeDatabase()
-    {
-        // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        try {
-            return $this->sqlDb->describeDatabase('', $sysTables);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error describing database tables.\n{$ex->getMessage()}");
-        }
-    }
-
     /**
      * @param $table
+     * @param $id
+     * @param string $id_field
+     * @param string $fields
      * @return array
      * @throws Exception
      */
-    public function describeTable($table)
-    {
-        // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if (Utilities::isInList($sysTables, $table, ',')) {
-            throw new Exception("System table '$table' not available through this interface.");
-        }
-        try {
-            return $this->sqlDb->describeTable($table);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error describing database table '$table'.\n{$ex->getMessage()}");
-        }
-    }
-
-    public function describeTables($table_list)
-    {
-        // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        $tables = array_map('trim', explode(',', trim($table_list, ',')));
-        foreach ($tables as $table) {
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' not available through this interface.");
-            }
-        }
-        try {
-            return $this->sqlDb->describeTables($tables);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error describing database tables '$table_list'.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $tables
-     * @return array
-     * @throws Exception
-     */
-    public function createTables($tables)
-    {
-        $this->checkPermission('create', 'Schema');
-        if (!isset($tables) || empty($tables)) {
-            throw new Exception('There are no table sets in the request.');
-        }
-
-        return $this->sqlDb->createTables($tables);
-    }
-
-    /**
-     * @param $tables
-     * @return mixed
-     * @throws Exception
-     */
-    public function updateTables($tables)
-    {
-        $this->checkPermission('update', 'Schema');
-        if (!isset($tables) || empty($tables)) {
-            throw new Exception('There are no table sets in the request.');
-        }
-
-        return $this->sqlDb->createTables($tables, true);
-    }
-
-    /**
-     * @param $table
-     * @return array
-     * @throws Exception
-     */
-    public function deleteTable($table)
+    public function retrieveRecordById($table, $id, $id_field = '', $fields = '')
     {
         if (empty($table)) {
-            throw new Exception('Table name can not be empty.');
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        $this->checkPermission('delete', 'Schema');
+        $this->checkPermission('read', $table);
 
-        return $this->sqlDb->dropTable($table);
+        try {
+            $results = $this->sqlDb->retrieveSqlRecordsByIds($table, $id, $id_field, $fields);
+
+            return array('fields' => $results[0]);
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+        }
     }
 
 }

@@ -318,19 +318,9 @@ class SystemManager implements iRestHandler
                     array('name' => 'app_group', 'label' => 'Application Group'),
                     array('name' => 'config', 'label' => 'Configuration'),
                     array('name' => 'role', 'label' => 'Role'),
-                    array('name' => 'schema', 'label' => 'Schema'),
                     array('name' => 'service', 'label' => 'Service'),
                     array('name' => 'user', 'label' => 'User'));
                 $result = array('resource' => $result);
-                break;
-            case 'schema':
-                if (empty($this->modelId)) {
-                    $result = $this->describeSystem();
-                    $result = array('table' => $result);
-                }
-                else {
-                    $result = $this->describeTable(strtolower($this->modelId));
-                }
                 break;
             case 'app':
             case 'app_group':
@@ -421,8 +411,7 @@ class SystemManager implements iRestHandler
             $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
             switch ($this->modelName) {
             case '':
-            case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
+                throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
@@ -473,8 +462,7 @@ class SystemManager implements iRestHandler
             $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
             switch ($this->modelName) {
             case '':
-            case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
+                throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
@@ -539,8 +527,7 @@ class SystemManager implements iRestHandler
             $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
             switch ($this->modelName) {
             case '':
-            case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
+                throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
@@ -603,8 +590,8 @@ class SystemManager implements iRestHandler
             // Most requests contain 'returned fields' parameter
             $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
             switch ($this->modelName) {
-            case 'schema':
-                throw new Exception("System schema can not currently be modified through this API.", ErrorCodes::FORBIDDEN);
+            case '':
+                throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
                 break;
             case 'app':
             case 'app_group':
@@ -1391,7 +1378,7 @@ class SystemManager implements iRestHandler
                 case 'app_group':
                     break;
                 case 'role':
-                    if ((empty($return_fields) || (false !== stripos($return_fields, 'services')))) {
+                    if ((empty($return_fields) || (false !== array_search('services', $return_fields)))) {
                         $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                         $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
                         $perms = array();
@@ -1579,46 +1566,6 @@ class SystemManager implements iRestHandler
             throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
         }
     }
-
-    //-------- Schema Operations ---------------------
-
-    /**
-     * @return array
-     */
-    public function describeSystem()
-    {
-        $result = array(array('name' => 'app', 'label' => 'Application', 'plural' => 'Applications'),
-                        array('name' => 'app_group', 'label' => 'Application Group', 'plural' => 'Application Groups'),
-                        array('name' => 'role', 'label' => 'Role', 'plural' => 'Roles'),
-                        array('name' => 'service', 'label' => 'Service', 'plural' => 'Services'),
-                        array('name' => 'user', 'label' => 'User', 'plural' => 'Users'));
-        return $result;
-        /* don't expose
-        $tables = self::SYSTEM_TABLES;
-        try {
-            return $this->nativeDb->describeDatabase($tables, '');
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error describing system tables.\n{$ex->getMessage()}");
-        }
-        */
-    }
-
-    /**
-     * @param $table
-     * @return array
-     * @throws Exception
-     */
-    public function describeTable($table)
-    {
-        try {
-            return $this->nativeDb->describeTable($table);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error describing database table '$table'.\n{$ex->getMessage()}");
-        }
-    }
-
 
     //-------- System Helper Operations -------------------------------------------------
 

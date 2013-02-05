@@ -115,7 +115,7 @@ class PdoSqlDbSvc
     protected function checkConnection()
     {
         if (!isset($this->_sqlConn)) {
-            throw new Exception('[NODBTYPE]: Database driver has not been initialized.');
+            throw new Exception('Database driver has not been initialized.');
         }
         try {
             Utilities::markTimeStart('DB_TIME');
@@ -732,7 +732,7 @@ class PdoSqlDbSvc
      */
     protected function parseFieldsForSqlSelect($fields, $avail_fields, $as_quoted_string = false, $prefix = '', $fields_as = '')
     {
-        if (empty($fields)) {
+        if (empty($fields) || ('*' === $fields)) {
             $fields = $this->listAllFieldsFromDescribe($avail_fields);
         }
         $field_arr = array_map('trim', explode(',', $fields));
@@ -1403,7 +1403,7 @@ class PdoSqlDbSvc
                     throw new Exception("Identifying field can not be empty.");
                 }
             }
-            if (!empty($fields)) {
+            if (!empty($fields) && ('*' !== $fields)) {
                 // add id field to field list
                 $fields = Utilities::addOnceToList($fields, $id_field, ',');
             }
