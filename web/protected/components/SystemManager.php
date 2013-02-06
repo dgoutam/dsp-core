@@ -1378,7 +1378,7 @@ class SystemManager implements iRestHandler
                 case 'app_group':
                     break;
                 case 'role':
-                    if ((empty($return_fields) || (false !== array_search('services', $return_fields)))) {
+                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
                         $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                         $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
                         $perms = array();
@@ -1453,7 +1453,7 @@ class SystemManager implements iRestHandler
                 case 'app_group':
                     break;
                 case 'role':
-                    if ((empty($return_fields) || (false !== array_search('services', $return_fields)))) {
+                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
                         $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                         $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
                         $perms = array();
@@ -1526,7 +1526,7 @@ class SystemManager implements iRestHandler
             case 'app_group':
                 break;
             case 'role':
-                if ((empty($return_fields) || (false !== array_search('services', $return_fields)))) {
+                if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
                     $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                     $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $id));
                     $perms = array();
