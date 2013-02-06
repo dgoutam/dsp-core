@@ -2098,10 +2098,11 @@ class PdoSqlDbSvc
     /**
      * @param $data
      * @param bool $return_labels_refs
+     * @param bool $check_sys
      * @throws Exception
      * @return array
      */
-    protected function createTable($data, $return_labels_refs=false)
+    protected function createTable($data, $return_labels_refs=false, $check_sys=true)
     {
         $tableName = Utilities::getArrayValue('name', $data, '');
         if (empty($tableName)) {
@@ -2113,7 +2114,7 @@ class PdoSqlDbSvc
         }
         // check for system tables and deny
         $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if (Utilities::isInList($sysTables, $tableName, ',')) {
+        if ($check_sys && Utilities::isInList($sysTables, $tableName, ',')) {
             throw new Exception("System table '$tableName' not available through this interface.");
         }
         // add the table to the default schema
@@ -2190,17 +2191,18 @@ class PdoSqlDbSvc
     /**
      * @param $data
      * @param bool $return_labels_refs
+     * @param bool $check_sys
      * @throws Exception
      * @return array
      */
-    protected function updateTable($data, $return_labels_refs=false)
+    protected function updateTable($data, $return_labels_refs=false, $check_sys=true)
     {
         $tableName = Utilities::getArrayValue('name', $data, '');
         if (empty($tableName)) {
             throw new Exception("Table schema received does not have a valid name.");
         }
         $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if (Utilities::isInList($sysTables, $tableName, ',')) {
+        if ($check_sys && Utilities::isInList($sysTables, $tableName, ',')) {
             throw new Exception("System table '$tableName' not available through this interface.");
         }
         // does it already exist
@@ -2366,10 +2368,11 @@ class PdoSqlDbSvc
      * @param array $tables
      * @param bool $allow_merge
      * @param bool $rollback
+     * @param bool $check_sys
      * @throws Exception
      * @return array
      */
-    public function createTables($tables, $allow_merge=true, $rollback=true)
+    public function createTables($tables, $allow_merge=true, $rollback=true, $check_sys=true)
     {
         // refresh the schema so we have the latest
         Yii::app()->db->schema->refresh();
@@ -2388,20 +2391,20 @@ class PdoSqlDbSvc
                         throw new Exception("Table schema received does not have a valid name.", 400);
                     }
                     // check for system tables and deny
-                    if (Utilities::isInList($sysTables, $name, ',')) {
+                    if ($check_sys && Utilities::isInList($sysTables, $name, ',')) {
                         throw new Exception("System table '$name' not available through this interface.");
                     }
                     // does it already exist
                     if ($this->doesTableExist($name)) {
                         if ($allow_merge) {
-                            $results = $this->updateTable($table, true);
+                            $results = $this->updateTable($table, true, $check_sys);
                         }
                         else {
                             throw new Exception("A table with name '$name' already exist in the database.", 400);
                         }
                     }
                     else {
-                        $results = $this->createTable($table, true);
+                        $results = $this->createTable($table, true, $check_sys);
                         if ($rollback) {
                             $created[] = $name;
                         }
@@ -2430,14 +2433,14 @@ class PdoSqlDbSvc
                 // does it already exist
                 if ($this->doesTableExist($name)) {
                     if ($allow_merge) {
-                        $results = $this->updateTable($tables, false);
+                        $results = $this->updateTable($tables, false, $check_sys);
                     }
                     else {
                         throw new Exception("A table with name '$name' already exist in the database.", 400);
                     }
                 }
                 else {
-                    $results = $this->createTable($tables, false);
+                    $results = $this->createTable($tables, false, $check_sys);
                     if ($rollback) {
                         $created[] = $name;
                     }

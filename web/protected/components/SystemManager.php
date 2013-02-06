@@ -151,7 +151,7 @@ class SystemManager implements iRestHandler
             if (empty($tables)) {
                 throw new \Exception("No default system schema found.");
             }
-            $result = $this->nativeDb->createTables($tables, true, true);
+            $result = $this->nativeDb->createTables($tables, true, true, false);
 
             // setup session stored procedure
             $command = Yii::app()->db->createCommand();

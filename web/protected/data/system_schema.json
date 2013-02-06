@@ -18,50 +18,6 @@
             ]
         },
         {
-            "name": "label",
-            "field": [
-                {
-                    "name": "id",
-                    "type": "pk"
-                },
-                {
-                    "name": "table",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "field",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "picklist",
-                    "type": "nvarchar",
-                    "size": 4000,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "label",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "plural",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
-                }
-            ]
-        },
-        {
             "name": "session",
             "field": [
                 {
@@ -572,6 +528,57 @@
                     "ref_table": "user",
                     "ref_fields": "id",
                     "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "label",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "service_id",
+                    "type": "reference",
+                    "ref_table": "service",
+                    "ref_fields": "id",
+                    "allow_null": true
+                },
+                {
+                    "name": "table",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "field",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "picklist",
+                    "type": "nvarchar",
+                    "size": 4000,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "label",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "plural",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
+                    "allow_null": true
                 }
             ]
         }

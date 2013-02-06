@@ -176,7 +176,7 @@ class SiteController extends Controller
             // validate user input, configure the system and redirect to the home page
             if ($model->validate()) {
                 SystemManager::getInstance()->initSchema();
-                $this->redirect(Yii::app()->user->homeUrl);
+                $this->redirect(Yii::app()->homeUrl);
             }
             $this->refresh();
         }
@@ -197,7 +197,7 @@ class SiteController extends Controller
             // validate user input, configure the system and redirect to the previous page
             if ($model->validate()) {
                 SystemManager::getInstance()->initSystem($model->attributes);
-                $this->redirect(Yii::app()->user->homeUrl);
+                $this->redirect(Yii::app()->homeUrl);
             }
             $this->refresh();
         }
@@ -223,7 +223,7 @@ class SiteController extends Controller
             // validate user input, configure the system and redirect to the previous page
             if ($model->validate()) {
                 SystemManager::getInstance()->initAdmin($model->attributes);
-                $this->redirect(Yii::app()->user->homeUrl);
+                $this->redirect(Yii::app()->homeUrl);
             }
             $this->refresh();
         }
@@ -249,7 +249,7 @@ class SiteController extends Controller
             // validate user input, configure the system and redirect to the previous page
             if ($model->validate()) {
                 SystemManager::getInstance()->initData();
-                $this->redirect(Yii::app()->user->homeUrl);
+                $this->redirect(Yii::app()->homeUrl);
             }
             $this->refresh();
         }

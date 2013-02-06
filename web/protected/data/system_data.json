@@ -5,8 +5,8 @@
             "description":"Local database access"
         },
         {
-            "name":"email","label":"Email Service","is_active":1,"type":"Local Email Service",
-            "description":"Default system email utility access"
+            "name":"schema","label":"Schema","is_active":1,"type":"Local SQL DB Schema",
+            "description":"Local database schema access"
         },
         {
             "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage","storage_name":"applications",
@@ -15,6 +15,10 @@
         {
             "name":"lib","label":"Library Storage","is_active":1,"type":"Local File Storage","storage_name":"libraries",
             "description":"Storage for library files shared by applications"
+        },
+        {
+            "name":"email","label":"Email Service","is_active":1,"type":"Local Email Service",
+            "description":"Default system email utility access"
         },
         {
             "name":"doc","label":"Document Storage","is_active":1,"type":"Local File Storage","storage_name":"documents",
