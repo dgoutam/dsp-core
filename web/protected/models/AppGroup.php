@@ -151,6 +151,23 @@ class AppGroup extends CActiveRecord
      */
     protected function beforeDelete()
     {
+        $myId = $this->primaryKey;
+        // clean group out of app record
+        // %,$id,% is more accurate but in case of sloppy updating by client, filter for %$id%
+        $apps = App::model()->findAll("app_group_ids like '%$myId%'");
+        foreach ($apps as $app) {
+            $groupIds = $app->app_group_ids;
+            $groupIds = trim($groupIds, ','); // in case of sloppy updating
+            if (false === stripos(",$groupIds,", ",$myId,")) {
+                // may not be there due to sloppy updating query
+                continue;
+            }
+            $groupIds = trim(str_ireplace(",$myId,", '', ",$groupIds,"), ',');
+            if (!empty($groupIds))
+                $groupIds = ",$groupIds,";
+            $app->app_group_ids = $groupIds;
+            $app->save();
+        }
 
         return parent::beforeDelete();
     }

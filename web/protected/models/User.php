@@ -185,6 +185,10 @@ class User extends CActiveRecord
                     $this->display_name .= ' ' . $this->last_name;
             }
         }
+        if (is_bool($this->is_active))
+            $this->is_active = intval($this->is_active);
+        if (is_bool($this->is_sys_admin))
+            $this->is_sys_admin = intval($this->is_sys_admin);
 
         return parent::beforeValidate();
     }

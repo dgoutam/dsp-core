@@ -153,6 +153,20 @@ class App extends CActiveRecord
      */
     protected function beforeValidate()
     {
+        if (is_bool($this->is_active))
+            $this->is_active = intval($this->is_active);
+        if (is_bool($this->is_url_external))
+            $this->is_url_external = intval($this->is_url_external);
+        if (is_bool($this->filter_by_device))
+            $this->filter_by_device = intval($this->filter_by_device);
+        if (is_bool($this->filter_phone))
+            $this->filter_phone = intval($this->filter_phone);
+        if (is_bool($this->filter_tablet))
+            $this->filter_tablet = intval($this->filter_tablet);
+        if (is_bool($this->filter_desktop))
+            $this->filter_desktop = intval($this->filter_desktop);
+        if (is_bool($this->requires_plugin))
+            $this->requires_plugin = intval($this->requires_plugin);
 
         return parent::beforeValidate();
     }
@@ -196,6 +210,10 @@ class App extends CActiveRecord
             throw new Exception("The current application can not be deleted.");
             //return false;
         }
+
+        $store = ServiceHandler::getInstance()->getServiceObject('app');
+        $name = $this->name;
+        $store->deleteApp($name);
 
         return parent::beforeDelete();
     }

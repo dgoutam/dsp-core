@@ -164,11 +164,24 @@ class Role extends CActiveRecord
     protected function beforeDelete()
     {
         $currRole = SessionManager::getCurrentRoleId();
+        $myId = $this->getPrimaryKey();
         // make sure you don't delete yourself
-        if ($currRole === $this->getPrimaryKey()) {
+        if ($currRole === $myId) {
             throw new Exception("The current role can not be deleted.");
             //return false;
         }
+
+        // clean up user.role_id pointing here
+        $result = User::model()->findAll('role_id = :id', array(':id' => $myId));
+        if (!empty($result)) {
+            foreach ($result as $user) {
+                $user->role_id = null;
+                $user->save();
+            }
+        }
+
+        // clear out any service access records attached to this role
+        RoleServiceAccess::model()->deleteAll('role_id = :id', array(':id' => $myId));
 
         return parent::beforeDelete();
     }

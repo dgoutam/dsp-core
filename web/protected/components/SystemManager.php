@@ -875,12 +875,12 @@ class SystemManager implements iRestHandler
             throw new Exception("Identifying field 'id' can not be empty for update request.", ErrorCodes::BAD_REQUEST);
         }
         $model = static::getResourceModel($table);
+        $obj = $model->findByPk($id);
+        if (!$obj) {
+            throw new Exception("Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND);
+        }
         try {
             $fields = Utilities::removeOneFromArray('id', $fields);
-            $obj = $model->findByPk($id);
-            if (!$obj) {
-                throw new Exception("Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND);
-            }
             // todo move this to model rules
             if (isset($fields['password'])) {
                 $obj->setAttribute('password', CPasswordHelper::hashPassword($fields['password']));
@@ -899,7 +899,7 @@ class SystemManager implements iRestHandler
                         $msg .= implode(PHP_EOL, $error);
                     }
                 }
-                throw new Exception("Failed to update user.\n$msg", ErrorCodes::BAD_REQUEST);
+                throw new Exception("Failed to update user.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
             $return_fields = $model->getRetrievableAttributes($return_fields);
@@ -1078,78 +1078,38 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $id_list
+     * @param $table
+     * @param $id
+     * @param $return_fields
+     * @return array
      * @throws Exception
      */
-    protected function preDeleteUsers($id_list)
+    protected function deleteRecordLow($table, $id, $return_fields = '')
     {
-        try {
+        if (empty($id)) {
+            throw new Exception("Identifying field 'id' can not be empty for delete request.", ErrorCodes::BAD_REQUEST);
         }
-        catch (Exception $ex) {
-            throw $ex;
+        $model = static::getResourceModel($table);
+        $obj = $model->findByPk($id);
+        if (!$obj) {
+            throw new Exception("Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND);
         }
-    }
-
-    /**
-     * @param $id_list
-     * @throws Exception
-     */
-    protected function preDeleteRoles($id_list)
-    {
         try {
-            $ids = array_map('trim', explode(',', $id_list));
-            foreach ($ids as $id) {
-                // clean up User.RoleIds pointing here
-                $result = $this->nativeDb->retrieveSqlRecordsByFilter('user', 'id,role_id', "role_id = '$id'");
-                $total = (isset($result['total'])) ? $result['total'] : '';
-                unset($result['total']);
-                if (!empty($result)) {
-                    foreach ($result as $key => $userInfo) {
-                        $result[$key]['role_id'] = '';
+            if (!$obj->delete()) {
+                error_log(print_r($obj->errors, true));
+                $msg = '';
+                if ($obj->hasErrors()) {
+                    foreach ($obj->errors as $error) {
+                        $msg .= implode(PHP_EOL, $error);
                     }
-                    $this->nativeDb->updateSqlRecords('user', $result, 'id');
                 }
-                // Clean out the RoleServiceAccess for this role
-                $this->nativeDb->deleteSqlRecordsByFilter('role_service_access', "role_id = '$id'");
+                throw new Exception("Failed to delete user.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-    }
 
-    /**
-     * @param $id_list
-     * @throws Exception
-     */
-    protected function preDeleteApps($id_list)
-    {
-        try {
-            $store = ServiceHandler::getInstance()->getServiceObject('app');
-            $result = $this->nativeDb->retrieveSqlRecordsByIds('app', $id_list, 'id', 'id,name');
-            foreach ($result as $appInfo) {
-                $id = $appInfo['id'];
-                // remove file storage
-                $name = $appInfo['name'];
-                $store->deleteApp($name);
-            }
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-    }
+            $return_fields = $model->getRetrievableAttributes($return_fields);
+            $data = $obj->getAttributes($return_fields);
 
-    /**
-     * @param $id_list
-     * @throws Exception
-     */
-    protected function preDeleteAppGroups($id_list)
-    {
-        try {
-            $ids = array_map('trim', explode(',', $id_list));
-            foreach ($ids as $id) {
-                $this->assignAppGroups($id, '', true);
-            }
+            return array('fields' => $data);
         }
         catch (Exception $ex) {
             throw $ex;
@@ -1173,16 +1133,21 @@ class SystemManager implements iRestHandler
             // conversion from xml can pull single record out of array format
             $records = array($records);
         }
-        $idList = '';
+        $out = array();
         foreach ($records as $record) {
             if (!isset($record['fields']) || empty($record['fields'])) {
-                throw new Exception('[InvalidParam]: There are no fields in the record set.');
+                throw new Exception('There are no fields in the record set.', ErrorCodes::BAD_REQUEST);
             }
-            if (!empty($idList)) $idList .= ',';
-            $idList .= $record['fields']['id'];
+            $id = $record['fields']['id'];
+            try {
+                $out[] = $this->deleteRecordLow($table, $id, $return_fields);
+            }
+            catch (Exception $ex) {
+                $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+            }
         }
 
-        return $this->deleteRecordsByIds($table, $idList, $return_fields);
+        return array('record' => $out);
     }
 
     /**
@@ -1214,39 +1179,18 @@ class SystemManager implements iRestHandler
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('delete', 'system', $table);
-
-        try {
-            switch (strtolower($table)) {
-            case "app_group":
-                $this->preDeleteAppGroups($id_list);
-                break;
-            case "app":
-                $this->preDeleteApps($id_list);
-                break;
-            case "role":
-                $this->preDeleteRoles($id_list);
-                break;
-            case "user":
-                $this->preDeleteUsers($id_list);
-                break;
+        $ids = array_map('trim', explode(',', $id_list));
+        $out = array();
+        foreach ($ids as $id) {
+            try {
+                $out[] = $this->deleteRecordLow($table, $id, $return_fields);
             }
-
-            $results = $this->nativeDb->deleteSqlRecordsByIds($table, $id_list, 'id', false, $return_fields);
-            $out = array();
-            foreach ($results as $result) {
-                if (empty($result) || is_array($result)) {
-                    $out[] = array('fields' => $result);
-                }
-                else { // error
-                    $out[] = array('error' => array('message' => $result, 'code' => 500));
-                }
+            catch (Exception $ex) {
+                $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
             }
+        }
 
-            return array('record' => $out);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}");
-        }
+        return array('record' => $out);
     }
 
     /**
@@ -1262,37 +1206,7 @@ class SystemManager implements iRestHandler
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('delete', 'system', $table);
-
-        try {
-            switch (strtolower($table)) {
-            case "app_group":
-                $this->preDeleteAppGroups($id);
-                break;
-            case "app":
-                $this->preDeleteApps($id);
-                break;
-            case "role":
-                $this->preDeleteRoles($id);
-                break;
-            case "user":
-                $this->preDeleteUsers($id);
-                break;
-            }
-
-            $model = static::getResourceModel($table);
-            $record = $model->findByPk($id);
-            $return_fields = $model->getRetrievableAttributes($return_fields);
-            $data = $record->getAttributes($return_fields);
-            $out = array('fields' => $data);
-            if (!$record->delete()) {
-                throw new Exception("Failed to delete $table record.", ErrorCodes::INTERNAL_SERVER_ERROR);
-            }
-
-            return $out;
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error deleting $table record.\n{$ex->getMessage()}");
-        }
+        return $this->deleteRecordLow($table, $id, $return_fields);
     }
 
     /**
@@ -1436,9 +1350,9 @@ class SystemManager implements iRestHandler
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('read', 'system', $table);
+        $ids = array_map('trim', explode(',', $id_list));
         $model = static::getResourceModel($table);
         $return_fields = $model->getRetrievableAttributes($return_fields);
-        $ids = array_map('trim', explode(',', $id_list));
 
         try {
             $records = $model->findAllByPk($ids);
@@ -1517,10 +1431,12 @@ class SystemManager implements iRestHandler
         }
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
-        $return_fields = $model->getRetrievableAttributes($return_fields);
-
+        $record = $model->findByPk($id);
+        if (null === $record) {
+            throw new Exception('Record not found.', ErrorCodes::NOT_FOUND);
+        }
         try {
-            $record = $model->findByPk($id);
+            $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $record->getAttributes($return_fields);
             switch (strtolower($table)) {
             case 'app_group':
@@ -1660,18 +1576,18 @@ class SystemManager implements iRestHandler
         // i.e. move user to a different role,
         // false will return an error for that user that is already assigned to a role
         if (empty($role_id)) {
-            throw new Exception('[InvalidParam]: Role id can not be empty.');
+            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         if (empty($user_ids)) {
             if (empty($user_names)) {
-                throw new Exception('[InvalidParam]: User ids and names can not both be empty.');
+                throw new Exception('User ids and names can not both be empty.', ErrorCodes::BAD_REQUEST);
             }
             // find user ids
             try {
                 $user_ids = $this->getUserIdsFromNames($user_names);
             }
             catch (Exception $ex) {
-                throw new Exception("Error looking up users.\n{$ex->getMessage()}");
+                throw new Exception("Error looking up users.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
         }
 
@@ -1700,18 +1616,18 @@ class SystemManager implements iRestHandler
         // ids have preference, if blank, use names for both role and users
         // use this to officially remove a user from the current app
         if (empty($role_id)) {
-            throw new Exception('[InvalidParam]: Role id can not be empty.');
+            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         if (empty($user_ids)) {
             if (empty($user_names)) {
-                throw new Exception('[InvalidParam]: User ids and names can not both be empty.');
+                throw new Exception('User ids and names can not both be empty.', ErrorCodes::BAD_REQUEST);
             }
             // find user ids
             try {
                 $user_ids = $this->getUserIdsFromNames($user_names);
             }
             catch (Exception $ex) {
-                throw new Exception("Error looking up users.\n{$ex->getMessage()}");
+                throw new Exception("Error looking up users.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
         }
 
@@ -1751,13 +1667,13 @@ class SystemManager implements iRestHandler
                 $serviceName = Utilities::getArrayValue('service', $sa);
                 $serviceId = Utilities::getArrayValue('service_id', $sa);
                 if (empty($serviceName) && empty($serviceId)) {
-                    throw new Exception("No service name or id in role service access.");
+                    throw new Exception("No service name or id in role service access.", ErrorCodes::BAD_REQUEST);
                 }
                 if ('*' !== $serviceName) { // special 'All Services' designation
                     if (!empty($serviceId)) {
                         $temp = Service::model()->findByPk($serviceId);
                         if (!isset($temp)) {
-                            throw new Exception("Invalid service id '$serviceId' in role service access.");
+                            throw new Exception("Invalid service id '$serviceId' in role service access.", ErrorCodes::BAD_REQUEST);
                         }
                         $serviceName = $temp->getAttribute('name');
                         $services[$key]['service'] = $serviceName;
@@ -1765,14 +1681,14 @@ class SystemManager implements iRestHandler
                     elseif (!empty($serviceName)) {
                         $temp = Service::model()->find('name = :name', array(':name'=>$serviceName));
                         if (!isset($temp)) {
-                            throw new Exception("Invalid service name '$serviceName' in role service access.");
+                            throw new Exception("Invalid service name '$serviceName' in role service access.", ErrorCodes::BAD_REQUEST);
                         }
                         $services[$key]['service_id'] = $temp->getPrimaryKey();
                     }
                 }
                 $test = $serviceName.'.'.$component;
                 if (false !== array_search($test, $noDupes)) {
-                    throw new Exception("Duplicated service and component combination '$serviceName $component' in role service access.");
+                    throw new Exception("Duplicated service and component combination '$serviceName $component' in role service access.", ErrorCodes::BAD_REQUEST);
                 }
                 $noDupes[] = $test;
             }
@@ -1794,7 +1710,7 @@ class SystemManager implements iRestHandler
     protected function assignAppGroups($app_group_id, $app_ids, $for_update = false)
     {
         if (empty($app_group_id)) {
-            throw new Exception('[InvalidParam]: App group id can not be empty.');
+            throw new Exception('App group id can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         // drop outer commas and spaces
         $app_ids = implode(',', array_map('trim', explode(',', trim($app_ids, ','))));

@@ -119,6 +119,14 @@ class RoleServiceAccess extends CActiveRecord
      */
     protected function beforeValidate()
     {
+        if (is_bool($this->read))
+            $this->read = intval($this->read);
+        if (is_bool($this->create))
+            $this->create = intval($this->create);
+        if (is_bool($this->update))
+            $this->update = intval($this->update);
+        if (is_bool($this->delete))
+            $this->delete = intval($this->delete);
 
         return parent::beforeValidate();
     }

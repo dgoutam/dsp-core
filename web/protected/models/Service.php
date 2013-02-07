@@ -148,6 +148,9 @@ class Service extends CActiveRecord
      */
     protected function beforeValidate()
     {
+        // correct data type
+        if (is_bool($this->is_active))
+            $this->is_active = intval($this->is_active);
 
         return parent::beforeValidate();
     }
