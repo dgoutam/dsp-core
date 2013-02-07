@@ -70,6 +70,15 @@ class FileUtilities
         return substr($path, $marker + 1);
     }
 
+    public static function url_exist($url)
+    {
+        $file_headers = @get_headers($url);
+        if($file_headers[0] == 'HTTP/1.1 404 Not Found') {
+            return false;
+        }
+
+        return true;
+    }
     /**
      * @param string $url
      * @param string $name name of the temporary file to create
@@ -78,40 +87,38 @@ class FileUtilities
      */
     public static function importUrlFileToTemp($url, $name='')
     {
-        if (!empty($url)){
-            $readFrom = fopen($url, 'rb');
+        if (static::url_exist($url)) {
+            $readFrom = @fopen($url, 'rb');
             if ($readFrom) {
                 $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                 $ext = FileUtilities::getFileExtension(basename($url));
 //                $validTypes = array('zip','dfpkg'); // default zip and package extensions
-//                if (in_array($ext, $validTypes)) {
-                    if (empty($name))
-                        $name = basename($url);
-                    $newFile = $directory . $name;
-                    $writeTo = fopen($newFile, 'wb'); // creating new file on local server
-                    if ($writeTo) {
-                        while (!feof($readFrom)) {
-                            // Write the url file to the directory.
-                            fwrite($writeTo, fread($readFrom, 1024 * 8), 1024 * 8); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
-                        }
-                        fclose($readFrom);
-                        fclose($writeTo);
-                        return $newFile;
-                    }
-                    else {
-                        throw new Exception("Could not establish new file ($directory$name) on local server.");
-                    }
-//                }
-//                else {
+//                if (!in_array($ext, $validTypes)) {
 //                    throw new Exception('Invalid file type. Currently only URLs to repository zip files are accepted.');
 //                }
+                if (empty($name))
+                    $name = basename($url);
+                $newFile = $directory . $name;
+                $writeTo = fopen($newFile, 'wb'); // creating new file on local server
+                if ($writeTo) {
+                    while (!feof($readFrom)) {
+                        // Write the url file to the directory.
+                        fwrite($writeTo, fread($readFrom, 1024 * 8), 1024 * 8); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
+                    }
+                    fclose($readFrom);
+                    fclose($writeTo);
+                    return $newFile;
+                }
+                else {
+                    throw new Exception("Could not establish new file ($directory$name) on local server.", ErrorCodes::INTERNAL_SERVER_ERROR);
+                }
             }
             else {
-                throw new Exception("Could not locate the file: $url");
+                throw new Exception("Could not read the file: $url", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
         }
         else {
-            throw new Exception('Invalid URL entered. Please try again.');
+            throw new Exception('Invalid URL entered. File not found.', ErrorCodes::NOT_FOUND);
         }
     }
 

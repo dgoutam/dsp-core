@@ -361,9 +361,9 @@ class ApplicationSvc extends CommonFileSvc
             // you can import an application package file, local or remote, or from zip, but nothing else
             $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
             if (0 === strcasecmp('dfpkg', FileUtilities::getFileExtension($fileUrl))) {
+                // need to download and extract zip file and move contents to storage
+                $filename = FileUtilities::importUrlFileToTemp($fileUrl);
                 try {
-                    // need to download and extract zip file and move contents to storage
-                    $filename = FileUtilities::importUrlFileToTemp($fileUrl);
                     return $this->importAppFromPackage($filename);
                     // todo save url for later updates
                 }
@@ -374,9 +374,9 @@ class ApplicationSvc extends CommonFileSvc
             $name = Utilities::getArrayValue('name', $_REQUEST, '');
             // from repo or remote zip file
             if (!empty($name) && (0 === strcasecmp('zip', FileUtilities::getFileExtension($fileUrl)))) {
+                // need to download and extract zip file and move contents to storage
+                $filename = FileUtilities::importUrlFileToTemp($fileUrl);
                 try {
-                    // need to download and extract zip file and move contents to storage
-                    $filename = FileUtilities::importUrlFileToTemp($fileUrl);
                     return $this->importAppFromZip($name, $filename);
                     // todo save url for later updates
                 }

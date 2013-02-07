@@ -292,122 +292,127 @@ class CommonFileSvc extends CommonService implements iRestHandler
             }
             else {
                 // possibly xml or json post either of files or folders to create, copy or move
-                try {
-                    $data = Utilities::getPostDataAsArray();
-                    if (empty($data)) {
-                        $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
-                        if (!empty($fileUrl)) {
-                            // upload a file from a url, could be expandable zip
-                            $tmpName = FileUtilities::importUrlFileToTemp($fileUrl);
-                            $result = $this->handleFile($path, '', $tmpName, '', $extract, $clean, $checkExist);
-                        }
-                        else {
+                $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
+                if (!empty($fileUrl)) {
+                    // upload a file from a url, could be expandable zip
+                    $tmpName = FileUtilities::importUrlFileToTemp($fileUrl);
+                    try {
+                        $result = $this->handleFile($path, '', $tmpName, '', $extract, $clean, $checkExist);
+                    }
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    }
+                }
+                else {
+                    try {
+                        $data = Utilities::getPostDataAsArray();
+                        if (empty($data)) {
                             // create folder from resource path
                             $this->fileRestHandler->createFolder($path);
                             $result = array('folder' => array(array('path' => $path)));
                         }
-                    }
-                    else {
-                        $out = array('folder' => array(), 'file' => array());
-                        $folders = Utilities::getArrayValue('folder', $data, null);
-                        if (empty($folders)) {
-                            $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
-                        }
-                        if (!empty($folders)) {
-                            if (!isset($folders[0])) {
-                                // single folder, make into array
-                                $folders = array($folders);
+                        else {
+                            $out = array('folder' => array(), 'file' => array());
+                            $folders = Utilities::getArrayValue('folder', $data, null);
+                            if (empty($folders)) {
+                                $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
                             }
-                            foreach ($folders as $key=>$folder) {
-                                $name = Utilities::getArrayValue('name', $folder, '');
-                                if (isset($folder['source_path'])) {
-                                    // copy or move
-                                    $srcPath = $folder['source_path'];
-                                    if (empty($name)) {
-                                        $name = FileUtilities::getNameFromPath($srcPath);
-                                    }
-                                    $fullPathName = $path . $name . '/';
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
-                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
-                                        if ($deleteSource) {
-                                            $this->fileRestHandler->deleteFolder($srcPath, true);
+                            if (!empty($folders)) {
+                                if (!isset($folders[0])) {
+                                    // single folder, make into array
+                                    $folders = array($folders);
+                                }
+                                foreach ($folders as $key=>$folder) {
+                                    $name = Utilities::getArrayValue('name', $folder, '');
+                                    if (isset($folder['source_path'])) {
+                                        // copy or move
+                                        $srcPath = $folder['source_path'];
+                                        if (empty($name)) {
+                                            $name = FileUtilities::getNameFromPath($srcPath);
+                                        }
+                                        $fullPathName = $path . $name . '/';
+                                        $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
+                                            $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
+                                            if ($deleteSource) {
+                                                $this->fileRestHandler->deleteFolder($srcPath, true);
+                                            }
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                         }
                                     }
-                                    catch (Exception $ex) {
-                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
-                                }
-                                else {
-                                    $fullPathName = $path . $name;
-                                    $content = Utilities::getArrayValue('content', $folder, '');
-                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
-                                    if ($isBase64) {
-                                        $content = base64_decode($content);
-                                    }
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->createFolder($fullPathName, true, $content);
-                                    }
-                                    catch (Exception $ex) {
-                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
-                                }
-                            }
-                        }
-                        $files = Utilities::getArrayValue('file', $data, null);
-                        if (empty($files)) {
-                            $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
-                        }
-                        if (!empty($files)) {
-                            if (!isset($files[0])) {
-                                // single file, make into array
-                                $files = array($files);
-                            }
-                            foreach ($files as $key=>$file) {
-                                $name = Utilities::getArrayValue('name', $file, '');
-                                if (isset($file['source_path'])) {
-                                    // copy or move
-                                    $srcPath = $file['source_path'];
-                                    if (empty($name)) {
-                                        $name = FileUtilities::getNameFromPath($srcPath);
-                                    }
-                                    $fullPathName = $path . $name;
-                                    $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
-                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
-                                        if ($deleteSource) {
-                                            $this->fileRestHandler->deleteFile($srcPath);
+                                    else {
+                                        $fullPathName = $path . $name;
+                                        $content = Utilities::getArrayValue('content', $folder, '');
+                                        $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
+                                        if ($isBase64) {
+                                            $content = base64_decode($content);
+                                        }
+                                        $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->createFolder($fullPathName, true, $content);
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                         }
                                     }
-                                    catch (Exception $ex) {
-                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
                                 }
-                                elseif (isset($file['content'])) {
-                                    $fullPathName = $path . $name;
-                                    $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    $content = Utilities::getArrayValue('content', $file, '');
-                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
-                                    if ($isBase64) {
-                                        $content = base64_decode($content);
+                            }
+                            $files = Utilities::getArrayValue('file', $data, null);
+                            if (empty($files)) {
+                                $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
+                            }
+                            if (!empty($files)) {
+                                if (!isset($files[0])) {
+                                    // single file, make into array
+                                    $files = array($files);
+                                }
+                                foreach ($files as $key=>$file) {
+                                    $name = Utilities::getArrayValue('name', $file, '');
+                                    if (isset($file['source_path'])) {
+                                        // copy or move
+                                        $srcPath = $file['source_path'];
+                                        if (empty($name)) {
+                                            $name = FileUtilities::getNameFromPath($srcPath);
+                                        }
+                                        $fullPathName = $path . $name;
+                                        $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
+                                            $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
+                                            if ($deleteSource) {
+                                                $this->fileRestHandler->deleteFile($srcPath);
+                                            }
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                        }
                                     }
-                                    try {
-                                        $this->fileRestHandler->writeFile($fullPathName, $content);
-                                    }
-                                    catch (Exception $ex) {
-                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                    elseif (isset($file['content'])) {
+                                        $fullPathName = $path . $name;
+                                        $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        $content = Utilities::getArrayValue('content', $file, '');
+                                        $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
+                                        if ($isBase64) {
+                                            $content = base64_decode($content);
+                                        }
+                                        try {
+                                            $this->fileRestHandler->writeFile($fullPathName, $content);
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                        }
                                     }
                                 }
                             }
+                            $result = $out;
                         }
-                        $result = $out;
                     }
-                }
-                catch (Exception $ex) {
-                    throw new Exception("Failed to create folders or files from request.\n{$ex->getMessage()}");
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to create folders or files from request.\n{$ex->getMessage()}");
+                    }
                 }
             }
         }
@@ -572,123 +577,127 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 }
             }
             else {
-                // possibly xml or json post either of files or folders to create, copy or move
-                try {
-                    $data = Utilities::getPostDataAsArray();
-                    if (empty($data)) {
-                        $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
-                        if (!empty($fileUrl)) {
-                            // upload a file from a url, could be expandable zip
-                            $tmpName = FileUtilities::importUrlFileToTemp($fileUrl);
-                            $result = $this->handleFile($path, '', $tmpName, '', $extract, $clean, $checkExist);
-                        }
-                        else {
+                $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
+                if (!empty($fileUrl)) {
+                    // upload a file from a url, could be expandable zip
+                    $tmpName = FileUtilities::importUrlFileToTemp($fileUrl);
+                    try {
+                        $result = $this->handleFile($path, '', $tmpName, '', $extract, $clean, $checkExist);
+                    }
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    }
+                }
+                else {
+                    try {
+                        $data = Utilities::getPostDataAsArray();
+                        if (empty($data)) {
                             // create folder from resource path
                             $this->fileRestHandler->createFolder($path);
                             $result = array('folder' => array(array('path' => $path)));
                         }
-                    }
-                    else {
-                        $out = array('folder' => array(), 'file' => array());
-                        $folders = Utilities::getArrayValue('folder', $data, null);
-                        if (empty($folders)) {
-                            $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
-                        }
-                        if (!empty($folders)) {
-                            if (!isset($folders[0])) {
-                                // single folder, make into array
-                                $folders = array($folders);
+                        else {
+                            $out = array('folder' => array(), 'file' => array());
+                            $folders = Utilities::getArrayValue('folder', $data, null);
+                            if (empty($folders)) {
+                                $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
                             }
-                            foreach ($folders as $key=>$folder) {
-                                $name = Utilities::getArrayValue('name', $folder, '');
-                                if (isset($folder['source_path'])) {
-                                    // copy or move
-                                    $srcPath = $folder['source_path'];
-                                    if (empty($name)) {
-                                        $name = FileUtilities::getNameFromPath($srcPath);
-                                    }
-                                    $fullPathName = $path . $name . '/';
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
-                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
-                                        if ($deleteSource) {
-                                            $this->fileRestHandler->deleteFolder($srcPath, true);
+                            if (!empty($folders)) {
+                                if (!isset($folders[0])) {
+                                    // single folder, make into array
+                                    $folders = array($folders);
+                                }
+                                foreach ($folders as $key=>$folder) {
+                                    $name = Utilities::getArrayValue('name', $folder, '');
+                                    if (isset($folder['source_path'])) {
+                                        // copy or move
+                                        $srcPath = $folder['source_path'];
+                                        if (empty($name)) {
+                                            $name = FileUtilities::getNameFromPath($srcPath);
+                                        }
+                                        $fullPathName = $path . $name . '/';
+                                        $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
+                                            $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
+                                            if ($deleteSource) {
+                                                $this->fileRestHandler->deleteFolder($srcPath, true);
+                                            }
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                         }
                                     }
-                                    catch (Exception $ex) {
-                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
-                                }
-                                else {
-                                    $fullPathName = $path . $name;
-                                    $content = Utilities::getArrayValue('content', $folder, '');
-                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
-                                    if ($isBase64) {
-                                        $content = base64_decode($content);
-                                    }
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->createFolder($fullPathName, true, $content);
-                                    }
-                                    catch (Exception $ex) {
-                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
-                                }
-                            }
-                        }
-                        $files = Utilities::getArrayValue('file', $data, null);
-                        if (empty($files)) {
-                            $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
-                        }
-                        if (!empty($files)) {
-                            if (!isset($files[0])) {
-                                // single file, make into array
-                                $files = array($files);
-                            }
-                            foreach ($files as $key=>$file) {
-                                $name = Utilities::getArrayValue('name', $file, '');
-                                if (isset($file['source_path'])) {
-                                    // copy or move
-                                    $srcPath = $file['source_path'];
-                                    if (empty($name)) {
-                                        $name = FileUtilities::getNameFromPath($srcPath);
-                                    }
-                                    $fullPathName = $path . $name;
-                                    $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
-                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
-                                        if ($deleteSource) {
-                                            $this->fileRestHandler->deleteFile($srcPath);
+                                    else {
+                                        $fullPathName = $path . $name;
+                                        $content = Utilities::getArrayValue('content', $folder, '');
+                                        $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
+                                        if ($isBase64) {
+                                            $content = base64_decode($content);
+                                        }
+                                        $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->createFolder($fullPathName, true, $content);
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                         }
                                     }
-                                    catch (Exception $ex) {
-                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
                                 }
-                                elseif (isset($file['content'])) {
-                                    $fullPathName = $path . $name;
-                                    $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    $content = Utilities::getArrayValue('content', $file, '');
-                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
-                                    if ($isBase64) {
-                                        $content = base64_decode($content);
+                            }
+                            $files = Utilities::getArrayValue('file', $data, null);
+                            if (empty($files)) {
+                                $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
+                            }
+                            if (!empty($files)) {
+                                if (!isset($files[0])) {
+                                    // single file, make into array
+                                    $files = array($files);
+                                }
+                                foreach ($files as $key=>$file) {
+                                    $name = Utilities::getArrayValue('name', $file, '');
+                                    if (isset($file['source_path'])) {
+                                        // copy or move
+                                        $srcPath = $file['source_path'];
+                                        if (empty($name)) {
+                                            $name = FileUtilities::getNameFromPath($srcPath);
+                                        }
+                                        $fullPathName = $path . $name;
+                                        $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
+                                            $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
+                                            if ($deleteSource) {
+                                                $this->fileRestHandler->deleteFile($srcPath);
+                                            }
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                        }
                                     }
-                                    try {
-                                        $this->fileRestHandler->writeFile($fullPathName, $content);
-                                    }
-                                    catch (Exception $ex) {
-                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                    elseif (isset($file['content'])) {
+                                        $fullPathName = $path . $name;
+                                        $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        $content = Utilities::getArrayValue('content', $file, '');
+                                        $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
+                                        if ($isBase64) {
+                                            $content = base64_decode($content);
+                                        }
+                                        try {
+                                            $this->fileRestHandler->writeFile($fullPathName, $content);
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                        }
                                     }
                                 }
                             }
+                            $result = $out;
                         }
-                        $result = $out;
                     }
-                }
-                catch (Exception $ex) {
-                    throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    }
                 }
             }
         }
@@ -854,122 +863,127 @@ class CommonFileSvc extends CommonService implements iRestHandler
             }
             else {
                 // possibly xml or json post either of files or folders to create, copy or move
-                try {
-                    $data = Utilities::getPostDataAsArray();
-                    if (empty($data)) {
-                        $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
-                        if (!empty($fileUrl)) {
-                            // upload a file from a url, could be expandable zip
-                            $tmpName = FileUtilities::importUrlFileToTemp($fileUrl);
-                            $result = $this->handleFile($path, '', $tmpName, '', $extract, $clean, $checkExist);
-                        }
-                        else {
+                $fileUrl = Utilities::getArrayValue('url', $_REQUEST, '');
+                if (!empty($fileUrl)) {
+                    // upload a file from a url, could be expandable zip
+                    $tmpName = FileUtilities::importUrlFileToTemp($fileUrl);
+                    try {
+                        $result = $this->handleFile($path, '', $tmpName, '', $extract, $clean, $checkExist);
+                    }
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    }
+                }
+                else {
+                    try {
+                        $data = Utilities::getPostDataAsArray();
+                        if (empty($data)) {
                             // create folder from resource path
                             $this->fileRestHandler->createFolder($path);
                             $result = array('folder' => array(array('path' => $path)));
                         }
-                    }
-                    else {
-                        $out = array('folder' => array(), 'file' => array());
-                        $folders = Utilities::getArrayValue('folder', $data, null);
-                        if (empty($folders)) {
-                            $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
-                        }
-                        if (!empty($folders)) {
-                            if (!isset($folders[0])) {
-                                // single folder, make into array
-                                $folders = array($folders);
+                        else {
+                            $out = array('folder' => array(), 'file' => array());
+                            $folders = Utilities::getArrayValue('folder', $data, null);
+                            if (empty($folders)) {
+                                $folders = (isset($data['folders']['folder']) ? $data['folders']['folder'] : null);
                             }
-                            foreach ($folders as $key=>$folder) {
-                                $name = Utilities::getArrayValue('name', $folder, '');
-                                if (isset($folder['source_path'])) {
-                                    // copy or move
-                                    $srcPath = $folder['source_path'];
-                                    if (empty($name)) {
-                                        $name = FileUtilities::getNameFromPath($srcPath);
-                                    }
-                                    $fullPathName = $path . $name . '/';
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
-                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
-                                        if ($deleteSource) {
-                                            $this->fileRestHandler->deleteFolder($srcPath, true);
+                            if (!empty($folders)) {
+                                if (!isset($folders[0])) {
+                                    // single folder, make into array
+                                    $folders = array($folders);
+                                }
+                                foreach ($folders as $key=>$folder) {
+                                    $name = Utilities::getArrayValue('name', $folder, '');
+                                    if (isset($folder['source_path'])) {
+                                        // copy or move
+                                        $srcPath = $folder['source_path'];
+                                        if (empty($name)) {
+                                            $name = FileUtilities::getNameFromPath($srcPath);
+                                        }
+                                        $fullPathName = $path . $name . '/';
+                                        $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->copyFolder($fullPathName, $srcPath, true);
+                                            $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $folder, false));
+                                            if ($deleteSource) {
+                                                $this->fileRestHandler->deleteFolder($srcPath, true);
+                                            }
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                         }
                                     }
-                                    catch (Exception $ex) {
-                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
-                                }
-                                else {
-                                    $fullPathName = $path . $name;
-                                    $content = Utilities::getArrayValue('content', $folder, '');
-                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
-                                    if ($isBase64) {
-                                        $content = base64_decode($content);
-                                    }
-                                    $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->createFolder($fullPathName, true, $content);
-                                    }
-                                    catch (Exception $ex) {
-                                        $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
-                                }
-                            }
-                        }
-                        $files = Utilities::getArrayValue('file', $data, null);
-                        if (empty($files)) {
-                            $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
-                        }
-                        if (!empty($files)) {
-                            if (!isset($files[0])) {
-                                // single file, make into array
-                                $files = array($files);
-                            }
-                            foreach ($files as $key=>$file) {
-                                $name = Utilities::getArrayValue('name', $file, '');
-                                if (isset($file['source_path'])) {
-                                    // copy or move
-                                    $srcPath = $file['source_path'];
-                                    if (empty($name)) {
-                                        $name = FileUtilities::getNameFromPath($srcPath);
-                                    }
-                                    $fullPathName = $path . $name;
-                                    $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    try {
-                                        $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
-                                        $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
-                                        if ($deleteSource) {
-                                            $this->fileRestHandler->deleteFile($srcPath);
+                                    else {
+                                        $fullPathName = $path . $name;
+                                        $content = Utilities::getArrayValue('content', $folder, '');
+                                        $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $folder, false));
+                                        if ($isBase64) {
+                                            $content = base64_decode($content);
+                                        }
+                                        $out['folder'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->createFolder($fullPathName, true, $content);
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['folder'][$key]['error'] = array('message' => $ex->getMessage());
                                         }
                                     }
-                                    catch (Exception $ex) {
-                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
-                                    }
                                 }
-                                elseif (isset($file['content'])) {
-                                    $fullPathName = $path . $name;
-                                    $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
-                                    $content = Utilities::getArrayValue('content', $file, '');
-                                    $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
-                                    if ($isBase64) {
-                                        $content = base64_decode($content);
+                            }
+                            $files = Utilities::getArrayValue('file', $data, null);
+                            if (empty($files)) {
+                                $files = (isset($data['files']['file']) ? $data['files']['file'] : null);
+                            }
+                            if (!empty($files)) {
+                                if (!isset($files[0])) {
+                                    // single file, make into array
+                                    $files = array($files);
+                                }
+                                foreach ($files as $key=>$file) {
+                                    $name = Utilities::getArrayValue('name', $file, '');
+                                    if (isset($file['source_path'])) {
+                                        // copy or move
+                                        $srcPath = $file['source_path'];
+                                        if (empty($name)) {
+                                            $name = FileUtilities::getNameFromPath($srcPath);
+                                        }
+                                        $fullPathName = $path . $name;
+                                        $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        try {
+                                            $this->fileRestHandler->copyFile($fullPathName, $srcPath, true);
+                                            $deleteSource = Utilities::boolval(Utilities::getArrayValue('delete_source', $file, false));
+                                            if ($deleteSource) {
+                                                $this->fileRestHandler->deleteFile($srcPath);
+                                            }
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                        }
                                     }
-                                    try {
-                                        $this->fileRestHandler->writeFile($fullPathName, $content);
-                                    }
-                                    catch (Exception $ex) {
-                                        $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                    elseif (isset($file['content'])) {
+                                        $fullPathName = $path . $name;
+                                        $out['file'][$key] = array('name' => $name, 'path' => $fullPathName);
+                                        $content = Utilities::getArrayValue('content', $file, '');
+                                        $isBase64 = Utilities::boolval(Utilities::getArrayValue('is_base64', $file, false));
+                                        if ($isBase64) {
+                                            $content = base64_decode($content);
+                                        }
+                                        try {
+                                            $this->fileRestHandler->writeFile($fullPathName, $content);
+                                        }
+                                        catch (Exception $ex) {
+                                            $out['file'][$key]['error'] = array('message' => $ex->getMessage());
+                                        }
                                     }
                                 }
                             }
+                            $result = $out;
                         }
-                        $result = $out;
                     }
-                }
-                catch (Exception $ex) {
-                    throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    catch (Exception $ex) {
+                        throw new Exception("Failed to update folders or files from request.\n{$ex->getMessage()}");
+                    }
                 }
             }
         }
