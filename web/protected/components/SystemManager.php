@@ -140,7 +140,7 @@ class SystemManager implements iRestHandler
             $version = Utilities::getArrayValue('version', $contents);
             $config = array();
             $oldVersion = '';
-            if ($this->nativeDb->doesTableExist('config')) {
+            if (DbUtilities::doesTableExist(Yii::app()->db, 'config')) {
                 $config = Config::model()->findAll();
                 if (!empty($config)) {
                     $oldVersion = $config->getAttribute('db_version');
@@ -151,7 +151,7 @@ class SystemManager implements iRestHandler
             if (empty($tables)) {
                 throw new \Exception("No default system schema found.");
             }
-            $result = $this->nativeDb->createTables($tables, true, true, false);
+            $result = DbUtilities::createTables(Yii::app()->db, $tables, true, true, false);
 
             // setup session stored procedure
             $command = Yii::app()->db->createCommand();
@@ -161,7 +161,7 @@ class SystemManager implements iRestHandler
 //                          AND ROUTINE_NAME="UpdateOrInsertSession";';
 //            $result = $db->singleSqlQuery($query);
 //            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
-            switch ($this->nativeDb->getDriverType()) {
+            switch (DbUtilities::getDbDriverType(Yii::app()->db)) {
                 case DbUtilities::DRV_SQLSRV:
                     $contents = file_get_contents(Yii::app()->basePath . '/data/procedures.mssql.sql');
                     if ((false === $contents) || empty($contents)) {
@@ -193,7 +193,9 @@ class SystemManager implements iRestHandler
 //            }
             // initialize config table if not already
             if (empty($config)) {
-                $this->nativeDb->createSqlRecord('config', array('db_version'=>$version));
+                $config = new Config;
+                $config->db_version = $version;
+                $config->save();
             }
             // refresh the schema that we just added
             Yii::app()->db->schema->refresh();
@@ -287,13 +289,39 @@ class SystemManager implements iRestHandler
                     error_log(print_r($contents, true));
                     throw new \Exception("No default system services found.");
                 }
-                $this->nativeDb->createSqlRecords('service', $services, true);
+                foreach ($services as $service) {
+                    $obj = new Service;;
+                    $obj->setAttributes($service);
+                    if (!$obj->save()) {
+                        $msg = '';
+                        if ($obj->hasErrors()) {
+                            foreach ($obj->errors as $error) {
+                                $msg .= implode(PHP_EOL, $error);
+                            }
+                        }
+                        error_log(print_r($obj->errors, true));
+                        throw new Exception("Failed to create services.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
+                    }
+                }
             }
             $result = App::model()->findAll();
             if (empty($result)) {
                 $apps = Utilities::getArrayValue('app', $contents);
                 if (!empty($apps)) {
-                    $this->nativeDb->createSqlRecords('app', $apps, true);
+                    foreach ($apps as $app) {
+                        $obj = new App;;
+                        $obj->setAttributes($app);
+                        if (!$obj->save()) {
+                            $msg = '';
+                            if ($obj->hasErrors()) {
+                                foreach ($obj->errors as $error) {
+                                    $msg .= implode(PHP_EOL, $error);
+                                }
+                            }
+                            error_log(print_r($obj->errors, true));
+                            throw new Exception("Failed to create apps.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
+                        }
+                    }
                 }
             }
         }
@@ -328,17 +356,8 @@ class SystemManager implements iRestHandler
             case 'service':
             case 'user':
                 // Most requests contain 'returned fields' parameter, all by default
-                $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '*';
-                $extras = array();
-                if (isset($_REQUEST['apps'])) {
-                    $extras['apps'] = $_REQUEST['apps'];
-                }
-                if (isset($_REQUEST['users'])) {
-                    $extras['users'] = $_REQUEST['users'];
-                }
-                if (isset($_REQUEST['roles'])) {
-                    $extras['roles'] = $_REQUEST['roles'];
-                }
+                $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
+                $extras = Utilities::getArrayValue('related', $_REQUEST, '');
                 if (empty($this->modelId)) {
                     $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
                     if (!empty($ids)) {
@@ -408,7 +427,7 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
-            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -459,7 +478,7 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
-            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -524,7 +543,7 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
-            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -588,7 +607,7 @@ class SystemManager implements iRestHandler
         try {
             $this->detectCommonParams();
             // Most requests contain 'returned fields' parameter
-            $fields = (isset($_REQUEST['fields'])) ? $_REQUEST['fields'] : '';
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -1213,11 +1232,11 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $records
      * @param string $return_fields
-     * @param null $extras
+     * @param string $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecords($table, $records, $return_fields = '', $extras = null)
+    public function retrieveRecords($table, $records, $return_fields = '', $extras = '')
     {
         $ids = array();
         foreach ($records as $key => $record) {
@@ -1235,11 +1254,11 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $record
      * @param string $return_fields
-     * @param null $extras
+     * @param string $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecord($table, $record, $return_fields = '', $extras = null)
+    public function retrieveRecord($table, $record, $return_fields = '', $extras = '')
     {
         $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields'], '') : '';
         return $this->retrieveRecordById($table, $id, $return_fields, $extras);
@@ -1252,11 +1271,11 @@ class SystemManager implements iRestHandler
      * @param int $limit
      * @param string $order
      * @param int $offset
-     * @param null $extras
-     * @return array
+     * @param string $extras
      * @throws Exception
+     * @return array
      */
-    public function retrieveRecordsByFilter($table, $return_fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = null)
+    public function retrieveRecordsByFilter($table, $return_fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = '')
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1264,6 +1283,7 @@ class SystemManager implements iRestHandler
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
         $return_fields = $model->getRetrievableAttributes($return_fields);
+        $extras = $model->getRetrievableRelations($extras);
 
         try {
             $command = new CDbCriteria();
@@ -1286,46 +1306,34 @@ class SystemManager implements iRestHandler
             $out = array();
             $records = $model->findAll($command);
             foreach ($records as $record) {
-                $pk = $record->primaryKey;
-                $data = $record->getAttributes($return_fields);
-                switch (strtolower($table)) {
-                case 'app_group':
-                    break;
-                case 'role':
-                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
-                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
-                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
-                        $perms = array();
-                        foreach ($rsa as $access) {
-                            $perms[] = $access->getAttributes($permFields);
-                        }
-                        $data['services'] = $perms;
+                $data = array('fields' => $record->getAttributes($return_fields));
+                $relatedData = array();
+                foreach ($extras as $extra) {
+                    $relatedRecords = $record->getRelated($extra, true);
+                    if (!isset($relatedRecords)) {
+                        $tempData = null;
                     }
-                    break;
-                case 'service':
-                    if (isset($data['type']) && !empty($data['type'])) {
-                        switch (strtolower($data['type'])) {
-                        case 'native':
-                        case 'managed':
-                            unset($data['base_url']);
-                            unset($data['parameters']);
-                            unset($data['headers']);
-                            break;
-                        case 'web':
-                            break;
+                    elseif (empty($relatedRecords)) {
+                        $tempData = null;
+                    }
+                    elseif (isset($relatedRecords[0])) {
+                        // an array of records
+                        $tempData = array();
+                        $relatedFields = $relatedRecords[0]->getRetrievableAttributes('*');
+                        foreach ($relatedRecords as $relative) {
+                            $tempData[] = $relative->getAttributes($relatedFields);
                         }
                     }
-                    break;
-                case 'user':
-                    if (isset($extras['role'])) {
-                        if (isset($data['role_id']) && !empty($data['role_id'])) {
-                            $roleInfo = $this->retrieveRecordsByIds('role', $data['role_id'], 'id', '');
-                            $data['role'] = $roleInfo[0];
-                        }
+                    else {
+                        $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes('*'));
                     }
-                    break;
+                    $relatedData[$extra] = $tempData;
                 }
-                $out[] = array('fields' => $data);
+                if (!empty($relatedData)) {
+                    $data['related'] = $relatedData;
+                }
+
+                $out[] = $data;
             }
 
             $total = $model->count($command);
@@ -1353,6 +1361,7 @@ class SystemManager implements iRestHandler
         $ids = array_map('trim', explode(',', $id_list));
         $model = static::getResourceModel($table);
         $return_fields = $model->getRetrievableAttributes($return_fields);
+        $extras = $model->getRetrievableRelations($extras);
 
         try {
             $records = $model->findAllByPk($ids);
@@ -1362,45 +1371,34 @@ class SystemManager implements iRestHandler
                 if (false === $key) {
                     throw new Exception('Bad returned data from query');
                 }
-                $data = $record->getAttributes($return_fields);
-                switch (strtolower($table)) {
-                case 'app_group':
-                    break;
-                case 'role':
-                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
-                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
-                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
-                        $perms = array();
-                        foreach ($rsa as $access) {
-                            $perms[] = $access->getAttributes($permFields);
-                        }
-                        $data['services'] = $perms;
+                $data = array('fields' => $record->getAttributes($return_fields));
+                $relatedData = array();
+                foreach ($extras as $extra) {
+                    $relatedRecords = $record->getRelated($extra, true);
+                    if (!isset($relatedRecords)) {
+                        $tempData = null;
                     }
-                    break;
-                case 'service':
-                    if (isset($data['type']) && !empty($data['type'])) {
-                        switch (strtolower($data['type'])) {
-                        case 'native':
-                        case 'managed':
-                            unset($data['base_url']);
-                            unset($data['parameters']);
-                            unset($data['headers']);
-                            break;
-                        case 'web':
-                            break;
+                    elseif (empty($relatedRecords)) {
+                        $tempData = null;
+                    }
+                    elseif (isset($relatedRecords[0])) {
+                        // an array of records
+                        $tempData = array();
+                        $relatedFields = $relatedRecords[0]->getRetrievableAttributes('*');
+                        foreach ($relatedRecords as $relative) {
+                            $tempData[] = $relative->getAttributes($relatedFields);
                         }
                     }
-                    break;
-                case 'user':
-                    if (isset($extras['role'])) {
-                        if (isset($data['role_id']) && !empty($data['role_id'])) {
-                            $roleInfo = $this->retrieveRecordsByIds('role', $data['role_id'], 'id', '');
-                            $data['role'] = $roleInfo[0];
-                        }
+                    else {
+                        $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes('*'));
                     }
-                    break;
+                    $relatedData[$extra] = $tempData;
                 }
-                $ids[$key] = array('fields' => $data);
+                if (!empty($relatedData)) {
+                    $data['related'] = $relatedData;
+                }
+
+                $ids[$key] = $data;
             }
             foreach ($ids as $key=>$id) {
                 if (!is_array($id)) {
@@ -1420,11 +1418,11 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $id
      * @param string $return_fields
-     * @param null $extras
+     * @param string $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecordById($table, $id, $return_fields = '', $extras = null)
+    public function retrieveRecordById($table, $id, $return_fields = '', $extras = '')
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1437,46 +1435,35 @@ class SystemManager implements iRestHandler
         }
         try {
             $return_fields = $model->getRetrievableAttributes($return_fields);
-            $data = $record->getAttributes($return_fields);
-            switch (strtolower($table)) {
-            case 'app_group':
-                break;
-            case 'role':
-                if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
-                    $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
-                    $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $id));
-                    $perms = array();
-                    foreach ($rsa as $access) {
-                        $perms[] = $access->getAttributes($permFields);
-                    }
-                    $data['services'] = $perms;
+            $data = array('fields' => $record->getAttributes($return_fields));
+            $extras = $model->getRetrievableRelations($extras);
+            $relatedData = array();
+            foreach ($extras as $extra) {
+                $relatedRecords = $record->getRelated($extra, true);
+                if (!isset($relatedRecords)) {
+                    $tempData = null;
                 }
-                break;
-            case 'service':
-                if (isset($data['type']) && !empty($data['type'])) {
-                    switch (strtolower($data['type'])) {
-                    case 'native':
-                    case 'managed':
-                        unset($data['base_url']);
-                        unset($data['parameters']);
-                        unset($data['headers']);
-                        break;
-                    case 'web':
-                        break;
+                elseif (empty($relatedRecords)) {
+                    $tempData = null;
+                }
+                elseif (isset($relatedRecords[0])) {
+                    // an array of records
+                    $tempData = array();
+                    $relatedFields = $relatedRecords[0]->getRetrievableAttributes('*');
+                    foreach ($relatedRecords as $relative) {
+                        $tempData[] = $relative->getAttributes($relatedFields);
                     }
                 }
-                break;
-            case 'user':
-                if (isset($extras['role'])) {
-                    if (isset($data['role_id']) && !empty($data['role_id'])) {
-                        $roleInfo = $this->retrieveRecordsByIds('role', $data['role_id'], 'id', '');
-                        $data['role'] = $roleInfo[0];
-                    }
+                else {
+                    $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes('*'));
                 }
-                break;
+                $relatedData[$extra] = $tempData;
+            }
+            if (!empty($relatedData)) {
+                $data['related'] = $relatedData;
             }
 
-            return array('fields' => $data);
+            return $data;
         }
         catch (Exception $ex) {
             throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
@@ -1545,6 +1532,8 @@ class SystemManager implements iRestHandler
     protected function getUserIdsFromNames($user_names)
     {
         try {
+            $command = Yii::app()->db->createCommand();
+            $result = $command->select('id')->from('user')->where(array('in', 'username', $user_names));
             $result = $this->nativeDb->retrieveSqlRecordsByIds('user', "'$user_names'", 'username', 'id');
             $userIds = '';
             foreach ($result as $item) {

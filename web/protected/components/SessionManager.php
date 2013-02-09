@@ -41,7 +41,7 @@ class SessionManager
     public function __construct()
     {
         $this->_sqlConn = Yii::app()->db;
-        $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn->driverName);
+        $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn);
 
         session_set_save_handler(
             array($this, 'open'),

@@ -78,8 +78,8 @@ class App extends CActiveRecord
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
         return array(
-            'createdBy' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'lastModifiedBy' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
+            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
             'roles' => array(self::HAS_MANY, 'Role', 'default_app_id'),
             'users' => array(self::HAS_MANY, 'User', 'default_app_id'),
         );
@@ -178,7 +178,7 @@ class App extends CActiveRecord
     protected function beforeSave()
     {
         $userId = SessionManager::getCurrentUserId();
-        switch (DbUtilities::getDbDriverType($this->dbConnection->driverName)) {
+        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
         case DbUtilities::DRV_SQLSRV:
             $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
             break;
@@ -238,6 +238,31 @@ class App extends CActiveRecord
             // remove any undesired retrievable fields
 //            $requested = Utilities::removeOneFromList($requested, 'password', ',');
             return explode(',', $requested);
+        }
+    }
+
+    /**
+     * @param string $requested
+     * @throws Exception
+     * @return array
+     */
+    public function getRetrievableRelations($requested)
+    {
+        if (empty($requested)) {
+            return array();
+        }
+        $relations = array('created_by', 'last_modified_by');
+        if ('*' == $requested) {
+            return $relations;
+        }
+        else {
+            $requested = array_map('trim', explode(',', $requested));
+            foreach ($requested as $request) {
+                if (false === array_search($request, $relations)) {
+                    throw new Exception("Invalid relation '$request' requested.", ErrorCodes::BAD_REQUEST);
+                }
+            }
+            return $requested;
         }
     }
 

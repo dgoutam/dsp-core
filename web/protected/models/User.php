@@ -90,19 +90,19 @@ class User extends CActiveRecord
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
         return array(
-            'apps' => array(self::HAS_MANY, 'App', 'created_by_id'),
-            'apps1' => array(self::HAS_MANY, 'App', 'last_modified_by_id'),
-            'appGroups' => array(self::HAS_MANY, 'AppGroup', 'created_by_id'),
-            'appGroups1' => array(self::HAS_MANY, 'AppGroup', 'last_modified_by_id'),
-            'roles' => array(self::HAS_MANY, 'Role', 'created_by_id'),
-            'roles1' => array(self::HAS_MANY, 'Role', 'last_modified_by_id'),
-            'services' => array(self::HAS_MANY, 'Service', 'created_by_id'),
-            'services1' => array(self::HAS_MANY, 'Service', 'last_modified_by_id'),
-            'createdBy' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'users' => array(self::HAS_MANY, 'User', 'created_by_id'),
-            'defaultApp' => array(self::BELONGS_TO, 'App', 'default_app_id'),
-            'lastModifiedBy' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
-            'users1' => array(self::HAS_MANY, 'User', 'last_modified_by_id'),
+            'apps_created' => array(self::HAS_MANY, 'App', 'created_by_id'),
+            'apps_modified' => array(self::HAS_MANY, 'App', 'last_modified_by_id'),
+            'app_groups_created' => array(self::HAS_MANY, 'AppGroup', 'created_by_id'),
+            'app_groups_modified' => array(self::HAS_MANY, 'AppGroup', 'last_modified_by_id'),
+            'roles_created' => array(self::HAS_MANY, 'Role', 'created_by_id'),
+            'roles_modified' => array(self::HAS_MANY, 'Role', 'last_modified_by_id'),
+            'services_created' => array(self::HAS_MANY, 'Service', 'created_by_id'),
+            'services_modified' => array(self::HAS_MANY, 'Service', 'last_modified_by_id'),
+            'users_created' => array(self::HAS_MANY, 'User', 'created_by_id'),
+            'users_modified' => array(self::HAS_MANY, 'User', 'last_modified_by_id'),
+            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
+            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+            'default_app' => array(self::BELONGS_TO, 'App', 'default_app_id'),
             'role' => array(self::BELONGS_TO, 'Role', 'role_id'),
         );
     }
@@ -200,7 +200,7 @@ class User extends CActiveRecord
     protected function beforeSave()
     {
         $userId = SessionManager::getCurrentUserId();
-        switch (DbUtilities::getDbDriverType($this->dbConnection->driverName)) {
+        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
         case DbUtilities::DRV_SQLSRV:
             $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
             break;
@@ -263,6 +263,31 @@ class User extends CActiveRecord
             $requested = Utilities::removeOneFromList($requested, 'security_answer', ',');
             $requested = Utilities::removeOneFromList($requested, 'confirm_code', ',');
             return explode(',', $requested);
+        }
+    }
+
+    /**
+     * @param string $requested
+     * @throws Exception
+     * @return array
+     */
+    public function getRetrievableRelations($requested)
+    {
+        if (empty($requested)) {
+            return array();
+        }
+        $relations = array('created_by', 'last_modified_by', 'role', 'default_app');
+        if ('*' == $requested) {
+            return $relations;
+        }
+        else {
+            $requested = array_map('trim', explode(',', $requested));
+            foreach ($requested as $request) {
+                if (false === array_search($request, $relations)) {
+                    throw new Exception("Invalid relation '$request' requested.", ErrorCodes::BAD_REQUEST);
+                }
+            }
+            return $requested;
         }
     }
 

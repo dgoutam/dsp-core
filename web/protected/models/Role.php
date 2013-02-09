@@ -68,10 +68,10 @@ class Role extends CActiveRecord
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
         return array(
-            'createdBy' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'defaultApp' => array(self::BELONGS_TO, 'App', 'default_app_id'),
-            'lastModifiedBy' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
-            'roleServiceAccesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
+            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
+            'default_app' => array(self::BELONGS_TO, 'App', 'default_app_id'),
+            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+            'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
             'users' => array(self::HAS_MANY, 'User', 'role_id'),
         );
     }
@@ -137,7 +137,7 @@ class Role extends CActiveRecord
     protected function beforeSave()
     {
         $userId = SessionManager::getCurrentUserId();
-        switch (DbUtilities::getDbDriverType($this->dbConnection->driverName)) {
+        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
         case DbUtilities::DRV_SQLSRV:
             $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
             break;
@@ -204,6 +204,31 @@ class Role extends CActiveRecord
             // remove any undesired retrievable fields
 //            $requested = Utilities::removeOneFromList($requested, 'password', ',');
             return explode(',', $requested);
+        }
+    }
+
+    /**
+     * @param string $requested
+     * @throws Exception
+     * @return array
+     */
+    public function getRetrievableRelations($requested)
+    {
+        if (empty($requested)) {
+            return array();
+        }
+        $relations = array('created_by', 'default_app', 'last_modified_by', 'role_service_accesses', 'users');
+        if ('*' == $requested) {
+            return $relations;
+        }
+        else {
+            $requested = array_map('trim', explode(',', $requested));
+            foreach ($requested as $request) {
+                if (false === array_search($request, $relations)) {
+                    throw new Exception("Invalid relation '$request' requested.", ErrorCodes::BAD_REQUEST);
+                }
+            }
+            return $requested;
         }
     }
 }

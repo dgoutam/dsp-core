@@ -48,7 +48,7 @@ class PdoSqlDbSvc
     {
         if (empty($dsn) && empty($user) && empty($pwd)) {
             $this->_sqlConn = Yii::app()->db;
-            $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn->driverName);
+            $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn);
         }
         else {
             // Validate other parameters
@@ -65,7 +65,7 @@ class PdoSqlDbSvc
             // create pdo connection, activate later
             Utilities::markTimeStart('DB_TIME');
             $this->_sqlConn = new CDbConnection($dsn, $user, $pwd);
-            $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn->driverName);
+            $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn);
             switch ($this->_driverType) {
             case DbUtilities::DRV_MYSQL:
                 $this->_sqlConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
