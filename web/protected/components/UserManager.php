@@ -118,7 +118,8 @@ class UserManager implements iRestHandler
             break;
         case 'challenge':
             $username = Utilities::getArrayValue('username', $_REQUEST, '');
-            $result = $this->forgotPassword($username);
+            $send_email = Utilities::getArrayValue('send_email', $_REQUEST, '');
+            $result = $this->forgotPassword($username, $send_email);
             break;
         case 'profile':
             $result = $this->getProfile();
@@ -374,7 +375,7 @@ class UserManager implements iRestHandler
 
         try {
             $svc = ServiceHandler::getInstance()->getServiceObject('email');
-            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
+            $result = ($svc) ? $svc->sendEmailPhp($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send user password change email.";
                 if (is_string($result)) {
@@ -415,7 +416,7 @@ class UserManager implements iRestHandler
 
         try {
             $svc = ServiceHandler::getInstance()->getServiceObject('email');
-            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
+            $result = ($svc) ? $svc->sendEmailPhp($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send new password email.";
                 if (is_string($result)) {
@@ -454,7 +455,7 @@ class UserManager implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
         try {
             $svc = ServiceHandler::getInstance()->getServiceObject('email');
-            $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
+            $result = ($svc) ? $svc->sendEmailPhp($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed sending registration confirmation email.";
                 if (is_string($result)) {
@@ -944,10 +945,11 @@ class UserManager implements iRestHandler
 
     /**
      * @param $username
-     * @return string
+     * @param bool $send_email
      * @throws Exception
+     * @return string
      */
-    public function forgotPassword($username)
+    public function forgotPassword($username, $send_email = false)
     {
         try {
             $theUser = User::model()->find('username=:un', array(':un'=>$username));
@@ -958,20 +960,30 @@ class UserManager implements iRestHandler
             if ('y' !== $theUser->getAttribute('confirm_code')) {
                 throw new Exception("Login registration has not been confirmed.");
             }
-            $question = $theUser->getAttribute('security_question');
-            if (!empty($question)) {
-                return array('security_question'=>$question);
+            if ($send_email) {
+                $email = $theUser->getAttribute('email');
+                $fullName = $theUser->getAttribute('display_name');
+                if (!empty($email) && !empty($fullName)) {
+                    $this->sendResetPasswordLink($email, $fullName);
+                    return array('success' => true);
+                }
+                else {
+                    throw new Exception('No valid email provisioned for this user.');
+                }
             }
-            $email = $theUser->getAttribute('email');
-            $fullName = $theUser->getAttribute('display_name');
-            if (!empty($email) && !empty($fullName)) {
-                $this->sendResetPasswordLink($email, $fullName);
+            else {
+                $question = $theUser->getAttribute('security_question');
+                if (!empty($question)) {
+                    return array('security_question'=>$question);
+                }
+                else {
+                    throw new Exception('No valid security question provisioned for this user.');
+                }
             }
 
-            return array('success' => true);
         }
         catch (Exception $ex) {
-            throw new Exception("Error sending new password.\n{$ex->getMessage()}", $ex->getCode());
+            throw new Exception("Error with password challenge.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -1098,7 +1110,7 @@ class UserManager implements iRestHandler
                 throw new Exception("The user for the current session was not found in the system.");
             }
             // todo protect certain attributes here
-            $fields = $theUser->getAttributes(array('first_name','last_name','display_name','email','phone'));
+            $fields = $theUser->getAttributes(array('first_name','last_name','display_name','email','phone','security_question'));
 
             return $fields;
         }

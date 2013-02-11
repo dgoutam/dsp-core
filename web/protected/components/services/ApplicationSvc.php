@@ -239,7 +239,7 @@ class ApplicationSvc extends CommonFileSvc
                 $data = Utilities::jsonToArray($data);
                 // todo how to determine which service to send this?
                 $tables = Utilities::getArrayValue('table', $data, array());
-                $db = ServiceHandler::getInstance()->getServiceObject('db');
+                $db = ServiceHandler::getInstance()->getServiceObject('schema');
                 $result = $db->createTables($tables);
                 if (isset($result['table'][0]['error'])) {
                     $msg = $result['table'][0]['error']['message'];

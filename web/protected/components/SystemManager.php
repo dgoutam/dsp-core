@@ -138,11 +138,11 @@ class SystemManager implements iRestHandler
             }
             $contents = Utilities::jsonToArray($contents);
             $version = Utilities::getArrayValue('version', $contents);
-            $config = array();
+            $config = null;
             $oldVersion = '';
             if (DbUtilities::doesTableExist(Yii::app()->db, 'config')) {
-                $config = Config::model()->findAll();
-                if (!empty($config)) {
+                $config = Config::model()->find();
+                if (isset($config)) {
                     $oldVersion = $config->getAttribute('db_version');
                 }
             }
@@ -192,11 +192,11 @@ class SystemManager implements iRestHandler
             }
 //            }
             // initialize config table if not already
-            if (empty($config)) {
+            if (!isset($config)) {
                 $config = new Config;
-                $config->db_version = $version;
-                $config->save();
             }
+            $config->db_version = $version;
+            $config->save();
             // refresh the schema that we just added
             Yii::app()->db->schema->refresh();
         }
@@ -2009,15 +2009,15 @@ class SystemManager implements iRestHandler
             throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         try {
-            $oldUsers = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
-            foreach ($oldUsers as $oldUser) {
-                $oldId = $oldUser->primaryKey;
+            $oldAccesses = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
+            foreach ($oldAccesses as $oldAccess) {
+                $oldId = $oldAccess->primaryKey;
                 $found = false;
-                foreach ($users as $key=>$user) {
-                    $id = Utilities::getArrayValue('id', $user, '');
+                foreach ($accesses as $key=>$access) {
+                    $id = Utilities::getArrayValue('id', $access, '');
                     if ($id == $oldId) {
                         // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($users[$key]);
+                        unset($accesses[$key]);
                         $found = true;
                         continue;
                     }
