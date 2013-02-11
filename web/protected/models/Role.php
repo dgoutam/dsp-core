@@ -15,11 +15,12 @@
  * @property integer $last_modified_by_id
  *
  * The followings are the available model relations:
- * @property User $createdBy
- * @property App $defaultApp
- * @property User $lastModifiedBy
- * @property RoleServiceAccess[] $roleServiceAccesses
+ * @property User $created_by
+ * @property User $last_modified_by
+ * @property App $default_app
+ * @property RoleServiceAccess[] $role_service_accesses
  * @property User[] $users
+ * @property App[] $apps
  */
 class Role extends CActiveRecord
 {
@@ -69,11 +70,12 @@ class Role extends CActiveRecord
         // class name for the relations automatically generated below.
         return array(
             'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'default_app' => array(self::BELONGS_TO, 'App', 'default_app_id'),
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+            'default_app' => array(self::BELONGS_TO, 'App', 'default_app_id'),
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
             'users' => array(self::HAS_MANY, 'User', 'role_id'),
-        );
+            'apps' => array(self::MANY_MANY, 'App', 'app_to_role(app_id, role_id)'),
+            );
     }
 
     /**
@@ -217,7 +219,7 @@ class Role extends CActiveRecord
         if (empty($requested)) {
             return array();
         }
-        $relations = array('created_by', 'default_app', 'last_modified_by', 'role_service_accesses', 'users');
+        $relations = array('created_by', 'last_modified_by', 'default_app', 'role_service_accesses', 'users', 'apps');
         if ('*' == $requested) {
             return $relations;
         }

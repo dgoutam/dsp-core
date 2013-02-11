@@ -8,16 +8,16 @@
  * @property string $name
  * @property string $label
  * @property string $description
- * @property integer $is_active
+ * @property boolean $is_active
  * @property string $url
  * @property integer $is_url_external
  * @property string $app_group_ids
  * @property string $schemas
- * @property integer $filter_by_device
- * @property integer $filter_phone
- * @property integer $filter_tablet
- * @property integer $filter_desktop
- * @property integer $requires_plugin
+ * @property boolean $filter_by_device
+ * @property boolean $filter_phone
+ * @property boolean $filter_tablet
+ * @property boolean $filter_desktop
+ * @property boolean $requires_plugin
  * @property string $import_url
  * @property string $created_date
  * @property string $last_modified_date
@@ -25,10 +25,12 @@
  * @property integer $last_modified_by_id
  *
  * The followings are the available model relations:
- * @property User $createdBy
- * @property User $lastModifiedBy
+ * @property User $created_by
+ * @property User $last_modified_by
+ * @property Role[] $roles_default_app
+ * @property User[] $users_default_app
+ * @property AppGroup[] $app_groups
  * @property Role[] $roles
- * @property User[] $users
  */
 class App extends CActiveRecord
 {
@@ -80,8 +82,10 @@ class App extends CActiveRecord
         return array(
             'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
-            'roles' => array(self::HAS_MANY, 'Role', 'default_app_id'),
-            'users' => array(self::HAS_MANY, 'User', 'default_app_id'),
+            'roles_default_app' => array(self::HAS_MANY, 'Role', 'default_app_id'),
+            'users_default_app' => array(self::HAS_MANY, 'User', 'default_app_id'),
+            'app_groups' => array(self::MANY_MANY, 'AppGroup', 'app_to_app_group(app_id, app_group_id)'),
+            'roles' => array(self::MANY_MANY, 'Role', 'app_to_role(app_id, role_id)'),
         );
     }
 
@@ -194,6 +198,16 @@ class App extends CActiveRecord
         $this->last_modified_date = $dateTime;
         $this->last_modified_by_id = $userId;
 
+        // make sure we have an app in the folder
+        if (0 === $this->is_url_external) {
+            $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
+            if ($appSvc) {
+                if (!$appSvc->appExists($this->name)) {
+                    $appSvc->createApp($this->name);
+                }
+            }
+        }
+
         return parent::beforeSave();
     }
 
@@ -251,7 +265,7 @@ class App extends CActiveRecord
         if (empty($requested)) {
             return array();
         }
-        $relations = array('created_by', 'last_modified_by');
+        $relations = array('created_by', 'last_modified_by', 'roles_default_app', 'users_default_app', 'app_groups', 'roles');
         if ('*' == $requested) {
             return $relations;
         }

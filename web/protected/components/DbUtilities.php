@@ -453,7 +453,7 @@ class DbUtilities
      * @throws Exception
      * @return array|string
      */
-    protected function buildColumnType($field, $driver_type = DbUtilities::DRV_MYSQL)
+    protected static function buildColumnType($field, $driver_type = DbUtilities::DRV_MYSQL)
     {
         if (empty($field)) {
             throw new Exception("No field given.");
@@ -750,7 +750,7 @@ class DbUtilities
      * @return string
      * @throws Exception
      */
-    protected function buildTableFields($tableName, $fields, $for_create = true)
+    protected static function buildTableFields($tableName, $fields, $for_create = true)
     {
         if (empty($fields)) {
             throw new Exception("No fields given.");
@@ -769,7 +769,7 @@ class DbUtilities
                 if (empty($name)) {
                     throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no name element.");
                 }
-                $definition = $this->buildColumnType($field);
+                $definition = static::buildColumnType($field);
                 if (!empty($definition)) {
                     $columns[$name] = $definition;
                 }
@@ -861,7 +861,7 @@ class DbUtilities
      * @throws Exception
      * @return array
      */
-    protected function createTable($db, $data, $return_labels_refs=false, $check_sys=true)
+    protected static function createTable($db, $data, $return_labels_refs=false, $check_sys=true)
     {
         $tableName = Utilities::getArrayValue('name', $data, '');
         if (empty($tableName)) {
@@ -888,7 +888,7 @@ class DbUtilities
             $fields = array($fields);
         }
         try {
-            $results = $this->buildTableFields($tableName, $fields);
+            $results = static::buildTableFields($tableName, $fields);
             $columns = Utilities::getArrayValue('columns', $results, null);
             if (empty($columns)) {
                 throw new Exception("No valid fields exist in the received table schema.");
@@ -944,7 +944,7 @@ class DbUtilities
      * @throws Exception
      * @return array
      */
-    protected function updateTable($db, $data, $return_labels_refs=false, $check_sys=true)
+    protected static function updateTable($db, $data, $return_labels_refs=false, $check_sys=true)
     {
         $tableName = Utilities::getArrayValue('name', $data, '');
         if (empty($tableName)) {
@@ -997,7 +997,7 @@ class DbUtilities
                     }
                     else {
                         // add column
-                        $definition = $this->buildColumnType($field);
+                        $definition = static::buildColumnType($field);
                         $type = Utilities::getArrayValue('type', $field, '');
                         $picklist = '';
                         switch (strtolower($type)) {

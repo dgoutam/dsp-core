@@ -13,10 +13,10 @@ class Versions
     /**
      * Constants
      */
-    const REST_VERSION = "0.1";
+    const API_VERSION = "0.1.0";
 
-    const SOAP_VERSION = "0.1";
+    const SOAP_VERSION = "0.1.0";
 
-    const SYSTEM_DB_VERSION = "0.1";
+    const SYSTEM_DB_VERSION = "0.2.0";
 
 }

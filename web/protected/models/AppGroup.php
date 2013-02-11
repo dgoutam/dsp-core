@@ -13,8 +13,9 @@
  * @property integer $last_modified_by_id
  *
  * The followings are the available model relations:
- * @property User $createdBy
- * @property User $lastModifiedBy
+ * @property User $created_by
+ * @property User $last_modified_by
+ * @property App[] $apps
  */
 class AppGroup extends CActiveRecord
 {
@@ -65,6 +66,7 @@ class AppGroup extends CActiveRecord
         return array(
             'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+            'apps' => array(self::MANY_MANY, 'App', 'app_to_app_group(app_id, app_group_id)'),
         );
     }
 
@@ -203,7 +205,7 @@ class AppGroup extends CActiveRecord
         if (empty($requested)) {
             return array();
         }
-        $relations = array('created_by', 'last_modified_by');
+        $relations = array('created_by', 'last_modified_by', 'apps');
         if ('*' == $requested) {
             return $relations;
         }

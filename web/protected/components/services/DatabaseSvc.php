@@ -88,10 +88,6 @@ class DatabaseSvc extends CommonService implements iRestHandler
                     $result = $this->retrieveRecordsByIds($this->tableName, $ids, $idField, $fields);
                 }
                 else {
-                    $filter = Utilities::getArrayValue('filter', $_REQUEST, '');
-                    $order = Utilities::getArrayValue('order', $_REQUEST, '');
-                    $limit = intval(Utilities::getArrayValue('limit', $_REQUEST, 0));
-                    $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
                     $data = Utilities::getPostDataAsArray();
                     if (!empty($data)) { // complex filters or large numbers of ids require post
                         $ids = Utilities::getArrayValue('ids', $data, '');
@@ -108,6 +104,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                                 $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                             }
                             if (!empty($records)) {
+                                // passing records to have them updated with new or more values, id field required
                                 $result = $this->retrieveRecords($this->tableName, $records, $idField, $fields);
                             }
                             elseif (isset($data['fields']) && !empty($data['fields'])) {
@@ -115,23 +112,19 @@ class DatabaseSvc extends CommonService implements iRestHandler
                                 $result = $this->retrieveRecord($this->tableName, $data, $idField, $fields);
                             }
                             else {
-                                if (empty($filter)) {
-                                    $filter = Utilities::getArrayValue('filter', $data, '');
-                                }
-                                if (empty($order)) {
-                                    $order = Utilities::getArrayValue('order', $data, '');
-                                }
-                                if (0 >= $limit) {
-                                    $limit = intval(Utilities::getArrayValue('limit', $data, 0));
-                                }
-                                if (0 >= $offset) {
-                                    $offset = intval(Utilities::getArrayValue('offset', $data, 0));
-                                }
+                                $filter = Utilities::getArrayValue('filter', $data, '');
+                                $limit = intval(Utilities::getArrayValue('limit', $data, 0));
+                                $order = Utilities::getArrayValue('order', $data, '');
+                                $offset = intval(Utilities::getArrayValue('offset', $data, 0));
                                 $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter, $limit, $order, $offset);
                             }
                         }
                     }
                     else {
+                        $filter = Utilities::getArrayValue('filter', $_REQUEST, '');
+                        $limit = intval(Utilities::getArrayValue('limit', $_REQUEST, 0));
+                        $order = Utilities::getArrayValue('order', $_REQUEST, '');
+                        $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
                         $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter, $limit, $order, $offset);
                     }
                 }
@@ -207,32 +200,41 @@ class DatabaseSvc extends CommonService implements iRestHandler
                 $idField = Utilities::getArrayValue('id_field', $data, '');
             }
             if (empty($this->recordId)) {
-                $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
-                if (!isset($filter)) {
-                    $filter = Utilities::getArrayValue('filter', $data, null);
+                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                if (!isset($rollback)) {
+                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
                 }
-                if (isset($filter)) {
-                    $result = $this->updateRecordsByFilter($this->tableName, $filter, $data, $fields);
+                $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                if (empty($ids)) {
+                    $ids = Utilities::getArrayValue('ids', $data, '');
+                }
+                if (!empty($ids)) {
+                    $result = $this->updateRecordsByIds($this->tableName, $ids, $data, $idField, $rollback, $fields);
                 }
                 else {
-                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                    if (!isset($rollback)) {
-                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
+                    if (!isset($filter)) {
+                        $filter = Utilities::getArrayValue('filter', $data, null);
                     }
-                    $records = Utilities::getArrayValue('record', $data, null);
-                    if (empty($records)) {
-                        // xml to array conversion leaves them in plural wrapper
-                        $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-                    }
-                    if (empty($records)) {
-                        $single = Utilities::getArrayValue('fields', $data, array());
-                        if (empty($single)) {
-                            throw new Exception('No record in PUT update request.', ErrorCodes::BAD_REQUEST);
-                        }
-                        $result = $this->updateRecord($this->tableName, $data, $idField, $fields);
+                    if (isset($filter)) {
+                        $result = $this->updateRecordsByFilter($this->tableName, $filter, $data, $fields);
                     }
                     else {
-                        $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                        $records = Utilities::getArrayValue('record', $data, null);
+                        if (empty($records)) {
+                            // xml to array conversion leaves them in plural wrapper
+                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        }
+                        if (empty($records)) {
+                            $single = Utilities::getArrayValue('fields', $data, array());
+                            if (empty($single)) {
+                                throw new Exception('No record in PUT update request.', ErrorCodes::BAD_REQUEST);
+                            }
+                            $result = $this->updateRecord($this->tableName, $data, $idField, $fields);
+                        }
+                        else {
+                            $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                        }
                     }
                 }
             }
@@ -266,32 +268,41 @@ class DatabaseSvc extends CommonService implements iRestHandler
                 $idField = Utilities::getArrayValue('id_field', $data, '');
             }
             if (empty($this->recordId)) {
-                $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
-                if (!isset($filter)) {
-                    $filter = Utilities::getArrayValue('filter', $data, null);
+                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                if (!isset($rollback)) {
+                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
                 }
-                if (isset($filter)) {
-                    $result = $this->updateRecordsByFilter($this->tableName, $filter, $data, $fields);
+                $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                if (empty($ids)) {
+                    $ids = Utilities::getArrayValue('ids', $data, '');
+                }
+                if (!empty($ids)) {
+                    $result = $this->updateRecordsByIds($this->tableName, $ids, $data, $idField, $rollback, $fields);
                 }
                 else {
-                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                    if (!isset($rollback)) {
-                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
+                    if (!isset($filter)) {
+                        $filter = Utilities::getArrayValue('filter', $data, null);
                     }
-                    $records = Utilities::getArrayValue('record', $data, null);
-                    if (empty($records)) {
-                        // xml to array conversion leaves them in plural wrapper
-                        $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-                    }
-                    if (empty($records)) {
-                        $single = Utilities::getArrayValue('fields', $data, array());
-                        if (empty($single)) {
-                            throw new Exception('No record in MERGE update request.', ErrorCodes::BAD_REQUEST);
-                        }
-                        $result = $this->updateRecord($this->tableName, $data, $idField, $fields);
+                    if (isset($filter)) {
+                        $result = $this->updateRecordsByFilter($this->tableName, $filter, $data, $fields);
                     }
                     else {
-                        $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                        $records = Utilities::getArrayValue('record', $data, null);
+                        if (empty($records)) {
+                            // xml to array conversion leaves them in plural wrapper
+                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        }
+                        if (empty($records)) {
+                            $single = Utilities::getArrayValue('fields', $data, array());
+                            if (empty($single)) {
+                                throw new Exception('No record in MERGE update request.', ErrorCodes::BAD_REQUEST);
+                            }
+                            $result = $this->updateRecord($this->tableName, $data, $idField, $fields);
+                        }
+                        else {
+                            $result = $this->updateRecords($this->tableName, $records, $idField, $rollback, $fields);
+                        }
                     }
                 }
             }
@@ -325,32 +336,41 @@ class DatabaseSvc extends CommonService implements iRestHandler
                 $idField = Utilities::getArrayValue('id_field', $data, '');
             }
             if (empty($this->recordId)) {
-                $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
-                if (!isset($filter)) {
-                    $filter = Utilities::getArrayValue('filter', $data, null);
+                $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
+                if (!isset($rollback)) {
+                    $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
                 }
-                if (isset($filter)) {
-                    $result = $this->deleteRecordsByFilter($this->tableName, $filter, $fields);
+                $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                if (empty($ids)) {
+                    $ids = Utilities::getArrayValue('ids', $data, '');
+                }
+                if (!empty($ids)) {
+                    $result = $this->deleteRecordsByIds($this->tableName, $ids, $idField, $rollback, $fields);
                 }
                 else {
-                    $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
-                    if (!isset($rollback)) {
-                        $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
+                    $filter = (isset($_REQUEST['filter'])) ? $_REQUEST['filter'] : null;
+                    if (!isset($filter)) {
+                        $filter = Utilities::getArrayValue('filter', $data, null);
                     }
-                    $records = Utilities::getArrayValue('record', $data, null);
-                    if (empty($records)) {
-                        // xml to array conversion leaves them in plural wrapper
-                        $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
-                    }
-                    if (empty($records)) {
-                        $single = Utilities::getArrayValue('fields', $data, array());
-                        if (empty($single)) {
-                            throw new Exception('No record in DELETE request.', ErrorCodes::BAD_REQUEST);
-                        }
-                        $result = $this->deleteRecord($this->tableName, $data, $idField, $fields);
+                    if (isset($filter)) {
+                        $result = $this->deleteRecordsByFilter($this->tableName, $filter, $fields);
                     }
                     else {
-                        $result = $this->deleteRecords($this->tableName, $records, $idField, $rollback, $fields);
+                        $records = Utilities::getArrayValue('record', $data, null);
+                        if (empty($records)) {
+                            // xml to array conversion leaves them in plural wrapper
+                            $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
+                        }
+                        if (empty($records)) {
+                            $single = Utilities::getArrayValue('fields', $data, array());
+                            if (empty($single)) {
+                                throw new Exception('No record in DELETE request.', ErrorCodes::BAD_REQUEST);
+                            }
+                            $result = $this->deleteRecord($this->tableName, $data, $idField, $fields);
+                        }
+                        else {
+                            $result = $this->deleteRecords($this->tableName, $records, $idField, $rollback, $fields);
+                        }
                     }
                 }
             }
@@ -554,6 +574,35 @@ class DatabaseSvc extends CommonService implements iRestHandler
         }
         catch (Exception $ex) {
             throw new Exception("Error updating $table records.\nquery: $filter\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param $id_list
+     * @param string $idField
+     * @param string $fields
+     * @return array
+     * @throws Exception
+     */
+    public function updateRecordsByIds($table, $record, $id_list, $idField = '', $fields = '')
+    {
+        if (empty($table)) {
+            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        $this->checkPermission('update', $table);
+        if (!isset($record['fields']) || empty($record['fields'])) {
+            throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
+        }
+        $fields_array = $record['fields'];
+        try {
+            $results = $this->sqlDb->updateSqlRecordsByIds($table, $fields_array, $id_list, $idField, false, $fields);
+
+            return array('fields' => $results[0]);
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating $table records.\n{$ex->getMessage()}");
         }
     }
 

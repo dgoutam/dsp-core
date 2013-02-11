@@ -1,5 +1,5 @@
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
 	"table": [
         {
             "name": "config",
@@ -12,7 +12,6 @@
                     "name": "db_version",
                     "type": "varchar",
                     "size": 8,
-                    "default": "0.1.0",
                     "allow_null": false
                 }
             ]
@@ -526,6 +525,52 @@
                     "name": "last_modified_by_id",
                     "type": "reference",
                     "ref_table": "user",
+                    "ref_fields": "id",
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "app_to_app_group",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "app_id",
+                    "type": "reference",
+                    "ref_table": "app",
+                    "ref_fields": "id",
+                    "allow_null": false
+                },
+                {
+                    "name": "app_group_id",
+                    "type": "reference",
+                    "ref_table": "app_group",
+                    "ref_fields": "id",
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "app_to_role",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "app_id",
+                    "type": "reference",
+                    "ref_table": "app",
+                    "ref_fields": "id",
+                    "allow_null": false
+                },
+                {
+                    "name": "role_id",
+                    "type": "reference",
+                    "ref_table": "role",
                     "ref_fields": "id",
                     "allow_null": false
                 }

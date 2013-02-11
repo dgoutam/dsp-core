@@ -25,19 +25,19 @@
  * @property integer $last_modified_by_id
  *
  * The followings are the available model relations:
- * @property App[] $apps
- * @property App[] $apps1
- * @property AppGroup[] $appGroups
- * @property AppGroup[] $appGroups1
- * @property Role[] $roles
- * @property Role[] $roles1
- * @property Service[] $services
- * @property Service[] $services1
- * @property User $createdBy
- * @property User[] $users
- * @property App $defaultApp
- * @property User $lastModifiedBy
- * @property User[] $users1
+ * @property App[] $apps_created
+ * @property App[] $apps_modified
+ * @property AppGroup[] $appGroups_created
+ * @property AppGroup[] $app_groups_modified
+ * @property Role[] $roles_created
+ * @property Role[] $roles_modified
+ * @property Service[] $services_created
+ * @property Service[] $services_modified
+ * @property User[] $users_created
+ * @property User[] $users_modified
+ * @property User $created_by
+ * @property User $last_modified_by
+ * @property App $default_app
  * @property Role $role
  */
 class User extends CActiveRecord
@@ -276,7 +276,10 @@ class User extends CActiveRecord
         if (empty($requested)) {
             return array();
         }
-        $relations = array('created_by', 'last_modified_by', 'role', 'default_app');
+        $relations = array('created_by', 'last_modified_by', 'role', 'default_app',
+                           'apps_created', 'apps_modified', 'app_groups_created', 'app_groups_modified',
+                           'roles_created', 'roles_modified', 'services_created', 'services_modified',
+                           'users_created', 'users_modified');
         if ('*' == $requested) {
             return $relations;
         }

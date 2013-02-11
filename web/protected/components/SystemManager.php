@@ -20,7 +20,7 @@ class SystemManager implements iRestHandler
     /**
      *
      */
-    const INTERNAL_TABLES = 'config,label,role_service_access,session';
+    const INTERNAL_TABLES = 'config,label,role_service_access,session,app_to_app_group,app_to_role';
 
     // Members
 
@@ -290,7 +290,7 @@ class SystemManager implements iRestHandler
                     throw new \Exception("No default system services found.");
                 }
                 foreach ($services as $service) {
-                    $obj = new Service;;
+                    $obj = new Service;
                     $obj->setAttributes($service);
                     if (!$obj->save()) {
                         $msg = '';
@@ -309,7 +309,7 @@ class SystemManager implements iRestHandler
                 $apps = Utilities::getArrayValue('app', $contents);
                 if (!empty($apps)) {
                     foreach ($apps as $app) {
-                        $obj = new App;;
+                        $obj = new App;
                         $obj->setAttributes($app);
                         if (!$obj->save()) {
                             $msg = '';
@@ -359,7 +359,7 @@ class SystemManager implements iRestHandler
                 $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
                 $extras = Utilities::getArrayValue('related', $_REQUEST, '');
                 if (empty($this->modelId)) {
-                    $ids = (isset($_REQUEST['ids'])) ? $_REQUEST['ids'] : '';
+                    $ids = Utilities::getArrayValue('ids', $_REQUEST, '');
                     if (!empty($ids)) {
                         $result = $this->retrieveRecordsByIds($this->modelName, $ids, $fields, $extras);
                     }
@@ -768,39 +768,19 @@ class SystemManager implements iRestHandler
             $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
             // after record create
+            // old relations
             switch (strtolower($table)) {
-            case 'app':
-                if (0 === $obj->is_url_external) {
-                    $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
-                    if ($appSvc) {
-                        $appSvc->createApp($obj->name);
-                    }
-                }
-                break;
             case 'app_group':
                 if (isset($fields['app_ids'])) {
-                    try {
-                        $appIds = $fields['app_ids'];
-                        $this->assignAppGroups($id, $appIds);
-                    }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
+                    $appIds = $fields['app_ids'];
+                    $this->assignAppGroups($id, $appIds);
                 }
                 break;
             case 'role':
-                if (isset($record['users'])) {
-                    try {
-                        $users = (isset($record['users']['assign'])) ? $record['users']['assign'] : '';
-                        if (!empty($users)) {
-                            $override = (isset($record['users']['override'])) ?
-                                Utilities::boolval($record['users']['override']) : false;
-                            $this->assignRole($id, $users, $override);
-                        }
-                    }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
+                if (isset($record['users']['assign'])) {
+                    $users = $record['users']['assign'];
+                    $override = Utilities::boolval(Utilities::getArrayValue('override', $record['users'], false));
+                    $this->assignRole($id, $users, $override);
                 }
                 if (isset($fields['services'])) {
                     try {
@@ -812,6 +792,29 @@ class SystemManager implements iRestHandler
                     }
                 }
                 break;
+            }
+            // new relations
+            if (isset($record['related'])) {
+                switch (strtolower($table)) {
+                case 'app':
+                    if (isset($record['related']['app_groups'])) {
+                        $this->assignGroupsToApp($id, $record['related']['app_groups']);
+                    }
+                    break;
+                case 'app_group':
+                    if (isset($record['related']['apps'])) {
+                        $this->assignAppsToGroup($id, $record['related']['apps']);
+                    }
+                    break;
+                case 'role':
+                     if (isset($record['related']['users'])) {
+                        $this->assignUsersToRole($id, $record['related']['users']);
+                    }
+                    if (isset($record['related']['role_service_accesses'])) {
+                        $this->assignRoleServiceAccesses($id, $record['related']['role_service_accesses']);
+                    }
+                    break;
+                }
             }
 
             return array('fields' => $data);
@@ -924,49 +927,23 @@ class SystemManager implements iRestHandler
             $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
             // after record update
+            // old relations
             switch (strtolower($table)) {
-            case 'app':
-                $isUrlExternal = Utilities::getArrayValue('is_url_external', $record, null);
-                if (isset($isUrlExternal)) {
-                    $name = $obj->name;
-                    if (!Utilities::boolval($isUrlExternal)) {
-                        $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
-                        if ($appSvc) {
-                            if (!$appSvc->appExists($name)) {
-                                $appSvc->createApp($name);
-                            }
-                        }
-                    }
-                }
-                break;
             case 'app_group':
                 if (isset($fields['app_ids'])) {
-                    try {
-                        $appIds = $fields['app_ids'];
-                        $this->assignAppGroups($id, $appIds, true);
-                    }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
+                    $appIds = $fields['app_ids'];
+                    $this->assignAppGroups($id, $appIds, true);
                 }
                 break;
             case 'role':
-                if (isset($record['users'])) {
-                    try {
-                        $users = (isset($record['users']['assign'])) ? $record['users']['assign'] : '';
-                        if (!empty($users)) {
-                            $override = (isset($record['users']['override'])) ?
-                                Utilities::boolval($record['users']['override']) : false;
-                            $this->assignRole($id, $users, $override);
-                        }
-                        $users = (isset($record['users']['unassign'])) ? $record['users']['unassign'] : '';
-                        if (!empty($users)) {
-                            $this->unassignRole($id, $users);
-                        }
-                    }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
+                if (isset($record['users']['assign'])) {
+                    $users = $record['users']['assign'];
+                    $override = Utilities::boolval(Utilities::getArrayValue('override', $record['users'], false));
+                    $this->assignRole($id, $users, $override);
+                }
+                if (isset($record['users']['unassign'])) {
+                    $users = $record['users']['unassign'];
+                    $this->unassignRole($id, $users);
                 }
                 if (isset($fields['services'])) {
                     try {
@@ -978,6 +955,32 @@ class SystemManager implements iRestHandler
                     }
                 }
                 break;
+            }
+            // new relations
+            if (isset($record['related'])) {
+                switch (strtolower($table)) {
+                case 'app':
+                    if (isset($record['related']['app_groups'])) {
+                        $this->assignGroupsToApp($id, $record['related']['app_groups']);
+                    }
+                    break;
+                case 'app_group':
+                    if (isset($record['related']['apps'])) {
+                        $this->assignAppsToGroup($id, $record['related']['apps']);
+                    }
+                    break;
+                case 'role':
+                    if (isset($record['related']['apps'])) {
+                        $this->assignAppsToRole($id, $record['related']['apps']);
+                    }
+                    if (isset($record['related']['users'])) {
+                        $this->assignUsersToRole($id, $record['related']['users']);
+                    }
+                    if (isset($record['related']['role_service_accesses'])) {
+                        $this->assignRoleServiceAccesses($id, $record['related']['role_service_accesses']);
+                    }
+                    break;
+                }
             }
 
             return array('fields' => $data);
@@ -1332,6 +1335,21 @@ class SystemManager implements iRestHandler
                 if (!empty($relatedData)) {
                     $data['related'] = $relatedData;
                 }
+                // todo temp backward compatibility
+                switch (strtolower($table)) {
+                case 'role':
+                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
+                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
+                        $pk = $record->primaryKey;
+                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
+                        $perms = array();
+                        foreach ($rsa as $access) {
+                            $perms[] = $access->getAttributes($permFields);
+                        }
+                        $data['fields']['services'] = $perms;
+                    }
+                    break;
+                }
 
                 $out[] = $data;
             }
@@ -1397,6 +1415,21 @@ class SystemManager implements iRestHandler
                 if (!empty($relatedData)) {
                     $data['related'] = $relatedData;
                 }
+                // todo temp backward compatibility
+                switch (strtolower($table)) {
+                case 'role':
+                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
+                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
+                        $pk = $record->primaryKey;
+                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
+                        $perms = array();
+                        foreach ($rsa as $access) {
+                            $perms[] = $access->getAttributes($permFields);
+                        }
+                        $data['fields']['services'] = $perms;
+                    }
+                    break;
+                }
 
                 $ids[$key] = $data;
             }
@@ -1461,6 +1494,21 @@ class SystemManager implements iRestHandler
             }
             if (!empty($relatedData)) {
                 $data['related'] = $relatedData;
+            }
+            // todo temp backward compatibility
+            switch (strtolower($table)) {
+            case 'role':
+                if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
+                    $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
+                    $pk = $record->primaryKey;
+                    $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
+                    $perms = array();
+                    foreach ($rsa as $access) {
+                        $perms[] = $access->getAttributes($permFields);
+                    }
+                    $data['fields']['services'] = $perms;
+                }
+                break;
             }
 
             return $data;
@@ -1748,6 +1796,252 @@ class SystemManager implements iRestHandler
         }
         catch (Exception $ex) {
             throw new Exception("Error updating users.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $app_group_id
+     * @param array $apps
+     * @throws Exception
+     * @return void
+     */
+    protected function assignAppsToGroup($app_group_id, $apps=array())
+    {
+        if (empty($app_group_id)) {
+            throw new Exception('App group id can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_app_group', 'id,app_id', "app_group_id = '$app_group_id'");
+            unset($maps['total']);
+            $toDelete = array();
+            foreach ($maps as $map) {
+                $appId = Utilities::getArrayValue('app_id', $map, '');
+                $id = Utilities::getArrayValue('id', $map, '');
+                $found = false;
+                foreach ($apps as $appKey=>$app) {
+                    $assignId = Utilities::getArrayValue('id', $app, '');
+                    if ($assignId == $appId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($apps[$appKey]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $toDelete[] = $id;
+                    continue;
+                }
+            }
+            if (!empty($toDelete)) {
+                $this->nativeDb->deleteSqlRecordsByIds('app_to_app_group', implode(',', $toDelete), 'id');
+            }
+            if (!empty($apps)) {
+                $maps = array();
+                foreach ($apps as $app) {
+                    $appId = Utilities::getArrayValue('id', $app, '');
+                    $maps[] = array('app_id'=>$appId, 'app_group_id'=>$app_group_id);
+                }
+                $this->nativeDb->createSqlRecords('app_to_app_group', $maps);
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $app_id
+     * @param array $groups
+     * @throws Exception
+     * @return void
+     */
+    protected function assignGroupsToApp($app_id, $groups=array())
+    {
+        if (empty($app_id)) {
+            throw new Exception('App id can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_app_group', 'id,app_group_id', "app_id = '$app_id'");
+            unset($maps['total']);
+            $toDelete = array();
+            foreach ($maps as $map) {
+                $groupId = Utilities::getArrayValue('app_group_id', $map, '');
+                $id = Utilities::getArrayValue('id', $map, '');
+                $found = false;
+                foreach ($groups as $groupKey=>$group) {
+                    $assignId = Utilities::getArrayValue('id', $group, '');
+                    if ($assignId == $groupId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($groups[$groupKey]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $toDelete[] = $id;
+                    continue;
+                }
+            }
+            if (!empty($toDelete)) {
+                $this->nativeDb->deleteSqlRecordsByIds('app_to_app_group', implode(',', $toDelete), 'id');
+            }
+            if (!empty($groups)) {
+                $maps = array();
+                foreach ($groups as $group) {
+                    $appGroupId = Utilities::getArrayValue('id', $group, '');
+                    $maps[] = array('app_id'=>$app_id, 'app_group_id'=>$appGroupId);
+                }
+                $this->nativeDb->createSqlRecords('app_to_app_group', $maps);
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating app_groups to app assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $role_id
+     * @param array $apps
+     * @throws Exception
+     * @return void
+     */
+    protected function assignAppsToRole($role_id, $apps=array())
+    {
+        if (empty($role_id)) {
+            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_role', 'id,app_id', "role_id = '$role_id'");
+            unset($maps['total']);
+            $toDelete = array();
+            foreach ($maps as $map) {
+                $appId = Utilities::getArrayValue('app_id', $map, '');
+                $id = Utilities::getArrayValue('id', $map, '');
+                $found = false;
+                foreach ($apps as $appKey=>$app) {
+                    $assignId = Utilities::getArrayValue('id', $app, '');
+                    if ($assignId == $appId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($apps[$appKey]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $toDelete[] = $id;
+                    continue;
+                }
+            }
+            if (!empty($toDelete)) {
+                $this->nativeDb->deleteSqlRecordsByIds('app_to_role', implode(',', $toDelete), 'id');
+            }
+            if (!empty($apps)) {
+                $maps = array();
+                foreach ($apps as $app) {
+                    $appId = Utilities::getArrayValue('id', $app, '');
+                    $maps[] = array('app_id'=>$appId, 'role_id'=>$role_id);
+                }
+                $this->nativeDb->createSqlRecords('app_to_role', $maps);
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating apps to role assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $role_id
+     * @param array $users
+     * @throws Exception
+     * @return void
+     */
+    protected function assignUsersToRole($role_id, $users=array())
+    {
+        if (empty($role_id)) {
+            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $oldUsers = User::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
+            foreach ($oldUsers as $oldUser) {
+                $oldId = $oldUser->primaryKey;
+                $found = false;
+                foreach ($users as $key=>$user) {
+                    $id = Utilities::getArrayValue('id', $user, '');
+                    if ($id == $oldId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($users[$key]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $oldUser->role_id = null;
+                    $oldUser->save();
+                    continue;
+                }
+            }
+            if (!empty($users)) {
+                // add what is leftover
+                foreach ($users as $user) {
+                    $id = Utilities::getArrayValue('id', $user, '');
+                    $newUser = User::model()->findByPk($id);
+                    if ($newUser) {
+                        $newUser->role_id = $role_id;
+                        $newUser->save();
+                    }
+                }
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param $role_id
+     * @param array $accesses
+     * @throws Exception
+     * @return void
+     */
+    protected function assignRoleServiceAccesses($role_id, $accesses=array())
+    {
+        if (empty($role_id)) {
+            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $oldUsers = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
+            foreach ($oldUsers as $oldUser) {
+                $oldId = $oldUser->primaryKey;
+                $found = false;
+                foreach ($users as $key=>$user) {
+                    $id = Utilities::getArrayValue('id', $user, '');
+                    if ($id == $oldId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($users[$key]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $oldUser->role_id = null;
+                    $oldUser->save();
+                    continue;
+                }
+            }
+            if (!empty($users)) {
+                // add what is leftover
+                foreach ($users as $user) {
+                    $id = Utilities::getArrayValue('id', $user, '');
+                    $newUser = User::model()->findByPk($id);
+                    if ($newUser) {
+                        $newUser->role_id = $role_id;
+                        $newUser->save();
+                    }
+                }
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
         }
     }
 

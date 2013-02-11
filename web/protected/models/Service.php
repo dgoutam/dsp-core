@@ -24,8 +24,8 @@
  *
  * The followings are the available model relations:
  * @property RoleServiceAccess[] $roleServiceAccesses
- * @property User $createdBy
- * @property User $lastModifiedBy
+ * @property User $created_by
+ * @property User $last_modified_by
  */
 class Service extends CActiveRecord
 {
@@ -225,7 +225,7 @@ class Service extends CActiveRecord
         if (empty($requested)) {
             return array();
         }
-        $relations = array('created_by', 'last_modified_by');
+        $relations = array('created_by', 'last_modified_by', 'role_service_accesses');
         if ('*' == $requested) {
             return $relations;
         }
