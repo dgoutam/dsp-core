@@ -175,7 +175,8 @@ class UserManager implements iRestHandler
             if (empty($username))
                 $username = Utilities::getArrayValue('username', $data, '');
             $answer = Utilities::getArrayValue('security_answer', $data, '');
-            $result = $this->securityAnswer($username, $answer);
+            $newPassword = Utilities::getArrayValue('new_password', $data, '');
+            $result = $this->securityAnswer($username, $answer, $newPassword);
             break;
         case 'password':
             $oldPassword = Utilities::getArrayValue('old_password', $data, '');
@@ -990,10 +991,11 @@ class UserManager implements iRestHandler
     /**
      * @param $username
      * @param $answer
-     * @return mixed
+     * @param $new_password
      * @throws Exception
+     * @return mixed
      */
-    public function securityAnswer($username, $answer)
+    public function securityAnswer($username, $answer, $new_password)
     {
         try {
             $theUser = User::model()->find('username=:un', array(':un'=>$username));
@@ -1007,6 +1009,10 @@ class UserManager implements iRestHandler
             // validate answer
             if (!CPasswordHelper::verifyPassword($answer, $theUser->getAttribute('security_answer'))) {
                 throw new Exception("The challenge response supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
+            }
+            $theUser->setAttribute('password', CPasswordHelper::hashPassword($new_password));
+            if (!$theUser->save()) {
+                throw new Exception("Failed to change the password.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
             $userId = $theUser->getPrimaryKey();
@@ -1073,10 +1079,6 @@ class UserManager implements iRestHandler
                 throw new Exception("The user for the current session was not found in the system.");
             }
             // todo protect certain attributes here
-            if (isset($record['password'])) {
-                $theUser->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
-                unset($record['password']);
-            }
             if (isset($record['security_answer'])) {
                 $theUser->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
                 unset($record['security_answer']);
