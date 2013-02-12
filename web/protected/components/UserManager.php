@@ -171,12 +171,28 @@ class UserManager implements iRestHandler
             $result = $this->userConfirm($code);
             break;
         case 'challenge':
+            $newPassword = Utilities::getArrayValue('new_password', $data, '');
+            if (empty($newPassword)) {
+                throw new Exception("Missing required fields 'new_password'.", ErrorCodes::BAD_REQUEST);
+            }
             $username = Utilities::getArrayValue('username', $_REQUEST, '');
             if (empty($username))
                 $username = Utilities::getArrayValue('username', $data, '');
             $answer = Utilities::getArrayValue('security_answer', $data, '');
-            $newPassword = Utilities::getArrayValue('new_password', $data, '');
-            $result = $this->securityAnswer($username, $answer, $newPassword);
+            if (!empty($username) && !empty($answer)) {
+                $result = $this->passwordResetBySecurityAnswer($username, $answer, $newPassword);
+            }
+            else {
+                $code = Utilities::getArrayValue('code', $_REQUEST, '');
+                if (empty($code))
+                    $code = Utilities::getArrayValue('code', $data, '');
+                if (!empty($code)) {
+                    $result = $this->passwordResetByCode($code, $newPassword);
+                }
+                else {
+                    throw new Exception("Missing required fields 'username' and 'security_answer'.", ErrorCodes::BAD_REQUEST);
+                }
+            }
             break;
         case 'password':
             $oldPassword = Utilities::getArrayValue('old_password', $data, '');
@@ -352,20 +368,17 @@ class UserManager implements iRestHandler
 
     /**
      * @param $email
-     * @param $fullname
+     * @param $full_name
      * @throws Exception
      */
-    protected function sendResetPasswordLink($email, $fullname)
+    protected function sendResetPasswordLink($email, $full_name)
     {
-//        $to = "$fullname <$email>";
+//        $to = "$full_name <$email>";
         $to = $email;
         $subject = "Your reset password request at " . $this->siteName;
-        $link = Utilities::getAbsoluteURLFolder() .
-            'resetpwd.php?email=' .
-            urlencode($email) . '&code=' .
-            urlencode($this->getResetPasswordCode($email));
+        $link = Yii::app()->homeUrl . '?code=' . urlencode($this->getResetPasswordCode($email));
 
-        $body = "Hello " . $fullname . ",\r\n\r\n" .
+        $body = "Hello " . $full_name . ",\r\n\r\n" .
             "There was a request to reset your password at " . $this->siteName . "\r\n" .
             "Please click the link below to complete the request: \r\n" . $link . "\r\n" .
             "Regards,\r\n" .
@@ -995,7 +1008,7 @@ class UserManager implements iRestHandler
      * @throws Exception
      * @return mixed
      */
-    public function securityAnswer($username, $answer, $new_password)
+    public function passwordResetBySecurityAnswer($username, $answer, $new_password)
     {
         try {
             $theUser = User::model()->find('username=:un', array(':un'=>$username));
@@ -1010,6 +1023,37 @@ class UserManager implements iRestHandler
             if (!CPasswordHelper::verifyPassword($answer, $theUser->getAttribute('security_answer'))) {
                 throw new Exception("The challenge response supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
             }
+            $theUser->setAttribute('password', CPasswordHelper::hashPassword($new_password));
+            if (!$theUser->save()) {
+                throw new Exception("Failed to change the password.", ErrorCodes::INTERNAL_SERVER_ERROR);
+            }
+
+            $userId = $theUser->getPrimaryKey();
+            $timestamp = time();
+            $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
+
+            return $this->userSession($ticket);
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error processing security answer.\n{$ex->getMessage()}", $ex->getCode());
+        }
+    }
+
+    /**
+     * @param string $code
+     * @param string $new_password
+     * @throws Exception
+     * @return mixed
+     */
+    public function passwordResetByCode($code, $new_password)
+    {
+        try {
+            $theUser = User::model()->find('confirm_code=:cc', array(':cc'=>$code));
+            if (null === $theUser) {
+                // bad username
+                throw new Exception("The supplied username was not found in the system.");
+            }
+            $theUser->setAttribute('confirm_code', 'y');
             $theUser->setAttribute('password', CPasswordHelper::hashPassword($new_password));
             if (!$theUser->save()) {
                 throw new Exception("Failed to change the password.", ErrorCodes::INTERNAL_SERVER_ERROR);

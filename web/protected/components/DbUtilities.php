@@ -818,7 +818,7 @@ class DbUtilities
                     // special case for references because the table referenced may not be created yet
                     $refTable = Utilities::getArrayValue('ref_table', $field, '');
                     if (empty($refTable)) {
-                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no table element for reference type.");
+                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no table element for reference type of $name.");
                     }
                     $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
 
@@ -1037,11 +1037,11 @@ class DbUtilities
                             break;
                         case "reference":
                             // special case for references because the table referenced may not be created yet
-                            $refTable = Utilities::getArrayValue('table', $field, '');
+                            $refTable = Utilities::getArrayValue('ref_table', $field, '');
                             if (empty($refTable)) {
-                                throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no table element for reference type.");
+                                throw new Exception("Invalid schema detected - no table element for reference type of $name.");
                             }
-                            $refColumns = Utilities::getArrayValue('column', $field, 'id');
+                            $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
 
                             // will get to it later, $refTable may not be there
                             $keyName = 'fk_' . $tableName . '_' . $name;
