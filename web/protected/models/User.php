@@ -266,34 +266,6 @@ class User extends CActiveRecord
         }
     }
 
-    /**
-     * @param string $requested
-     * @throws Exception
-     * @return array
-     */
-    public function getRetrievableRelations($requested)
-    {
-        if (empty($requested)) {
-            return array();
-        }
-        $relations = array('created_by', 'last_modified_by', 'role', 'default_app',
-                           'apps_created', 'apps_modified', 'app_groups_created', 'app_groups_modified',
-                           'roles_created', 'roles_modified', 'services_created', 'services_modified',
-                           'users_created', 'users_modified');
-        if ('*' == $requested) {
-            return $relations;
-        }
-        else {
-            $requested = array_map('trim', explode(',', $requested));
-            foreach ($requested as $request) {
-                if (false === array_search($request, $relations)) {
-                    throw new Exception("Invalid relation '$request' requested.", ErrorCodes::BAD_REQUEST);
-                }
-            }
-            return $requested;
-        }
-    }
-
     public function afterFind()
     {
         parent::afterFind();

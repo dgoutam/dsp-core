@@ -224,7 +224,7 @@ class DbUtilities
             $label = '';
             $plural = '';
             foreach ($labels as $each) {
-                if (empty($label['field'])) {
+                if (empty($each['field'])) {
                     $label = Utilities::getArrayValue('label', $each);
                     $plural = Utilities::getArrayValue('plural', $each);
                     break;

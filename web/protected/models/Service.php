@@ -215,31 +215,6 @@ class Service extends CActiveRecord
         }
     }
 
-    /**
-     * @param string $requested
-     * @throws Exception
-     * @return array
-     */
-    public function getRetrievableRelations($requested)
-    {
-        if (empty($requested)) {
-            return array();
-        }
-        $relations = array('created_by', 'last_modified_by', 'role_service_accesses');
-        if ('*' == $requested) {
-            return $relations;
-        }
-        else {
-            $requested = array_map('trim', explode(',', $requested));
-            foreach ($requested as $request) {
-                if (false === array_search($request, $relations)) {
-                    throw new Exception("Invalid relation '$request' requested.", ErrorCodes::BAD_REQUEST);
-                }
-            }
-            return $requested;
-        }
-    }
-
     public function afterFind()
     {
         parent::afterFind();

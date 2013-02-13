@@ -71,7 +71,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             // check for system tables and deny
             $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
             try {
-                $result = $this->sqlDb->describeDatabase('', $sysTables);
+                $result = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
                 $result = array('resource' => $result['table']);
             }
             catch (Exception $ex) {
@@ -116,7 +116,9 @@ class DatabaseSvc extends CommonService implements iRestHandler
                                 $limit = intval(Utilities::getArrayValue('limit', $data, 0));
                                 $order = Utilities::getArrayValue('order', $data, '');
                                 $offset = intval(Utilities::getArrayValue('offset', $data, 0));
-                                $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter, $limit, $order, $offset);
+                                $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $data, false));
+                                $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter,
+                                                                         $limit, $order, $offset, $include_count);
                             }
                         }
                     }
@@ -125,7 +127,9 @@ class DatabaseSvc extends CommonService implements iRestHandler
                         $limit = intval(Utilities::getArrayValue('limit', $_REQUEST, 0));
                         $order = Utilities::getArrayValue('order', $_REQUEST, '');
                         $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
-                        $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter, $limit, $order, $offset);
+                        $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $_REQUEST, false));
+                        $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter,
+                                                                 $limit, $order, $offset, $include_count);
                     }
                 }
             }
@@ -782,10 +786,12 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param int $limit
      * @param string $order
      * @param int $offset
-     * @return array
+     * @param bool $include_count
      * @throws Exception
+     * @return array
      */
-    public function retrieveRecordsByFilter($table, $fields = '', $filter = '', $limit = 0, $order = '', $offset = 0)
+    public function retrieveRecordsByFilter($table, $fields = '', $filter = '',
+                                            $limit = 0, $order = '', $offset = 0, $include_count = false)
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -793,11 +799,17 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->checkPermission('read', $table);
 
         try {
-            $results = $this->sqlDb->retrieveSqlRecordsByFilter($table, $fields, $filter, $limit, $order, $offset);
-            $total = Utilities::getArrayValue('total', $results, 0);
-            unset($results['total']);
-            $results = array('record' => array_map(array($this, 'addFieldsLevel'), $results),
-                             'meta' => array('total' => $total));
+            $results = $this->sqlDb->retrieveSqlRecordsByFilter($table, $fields, $filter,
+                                                                $limit, $order, $offset, $include_count);
+            if (isset($results['count'])) {
+                $count = $results['count'];
+                unset($results['count']);
+                $results = array('record' => array_map(array($this, 'addFieldsLevel'), $results),
+                                 'meta' => array('count' => $count));
+            }
+            else {
+                $results = array('record' => array_map(array($this, 'addFieldsLevel'), $results));
+            }
 
             return $results;
         }

@@ -108,14 +108,13 @@ class ApplicationSvc extends CommonFileSvc
                 throw new Exception("Can not create package file for this application.");
             }
 
-            $sys = SystemManager::getInstance();
-            $fields = 'name,label,description,is_active,url,is_url_external,schemas';
-            $fields .= ',filter_by_device,filter_phone,filter_tablet,filter_desktop,requires_plugin';
-            $records = $sys->retrieveRecordsByFilter('app', $fields, "name = '$app_root'", 1);
-            if ((0 === count($records)) || !isset($records['record'][0]['fields'])) {
-                throw new Exception("No database entry exists for this application '$app_root''");
+            $fields = array('name','label','description','is_active','url','is_url_external','schemas',
+                            'filter_by_device','filter_phone','filter_tablet','filter_desktop','requires_plugin');
+            $app = App::model()->find('name = :name', array(':name' => $app_root));
+            if (null === $app) {
+                throw new Exception("No database entry exists for this application '$app_root'.");
             }
-            $record = $records['record'][0]['fields'];
+            $record = $app->getAttributes($fields);
             // add database entry file
             if (!$zip->addFromString('description.json', json_encode($record))) {
                 throw new Exception("Can not include description file in package file.");

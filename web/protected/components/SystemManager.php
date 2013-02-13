@@ -357,7 +357,18 @@ class SystemManager implements iRestHandler
             case 'user':
                 // Most requests contain 'returned fields' parameter, all by default
                 $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
-                $extras = Utilities::getArrayValue('related', $_REQUEST, '');
+                $extras = array();
+                $related = Utilities::getArrayValue('related', $_REQUEST, '');
+                if (!empty($related)) {
+                    $related = array_map('trim', explode(',', $related));
+                    foreach ($related as $relative) {
+                        $extraFields = Utilities::getArrayValue($relative . '_fields', $_REQUEST, '*');
+                        $extraOrder = Utilities::getArrayValue($relative . '_order', $_REQUEST, '');
+                        $extras[] = array('name'=>$relative, 'fields'=>$extraFields, 'order'=> $extraOrder);
+                    }
+                }
+
+
                 if (empty($this->modelId)) {
                     $ids = Utilities::getArrayValue('ids', $_REQUEST, '');
                     if (!empty($ids)) {
@@ -381,7 +392,9 @@ class SystemManager implements iRestHandler
                                     $result = $this->retrieveRecords($this->modelName, $records, $fields, $extras);
                                 }
                                 elseif (isset($data['fields']) && !empty($data['fields'])) {
-                                    // passing record to have it updated with new or more values, id field required
+                                    // passing record to have it updated with new or more values,
+                                    // if id field given, single record retrieved, otherwise get records matching
+                                    // given fields
                                     $result = $this->retrieveRecord($this->modelName, $data, $fields, $extras);
                                 }
                                 else { // if not specified use filter
@@ -389,7 +402,10 @@ class SystemManager implements iRestHandler
                                     $limit = intval(Utilities::getArrayValue('limit', $data, 0));
                                     $order = Utilities::getArrayValue('order', $data, '');
                                     $offset = intval(Utilities::getArrayValue('offset', $data, 0));
-                                    $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
+                                    $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $data, false));
+                                    $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter,
+                                                                             $limit, $order, $offset, $include_count,
+                                                                             $extras);
                                 }
                             }
                         }
@@ -398,7 +414,10 @@ class SystemManager implements iRestHandler
                             $limit = intval(Utilities::getArrayValue('limit', $_REQUEST, 0));
                             $order = Utilities::getArrayValue('order', $_REQUEST, '');
                             $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
-                            $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter, $limit, $order, $offset, $extras);
+                            $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $_REQUEST, false));
+                            $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter,
+                                                                     $limit, $order, $offset, $include_count,
+                                                                     $extras);
                         }
                     }
                 }
@@ -794,27 +813,28 @@ class SystemManager implements iRestHandler
                 break;
             }
             // new relations
-            if (isset($record['related'])) {
-                switch (strtolower($table)) {
-                case 'app':
-                    if (isset($record['related']['app_groups'])) {
-                        $this->assignGroupsToApp($id, $record['related']['app_groups']);
-                    }
-                    break;
-                case 'app_group':
-                    if (isset($record['related']['apps'])) {
-                        $this->assignAppsToGroup($id, $record['related']['apps']);
-                    }
-                    break;
-                case 'role':
-                     if (isset($record['related']['users'])) {
-                        $this->assignUsersToRole($id, $record['related']['users']);
-                    }
-                    if (isset($record['related']['role_service_accesses'])) {
-                        $this->assignRoleServiceAccesses($id, $record['related']['role_service_accesses']);
-                    }
-                    break;
+            switch (strtolower($table)) {
+            case 'app':
+                if (isset($fields['app_groups'])) {
+                    $this->assignGroupsToApp($id, $fields['app_groups']);
                 }
+                break;
+            case 'app_group':
+                if (isset($fields['apps'])) {
+                    $this->assignAppsToGroup($id, $fields['apps']);
+                }
+                break;
+            case 'role':
+                if (isset($fields['apps'])) {
+                    $this->assignAppsToRole($id, $fields['apps']);
+                }
+                if (isset($fields['users'])) {
+                    $this->assignUsersToRole($id, $fields['users']);
+                }
+                if (isset($fields['role_service_accesses'])) {
+                    $this->assignRoleServiceAccesses($id, $fields['role_service_accesses']);
+                }
+                break;
             }
 
             return array('fields' => $data);
@@ -957,30 +977,28 @@ class SystemManager implements iRestHandler
                 break;
             }
             // new relations
-            if (isset($record['related'])) {
-                switch (strtolower($table)) {
-                case 'app':
-                    if (isset($record['related']['app_groups'])) {
-                        $this->assignGroupsToApp($id, $record['related']['app_groups']);
-                    }
-                    break;
-                case 'app_group':
-                    if (isset($record['related']['apps'])) {
-                        $this->assignAppsToGroup($id, $record['related']['apps']);
-                    }
-                    break;
-                case 'role':
-                    if (isset($record['related']['apps'])) {
-                        $this->assignAppsToRole($id, $record['related']['apps']);
-                    }
-                    if (isset($record['related']['users'])) {
-                        $this->assignUsersToRole($id, $record['related']['users']);
-                    }
-                    if (isset($record['related']['role_service_accesses'])) {
-                        $this->assignRoleServiceAccesses($id, $record['related']['role_service_accesses']);
-                    }
-                    break;
+            switch (strtolower($table)) {
+            case 'app':
+                if (isset($fields['app_groups'])) {
+                    $this->assignGroupsToApp($id, $fields['app_groups']);
                 }
+                break;
+            case 'app_group':
+                if (isset($fields['apps'])) {
+                    $this->assignAppsToGroup($id, $fields['apps']);
+                }
+                break;
+            case 'role':
+                if (isset($fields['apps'])) {
+                    $this->assignAppsToRole($id, $fields['apps']);
+                }
+                if (isset($fields['users'])) {
+                    $this->assignUsersToRole($id, $fields['users']);
+                }
+                if (isset($fields['role_service_accesses'])) {
+                    $this->assignRoleServiceAccesses($id, $fields['role_service_accesses']);
+                }
+                break;
             }
 
             return array('fields' => $data);
@@ -1235,11 +1253,11 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $records
      * @param string $return_fields
-     * @param string $extras
+     * @param array $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecords($table, $records, $return_fields = '', $extras = '')
+    public function retrieveRecords($table, $records, $return_fields = '', $extras = array())
     {
         $ids = array();
         foreach ($records as $key => $record) {
@@ -1257,11 +1275,11 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $record
      * @param string $return_fields
-     * @param string $extras
+     * @param array $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecord($table, $record, $return_fields = '', $extras = '')
+    public function retrieveRecord($table, $record, $return_fields = '', $extras = array())
     {
         $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields'], '') : '';
         return $this->retrieveRecordById($table, $id, $return_fields, $extras);
@@ -1274,11 +1292,14 @@ class SystemManager implements iRestHandler
      * @param int $limit
      * @param string $order
      * @param int $offset
-     * @param string $extras
+     * @param bool $include_count
+     * @param array $extras
      * @throws Exception
      * @return array
      */
-    public function retrieveRecordsByFilter($table, $return_fields = '', $filter = '', $limit = 0, $order = '', $offset = 0, $extras = '')
+    public function retrieveRecordsByFilter($table, $return_fields = '', $filter = '',
+                                            $limit = 0, $order = '', $offset = 0, $include_count = false,
+                                            $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1286,7 +1307,7 @@ class SystemManager implements iRestHandler
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
         $return_fields = $model->getRetrievableAttributes($return_fields);
-        $extras = $model->getRetrievableRelations($extras);
+        $relations = $model->relations();
 
         try {
             $command = new CDbCriteria();
@@ -1306,34 +1327,41 @@ class SystemManager implements iRestHandler
             else {
                 // todo impose a limit to protect server
             }
-            $out = array();
             $records = $model->findAll($command);
+            $out = array();
             foreach ($records as $record) {
-                $data = array('fields' => $record->getAttributes($return_fields));
-                $relatedData = array();
-                foreach ($extras as $extra) {
-                    $relatedRecords = $record->getRelated($extra, true);
-                    if (!isset($relatedRecords)) {
-                        $tempData = null;
-                    }
-                    elseif (empty($relatedRecords)) {
-                        $tempData = null;
-                    }
-                    elseif (isset($relatedRecords[0])) {
-                        // an array of records
-                        $tempData = array();
-                        $relatedFields = $relatedRecords[0]->getRetrievableAttributes('*');
-                        foreach ($relatedRecords as $relative) {
-                            $tempData[] = $relative->getAttributes($relatedFields);
+                $data = $record->getAttributes($return_fields);
+                if (!empty($extras)) {
+                    $relatedData = array();
+                    foreach ($extras as $extra) {
+                        $extraName = $extra['name'];
+                        if (!isset($relations[$extraName])) {
+                            throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
                         }
+                        $extraFields = $extra['fields'];
+                        $relatedRecords = $record->getRelated($extraName, true);
+                        if (!isset($relatedRecords)) {
+                            $tempData = null;
+                        }
+                        elseif (empty($relatedRecords)) {
+                            $tempData = null;
+                        }
+                        elseif (isset($relatedRecords[0])) {
+                            // an array of records
+                            $tempData = array();
+                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                            foreach ($relatedRecords as $relative) {
+                                $tempData[] = $relative->getAttributes($relatedFields);
+                            }
+                        }
+                        else {
+                            $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes($extraFields));
+                        }
+                        $relatedData[$extraName] = $tempData;
                     }
-                    else {
-                        $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes('*'));
+                    if (!empty($relatedData)) {
+                        $data = array_merge($data, $relatedData);
                     }
-                    $relatedData[$extra] = $tempData;
-                }
-                if (!empty($relatedData)) {
-                    $data['related'] = $relatedData;
                 }
                 // todo temp backward compatibility
                 switch (strtolower($table)) {
@@ -1346,16 +1374,20 @@ class SystemManager implements iRestHandler
                         foreach ($rsa as $access) {
                             $perms[] = $access->getAttributes($permFields);
                         }
-                        $data['fields']['services'] = $perms;
+                        $data['services'] = $perms;
                     }
                     break;
                 }
 
-                $out[] = $data;
+                $out[] = array('fields' => $data);
             }
 
-            $total = $model->count($command);
-            return array('record' => $out, 'meta' => array('total' => $total));
+            $results = array('record' => $out);
+            if ($include_count) {
+                $count = $model->count($command);
+                $results['meta'] = array('count' => $count);
+            }
+            return $results;
         }
         catch (Exception $ex) {
             throw new Exception("Error retrieving $table records.\nquery: $filter\n{$ex->getMessage()}");
@@ -1366,11 +1398,11 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $id_list
      * @param string $return_fields
-     * @param null $extras
+     * @param array $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecordsByIds($table, $id_list, $return_fields = '', $extras = null)
+    public function retrieveRecordsByIds($table, $id_list, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1379,41 +1411,51 @@ class SystemManager implements iRestHandler
         $ids = array_map('trim', explode(',', $id_list));
         $model = static::getResourceModel($table);
         $return_fields = $model->getRetrievableAttributes($return_fields);
-        $extras = $model->getRetrievableRelations($extras);
+        $relations = $model->relations();
 
         try {
             $records = $model->findAllByPk($ids);
+            if (empty($records)) {
+                throw new Exception("No $table resources with ids '$id_list' could be found", ErrorCodes::NOT_FOUND);
+            }
             foreach ($records as $record) {
                 $pk = $record->primaryKey;
                 $key = array_search($pk, $ids);
                 if (false === $key) {
                     throw new Exception('Bad returned data from query');
                 }
-                $data = array('fields' => $record->getAttributes($return_fields));
-                $relatedData = array();
-                foreach ($extras as $extra) {
-                    $relatedRecords = $record->getRelated($extra, true);
-                    if (!isset($relatedRecords)) {
-                        $tempData = null;
-                    }
-                    elseif (empty($relatedRecords)) {
-                        $tempData = null;
-                    }
-                    elseif (isset($relatedRecords[0])) {
-                        // an array of records
-                        $tempData = array();
-                        $relatedFields = $relatedRecords[0]->getRetrievableAttributes('*');
-                        foreach ($relatedRecords as $relative) {
-                            $tempData[] = $relative->getAttributes($relatedFields);
+                $data = $record->getAttributes($return_fields);
+                if (!empty($extras)) {
+                    $relatedData = array();
+                    foreach ($extras as $extra) {
+                        $extraName = $extra['name'];
+                        if (!isset($relations[$extraName])) {
+                            throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
                         }
+                        $extraFields = $extra['fields'];
+                        $relatedRecords = $record->getRelated($extraName, true);
+                        if (!isset($relatedRecords)) {
+                            $tempData = null;
+                        }
+                        elseif (empty($relatedRecords)) {
+                            $tempData = null;
+                        }
+                        elseif (isset($relatedRecords[0])) {
+                            // an array of records
+                            $tempData = array();
+                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                            foreach ($relatedRecords as $relative) {
+                                $tempData[] = $relative->getAttributes($relatedFields);
+                            }
+                        }
+                        else {
+                            $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes($extraFields));
+                        }
+                        $relatedData[$extraName] = $tempData;
                     }
-                    else {
-                        $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes('*'));
+                    if (!empty($relatedData)) {
+                        $data = array_merge($data, $relatedData);
                     }
-                    $relatedData[$extra] = $tempData;
-                }
-                if (!empty($relatedData)) {
-                    $data['related'] = $relatedData;
                 }
                 // todo temp backward compatibility
                 switch (strtolower($table)) {
@@ -1426,16 +1468,16 @@ class SystemManager implements iRestHandler
                         foreach ($rsa as $access) {
                             $perms[] = $access->getAttributes($permFields);
                         }
-                        $data['fields']['services'] = $perms;
+                        $data['services'] = $perms;
                     }
                     break;
                 }
 
-                $ids[$key] = $data;
+                $ids[$key] = array('fields' => $data);
             }
             foreach ($ids as $key=>$id) {
                 if (!is_array($id)) {
-                    $message = "A $table resource with id '$id' could not be found'";
+                    $message = "A $table resource with id '$id' could not be found.";
                     $ids[$key] = array('error' => array('message' => $message, 'code' => ErrorCodes::NOT_FOUND));
                 }
             }
@@ -1443,7 +1485,7 @@ class SystemManager implements iRestHandler
             return array('record' => $ids);
         }
         catch (Exception $ex) {
-            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -1451,49 +1493,56 @@ class SystemManager implements iRestHandler
      * @param $table
      * @param $id
      * @param string $return_fields
-     * @param string $extras
+     * @param array $extras
      * @return array
      * @throws Exception
      */
-    public function retrieveRecordById($table, $id, $return_fields = '', $extras = '')
+    public function retrieveRecordById($table, $id, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('read', 'system', $table);
         $model = static::getResourceModel($table);
+        $return_fields = $model->getRetrievableAttributes($return_fields);
+        $relations = $model->relations();
         $record = $model->findByPk($id);
         if (null === $record) {
             throw new Exception('Record not found.', ErrorCodes::NOT_FOUND);
         }
         try {
-            $return_fields = $model->getRetrievableAttributes($return_fields);
-            $data = array('fields' => $record->getAttributes($return_fields));
-            $extras = $model->getRetrievableRelations($extras);
-            $relatedData = array();
-            foreach ($extras as $extra) {
-                $relatedRecords = $record->getRelated($extra, true);
-                if (!isset($relatedRecords)) {
-                    $tempData = null;
-                }
-                elseif (empty($relatedRecords)) {
-                    $tempData = null;
-                }
-                elseif (isset($relatedRecords[0])) {
-                    // an array of records
-                    $tempData = array();
-                    $relatedFields = $relatedRecords[0]->getRetrievableAttributes('*');
-                    foreach ($relatedRecords as $relative) {
-                        $tempData[] = $relative->getAttributes($relatedFields);
+            $data = $record->getAttributes($return_fields);
+            if (!empty($extras)) {
+                $relatedData = array();
+                foreach ($extras as $extra) {
+                    $extraName = $extra['name'];
+                    if (!isset($relations[$extraName])) {
+                        throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
                     }
+                    $extraFields = $extra['fields'];
+                    $relatedRecords = $record->getRelated($extraName, true);
+                    if (!isset($relatedRecords)) {
+                        $tempData = null;
+                    }
+                    elseif (empty($relatedRecords)) {
+                        $tempData = null;
+                    }
+                    elseif (isset($relatedRecords[0])) {
+                        // an array of records
+                        $tempData = array();
+                        $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                        foreach ($relatedRecords as $relative) {
+                            $tempData[] = $relative->getAttributes($relatedFields);
+                        }
+                    }
+                    else {
+                        $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes($extraFields));
+                    }
+                    $relatedData[$extraName] = $tempData;
                 }
-                else {
-                    $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes('*'));
+                if (!empty($relatedData)) {
+                    $data = array_merge($data, $relatedData);
                 }
-                $relatedData[$extra] = $tempData;
-            }
-            if (!empty($relatedData)) {
-                $data['related'] = $relatedData;
             }
             // todo temp backward compatibility
             switch (strtolower($table)) {
@@ -1506,12 +1555,12 @@ class SystemManager implements iRestHandler
                     foreach ($rsa as $access) {
                         $perms[] = $access->getAttributes($permFields);
                     }
-                    $data['fields']['services'] = $perms;
+                    $data['services'] = $perms;
                 }
                 break;
             }
 
-            return $data;
+            return array('fields' => $data);
         }
         catch (Exception $ex) {
             throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
@@ -1693,7 +1742,6 @@ class SystemManager implements iRestHandler
     {
         // get any pre-existing access records
         $old = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', 'id', "role_id = '$role_id'");
-        unset($old['total']);
         // create a new access record for each service
         $noDupes = array();
         if (!empty($services)) {
@@ -1760,7 +1808,6 @@ class SystemManager implements iRestHandler
                     $query .= " and (id not in ($app_ids))";
                 }
                 $apps = $this->nativeDb->retrieveSqlRecordsByFilter('app', 'id,app_group_ids', $query);
-                unset($apps['total']);
                 foreach ($apps as $key => $app) {
                     $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
                     $groupIds = trim($groupIds, ','); // in case of sloppy updating
@@ -1812,7 +1859,6 @@ class SystemManager implements iRestHandler
         }
         try {
             $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_app_group', 'id,app_id', "app_group_id = '$app_group_id'");
-            unset($maps['total']);
             $toDelete = array();
             foreach ($maps as $map) {
                 $appId = Utilities::getArrayValue('app_id', $map, '');
@@ -1862,7 +1908,6 @@ class SystemManager implements iRestHandler
         }
         try {
             $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_app_group', 'id,app_group_id', "app_id = '$app_id'");
-            unset($maps['total']);
             $toDelete = array();
             foreach ($maps as $map) {
                 $groupId = Utilities::getArrayValue('app_group_id', $map, '');
@@ -1912,7 +1957,6 @@ class SystemManager implements iRestHandler
         }
         try {
             $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_role', 'id,app_id', "role_id = '$role_id'");
-            unset($maps['total']);
             $toDelete = array();
             foreach ($maps as $map) {
                 $appId = Utilities::getArrayValue('app_id', $map, '');
@@ -2016,26 +2060,44 @@ class SystemManager implements iRestHandler
                 foreach ($accesses as $key=>$access) {
                     $id = Utilities::getArrayValue('id', $access, '');
                     if ($id == $oldId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        // found it, make sure nothing needs to be updated
+                        $newServiceId = Utilities::getArrayValue('service_id', $access, '');
+                        $newComponent = Utilities::getArrayValue('component', $access, '');
+                        $newRead = Utilities::getArrayValue('read', $access, '');
+                        $newCreate = Utilities::getArrayValue('create', $access, '');
+                        $newUpdate = Utilities::getArrayValue('update', $access, '');
+                        $newDelete = Utilities::getArrayValue('delete', $access, '');
+                        if (($oldAccess->service_id != $newServiceId))
+                            $oldAccess->service_id = $newServiceId;
+                        if (($oldAccess->component != $newComponent))
+                            $oldAccess->component = $newComponent;
+                        if (($oldAccess->read != $newRead))
+                            $oldAccess->read = $newRead;
+                        if (($oldAccess->create != $newCreate))
+                            $oldAccess->create = $newCreate;
+                        if (($oldAccess->update != $newUpdate))
+                            $oldAccess->update = $newUpdate;
+                        if (($oldAccess->delete != $newDelete))
+                            $oldAccess->delete = $newDelete;
+                        $oldAccess->save();
+                        // keeping it, so remove it from the list, as this becomes adds
                         unset($accesses[$key]);
                         $found = true;
                         continue;
                     }
                 }
                 if (!$found) {
-                    $oldUser->role_id = null;
-                    $oldUser->save();
+                    $oldAccess->delete();
                     continue;
                 }
             }
-            if (!empty($users)) {
+            if (!empty($accesses)) {
                 // add what is leftover
-                foreach ($users as $user) {
-                    $id = Utilities::getArrayValue('id', $user, '');
-                    $newUser = User::model()->findByPk($id);
-                    if ($newUser) {
-                        $newUser->role_id = $role_id;
-                        $newUser->save();
+                foreach ($accesses as $access) {
+                    $newAccess = new RoleServiceAccess;
+                    if ($newAccess) {
+                        $newAccess->setAttributes($access);
+                        $newAccess->save();
                     }
                 }
             }
