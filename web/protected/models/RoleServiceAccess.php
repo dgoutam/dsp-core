@@ -65,7 +65,6 @@ class RoleServiceAccess extends CActiveRecord
         // class name for the relations automatically generated below.
         return array(
             'role' => array(self::BELONGS_TO, 'Role', 'role_id'),
-            'service0' => array(self::BELONGS_TO, 'Service', 'service_id'),
         );
     }
 

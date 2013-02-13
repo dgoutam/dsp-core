@@ -240,9 +240,10 @@ class SchemaSvc extends CommonService implements iRestHandler
     public function describeDatabase()
     {
         // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+//        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+        $sysTables = SystemManager::INTERNAL_TABLES;
         try {
-            return $this->sqlDb->describeDatabase('', $sysTables);
+            return DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
         }
         catch (Exception $ex) {
             throw new Exception("Error describing database tables.\n{$ex->getMessage()}");
@@ -252,7 +253,8 @@ class SchemaSvc extends CommonService implements iRestHandler
     public function describeTables($table_list)
     {
         // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+//        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+        $sysTables = SystemManager::INTERNAL_TABLES;
         $tables = array_map('trim', explode(',', trim($table_list, ',')));
         foreach ($tables as $table) {
             if (Utilities::isInList($sysTables, $table, ',')) {
@@ -260,7 +262,7 @@ class SchemaSvc extends CommonService implements iRestHandler
             }
         }
         try {
-            return $this->sqlDb->describeTables($tables);
+            return DbUtilities::describeTables($this->sqlDb->getSqlConn(), $tables);
         }
         catch (Exception $ex) {
             throw new Exception("Error describing database tables '$table_list'.\n{$ex->getMessage()}");
@@ -275,12 +277,13 @@ class SchemaSvc extends CommonService implements iRestHandler
     public function describeTable($table)
     {
         // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+//        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+        $sysTables = SystemManager::INTERNAL_TABLES;
         if (Utilities::isInList($sysTables, $table, ',')) {
             throw new Exception("System table '$table' not available through this interface.");
         }
         try {
-            return $this->sqlDb->describeTable($table);
+            return DbUtilities::describeTable($this->sqlDb->getSqlConn(), $table);
         }
         catch (Exception $ex) {
             throw new Exception("Error describing database table '$table'.\n{$ex->getMessage()}");
@@ -295,7 +298,7 @@ class SchemaSvc extends CommonService implements iRestHandler
             throw new Exception("System table '$table' not available through this interface.");
         }
         try {
-            return $this->sqlDb->describeTable($table);
+            return DbUtilities::describeTable($this->sqlDb->getSqlConn(), $table);
         }
         catch (Exception $ex) {
             throw new Exception("Error describing database table '$table'.\n{$ex->getMessage()}");
@@ -314,7 +317,7 @@ class SchemaSvc extends CommonService implements iRestHandler
             throw new Exception('There are no table sets in the request.');
         }
 
-        return $this->sqlDb->createTables($tables);
+        return DbUtilities::createTables($this->sqlDb->getSqlConn(), $tables);
     }
 
     /**
@@ -329,7 +332,7 @@ class SchemaSvc extends CommonService implements iRestHandler
             throw new Exception('There are no table sets in the request.');
         }
 
-        return $this->sqlDb->createTables($tables, true);
+        return DbUtilities::createTables($this->sqlDb->getSqlConn(), $tables, true);
     }
 
     /**
@@ -344,7 +347,7 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         $this->checkPermission('delete', 'Schema');
 
-        return $this->sqlDb->dropTable($table);
+        return DbUtilities::dropTable($this->sqlDb->getSqlConn(), $table);
     }
 
 }
