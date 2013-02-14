@@ -696,6 +696,7 @@ class SystemManager implements iRestHandler
             $model = App::model();
             break;
         case 'app_group':
+        case 'appgroup':
             $model = AppGroup::model();
             break;
         case 'label':
@@ -725,6 +726,7 @@ class SystemManager implements iRestHandler
             $obj = new App;
             break;
         case 'app_group':
+        case 'appgroup':
             $obj = new AppGroup;
             break;
         case 'label':
@@ -784,7 +786,7 @@ class SystemManager implements iRestHandler
                 throw new Exception("Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
-            $return_fields = $model->getRetrievableAttributes($return_fields);
+            $return_fields = $obj->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
             // after record create
             // old relations
@@ -816,26 +818,41 @@ class SystemManager implements iRestHandler
             switch (strtolower($table)) {
             case 'app':
                 if (isset($fields['app_groups'])) {
-                    $this->assignGroupsToApp($id, $fields['app_groups']);
+                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $fields['app_groups']);
                 }
                 break;
             case 'app_group':
                 if (isset($fields['apps'])) {
-                    $this->assignAppsToGroup($id, $fields['apps']);
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $fields['apps']);
                 }
                 break;
             case 'role':
                 if (isset($fields['apps'])) {
-                    $this->assignAppsToRole($id, $fields['apps']);
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $fields['apps']);
                 }
                 if (isset($fields['users'])) {
-                    $this->assignUsersToRole($id, $fields['users']);
+                    $this->assignManyToOne($table, $id, 'user', 'role_id', $fields['users']);
                 }
                 if (isset($fields['role_service_accesses'])) {
                     $this->assignRoleServiceAccesses($id, $fields['role_service_accesses']);
                 }
                 break;
             }
+            /*
+            $relations = $obj->relations();
+            foreach ($relations as $key=>$related) {
+                if (isset($fields[$key])) {
+                    switch ($related[0]) {
+                    case CActiveRecord::HAS_MANY:
+                        $this->assignManyToOne($table, $id, $related[1], $related[2], $fields[$key]);
+                        break;
+                    case CActiveRecord::MANY_MANY:
+                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $fields[$key]);
+                        break;
+                    }
+                }
+            }
+            */
 
             return array('fields' => $data);
         }
@@ -980,26 +997,41 @@ class SystemManager implements iRestHandler
             switch (strtolower($table)) {
             case 'app':
                 if (isset($fields['app_groups'])) {
-                    $this->assignGroupsToApp($id, $fields['app_groups']);
+                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $fields['app_groups']);
                 }
                 break;
             case 'app_group':
                 if (isset($fields['apps'])) {
-                    $this->assignAppsToGroup($id, $fields['apps']);
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $fields['apps']);
                 }
                 break;
             case 'role':
                 if (isset($fields['apps'])) {
-                    $this->assignAppsToRole($id, $fields['apps']);
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $fields['apps']);
                 }
                 if (isset($fields['users'])) {
-                    $this->assignUsersToRole($id, $fields['users']);
+                    $this->assignManyToOne($table, $id, 'user', 'role_id', $fields['users']);
                 }
                 if (isset($fields['role_service_accesses'])) {
                     $this->assignRoleServiceAccesses($id, $fields['role_service_accesses']);
                 }
                 break;
             }
+            /*
+            $relations = $obj->relations();
+            foreach ($relations as $key=>$related) {
+                if (isset($fields[$key])) {
+                    switch ($related[0]) {
+                    case CActiveRecord::HAS_MANY:
+                        $this->assignManyToOne($table, $id, $related[1], $related[2], $fields[$key]);
+                        break;
+                    case CActiveRecord::MANY_MANY:
+                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $fields[$key]);
+                        break;
+                    }
+                }
+            }
+            */
 
             return array('fields' => $data);
         }
@@ -1340,22 +1372,22 @@ class SystemManager implements iRestHandler
                         }
                         $extraFields = $extra['fields'];
                         $relatedRecords = $record->getRelated($extraName, true);
-                        if (!isset($relatedRecords)) {
-                            $tempData = null;
-                        }
-                        elseif (empty($relatedRecords)) {
-                            $tempData = null;
-                        }
-                        elseif (isset($relatedRecords[0])) {
+                        if (is_array($relatedRecords)) {
                             // an array of records
                             $tempData = array();
-                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
-                            foreach ($relatedRecords as $relative) {
-                                $tempData[] = $relative->getAttributes($relatedFields);
+                            if (!empty($relatedRecords)) {
+                                $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                                foreach ($relatedRecords as $relative) {
+                                    $tempData[] = $relative->getAttributes($relatedFields);
+                                }
                             }
                         }
                         else {
-                            $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes($extraFields));
+                            $tempData = null;
+                            if (isset($relatedRecords)) {
+                                $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                                $tempData = $relatedRecords->getAttributes($relatedFields);
+                            }
                         }
                         $relatedData[$extraName] = $tempData;
                     }
@@ -1434,22 +1466,22 @@ class SystemManager implements iRestHandler
                         }
                         $extraFields = $extra['fields'];
                         $relatedRecords = $record->getRelated($extraName, true);
-                        if (!isset($relatedRecords)) {
-                            $tempData = null;
-                        }
-                        elseif (empty($relatedRecords)) {
-                            $tempData = null;
-                        }
-                        elseif (isset($relatedRecords[0])) {
+                        if (is_array($relatedRecords)) {
                             // an array of records
                             $tempData = array();
-                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
-                            foreach ($relatedRecords as $relative) {
-                                $tempData[] = $relative->getAttributes($relatedFields);
+                            if (!empty($relatedRecords)) {
+                                $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                                foreach ($relatedRecords as $relative) {
+                                    $tempData[] = $relative->getAttributes($relatedFields);
+                                }
                             }
                         }
                         else {
-                            $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes($extraFields));
+                            $tempData = null;
+                            if (isset($relatedRecords)) {
+                                $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                                $tempData = $relatedRecords->getAttributes($relatedFields);
+                            }
                         }
                         $relatedData[$extraName] = $tempData;
                     }
@@ -1521,22 +1553,22 @@ class SystemManager implements iRestHandler
                     }
                     $extraFields = $extra['fields'];
                     $relatedRecords = $record->getRelated($extraName, true);
-                    if (!isset($relatedRecords)) {
-                        $tempData = null;
-                    }
-                    elseif (empty($relatedRecords)) {
-                        $tempData = null;
-                    }
-                    elseif (isset($relatedRecords[0])) {
+                    if (is_array($relatedRecords)) {
                         // an array of records
                         $tempData = array();
-                        $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
-                        foreach ($relatedRecords as $relative) {
-                            $tempData[] = $relative->getAttributes($relatedFields);
+                        if (!empty($relatedRecords)) {
+                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                            foreach ($relatedRecords as $relative) {
+                                $tempData[] = $relative->getAttributes($relatedFields);
+                            }
                         }
                     }
                     else {
-                        $tempData = $relatedRecords->getAttributes($relatedRecords->getRetrievableAttributes($extraFields));
+                        $tempData = null;
+                        if (isset($relatedRecords)) {
+                            $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                            $tempData = $relatedRecords->getAttributes($relatedFields);
+                        }
                     }
                     $relatedData[$extraName] = $tempData;
                 }
@@ -1847,201 +1879,6 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $app_group_id
-     * @param array $apps
-     * @throws Exception
-     * @return void
-     */
-    protected function assignAppsToGroup($app_group_id, $apps=array())
-    {
-        if (empty($app_group_id)) {
-            throw new Exception('App group id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        try {
-            $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_app_group', 'id,app_id', "app_group_id = '$app_group_id'");
-            $toDelete = array();
-            foreach ($maps as $map) {
-                $appId = Utilities::getArrayValue('app_id', $map, '');
-                $id = Utilities::getArrayValue('id', $map, '');
-                $found = false;
-                foreach ($apps as $appKey=>$app) {
-                    $assignId = Utilities::getArrayValue('id', $app, '');
-                    if ($assignId == $appId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($apps[$appKey]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $toDelete[] = $id;
-                    continue;
-                }
-            }
-            if (!empty($toDelete)) {
-                $this->nativeDb->deleteSqlRecordsByIds('app_to_app_group', implode(',', $toDelete), 'id');
-            }
-            if (!empty($apps)) {
-                $maps = array();
-                foreach ($apps as $app) {
-                    $appId = Utilities::getArrayValue('id', $app, '');
-                    $maps[] = array('app_id'=>$appId, 'app_group_id'=>$app_group_id);
-                }
-                $this->nativeDb->createSqlRecords('app_to_app_group', $maps);
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $app_id
-     * @param array $groups
-     * @throws Exception
-     * @return void
-     */
-    protected function assignGroupsToApp($app_id, $groups=array())
-    {
-        if (empty($app_id)) {
-            throw new Exception('App id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        try {
-            $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_app_group', 'id,app_group_id', "app_id = '$app_id'");
-            $toDelete = array();
-            foreach ($maps as $map) {
-                $groupId = Utilities::getArrayValue('app_group_id', $map, '');
-                $id = Utilities::getArrayValue('id', $map, '');
-                $found = false;
-                foreach ($groups as $groupKey=>$group) {
-                    $assignId = Utilities::getArrayValue('id', $group, '');
-                    if ($assignId == $groupId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($groups[$groupKey]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $toDelete[] = $id;
-                    continue;
-                }
-            }
-            if (!empty($toDelete)) {
-                $this->nativeDb->deleteSqlRecordsByIds('app_to_app_group', implode(',', $toDelete), 'id');
-            }
-            if (!empty($groups)) {
-                $maps = array();
-                foreach ($groups as $group) {
-                    $appGroupId = Utilities::getArrayValue('id', $group, '');
-                    $maps[] = array('app_id'=>$app_id, 'app_group_id'=>$appGroupId);
-                }
-                $this->nativeDb->createSqlRecords('app_to_app_group', $maps);
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating app_groups to app assignment.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $role_id
-     * @param array $apps
-     * @throws Exception
-     * @return void
-     */
-    protected function assignAppsToRole($role_id, $apps=array())
-    {
-        if (empty($role_id)) {
-            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        try {
-            $maps = $this->nativeDb->retrieveSqlRecordsByFilter('app_to_role', 'id,app_id', "role_id = '$role_id'");
-            $toDelete = array();
-            foreach ($maps as $map) {
-                $appId = Utilities::getArrayValue('app_id', $map, '');
-                $id = Utilities::getArrayValue('id', $map, '');
-                $found = false;
-                foreach ($apps as $appKey=>$app) {
-                    $assignId = Utilities::getArrayValue('id', $app, '');
-                    if ($assignId == $appId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($apps[$appKey]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $toDelete[] = $id;
-                    continue;
-                }
-            }
-            if (!empty($toDelete)) {
-                $this->nativeDb->deleteSqlRecordsByIds('app_to_role', implode(',', $toDelete), 'id');
-            }
-            if (!empty($apps)) {
-                $maps = array();
-                foreach ($apps as $app) {
-                    $appId = Utilities::getArrayValue('id', $app, '');
-                    $maps[] = array('app_id'=>$appId, 'role_id'=>$role_id);
-                }
-                $this->nativeDb->createSqlRecords('app_to_role', $maps);
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating apps to role assignment.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $role_id
-     * @param array $users
-     * @throws Exception
-     * @return void
-     */
-    protected function assignUsersToRole($role_id, $users=array())
-    {
-        if (empty($role_id)) {
-            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        try {
-            $oldUsers = User::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
-            foreach ($oldUsers as $oldUser) {
-                $oldId = $oldUser->primaryKey;
-                $found = false;
-                foreach ($users as $key=>$user) {
-                    $id = Utilities::getArrayValue('id', $user, '');
-                    if ($id == $oldId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($users[$key]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $oldUser->role_id = null;
-                    $oldUser->save();
-                    continue;
-                }
-            }
-            if (!empty($users)) {
-                // add what is leftover
-                foreach ($users as $user) {
-                    $id = Utilities::getArrayValue('id', $user, '');
-                    $newUser = User::model()->findByPk($id);
-                    if ($newUser) {
-                        $newUser->role_id = $role_id;
-                        $newUser->save();
-                    }
-                }
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
      * @param $role_id
      * @param array $accesses
      * @throws Exception
@@ -2104,6 +1941,119 @@ class SystemManager implements iRestHandler
         }
         catch (Exception $ex) {
             throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    // generic assignments
+    /**
+     * @param string $one_table
+     * @param string $one_id
+     * @param string $many_table
+     * @param string $many_field
+     * @param array $many_records
+     * @throws Exception
+     * @return void
+     */
+    protected function assignManyToOne($one_table, $one_id, $many_table, $many_field, $many_records=array())
+    {
+        $oneModel = static::getResourceModel($one_table);
+        $manyModel = static::getResourceModel($many_table);
+        if (empty($one_id)) {
+            throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $manyObj = static::getNewResource($many_table);
+            $pkField = $manyObj->tableSchema->primaryKey;
+            $oldMany = $manyModel->findAll($many_field .' = :oid', array(':oid'=>$one_id));
+            foreach ($oldMany as $old) {
+                $oldId = $old->primaryKey;
+                $found = false;
+                foreach ($many_records as $key=>$item) {
+                    $id = Utilities::getArrayValue($pkField, $item, '');
+                    if ($id == $oldId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($many_records[$key]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $old->setAttribute($many_field, null);
+                    $old->save();
+                    continue;
+                }
+            }
+            if (!empty($many_records)) {
+                // add what is leftover
+                foreach ($many_records as $item) {
+                    $id = Utilities::getArrayValue($pkField, $item, '');
+                    $assigned = $manyModel->findByPk($id);
+                    if ($assigned) {
+                        $assigned->setAttribute($many_field, $one_id);
+                        $assigned->save();
+                    }
+                }
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating many to one assignment.\n{$ex->getMessage()}", $ex->getCode());
+        }
+    }
+
+    /**
+     * @param $one_table
+     * @param $one_id
+     * @param $many_table
+     * @param $map_table
+     * @param $one_field
+     * @param $many_field
+     * @param array $many_records
+     * @throws Exception
+     * @return void
+     */
+    protected function assignManyToOneByMap($one_table, $one_id, $many_table, $map_table, $one_field, $many_field, $many_records=array())
+    {
+        if (empty($one_id)) {
+            throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $manyObj = static::getNewResource($many_table);
+            $pkManyField = $manyObj->tableSchema->primaryKey;
+            $pkMapField = 'id';
+            $maps = $this->nativeDb->retrieveSqlRecordsByFilter($map_table, $pkMapField.','.$many_field, "$one_field = '$one_id'");
+            $toDelete = array();
+            foreach ($maps as $map) {
+                $manyId = Utilities::getArrayValue($many_field, $map, '');
+                $id = Utilities::getArrayValue($pkMapField, $map, '');
+                $found = false;
+                foreach ($many_records as $key=>$item) {
+                    $assignId = Utilities::getArrayValue($pkManyField, $item, '');
+                    if ($assignId == $manyId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($many_records[$key]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $toDelete[] = $id;
+                    continue;
+                }
+            }
+            if (!empty($toDelete)) {
+                $this->nativeDb->deleteSqlRecordsByIds($map_table, implode(',', $toDelete), $pkMapField);
+            }
+            if (!empty($many_records)) {
+                $maps = array();
+                foreach ($many_records as $item) {
+                    $itemId = Utilities::getArrayValue($pkManyField, $item, '');
+                    $maps[] = array($many_field=>$itemId, $one_field=>$one_id);
+                }
+                $this->nativeDb->createSqlRecords($map_table, $maps);
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
