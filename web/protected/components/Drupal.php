@@ -59,7 +59,14 @@ class Drupal
 			$payload = json_encode( $payload );
 		}
 
-		return Curl::request( $method, static::Endpoint . $_url, $payload, $options );
+		$_response = Curl::request( $method, static::Endpoint . $_url, $payload, $options );
+
+		if ( $_response && isset( $_response->result ) )
+		{
+			return $_response->resultData;
+		}
+
+		return $_response;
 	}
 
 	/**
