@@ -388,7 +388,7 @@ class DbUtilities
                             (0 !== strcasecmp($tmpTable, $name)) && // not self-referencing table
                             (0 !== strcasecmp($parent_table, $name))) { // not same as parent, i.e. via reference back to self
                             // not the same key
-                            $related[] = array('name' => makePlural($tmpTable) .'_by_'. $name, 'type' => 'many_many',
+                            $related[] = array('name' => Utilities::makePlural($tmpTable) .'_by_'. $name, 'type' => 'many_many',
                                                'table' => $tmpTable, 'field' => $tmpField,
                                                'join' => "$name($key,$key2)");
                         }
