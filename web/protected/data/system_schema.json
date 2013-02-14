@@ -1,5 +1,5 @@
 {
-    "version": "0.2.0",
+    "version": "0.3.0",
 	"table": [
         {
             "name": "config",
@@ -96,6 +96,12 @@
                 },
                 {
                     "name": "is_sys_admin",
+                    "type": "boolean",
+                    "default": 0,
+                    "allow_null": false
+                },
+                {
+                    "name": "is_deleted",
                     "type": "boolean",
                     "default": 0,
                     "allow_null": false
@@ -245,6 +251,14 @@
                     "name": "component",
                     "type": "varchar",
                     "size": 80,
+                    "allow_null": false
+                },
+                {
+                    "name": "access",
+                    "type": "picklist",
+                    "size": 40,
+                    "value": [ "No Access", "Read Only", "Write Only", "Read and Write", "Full Access"],
+                    "default": "No Access",
                     "allow_null": false
                 },
                 {
@@ -571,6 +585,29 @@
                     "name": "role_id",
                     "type": "reference",
                     "ref_table": "role",
+                    "ref_fields": "id",
+                    "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "app_to_service",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "pk"
+                },
+                {
+                    "name": "app_id",
+                    "type": "reference",
+                    "ref_table": "app",
+                    "ref_fields": "id",
+                    "allow_null": false
+                },
+                {
+                    "name": "service_id",
+                    "type": "reference",
+                    "ref_table": "service",
                     "ref_fields": "id",
                     "allow_null": false
                 }

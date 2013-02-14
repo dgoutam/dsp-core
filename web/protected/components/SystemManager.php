@@ -20,7 +20,7 @@ class SystemManager implements iRestHandler
     /**
      *
      */
-    const INTERNAL_TABLES = 'config,label,role_service_access,session,app_to_app_group,app_to_role';
+    const INTERNAL_TABLES = 'config,label,role_service_access,session,app_to_app_group,app_to_role,app_to_service';
 
     // Members
 
