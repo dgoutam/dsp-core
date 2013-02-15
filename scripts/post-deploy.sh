@@ -34,7 +34,7 @@ fi
 
 if [ ! -d "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR}
-fi 
+fi
 
 if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	echo "Installing Composer"
@@ -43,6 +43,13 @@ else
 #	echo "Checking for Composer updates"
 	${PHP} ${INSTALL_DIR}/${COMPOSER} -q self-update
 fi
+
+##
+## Shutdown non-essential services
+##
+
+service apache2 stop
+service mysql stop
 
 ##
 ## Construct the various paths
@@ -123,5 +130,12 @@ chmod -R 2755 "${PUBLIC_DIR}"
 chmod -R 2775 "${ASSETS_DIR}"
 chmod -R 2775 "${LOG_DIR}"
 chmod -R 2775 "${STORAGE_DIR}"
+
+##
+## Restart non-essential services
+##
+
+service mysql start
+service apache2 start
 
 exit 0
