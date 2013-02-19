@@ -621,10 +621,10 @@
                     "type": "pk"
                 },
                 {
-                    "name": "service_id",
-                    "type": "reference",
-                    "ref_table": "service",
-                    "ref_fields": "id",
+                    "name": "service",
+                    "type": "nvarchar",
+                    "size": 128,
+                    "default": "",
                     "allow_null": true
                 },
                 {
@@ -642,13 +642,6 @@
                     "allow_null": true
                 },
                 {
-                    "name": "picklist",
-                    "type": "nvarchar",
-                    "size": 4000,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
                     "name": "label",
                     "type": "nvarchar",
                     "size": 128,
@@ -659,6 +652,20 @@
                     "name": "plural",
                     "type": "nvarchar",
                     "size": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "picklist",
+                    "type": "nvarchar",
+                    "size": 4000,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "validation",
+                    "type": "varchar",
+                    "size": 255,
                     "default": "",
                     "allow_null": true
                 }

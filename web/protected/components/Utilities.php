@@ -240,21 +240,76 @@ class Utilities
         return false;
     }
 
-    public static function makeLabel($name)
+    public static function labelize($name)
     {
         return ucwords(str_replace('_', ' ', $name));
     }
 
-    public static function makePlural($word)
+    /**
+     * Pluralizes English nouns.
+     * @author Bermi Ferrer Martinez
+     * @copyright Copyright (c) 2002-2006, Akelos Media, S.L. http://www.akelos.org
+     * @license GNU Lesser General Public License
+     * @since 0.1
+     * @version $Revision 0.1 $
+     *
+     * @access public
+     * @static
+     * @param    string    $word    English noun to pluralize
+     * @return string Plural noun
+     */
+    public static function pluralize($word)
     {
-        if (empty($word))
-            return '';
-        if (0 === strcasecmp($word, 'child'))
-            return $word . 'ren';
-        if ('y' === substr($word, -1)) {
-            return substr($word, 0, -1) . 'ies';
+        $plural = array(
+            '/(quiz)$/i' => '1zes',
+            '/^(ox)$/i' => '1en',
+            '/([m|l])ouse$/i' => '1ice',
+            '/(matr|vert|ind)ix|ex$/i' => '1ices',
+            '/(x|ch|ss|sh)$/i' => '1es',
+            '/([^aeiouy]|qu)ies$/i' => '1y',
+            '/([^aeiouy]|qu)y$/i' => '1ies',
+            '/(hive)$/i' => '1s',
+            '/(?:([^f])fe|([lr])f)$/i' => '12ves',
+            '/sis$/i' => 'ses',
+            '/([ti])um$/i' => '1a',
+            '/(buffal|tomat)o$/i' => '1oes',
+            '/(bu)s$/i' => '1ses',
+            '/(alias|status)/i'=> '1es',
+            '/(octop|vir)us$/i'=> '1i',
+            '/(ax|test)is$/i'=> '1es',
+            '/s$/i'=> 's',
+            '/$/'=> 's');
+
+        $uncountable = array('equipment', 'information', 'rice', 'money', 'species', 'series', 'fish', 'sheep', 'deer');
+
+        $irregular = array(
+            'person' => 'people',
+            'man' => 'men',
+            'woman' => 'women',
+            'child' => 'children',
+            'sex' => 'sexes');
+
+        $lowercased_word = strtolower($word);
+
+        foreach ($uncountable as $_uncountable){
+            if(substr($lowercased_word,(-1*strlen($_uncountable))) == $_uncountable){
+                return $word;
+            }
         }
-        return $word . 's';
+
+        foreach ($irregular as $_plural=> $_singular){
+            if (preg_match('/('.$_plural.')$/i', $word, $arr)) {
+                return preg_replace('/('.$_plural.')$/i', substr($arr[0],0,1).substr($_singular,1), $word);
+            }
+        }
+
+        foreach ($plural as $rule => $replacement) {
+            if (preg_match($rule, $word)) {
+                return preg_replace($rule, $replacement, $word);
+            }
+        }
+        return false;
+
     }
 
     public static function arrayToXml($root, $array, $level = 1, $format = true)
@@ -263,7 +318,7 @@ class Utilities
         if (static::isArrayNumeric($array)){
             if (!empty($root)) {
                 if ($format) $xml .= str_repeat("\t", $level-1);
-                $xml .= "<" . static::makePlural($root) . ">";
+                $xml .= "<" . static::pluralize($root) . ">";
                 if ($format) $xml .= "\n";
             }
             foreach ($array as $key => $value) {
@@ -271,7 +326,7 @@ class Utilities
             }
             if (!empty($root)) {
                 if ($format) $xml .= "\n" . str_repeat("\t", $level-1);
-                $xml .= "</" . static::makePlural($root) . ">";
+                $xml .= "</" . static::pluralize($root) . ">";
                 if ($format) $xml .= "\n";
             }
         }

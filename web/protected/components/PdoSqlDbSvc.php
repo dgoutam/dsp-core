@@ -1122,7 +1122,8 @@ class PdoSqlDbSvc
      * @throws Exception
      */
     public function retrieveSqlRecordsByFilter($table, $fields = '', $filter = '',
-                                               $limit = 0, $order = '', $offset = 0, $include_count = false)
+                                               $limit = 0, $order = '', $offset = 0,
+                                               $include_count = false)
     {
         $table = $this->correctTableName($table);
         try {
@@ -1183,13 +1184,7 @@ class PdoSqlDbSvc
                 if (!empty($filter)) {
                     $command->where($filter);
                 }
-                $reader = $command->query();
-                $count = 0;
-                $reader->bindColumn('count', $count, PDO::PARAM_INT);
-                $reader->setFetchMode(PDO::FETCH_BOUND);
-                if ($row = $reader->read()) {
-                    $data['count'] = $count;
-                }
+                $data['count'] = intval($command->queryScalar());
             }
 
             Utilities::markTimeStop('DB_TIME');
