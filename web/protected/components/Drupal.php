@@ -63,7 +63,10 @@ class Drupal
 
 		if ( $_response && isset( $_response->result ) )
 		{
-			return $_response->resultData;
+			if ( isset( $_response->resultData ) )
+			{
+				return $_response->resultData;
+			}
 		}
 
 		return $_response;
