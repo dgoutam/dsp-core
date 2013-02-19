@@ -123,7 +123,7 @@ class ApplicationSvc extends CommonFileSvc
             if (!empty($tables) && $include_schema) {
                 // add related/required database table schemas
                 // todo assuming which service this came from
-                $db = ServiceHandler::getInstance()->getServiceObject('db');
+                $db = ServiceHandler::getInstance()->getServiceObject('schema');
                 $schema = $db->describeTables($tables);
                 if (!$zip->addFromString('schema.json', json_encode($schema))) {
                     throw new Exception("Can not include database schema files in package file.");
@@ -220,8 +220,7 @@ class ApplicationSvc extends CommonFileSvc
         if (false === $data) {
             throw new Exception('No application description file in this package file.');
         }
-        $data = Utilities::jsonToArray($data);
-        $record = array('fields' => $data);
+        $record = Utilities::jsonToArray($data);
         $sys = SystemManager::getInstance();
         try {
             $result = $sys->createRecord('app', $record, 'id,name');
@@ -229,8 +228,8 @@ class ApplicationSvc extends CommonFileSvc
         catch (Exception $ex) {
             throw new Exception("Could not create the application.\n{$ex->getMessage()}");
         }
-        $id = (isset($result['fields']['id'])) ? $result['fields']['id'] : '';
-        $name = (isset($result['fields']['name'])) ? $result['fields']['name'] : '';
+        $id = (isset($result['id'])) ? $result['id'] : '';
+        $name = (isset($result['name'])) ? $result['name'] : '';
         $zip->deleteName('description.json');
         try {
             $data = $zip->getFromName('schema.json');
@@ -291,8 +290,7 @@ class ApplicationSvc extends CommonFileSvc
      */
     public function importAppFromZip($name, $zip_file)
     {
-        $data = array('name'=>$name, 'label'=>$name, 'is_url_external'=>0, 'url'=>'/index.html');
-        $record = array('fields' => $data);
+        $record = array('name'=>$name, 'label'=>$name, 'is_url_external'=>0, 'url'=>'/index.html');
         $sys = SystemManager::getInstance();
         try {
             $result = $sys->createRecord('app', $record);
@@ -300,7 +298,7 @@ class ApplicationSvc extends CommonFileSvc
         catch (Exception $ex) {
             throw new Exception("Could not create the database entry for this application.\n{$ex->getMessage()}");
         }
-        $id = (isset($result['fields']['id'])) ? $result['fields']['id'] : '';
+        $id = (isset($result['id'])) ? $result['id'] : '';
 
         $zip = new ZipArchive();
         if (true === $zip->open($zip_file)) {

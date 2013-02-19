@@ -389,13 +389,8 @@ class SystemManager implements iRestHandler
                                 }
                                 if (!empty($records)) {
                                     // passing records to have them updated with new or more values, id field required
+                                    // for single record and no id field given, get records matching given fields
                                     $result = $this->retrieveRecords($this->modelName, $records, $fields, $extras);
-                                }
-                                elseif (isset($data['fields']) && !empty($data['fields'])) {
-                                    // passing record to have it updated with new or more values,
-                                    // if id field given, single record retrieved, otherwise get records matching
-                                    // given fields
-                                    $result = $this->retrieveRecord($this->modelName, $data, $fields, $extras);
                                 }
                                 else { // if not specified use filter
                                     $filter = Utilities::getArrayValue('filter', $data, '');
@@ -462,8 +457,7 @@ class SystemManager implements iRestHandler
                     $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                 }
                 if (empty($records)) {
-                    $single = Utilities::getArrayValue('fields', $data, array());
-                    if (empty($single)) {
+                    if (empty($data)) {
                         throw new Exception('No record in POST create request.', ErrorCodes::BAD_REQUEST);
                     }
                     $result = $this->createRecord($this->modelName, $data, $fields);
@@ -526,8 +520,7 @@ class SystemManager implements iRestHandler
                             $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                         }
                         if (empty($records)) {
-                            $single = Utilities::getArrayValue('fields', $data, array());
-                            if (empty($single)) {
+                            if (empty($data)) {
                                 throw new Exception('No record in PUT update request.', ErrorCodes::BAD_REQUEST);
                             }
                             $result = $this->updateRecord($this->modelName, $data, $fields);
@@ -591,8 +584,7 @@ class SystemManager implements iRestHandler
                             $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                         }
                         if (empty($records)) {
-                            $single = Utilities::getArrayValue('fields', $data, array());
-                            if (empty($single)) {
+                            if (empty($data)) {
                                 throw new Exception('No record in MERGE update request.', ErrorCodes::BAD_REQUEST);
                             }
                             $result = $this->updateRecord($this->modelName, $data, $fields);
@@ -652,8 +644,7 @@ class SystemManager implements iRestHandler
                             $records = (isset($data['records']['record'])) ? $data['records']['record'] : null;
                         }
                         if (empty($records)) {
-                            $single = Utilities::getArrayValue('fields', $data, array());
-                            if (empty($single)) {
+                            if (empty($data)) {
                                 throw new Exception("Id list or record containing Id field required to delete $this->modelName records.", ErrorCodes::BAD_REQUEST);
                             }
                             $result = $this->deleteRecord($this->modelName, $data, $fields);
@@ -761,15 +752,14 @@ class SystemManager implements iRestHandler
      */
     protected function createRecordLow($table, $record, $return_fields = '')
     {
-        $fields = Utilities::getArrayValue('fields', $record);
-        if (empty($fields)) {
+        if (empty($record)) {
             throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
         }
         $model = static::getResourceModel($table);
         try {
             // create DB record
             $obj = static::getNewResource($table);
-            $obj->setAttributes($fields);
+            $obj->setAttributes($record);
             if (!$obj->save()) {
                 $msg = '';
                 if ($obj->hasErrors()) {
@@ -792,8 +782,8 @@ class SystemManager implements iRestHandler
             // old relations
             switch (strtolower($table)) {
             case 'app_group':
-                if (isset($fields['app_ids'])) {
-                    $appIds = $fields['app_ids'];
+                if (isset($record['app_ids'])) {
+                    $appIds = $record['app_ids'];
                     $this->assignAppGroups($id, $appIds);
                 }
                 break;
@@ -803,9 +793,9 @@ class SystemManager implements iRestHandler
                     $override = Utilities::boolval(Utilities::getArrayValue('override', $record['users'], false));
                     $this->assignRole($id, $users, $override);
                 }
-                if (isset($fields['services'])) {
+                if (isset($record['services'])) {
                     try {
-                        $services = $fields['services'];
+                        $services = $record['services'];
                         $this->assignServiceAccess($id, $services);
                     }
                     catch (Exception $ex) {
@@ -817,44 +807,44 @@ class SystemManager implements iRestHandler
             // new relations
             switch (strtolower($table)) {
             case 'app':
-                if (isset($fields['app_groups'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $fields['app_groups']);
+                if (isset($record['app_groups'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
                 }
                 break;
             case 'app_group':
-                if (isset($fields['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $fields['apps']);
+                if (isset($record['apps'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $record['apps']);
                 }
                 break;
             case 'role':
-                if (isset($fields['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $fields['apps']);
+                if (isset($record['apps'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
                 }
-                if (isset($fields['users'])) {
-                    $this->assignManyToOne($table, $id, 'user', 'role_id', $fields['users']);
+                if (isset($record['users'])) {
+                    $this->assignManyToOne($table, $id, 'user', 'role_id', $record['users']);
                 }
-                if (isset($fields['role_service_accesses'])) {
-                    $this->assignRoleServiceAccesses($id, $fields['role_service_accesses']);
+                if (isset($record['role_service_accesses'])) {
+                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
                 }
                 break;
             }
             /*
             $relations = $obj->relations();
             foreach ($relations as $key=>$related) {
-                if (isset($fields[$key])) {
+                if (isset($record[$key])) {
                     switch ($related[0]) {
                     case CActiveRecord::HAS_MANY:
-                        $this->assignManyToOne($table, $id, $related[1], $related[2], $fields[$key]);
+                        $this->assignManyToOne($table, $id, $related[1], $related[2], $record[$key]);
                         break;
                     case CActiveRecord::MANY_MANY:
-                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $fields[$key]);
+                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $record[$key]);
                         break;
                     }
                 }
             }
             */
 
-            return array('fields' => $data);
+            return $data;
         }
         catch (Exception $ex) {
             // need to delete the above table entry and clean up
@@ -926,8 +916,7 @@ class SystemManager implements iRestHandler
      */
     protected function updateRecordLow($table, $id, $record, $return_fields = '')
     {
-        $fields = Utilities::getArrayValue('fields', $record, array());
-        if (empty($fields)) {
+        if (empty($record)) {
             throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
         }
         if (empty($id)) {
@@ -939,17 +928,17 @@ class SystemManager implements iRestHandler
             throw new Exception("Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND);
         }
         try {
-            $fields = Utilities::removeOneFromArray('id', $fields);
+            $record = Utilities::removeOneFromArray('id', $record);
             // todo move this to model rules
-            if (isset($fields['password'])) {
-                $obj->setAttribute('password', CPasswordHelper::hashPassword($fields['password']));
-                unset($fields['password']);
+            if (isset($record['password'])) {
+                $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
+                unset($record['password']);
             }
-            if (isset($fields['security_answer'])) {
-                $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($fields['security_answer']));
-                unset($fields['security_answer']);
+            if (isset($record['security_answer'])) {
+                $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
+                unset($record['security_answer']);
             }
-            $obj->setAttributes($fields);
+            $obj->setAttributes($record);
             if (!$obj->save()) {
                 error_log(print_r($obj->errors, true));
                 $msg = '';
@@ -967,8 +956,8 @@ class SystemManager implements iRestHandler
             // old relations
             switch (strtolower($table)) {
             case 'app_group':
-                if (isset($fields['app_ids'])) {
-                    $appIds = $fields['app_ids'];
+                if (isset($record['app_ids'])) {
+                    $appIds = $record['app_ids'];
                     $this->assignAppGroups($id, $appIds, true);
                 }
                 break;
@@ -982,9 +971,9 @@ class SystemManager implements iRestHandler
                     $users = $record['users']['unassign'];
                     $this->unassignRole($id, $users);
                 }
-                if (isset($fields['services'])) {
+                if (isset($record['services'])) {
                     try {
-                        $services = $fields['services'];
+                        $services = $record['services'];
                         $this->assignServiceAccess($id, $services);
                     }
                     catch (Exception $ex) {
@@ -996,44 +985,44 @@ class SystemManager implements iRestHandler
             // new relations
             switch (strtolower($table)) {
             case 'app':
-                if (isset($fields['app_groups'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $fields['app_groups']);
+                if (isset($record['app_groups'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
                 }
                 break;
             case 'app_group':
-                if (isset($fields['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $fields['apps']);
+                if (isset($record['apps'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $record['apps']);
                 }
                 break;
             case 'role':
-                if (isset($fields['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $fields['apps']);
+                if (isset($record['apps'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
                 }
-                if (isset($fields['users'])) {
-                    $this->assignManyToOne($table, $id, 'user', 'role_id', $fields['users']);
+                if (isset($record['users'])) {
+                    $this->assignManyToOne($table, $id, 'user', 'role_id', $record['users']);
                 }
-                if (isset($fields['role_service_accesses'])) {
-                    $this->assignRoleServiceAccesses($id, $fields['role_service_accesses']);
+                if (isset($record['role_service_accesses'])) {
+                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
                 }
                 break;
             }
             /*
             $relations = $obj->relations();
             foreach ($relations as $key=>$related) {
-                if (isset($fields[$key])) {
+                if (isset($record[$key])) {
                     switch ($related[0]) {
                     case CActiveRecord::HAS_MANY:
-                        $this->assignManyToOne($table, $id, $related[1], $related[2], $fields[$key]);
+                        $this->assignManyToOne($table, $id, $related[1], $related[2], $record[$key]);
                         break;
                     case CActiveRecord::MANY_MANY:
-                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $fields[$key]);
+                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $record[$key]);
                         break;
                     }
                 }
             }
             */
 
-            return array('fields' => $data);
+            return $data;
         }
         catch (Exception $ex) {
             throw $ex;
@@ -1065,7 +1054,7 @@ class SystemManager implements iRestHandler
         foreach ($records as $record) {
             try {
                 // todo this needs to use $model->getPrimaryKey()
-                $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields']) : '';
+                $id = Utilities::getArrayValue('id', $record, '');
                 $out[] = $this->updateRecordLow($table, $id, $record, $return_fields);
             }
             catch (Exception $ex) {
@@ -1088,12 +1077,12 @@ class SystemManager implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
-        if (!isset($record['fields']) || empty($record['fields'])) {
+        if (!isset($record) || empty($record)) {
             throw new Exception('There is no record in the request.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('update', 'system', $table);
         // todo this needs to use $model->getPrimaryKey()
-        $id = Utilities::getArrayValue('id', $record['fields']);
+        $id = Utilities::getArrayValue('id', $record, '');
         return $this->updateRecordLow($table, $id, $record, $return_fields);
     }
 
@@ -1181,7 +1170,7 @@ class SystemManager implements iRestHandler
             $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
 
-            return array('fields' => $data);
+            return $data;
         }
         catch (Exception $ex) {
             throw $ex;
@@ -1207,10 +1196,10 @@ class SystemManager implements iRestHandler
         }
         $out = array();
         foreach ($records as $record) {
-            if (!isset($record['fields']) || empty($record['fields'])) {
+            if (!isset($record) || empty($record)) {
                 throw new Exception('There are no fields in the record set.', ErrorCodes::BAD_REQUEST);
             }
-            $id = $record['fields']['id'];
+            $id = Utilities::getArrayValue('id', $record, '');
             try {
                 $out[] = $this->deleteRecordLow($table, $id, $return_fields);
             }
@@ -1231,10 +1220,10 @@ class SystemManager implements iRestHandler
      */
     public function deleteRecord($table, $record, $return_fields = '')
     {
-        if (!isset($record['fields']) || empty($record['fields'])) {
+        if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
-        $id = $record['fields']['id'];
+        $id = Utilities::getArrayValue('id', $record, '');
         return $this->deleteRecordById($table, $id, $return_fields);
     }
 
@@ -1291,16 +1280,24 @@ class SystemManager implements iRestHandler
      */
     public function retrieveRecords($table, $records, $return_fields = '', $extras = array())
     {
-        $ids = array();
-        foreach ($records as $key => $record) {
-            $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields'], '') : '';
-            if (empty($id)) {
-                throw new Exception("Identifying field 'id' can not be empty for retrieve record [$key] request.");
+        if (isset($records[0])) {
+            // an array of records
+            $ids = array();
+            foreach ($records as $key => $record) {
+                $id = Utilities::getArrayValue('id', $record, '');
+                if (empty($id)) {
+                    throw new Exception("Identifying field 'id' can not be empty for retrieve record [$key] request.");
+                }
+                $ids[] = $id;
             }
-            $ids[] = $id;
+            $idList = implode(',', $ids);
+            return $this->retrieveRecordsByIds($table, $idList, $return_fields, $extras);
         }
-        $idList = implode(',', $ids);
-        return $this->retrieveRecordsByIds($table, $idList, $return_fields, $extras);
+        else {
+            // single record
+            $id = Utilities::getArrayValue('id', $records, '');
+            return $this->retrieveRecordById($table, $id, $return_fields, $extras);
+        }
     }
 
     /**
@@ -1313,7 +1310,7 @@ class SystemManager implements iRestHandler
      */
     public function retrieveRecord($table, $record, $return_fields = '', $extras = array())
     {
-        $id = (isset($record['fields'])) ? Utilities::getArrayValue('id', $record['fields'], '') : '';
+        $id = Utilities::getArrayValue('id', $record, '');
         return $this->retrieveRecordById($table, $id, $return_fields, $extras);
     }
 
@@ -1411,7 +1408,7 @@ class SystemManager implements iRestHandler
                     break;
                 }
 
-                $out[] = array('fields' => $data);
+                $out[] = $data;
             }
 
             $results = array('record' => $out);
@@ -1505,7 +1502,7 @@ class SystemManager implements iRestHandler
                     break;
                 }
 
-                $ids[$key] = array('fields' => $data);
+                $ids[$key] = $data;
             }
             foreach ($ids as $key=>$id) {
                 if (!is_array($id)) {
@@ -1592,7 +1589,7 @@ class SystemManager implements iRestHandler
                 break;
             }
 
-            return array('fields' => $data);
+            return $data;
         }
         catch (Exception $ex) {
             throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
