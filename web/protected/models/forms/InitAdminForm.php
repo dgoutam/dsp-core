@@ -8,12 +8,12 @@
 class InitAdminForm extends CFormModel
 {
 	public $username;
-    public $password;
-    public $passwordRepeat;
+	public $password;
+	public $passwordRepeat;
 	public $email;
-    public $firstName;
-    public $lastName;
-    public $displayName;
+	public $firstName;
+	public $lastName;
+	public $displayName;
 
 	/**
 	 * Declares the validation rules.
@@ -22,12 +22,12 @@ class InitAdminForm extends CFormModel
 	{
 		return array(
 			// names, password, and email are required
-			array('username, password, email, lastName, firstName', 'required'),
-            // password repeat must match password
-            array('passwordRepeat', 'required'),
-            array('password', 'compare', 'compareAttribute'=>'passwordRepeat'),
-            // email has to be a valid email address
-			array('email', 'email'),
+			array( 'username, password, passwordRepeat, email, lastName, firstName', 'required' ),
+			// password repeat must match password
+			array( 'passwordRepeat', 'required' ),
+			array( 'passwordRepeat', 'compare', 'compareAttribute' => 'password' ),
+			// email has to be a valid email address
+			array( 'email', 'email' ),
 		);
 	}
 
@@ -39,13 +39,13 @@ class InitAdminForm extends CFormModel
 	public function attributeLabels()
 	{
 		return array(
-            'username'=>'Desired UserName',
-            'password'=>'Desired Password',
-            'passwordRepeat'=>'Verify Password',
-            'firstName'=>'First Name',
-            'lastName'=>'Last Name',
-            'displayName'=>'Display Name',
-            'email'=>'Email Address',
+			'username'       => 'Desired UserName',
+			'password'       => 'Desired Password',
+			'passwordRepeat' => 'Verify Password',
+			'firstName'      => 'First Name',
+			'lastName'       => 'Last Name',
+			'displayName'    => 'Display Name',
+			'email'          => 'Email Address',
 		);
 	}
 
