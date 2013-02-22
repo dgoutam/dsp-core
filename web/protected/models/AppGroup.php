@@ -126,7 +126,7 @@ class AppGroup extends CActiveRecord
      */
     protected function beforeSave()
     {
-        $userId = SessionManager::getCurrentUserId();
+        // until db's get their timestamp act together
         switch (DbUtilities::getDbDriverType($this->dbConnection)) {
         case DbUtilities::DRV_SQLSRV:
             $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
@@ -138,9 +138,14 @@ class AppGroup extends CActiveRecord
         }
         if ($this->isNewRecord) {
             $this->created_date = $dateTime;
-            $this->created_by_id = $userId;
         }
         $this->last_modified_date = $dateTime;
+
+        // set user tracking
+        $userId = SessionManager::getCurrentUserId();
+        if ($this->isNewRecord) {
+            $this->created_by_id = $userId;
+        }
         $this->last_modified_by_id = $userId;
 
         return parent::beforeSave();

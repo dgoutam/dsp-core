@@ -441,7 +441,7 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
-            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -491,7 +491,7 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
-            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -555,7 +555,7 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
-            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -618,7 +618,7 @@ class SystemManager implements iRestHandler
         try {
             $this->detectCommonParams();
             // Most requests contain 'returned fields' parameter
-            $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
+            $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -793,9 +793,9 @@ class SystemManager implements iRestHandler
                     $override = Utilities::boolval(Utilities::getArrayValue('override', $record['users'], false));
                     $this->assignRole($id, $users, $override);
                 }
-                if (isset($record['services'])) {
+                if (isset($record['accesses'])) {
                     try {
-                        $services = $record['services'];
+                        $services = $record['accesses'];
                         $this->assignServiceAccess($id, $services);
                     }
                     catch (Exception $ex) {
@@ -810,6 +810,9 @@ class SystemManager implements iRestHandler
                 if (isset($record['app_groups'])) {
                     $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
                 }
+                if (isset($record['roles'])) {
+                    $this->assignManyToOneByMap($table, $id, 'role', 'app_to_role', 'app_id', 'role_id', $record['roles']);
+                }
                 break;
             case 'app_group':
                 if (isset($record['apps'])) {
@@ -817,14 +820,25 @@ class SystemManager implements iRestHandler
                 }
                 break;
             case 'role':
+                if (isset($record['role_service_accesses'])) {
+                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
+                }
                 if (isset($record['apps'])) {
                     $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
                 }
                 if (isset($record['users'])) {
                     $this->assignManyToOne($table, $id, 'user', 'role_id', $record['users']);
                 }
-                if (isset($record['role_service_accesses'])) {
-                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
+                if (isset($record['services'])) {
+                    $this->assignManyToOneByMap($table, $id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
+                }
+                break;
+            case 'service':
+                if (isset($record['apps'])) {
+                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_service', 'service_id', 'app_id', $record['apps']);
+                }
+                if (isset($record['roles'])) {
+                    $this->assignManyToOneByMap($table, $id, 'role', 'role_service_access', 'service_id', 'role_id', $record['roles']);
                 }
                 break;
             }
@@ -971,9 +985,9 @@ class SystemManager implements iRestHandler
                     $users = $record['users']['unassign'];
                     $this->unassignRole($id, $users);
                 }
-                if (isset($record['services'])) {
+                if (isset($record['accesses'])) {
                     try {
-                        $services = $record['services'];
+                        $services = $record['accesses'];
                         $this->assignServiceAccess($id, $services);
                     }
                     catch (Exception $ex) {
@@ -988,6 +1002,9 @@ class SystemManager implements iRestHandler
                 if (isset($record['app_groups'])) {
                     $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
                 }
+                if (isset($record['roles'])) {
+                    $this->assignManyToOneByMap($table, $id, 'role', 'app_to_role', 'app_id', 'role_id', $record['roles']);
+                }
                 break;
             case 'app_group':
                 if (isset($record['apps'])) {
@@ -995,14 +1012,17 @@ class SystemManager implements iRestHandler
                 }
                 break;
             case 'role':
+                if (isset($record['role_service_accesses'])) {
+                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
+                }
                 if (isset($record['apps'])) {
                     $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
                 }
                 if (isset($record['users'])) {
                     $this->assignManyToOne($table, $id, 'user', 'role_id', $record['users']);
                 }
-                if (isset($record['role_service_accesses'])) {
-                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
+                if (isset($record['services'])) {
+                    $this->assignManyToOneByMap($table, $id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
                 }
                 break;
             }
@@ -1395,7 +1415,7 @@ class SystemManager implements iRestHandler
                 // todo temp backward compatibility
                 switch (strtolower($table)) {
                 case 'role':
-                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
+                    if (('*' == $return_fields) || (false !== array_search('accesses', $return_fields))) {
                         $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                         $pk = $record->primaryKey;
                         $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
@@ -1403,7 +1423,7 @@ class SystemManager implements iRestHandler
                         foreach ($rsa as $access) {
                             $perms[] = $access->getAttributes($permFields);
                         }
-                        $data['services'] = $perms;
+                        $data['accesses'] = $perms;
                     }
                     break;
                 }
@@ -1489,7 +1509,7 @@ class SystemManager implements iRestHandler
                 // todo temp backward compatibility
                 switch (strtolower($table)) {
                 case 'role':
-                    if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
+                    if (('*' == $return_fields) || (false !== array_search('accesses', $return_fields))) {
                         $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                         $pk = $record->primaryKey;
                         $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
@@ -1497,7 +1517,7 @@ class SystemManager implements iRestHandler
                         foreach ($rsa as $access) {
                             $perms[] = $access->getAttributes($permFields);
                         }
-                        $data['services'] = $perms;
+                        $data['accesses'] = $perms;
                     }
                     break;
                 }
@@ -1576,7 +1596,7 @@ class SystemManager implements iRestHandler
             // todo temp backward compatibility
             switch (strtolower($table)) {
             case 'role':
-                if (('*' == $return_fields) || (false !== array_search('services', $return_fields))) {
+                if (('*' == $return_fields) || (false !== array_search('accesses', $return_fields))) {
                     $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
                     $pk = $record->primaryKey;
                     $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
@@ -1584,7 +1604,7 @@ class SystemManager implements iRestHandler
                     foreach ($rsa as $access) {
                         $perms[] = $access->getAttributes($permFields);
                     }
-                    $data['services'] = $perms;
+                    $data['accesses'] = $perms;
                 }
                 break;
             }

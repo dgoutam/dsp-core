@@ -298,6 +298,7 @@ class DbUtilities
             if (empty($label)) {
                 $label = Utilities::labelize($column->name);
             }
+            $validation = Utilities::getArrayValue('validation', $label_info, '');
             $picklist = Utilities::getArrayValue('picklist', $label_info, '');
             $picklist = (!empty($picklist)) ? explode("/n", $picklist) : array();
             $refTable = '';
@@ -309,21 +310,23 @@ class DbUtilities
             }
             return array('name' => $column->name,
                          'label'=> $label,
-                         'size' => intval($column->size),
+                         'type' => static::determineDfType($column),
+                         'db_type' => $column->dbType,
+                         'length' => intval($column->size),
                          'precision' => intval($column->precision),
                          'scale' => intval($column->scale),
                          'default' => $column->defaultValue,
                          'required' => static::determineRequired($column),
                          'allow_null' => $column->allowNull,
-                         'values' => $picklist,
-                         'supports_multi_byte' => static::determineMultiByteSupport($column->dbType),
-                         'type' => static::determineDfType($column, $label_info),
-                         'db_type' => $column->dbType,
+                         'fixed_length' => static::determineIfFixedLength($column->dbType),
+                         'supports_multibyte' => static::determineMultiByteSupport($column->dbType),
                          'auto_increment' => $column->autoIncrement,
                          'is_primary_key' => $column->isPrimaryKey,
                          'is_foreign_key' => $column->isForeignKey,
                          'ref_table' => $refTable,
-                         'ref_fields' => $refFields
+                         'ref_fields' => $refFields,
+                         'validation' => $validation,
+                         'values' => $picklist
             );
         }
         catch (Exception $ex) {
@@ -380,29 +383,11 @@ class DbUtilities
 
     /**
      * @param $column
-     * @param array $info
      * @return string
      */
-    protected static function determineDfType($column, $info = array())
+    protected static function determineDfType($column)
     {
         switch ($column->type) {
-        case 'string':
-            $validation = Utilities::getArrayValue('validation', $info);
-            if (isset($info['picklist']) && !empty($info['picklist'])) {
-                if (0 === strcasecmp('multiple', $validation))
-                    return 'multipicklist';
-                return 'picklist';
-            }
-            switch ($validation) {
-            case 'email':
-                return 'email';
-            case 'url':
-                return 'url';
-            default:
-                if ('phone' === substr($validation, 0, 5))
-                    return 'phone';
-            }
-            break;
         case 'integer':
             if ($column->isPrimaryKey && $column->autoIncrement) {
                 return 'id';
@@ -430,6 +415,23 @@ class DbUtilities
         switch ($type) {
         case 'nchar':
         case 'nvarchar':
+            return true;
+        default:
+            return false;
+        }
+    }
+
+
+    /**
+     * @param $type
+     * @return bool
+     */
+    protected static function determineIfFixedLength($type)
+    {
+        switch ($type) {
+        case 'char':
+        case 'nchar':
+        case 'binary':
             return true;
         default:
             return false;
@@ -525,24 +527,15 @@ class DbUtilities
         }
 
         try {
-            $definition = Utilities::getArrayValue('definition', $field, '');
-            if (!empty($definition)) {
-                // raw definition, just pass it on
-                return $definition;
+            $sql = Utilities::getArrayValue('sql', $field, '');
+            if (!empty($sql)) {
+                // raw sql definition, just pass it on
+                return $sql;
             }
             $type = Utilities::getArrayValue('type', $field, '');
             if (empty($type)) {
-                throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no type element.");
+                throw new Exception("Invalid schema detected - no type element.");
             }
-            $allowNull = Utilities::getArrayValue('allow_null', $field, true);
-            $length = Utilities::getArrayValue('length', $field, null);
-            if (!isset($length)) {
-                $length = Utilities::getArrayValue('size', $field, null);
-            }
-            $default = Utilities::getArrayValue('default', $field, null);
-            $quoteDefault = false;
-            $isPrimaryKey = Utilities::getArrayValue('is_primary_key', $field, false);
-
             /* abstract types handled by yii directly for each driver type
 
                 pk: a generic primary key type, will be converted into int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY for MySQL;
@@ -559,15 +552,203 @@ class DbUtilities
                 boolean: boolean type, will be converted into tinyint(1) for MySQL;
                 money: money/currency type, will be converted into decimal(19,4) for MySQL.
             */
+
+            if ((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type))) {
+                return 'pk'; // simple primary key
+            }
+
+            $allowNull = Utilities::getArrayValue('allow_null', $field, true);
+            $length = Utilities::getArrayValue('length', $field, null);
+            if (!isset($length)) {
+                $length = Utilities::getArrayValue('size', $field, null); // alias
+            }
+            $default = Utilities::getArrayValue('default', $field, null);
+            $quoteDefault = false;
+            $isPrimaryKey = Utilities::getArrayValue('is_primary_key', $field, false);
+
             switch (strtolower($type)) {
-                // handle non-abstract types here
-            case 'id':
-                // if no other specifics use yii abstract type
-                $definition = 'pk';
-                $allowNull = true; // override addition below
-                $isPrimaryKey = false; // override addition below
+            // some types need massaging, some need other required properties
+            case "reference":
+                $definition = 'int';
                 break;
-                // date and time fields
+            // numbers
+            case 'bool': // alias
+            case 'boolean': // alias
+                $definition = 'boolean';
+                // convert to bit 0 or 1
+                $default = (isset($default)) ? intval(Utilities::boolval($default)) : $default;
+                break;
+            case 'tinyint':
+            case 'smallint':
+            case 'mediumint':
+            case 'int':
+            case 'bigint':
+            case 'integer':
+                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type) && ('mediumint' == $type)) ? 'int' : $type;
+                if (isset($length)) {
+                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length <= 255) && ($length > 0)) {
+                        $definition .= '('.intval($length).')'; // sets the viewable length
+                    }
+                }
+                // convert to int
+                $default = (isset($default)) ? intval($default) : $default;
+                break;
+            case 'decimal':
+            case 'numeric': // alias
+            case 'number':  // alias
+            case 'percent': // alias
+                $definition = 'decimal';
+                if (!isset($length)) {
+                    $length = Utilities::getArrayValue('precision', $field, null); // alias
+                }
+                if (isset($length)) {
+                    $length = intval($length);
+                    if (((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65)) ||
+                        ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 38))) {
+                        throw new Exception("Decimal precision '$length' is out of valid range.");
+                    }
+                    $scale = Utilities::getArrayValue('scale', $field, null);
+                    if (empty($scale)) {
+                        $scale = Utilities::getArrayValue('decimals', $field, null); // alias
+                    }
+                    if (!empty($scale)) {
+                        if (((DbUtilities::DRV_MYSQL === $driver_type) && ($scale > 30)) ||
+                            ((DbUtilities::DRV_SQLSRV === $driver_type) && ($scale > 18)) ||
+                            ($scale > $length)) {
+                            throw new Exception("Decimal scale '$scale' is out of valid range.");
+                        }
+                        $definition .= "($length,$scale)";
+                    }
+                    else {
+                        $definition .= "($length)";
+                    }
+                }
+                // convert to float
+                $default = (isset($default)) ? floatval($default) : $default;
+                break;
+            case 'float':
+            case 'double':
+                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'float' : $type;
+                if (!isset($length)) {
+                    $length = Utilities::getArrayValue('precision', $field, null); // alias
+                }
+                if (isset($length)) {
+                    $length = intval($length);
+                    if (((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 53)) ||
+                        ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 38))) {
+                        throw new Exception("Decimal precision '$length' is out of valid range.");
+                    }
+                    $scale = Utilities::getArrayValue('scale', $field, null);
+                    if (empty($scale)) {
+                        $scale = Utilities::getArrayValue('decimals', $field, null); // alias
+                    }
+                    if (!empty($scale) && !(DbUtilities::DRV_SQLSRV === $driver_type)) {
+                        if (((DbUtilities::DRV_MYSQL === $driver_type) && ($scale > 30)) ||
+                            ($scale > $length)) {
+                            throw new Exception("Decimal scale '$scale' is out of valid range.");
+                        }
+                        $definition .= "($length,$scale)";
+                    }
+                    else {
+                        $definition .= "($length)";
+                    }
+                }
+                // convert to float
+                $default = (isset($default)) ? floatval($default) : $default;
+                break;
+            case 'money':
+            case 'smallmoney':
+                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? $type : 'money'; // let yii handle it
+                // convert to float
+                $default = (isset($default)) ? floatval($default) : $default;
+                break;
+            // string types
+            case 'string':
+            case 'binary':
+            case 'varbinary':
+            case 'char':
+            case 'varchar':
+            case 'nchar':
+            case 'nvarchar':
+                $fixed = Utilities::boolval(Utilities::getArrayValue('fixed_length', $field, false));
+                $national = Utilities::boolval(Utilities::getArrayValue('supports_multibyte', $field, false));
+                if (0 === strcasecmp('string', $type)) {
+                    if ($fixed) {
+                        $type = ($national) ? 'nchar' : 'char';
+                    }
+                    else {
+                        $type = ($national) ? 'nvarchar' : 'varchar';
+                    }
+                }
+                elseif (0 === strcasecmp('binary', $type)) {
+                    $type = ($fixed) ? 'binary' : 'varbinary';
+                }
+                $definition = $type;
+                switch ($type) {
+                case 'varbinary':
+                case 'varchar':
+                    if (isset($length)) {
+                        $length = intval($length);
+                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 8000)) {
+                            $length = 'max';
+                        }
+                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65535)) {
+                            // max allowed is really dependent number of string columns
+                            throw new Exception("String length '$length' is out of valid range.");
+                        }
+                        $definition .= "($length)";
+                    }
+                    break;
+                case 'binary':
+                case 'char':
+                    if (isset($length)) {
+                        $length = intval($length);
+                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 8000)) {
+                            throw new Exception("String length '$length' is out of valid range.");
+                        }
+                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 255)) {
+                            throw new Exception("String length '$length' is out of valid range.");
+                        }
+                        $definition .= "($length)";
+                    }
+                    break;
+                case 'nvarchar':
+                    if (isset($length)) {
+                        $length = intval($length);
+                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
+                            $length = 'max';
+                        }
+                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65535)) {
+                            // max allowed is really dependent number of string columns
+                            throw new Exception("String length '$length' is out of valid range.");
+                        }
+                        $definition .= "($length)";
+                    }
+                    break;
+                case 'nchar':
+                    if (isset($length)) {
+                        $length = intval($length);
+                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
+                            throw new Exception("String length '$length' is out of valid range.");
+                        }
+                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 255)) {
+                            throw new Exception("String length '$length' is out of valid range.");
+                        }
+                        $definition .= "($length)";
+                    }
+                    break;
+                }
+                $quoteDefault = true;
+                break;
+            case 'text':
+                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varchar(max)' : 'text'; // microsoft recommended
+                $quoteDefault = true;
+                break;
+            case 'blob':
+                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varbinary(max)' : 'blob'; // microsoft recommended
+                $quoteDefault = true;
+                break;
+            // odd, needs help
             case 'timestamp':
                 $definition = 'timestamp'; // behaves differently, sometimes just a number (sqlsrv), not a date!
                 $allowNull = true; // override addition below
@@ -586,209 +767,12 @@ class DbUtilities
             case 'datetime':
                 $definition = (DbUtilities::DRV_SQLSRV === $driver_type) ? 'datetime2' : 'datetime'; // microsoft recommends
                 break;
-            case 'year':
-                $definition = (DbUtilities::DRV_MYSQL === $driver_type) ? 'year' : 'date';
-                break;
-                // numbers
-            case 'bool':
-                $definition = 'boolean';
-                break;
-            case 'tinyint':
-            case 'smallint':
-            case 'mediumint':
-            case 'int':
-            case 'bigint':
-            case 'integer':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type) && ('mediumint' == $type)) ? 'int' : $type;
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length <= 255) && ($length > 0)) {
-                        $definition .= "($length)"; // sets the viewable length
-                    }
-                }
-                break;
-            case 'decimal':
-            case 'numeric':
-            case 'number':
-            case 'percent':
-                $definition = 'decimal';
-                $precision = Utilities::getArrayValue('precision', $field, $length);
-                if (isset($precision)) {
-                    $precision = intval($precision);
-                    if (((DbUtilities::DRV_MYSQL === $driver_type) && ($precision > 65)) ||
-                        ((DbUtilities::DRV_SQLSRV === $driver_type) && ($precision > 38))) {
-                        throw new Exception("Decimal precision '$precision' is out of valid range.");
-                    }
-                    $scale = Utilities::getArrayValue('scale', $field, null);
-                    if (empty($scale)) {
-                        $scale = Utilities::getArrayValue('decimals', $field, null);
-                    }
-                    if (!empty($scale)) {
-                        if (((DbUtilities::DRV_MYSQL === $driver_type) && ($scale > 30)) ||
-                            ((DbUtilities::DRV_SQLSRV === $driver_type) && ($scale > 18)) ||
-                            ($scale > $precision)) {
-                            throw new Exception("Decimal scale '$scale' is out of valid range.");
-                        }
-                        $definition .= "($precision,$scale)";
-                    }
-                    else {
-                        $definition .= "($precision)";
-                    }
-                }
-                break;
-            case 'float':
-            case 'double':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'float' : $type;
-                $precision = Utilities::getArrayValue('precision', $field, $length);
-                if (isset($precision)) {
-                    $precision = intval($precision);
-                    if (((DbUtilities::DRV_MYSQL === $driver_type) && ($precision > 53)) ||
-                        ((DbUtilities::DRV_SQLSRV === $driver_type) && ($precision > 38))) {
-                        throw new Exception("Decimal precision '$precision' is out of valid range.");
-                    }
-                    $scale = Utilities::getArrayValue('scale', $field, null);
-                    if (empty($scale)) {
-                        $scale = Utilities::getArrayValue('decimals', $field, null);
-                    }
-                    if (!empty($scale) && !(DbUtilities::DRV_SQLSRV === $driver_type)) {
-                        if (((DbUtilities::DRV_MYSQL === $driver_type) && ($scale > 30)) ||
-                            ($scale > $precision)) {
-                            throw new Exception("Decimal scale '$scale' is out of valid range.");
-                        }
-                        $definition .= "($precision,$scale)";
-                    }
-                    else {
-                        $definition .= "($precision)";
-                    }
-                }
-                break;
-            case 'money':
-            case 'smallmoney':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? $type : 'money'; // let yii handle it
-                break;
-                // string types
-            case 'text':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varchar(max)' : 'text'; // microsoft recommended
-                $quoteDefault = true;
-                break;
-            case 'ntext':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'nvarchar(max)' : 'text'; // microsoft recommended
-                $quoteDefault = true;
-                break;
-            case 'varbinary':
-            case 'varchar':
-                $definition = 'varchar';
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 8000)) {
-                        $length = 'max';
-                    }
-                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65535)) {
-                        throw new Exception("String length '$length' is out of valid range.");
-                    }
-                    $definition .= "($length)";
-                }
-                $quoteDefault = true;
-                break;
-            case 'char':
-                $definition = 'char';
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 8000)) {
-                        throw new Exception("String length '$length' is out of valid range.");
-                    }
-                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 255)) {
-                        throw new Exception("String length '$length' is out of valid range.");
-                    }
-                    $definition .= "($length)";
-                }
-                $quoteDefault = true;
-                break;
-            case 'nvarchar':
-                $definition = 'nvarchar';
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
-                        $length = 'max';
-                    }
-                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65535)) {
-                        throw new Exception("String length '$length' is out of valid range.");
-                    }
-                    $definition .= "($length)";
-                }
-                $quoteDefault = true;
-                break;
-            case 'nchar':
-                $definition = 'nchar';
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
-                        throw new Exception("String length '$length' is out of valid range.");
-                    }
-                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 255)) {
-                        throw new Exception("String length '$length' is out of valid range.");
-                    }
-                    $definition .= "($length)";
-                }
-                $quoteDefault = true;
-                break;
-                // dreamfactory specific
-            case 'id':
-                // if no other specifics use yii abstract type
-                $definition = 'pk';
-                $allowNull = true; // override addition below
-                $isPrimaryKey = false; // override addition below
-                break;
-            case 'currency':
-                $definition = 'money';
-                break;
-            case "textarea":
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varchar(max)' : 'text';
-                $quoteDefault = true;
-                break;
-            case 'picklist':
-                // use enum for mysql?
-                $definition = 'nvarchar';
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
-                        $length = 'max';
-                    }
-                    $definition .= "($length)";
-                }
-                $quoteDefault = true;
-                break;
-            case 'multipicklist':
-                // use set for mysql?
-                $definition = 'nvarchar';
-                if (isset($length)) {
-                    $length = intval($length);
-                    if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
-                        $length = 'max';
-                    }
-                    $definition .= "($length)";
-                }
-                $quoteDefault = true;
-                break;
-            case 'phone':
-                $definition = 'varchar(20)';
-                $quoteDefault = true;
-                break;
-            case 'email':
-                $definition = 'varchar(320)';
-                $quoteDefault = true;
-                break;
-            case 'url':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varchar(max)' : 'text';
-                $quoteDefault = true;
-                break;
-            case "reference":
-                $definition = 'int';
-                break;
             default:
                 // blind copy of column type
                 $definition = $type;
             }
+
+            // additional properties
             if (!$allowNull) {
                 $definition .= ' NOT NULL';
             }
@@ -797,7 +781,7 @@ class DbUtilities
                     $default = "'" . $default . "'";
                 $definition .= ' DEFAULT ' . $default;
             }
-            elseif ($isPrimaryKey) {
+            if ($isPrimaryKey) {
                 $definition .= ' PRIMARY KEY';
             }
 
@@ -809,22 +793,27 @@ class DbUtilities
     }
 
     /**
-     * @param string $tableName
+     * @param string $table_name
      * @param array $fields
-     * @param bool $for_create
-     * @return string
+     * @param bool $allow_update
+     * @param null|CDbTableSchema $schema
      * @throws Exception
+     * @return string
      */
-    protected static function buildTableFields($tableName, $fields, $for_create = true)
+    protected static function buildTableFields($table_name, $fields, $allow_update = true, $schema = null)
     {
         if (empty($fields)) {
             throw new Exception("No fields given.");
         }
         $columns = array();
+        $alter_columns = array();
         $references = array();
+        $indexes = array();
         $labels = array();
-        $hasPrimaryKey = false;
-        $hasTimeStamp = false;
+        $primaryKey = '';
+        if (isset($schema)) {
+            $primaryKey = $schema->primaryKey;
+        }
         if (!isset($fields[0])) {
             $fields = array($fields);
         }
@@ -832,82 +821,114 @@ class DbUtilities
             try {
                 $name = Utilities::getArrayValue('name', $field, '');
                 if (empty($name)) {
-                    throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no name element.");
+                    throw new Exception("Invalid schema detected - no name element.");
                 }
-                $definition = static::buildColumnType($field);
-                if (!empty($definition)) {
-                    $columns[$name] = $definition;
+                $colSchema = (isset($schema)) ? $schema->getColumn($name) : null;
+                $picklist = '';
+                if (isset($colSchema)) {
+                    if (!$allow_update) {
+                        throw new Exception("Field '$name' already exists in table '$table_name'.");
+                    }
+                    $definition = static::buildColumnType($field);
+                    if (!empty($definition)) {
+                        $alter_columns[$name] = $definition;
+                    }
+                    // todo manage type changes
+                    // drop references
+                    // add new reference if needed
                 }
+                else {
+                    $definition = static::buildColumnType($field);
+                    if (!empty($definition)) {
+                        $columns[$name] = $definition;
+                    }
+                }
+
+                // extra checks
                 $type = Utilities::getArrayValue('type', $field, '');
                 if (empty($type)) {
                     // raw definition, just pass it on
                     continue;
                 }
-                $picklist = '';
-                switch (strtolower($type)) {
-                    // handle non-abstract types here
-                case 'id':
-                case 'pk':
-                    // if no other specifics use yii abstract type
-                    if ($hasPrimaryKey) {
+                if ((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type))) {
+                    if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
                         throw new Exception("Designating more than one column as a primary key is not allowed.");
                     }
-                    $hasPrimaryKey = true;
-                    break;
-                    // date and time fields
-                case 'timestamp':
-                    if ($hasTimeStamp) {
-                        throw new Exception("Designating more than one column as a timestamp is not allowed.");
+                    $primaryKey = $name;
+                }
+                elseif (Utilities::boolval(Utilities::getArrayValue('is_primary_key', $field, false))) {
+                    if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
+                        throw new Exception("Designating more than one column as a primary key is not allowed.");
                     }
-                    $hasTimeStamp = true;
-                    break;
-                    // dreamfactory specific
-                case 'picklist':
-                case 'multipicklist':
-                    $picklist = '';
-                    $values = Utilities::getArrayValue('value', $field, '');
-                    if (empty($values)) {
-                        $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
-                    }
-                    if (empty($values)) {
-                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no value element on picklist type.");
-                    }
-                    foreach ($values as $value) {
-                        if (!empty($picklist)) {
-                            $picklist .= "\r";
-                        }
-                        $picklist .= $value;
-                    }
-                    break;
-                case "reference":
+                    $primaryKey = $name;
+                }
+                elseif ((0 === strcasecmp('reference', $type)) ||
+                        Utilities::boolval(Utilities::getArrayValue('is_foreign_key', $field, false))) {
                     // special case for references because the table referenced may not be created yet
                     $refTable = Utilities::getArrayValue('ref_table', $field, '');
                     if (empty($refTable)) {
-                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no table element for reference type of $name.");
+                        throw new Exception("Invalid schema detected - no table element for reference type of $name.");
                     }
                     $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
+                    $refOnDelete = Utilities::getArrayValue('ref_on_delete', $field, null);
+                    $refOnUpdate = Utilities::getArrayValue('ref_on_update', $field, null);
 
                     // will get to it later, $refTable may not be there
-                    $keyName = 'fk_' . $tableName . '_' . $name;
+                    $keyName = 'fk_' . $table_name . '_' . $name;
                     $references[] = array('name' => $keyName,
-                                          'table' => $tableName,
+                                          'table' => $table_name,
                                           'column' => $name,
                                           'ref_table' => $refTable,
                                           'ref_fields' => $refColumns,
-                                          'delete' => null,
-                                          'update' => null);
-                    break;
-                default:
-                    break;
+                                          'delete' => $refOnDelete,
+                                          'update' => $refOnUpdate);
+                }
+                elseif (Utilities::boolval(Utilities::getArrayValue('is_unique', $field, false))) {
+                    // will get to it later, create after table built
+                    $keyName = 'undx_' . $table_name . '_' . $name;
+                    $indexes[] = array('name' => $keyName,
+                                       'table' => $table_name,
+                                       'column' => $name,
+                                       'unique' => true);
+                }
+                elseif (Utilities::boolval(Utilities::getArrayValue('is_unique', $field, false))) {
+                    // will get to it later, create after table built
+                    $keyName = 'ndx_' . $table_name . '_' . $name;
+                    $indexes[] = array('name' => $keyName,
+                                       'table' => $table_name,
+                                       'column' => $name);
+                }
+
+                // validation
+                $validation = Utilities::getArrayValue('validation', $field, '');
+                if (!empty($validation)) {
+                    if (Utilities::findInList($validation, 'picklist', ',') ||
+                        Utilities::findInList($validation, 'multi_picklist', ',')) {
+                        $picklist = '';
+                        $values = Utilities::getArrayValue('value', $field, '');
+                        if (empty($values)) {
+                            $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
+                        }
+                        if (!empty($values)) {
+                            foreach ($values as $value) {
+                                if (!empty($picklist)) {
+                                    $picklist .= "\r";
+                                }
+                                $picklist .= $value;
+                            }
+                        }
+                    }
                 }
 
                 // labels
                 $label = Utilities::getArrayValue('label', $field, '');
-                if (!empty($label) || !empty($picklist)) {
-                    $temp = array('table' => $tableName, 'field' => $name);
+                if (!empty($label) || !empty($validation) || !empty($picklist)) {
+                    $temp = array('table' => $table_name, 'field' => $name);
                     if (!empty($label))
                         $temp['label'] = $label;
-                    if (!empty($label))
+                    if (!empty($validation))
+                        $temp['validation'] = $validation;
+                    if (!empty($picklist))
                         $temp['picklist'] = $picklist;
                     $labels[] = $temp;
                 }
@@ -917,131 +938,84 @@ class DbUtilities
             }
         }
 
-        return array('columns' => $columns, 'references' => $references, 'labels' => $labels);
+        return array('columns' => $columns, 'alter_columns' => $alter_columns,
+                     'references' => $references, 'indexes' => $indexes,
+                     'labels' => $labels);
     }
 
-    public static function createFields($db, $table, $fields, $allow_merge=true, $rollback=false)
+    /**
+     * @param CDbConnection $db
+     * @param array $extras
+     * @return array
+     */
+    protected static function createFieldExtras($db, $extras)
     {
-        if (empty($fields)) {
-            throw new Exception("No valid fields exist in the received table schema.");
+        $command = $db->createCommand();
+        $references = Utilities::getArrayValue('references', $extras, array());
+        if (!empty($references)) {
+            foreach ($references as $reference) {
+                $command->reset();
+                $rows = $command->addForeignKey($reference['name'],
+                                                $reference['table'],
+                                                $reference['column'],
+                                                $reference['ref_table'],
+                                                $reference['ref_fields'],
+                                                $reference['delete'],
+                                                $reference['update']
+                );
+
+            }
         }
-        if (!isset($fields[0])) {
-            $fields = array($fields);
+        $indexes = Utilities::getArrayValue('indexes', $extras, array());
+        if (!empty($indexes)) {
+            foreach ($indexes as $index) {
+                $command->reset();
+                $unique = Utilities::boolval(Utilities::getArrayValue('unique', $index, false));
+                $rows = $command->createIndex($index['name'], $index['table'], $index['column'], $unique);
+
+            }
         }
+        $labels = Utilities::getArrayValue('labels', $extras, array());
+        static::setLabels($labels);
+    }
+
+    /**
+     * @param CDbConnection $db
+     * @param string $table_name
+     * @param array $fields
+     * @param bool $allow_update
+     * @return array
+     * @throws Exception
+     */
+    public static function createFields($db, $table_name, $fields, $allow_update=true)
+    {
+        if (empty($table_name)) {
+            throw new Exception("Table schema received does not have a valid name.", ErrorCodes::BAD_REQUEST);
+        }
+        // does it already exist
+        if (!static::doesTableExist($db, $table_name)) {
+            throw new Exception("Update schema called on a table with name '$table_name' that does not exist in the database.");
+        }
+
+        $schema = $db->schema->getTable($table_name);
         try {
-            $references = array();
-            $labels = array();
-            $hasPrimaryKey = true; // todo
-            $hasTimeStamp = true; // todo
-            $schema = $db->schema->getTable($table);
+            $results = static::buildTableFields($table_name, $fields, $allow_update, $schema);
             $command = $db->createCommand();
-            foreach ($fields as $field) {
-                try {
-                    $name = Utilities::getArrayValue('name', $field, '');
-                    if (empty($name)) {
-                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no name element.");
-                    }
-                    $colSchema = $schema->getColumn($name);
-                    if (isset($colSchema)) {
-                        // todo manage type changes
-                        // drop references
-                        // add new reference if needed
-                    }
-                    else {
-                        // add column
-                        $definition = static::buildColumnType($field);
-                        $type = Utilities::getArrayValue('type', $field, '');
-                        $picklist = '';
-                        switch (strtolower($type)) {
-                            // handle non-abstract types here
-                        case 'id':
-                        case 'pk':
-                            // if no other specifics use yii abstract type
-                            if ($hasPrimaryKey) {
-                                throw new Exception("Designating more than one column as a primary key is not allowed.");
-                            }
-                            $hasPrimaryKey = true;
-                            break;
-                            // date and time fields
-                        case 'timestamp':
-                            if ($hasTimeStamp) {
-                                throw new Exception("Designating more than one column as a timestamp is not allowed.");
-                            }
-                            $hasTimeStamp = true;
-                            break;
-                            // dreamfactory specific
-                        case 'picklist':
-                        case 'multipicklist':
-                            $picklist = '';
-                            $values = Utilities::getArrayValue('value', $field, '');
-                            if (empty($values)) {
-                                $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
-                            }
-                            if (empty($values)) {
-                                throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no value element on picklist type.");
-                            }
-                            foreach ($values as $value) {
-                                if (!empty($picklist)) {
-                                    $picklist .= "\r";
-                                }
-                                $picklist .= $value;
-                            }
-                            break;
-                        case "reference":
-                            // special case for references because the table referenced may not be created yet
-                            $refTable = Utilities::getArrayValue('ref_table', $field, '');
-                            if (empty($refTable)) {
-                                throw new Exception("Invalid schema detected - no table element for reference type of $name.");
-                            }
-                            $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
-
-                            // will get to it later, $refTable may not be there
-                            $keyName = 'fk_' . $table . '_' . $name;
-                            $references[] = array('name' => $keyName,
-                                                  'table' => $table,
-                                                  'column' => $name,
-                                                  'ref_table' => $refTable,
-                                                  'ref_fields' => $refColumns,
-                                                  'delete' => null,
-                                                  'update' => null);
-                            break;
-                        default:
-                        }
-                        // need to add labels
-                        $label = Utilities::getArrayValue('label', $field, '');
-                        if (!empty($label) || !empty($picklist)) {
-                            $labels[] = array('table' => $table,
-                                              'field' => $name,
-                                              'label' => $label,
-                                              'plural' => '',
-                                              'picklist' => $picklist);
-                        }
-
-                        $command->reset();
-                        $command->addColumn($table, $name, $definition);
-                    }
-                }
-                catch (Exception $ex) {
-                    throw $ex;
-                }
+            $columns = Utilities::getArrayValue('columns', $results, array());
+            foreach ($columns as $name=>$definition) {
+                $command->reset();
+                $command->addColumn($table_name, $name, $definition);
             }
-            if (!empty($references)) {
-                foreach ($references as $reference) {
-                    $command->reset();
-                    $rows = $command->addForeignKey($reference['name'],
-                                                    $reference['table'],
-                                                    $reference['column'],
-                                                    $reference['ref_table'],
-                                                    $reference['ref_fields'],
-                                                    $reference['delete'],
-                                                    $reference['update']
-                    );
-
-                }
+            $columns = Utilities::getArrayValue('alter_columns', $results, array());
+            foreach ($columns as $name=>$definition) {
+                $command->reset();
+                $command->alterColumn($table_name, $name, $definition);
             }
-            static::setLabels($labels);
+            static::createFieldExtras($db, $results);
 
-            return array('name' => $table);
+            // refresh the schema that we just added
+            $db->schema->refresh();
+            return array('name' => $table_name);
         }
         catch (Exception $ex) {
             error_log($ex->getMessage());
@@ -1051,22 +1025,21 @@ class DbUtilities
 
     /**
      * @param CDbConnection $db
-     * @param $data
+     * @param string $table_name
+     * @param array $data
      * @param bool $return_labels_refs
      * @throws Exception
      * @return array
      */
-    public static function createTable($db, $data, $return_labels_refs=false)
+    public static function createTable($db, $table_name, $data, $return_labels_refs=false)
     {
-        $tableName = Utilities::getArrayValue('name', $data, '');
-        if (empty($tableName)) {
+        if (empty($table_name)) {
             throw new Exception("Table schema received does not have a valid name.", ErrorCodes::BAD_REQUEST);
         }
         // does it already exist
-        if (static::doesTableExist($db, $tableName)) {
-            throw new Exception("A table with name '$tableName' already exist in the database.", ErrorCodes::BAD_REQUEST);
+        if (static::doesTableExist($db, $table_name)) {
+            throw new Exception("A table with name '$table_name' already exist in the database.", ErrorCodes::BAD_REQUEST);
         }
-        // add the table to the default schema
         $fields = Utilities::getArrayValue('field', $data, array());
         if (empty($fields)) {
             $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : array();
@@ -1078,46 +1051,32 @@ class DbUtilities
             $fields = array($fields);
         }
         try {
-            $results = static::buildTableFields($tableName, $fields);
-            $columns = Utilities::getArrayValue('columns', $results, null);
+            $results = static::buildTableFields($table_name, $fields);
+            $columns = Utilities::getArrayValue('columns', $results, array());
             if (empty($columns)) {
                 throw new Exception("No valid fields exist in the received table schema.", ErrorCodes::BAD_REQUEST);
             }
             $command = $db->createCommand();
-            $command->createTable($tableName, $columns);
+            $command->createTable($table_name, $columns);
 
-            $labels = Utilities::getArrayValue('labels', $results, null);
+            $labels = Utilities::getArrayValue('labels', $results, array());
             // add table labels
             $label = Utilities::getArrayValue('label', $data, '');
             $plural = Utilities::getArrayValue('plural', $data, '');
             if (!empty($label) || !empty($plural)) {
-                $labels[] = array('table' => $tableName,
+                $labels[] = array('table' => $table_name,
                                   'field' => '',
                                   'label' => $label,
                                   'plural' => $plural);
             }
-            $references = Utilities::getArrayValue('references', $results, null);
+            $results['labels'] = $labels;
             if ($return_labels_refs) {
-                return array('references' => $references, 'labels' => $labels);
+                return $results;
             }
 
-            if (!empty($references)) {
-                foreach ($references as $reference) {
-                    $command->reset();
-                    $rows = $command->addForeignKey($reference['name'],
-                                                    $reference['table'],
-                                                    $reference['column'],
-                                                    $reference['ref_table'],
-                                                    $reference['ref_fields'],
-                                                    $reference['delete'],
-                                                    $reference['update']
-                    );
+            static::createFieldExtras($db, $results);
 
-                }
-            }
-            static::setLabels($labels);
-
-            return array('name' => $tableName);
+            return array('name' => $table_name);
         }
         catch (Exception $ex) {
             error_log($ex->getMessage());
@@ -1127,20 +1086,20 @@ class DbUtilities
 
     /**
      * @param CDbConnection $db
-     * @param $data
+     * @param string $table_name
+     * @param array $data
      * @param bool $return_labels_refs
      * @throws Exception
      * @return array
      */
-    public static function updateTable($db, $data, $return_labels_refs=false)
+    public static function updateTable($db, $table_name, $data, $return_labels_refs=false)
     {
-        $tableName = Utilities::getArrayValue('name', $data, '');
-        if (empty($tableName)) {
+        if (empty($table_name)) {
             throw new Exception("Table schema received does not have a valid name.");
         }
         // does it already exist
-        if (!static::doesTableExist($db, $tableName)) {
-            throw new Exception("Update schema called on a table with name '$tableName' that does not exist in the database.");
+        if (!static::doesTableExist($db, $table_name)) {
+            throw new Exception("Update schema called on a table with name '$table_name' that does not exist in the database.");
         }
 
         // is there a name update
@@ -1154,131 +1113,47 @@ class DbUtilities
         if (empty($fields)) {
             $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : array();
         }
-        if (empty($fields)) {
-            throw new Exception("No valid fields exist in the received table schema.");
-        }
-        if (!isset($fields[0])) {
-            $fields = array($fields);
-        }
         try {
-            $references = array();
-            $labels = array();
-            $hasPrimaryKey = true; // todo
-            $hasTimeStamp = true; // todo
-            $schema = $db->schema->getTable($tableName);
             $command = $db->createCommand();
-            foreach ($fields as $field) {
-                try {
-                    $name = Utilities::getArrayValue('name', $field, '');
-                    if (empty($name)) {
-                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no name element.");
-                    }
-                    $colSchema = $schema->getColumn($name);
-                    if (isset($colSchema)) {
-                        // todo manage type changes
-                        // drop references
-                        // add new reference if needed
-                    }
-                    else {
-                        // add column
-                        $definition = static::buildColumnType($field);
-                        $type = Utilities::getArrayValue('type', $field, '');
-                        $picklist = '';
-                        switch (strtolower($type)) {
-                            // handle non-abstract types here
-                        case 'id':
-                        case 'pk':
-                            // if no other specifics use yii abstract type
-                            if ($hasPrimaryKey) {
-                                throw new Exception("Designating more than one column as a primary key is not allowed.");
-                            }
-                            $hasPrimaryKey = true;
-                            break;
-                            // date and time fields
-                        case 'timestamp':
-                            if ($hasTimeStamp) {
-                                throw new Exception("Designating more than one column as a timestamp is not allowed.");
-                            }
-                            $hasTimeStamp = true;
-                            break;
-                            // dreamfactory specific
-                        case 'picklist':
-                        case 'multipicklist':
-                            $picklist = '';
-                            $values = Utilities::getArrayValue('value', $field, '');
-                            if (empty($values)) {
-                                $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
-                            }
-                            if (empty($values)) {
-                                throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no value element on picklist type.");
-                            }
-                            foreach ($values as $value) {
-                                if (!empty($picklist)) {
-                                    $picklist .= "\r";
-                                }
-                                $picklist .= $value;
-                            }
-                            break;
-                        case "reference":
-                            // special case for references because the table referenced may not be created yet
-                            $refTable = Utilities::getArrayValue('ref_table', $field, '');
-                            if (empty($refTable)) {
-                                throw new Exception("Invalid schema detected - no table element for reference type of $name.");
-                            }
-                            $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
-
-                            // will get to it later, $refTable may not be there
-                            $keyName = 'fk_' . $tableName . '_' . $name;
-                            $references[] = array('name' => $keyName,
-                                                  'table' => $tableName,
-                                                  'column' => $name,
-                                                  'ref_table' => $refTable,
-                                                  'ref_fields' => $refColumns,
-                                                  'delete' => null,
-                                                  'update' => null);
-                            break;
-                        default:
-                        }
-                        // need to add labels
-                        $label = Utilities::getArrayValue('label', $field, '');
-                        if (!empty($label) || !empty($picklist)) {
-                            $labels[] = array('table' => $tableName,
-                                              'field' => $name,
-                                              'label' => $label,
-                                              'plural' => '',
-                                              'picklist' => $picklist);
-                        }
-
-                        $command->reset();
-                        $command->addColumn($tableName, $name, $definition);
-                    }
-                }
-                catch (Exception $ex) {
-                    throw $ex;
-                }
-            }
-
-            if ($return_labels_refs) {
-                return array('references' => $references, 'labels' => $labels);
-            }
-
-            if (!empty($references)) {
-                foreach ($references as $reference) {
+            $labels = array();
+            $references = array();
+            $indexes = array();
+            if (!empty($fields)) {
+                $schema = $db->schema->getTable($table_name);
+                $results = static::buildTableFields($table_name, $fields, true, $schema);
+                $columns = Utilities::getArrayValue('columns', $results, array());
+                foreach ($columns as $name=>$definition) {
                     $command->reset();
-                    $rows = $command->addForeignKey($reference['name'],
-                                                    $reference['table'],
-                                                    $reference['column'],
-                                                    $reference['ref_table'],
-                                                    $reference['ref_fields'],
-                                                    $reference['delete'],
-                                                    $reference['update']
-                    );
-
+                    $command->addColumn($table_name, $name, $definition);
                 }
-            }
-            static::setLabels($labels);
+                $columns = Utilities::getArrayValue('alter_columns', $results, array());
+                foreach ($columns as $name=>$definition) {
+                    $command->reset();
+                    $command->alterColumn($table_name, $name, $definition);
+                }
 
-            return array('name' => $tableName);
+                $labels = Utilities::getArrayValue('labels', $results, array());
+                $references = Utilities::getArrayValue('references', $results, array());
+                $indexes = Utilities::getArrayValue('indexes', $results, array());
+            }
+            // add table labels
+            $label = Utilities::getArrayValue('label', $data, '');
+            $plural = Utilities::getArrayValue('plural', $data, '');
+            if (!empty($label) || !empty($plural)) {
+                $labels[] = array('table' => $table_name,
+                                  'field' => '',
+                                  'label' => $label,
+                                  'plural' => $plural);
+            }
+
+            $results = array('references' => $references, 'indexes' => $indexes, 'labels' => $labels);
+            if ($return_labels_refs) {
+                return $results;
+            }
+
+            static::createFieldExtras($db, $results);
+
+            return array('name' => $table_name);
         }
         catch (Exception $ex) {
             error_log($ex->getMessage());
@@ -1299,6 +1174,7 @@ class DbUtilities
         // refresh the schema so we have the latest
         $db->schema->refresh();
         $references = array();
+        $indexes = array();
         $labels = array();
         $out = array();
         $count = 0;
@@ -1314,20 +1190,21 @@ class DbUtilities
                     // does it already exist
                     if (static::doesTableExist($db, $name)) {
                         if ($allow_merge) {
-                            $results = static::updateTable($db, $table, true);
+                            $results = static::updateTable($db, $name, $table, true);
                         }
                         else {
                             throw new Exception("A table with name '$name' already exist in the database.", 400);
                         }
                     }
                     else {
-                        $results = static::createTable($db, $table, true);
+                        $results = static::createTable($db, $name, $table, true);
                         if ($rollback) {
                             $created[] = $name;
                         }
                     }
                     $labels = array_merge($labels, Utilities::getArrayValue('labels', $results, array()));
                     $references = array_merge($references, Utilities::getArrayValue('references', $results, array()));
+                    $indexes = array_merge($indexes, Utilities::getArrayValue('indexes', $results, array()));
                     $out[$count] = array('name' => $name);
                 }
                 catch (Exception $ex) {
@@ -1340,6 +1217,11 @@ class DbUtilities
                 }
                 $count++;
             }
+
+            // refresh the schema that we just added
+            $db->schema->refresh();
+            $results = array('references' => $references, 'indexes' => $indexes, 'labels' => $labels);
+            static::createFieldExtras($db, $results);
         }
         else { // single table, references must already be present
             try {
@@ -1350,14 +1232,14 @@ class DbUtilities
                 // does it already exist
                 if (static::doesTableExist($db, $name)) {
                     if ($allow_merge) {
-                        $results = static::updateTable($db, $tables, false);
+                        $results = static::updateTable($db, $name, $tables, false);
                     }
                     else {
                         throw new Exception("A table with name '$name' already exist in the database.", 400);
                     }
                 }
                 else {
-                    $results = static::createTable($db, $tables, false);
+                    $results = static::createTable($db, $name, $tables, false);
                     if ($rollback) {
                         $created[] = $name;
                     }
@@ -1373,37 +1255,6 @@ class DbUtilities
             }
         }
 
-        // create the additional items
-        try {
-            $command = $db->createCommand();
-            if (!empty($references)) {
-                foreach ($references as $reference) {
-                    $command->reset();
-                    $rows = $command->addForeignKey($reference['name'],
-                                                    $reference['table'],
-                                                    $reference['column'],
-                                                    $reference['ref_table'],
-                                                    $reference['ref_fields'],
-                                                    $reference['delete'],
-                                                    $reference['update']
-                    );
-
-                }
-            }
-        }
-        catch (Exception $ex) {
-            if ($rollback) {
-                // delete any created tables
-            }
-            throw new Exception("Schema tables were create, but not all foreign keys were added.\n{$ex->getMessage()}");
-        }
-        try {
-            static::setLabels($labels);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Schema tables were create, but not all labels were added.\n{$ex->getMessage()}");
-        }
-
         // refresh the schema that we just added
         $db->schema->refresh();
         return $out;
@@ -1411,196 +1262,33 @@ class DbUtilities
 
     /**
      * @param CDbConnection $db
-     * @param string $tableName
+     * @param string $table_name
      * @throws Exception
      * @return array
      */
-    public static function dropTable($db, $tableName)
+    public static function dropTable($db, $table_name)
     {
-        if (empty($tableName)) {
+        if (empty($table_name)) {
             throw new Exception("Table name received is empty.", ErrorCodes::BAD_REQUEST);
         }
         // check for system tables and deny
         $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if (Utilities::isInList($sysTables, $tableName, ',')) {
-            throw new Exception("System table '$tableName' not available through this interface.");
+        if (Utilities::isInList($sysTables, $table_name, ',')) {
+            throw new Exception("System table '$table_name' not available through this interface.");
         }
         // does it already exist
-        if (!static::doesTableExist($db, $tableName)) {
-            throw new Exception("A table with name '$tableName' does not exist in the database.", ErrorCodes::NOT_FOUND);
+        if (!static::doesTableExist($db, $table_name)) {
+            throw new Exception("A table with name '$table_name' does not exist in the database.", ErrorCodes::NOT_FOUND);
         }
         try {
             $command = $db->createCommand();
-            $command->dropTable($tableName);
-            static::removeLabels('table = :tn', array(':tn' => $tableName));
+            $command->dropTable($table_name);
+            $where = Yii::app()->db->quoteColumnName('table') . ' = :tn';
+            static::removeLabels($where, array(':tn' => $table_name));
 
-            return array('name' => $tableName);
-        }
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
-            throw $ex;
-        }
-    }
-
-    /**
-     * @param CDbConnection $db
-     * @param $data
-     * @param bool $return_labels_refs
-     * @param bool $check_sys
-     * @throws Exception
-     * @return array
-     */
-    public static function addField($db, $data, $return_labels_refs=false, $check_sys=true)
-    {
-        $tableName = Utilities::getArrayValue('name', $data, '');
-        if (empty($tableName)) {
-            throw new Exception("Table schema received does not have a valid name.");
-        }
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if ($check_sys && Utilities::isInList($sysTables, $tableName, ',')) {
-            throw new Exception("System table '$tableName' not available through this interface.");
-        }
-        // does it already exist
-        if (!static::doesTableExist($db, $tableName)) {
-            throw new Exception("Update schema called on a table with name '$tableName' that does not exist in the database.");
-        }
-
-        // is there a name update
-        $newName = Utilities::getArrayValue('new_name', $data, '');
-        if (!empty($newName)) {
-            // todo change table name, has issue with references
-        }
-
-        // update column types
-        $fields = Utilities::getArrayValue('field', $data, array());
-        if (empty($fields)) {
-            $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : array();
-        }
-        if (empty($fields)) {
-            throw new Exception("No valid fields exist in the received table schema.");
-        }
-        if (!isset($fields[0])) {
-            $fields = array($fields);
-        }
-        try {
-            $references = array();
-            $labels = array();
-            $hasPrimaryKey = true; // todo
-            $hasTimeStamp = true; // todo
-            $schema = $db->schema->getTable($tableName);
-            $command = $db->createCommand();
-            foreach ($fields as $field) {
-                try {
-                    $name = Utilities::getArrayValue('name', $field, '');
-                    if (empty($name)) {
-                        throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no name element.");
-                    }
-                    $colSchema = $schema->getColumn($name);
-                    if (isset($colSchema)) {
-                        // todo manage type changes
-                        // drop references
-                        // add new reference if needed
-                    }
-                    else {
-                        // add column
-                        $definition = static::buildColumnType($field);
-                        $type = Utilities::getArrayValue('type', $field, '');
-                        $picklist = '';
-                        switch (strtolower($type)) {
-                            // handle non-abstract types here
-                        case 'id':
-                        case 'pk':
-                            // if no other specifics use yii abstract type
-                            if ($hasPrimaryKey) {
-                                throw new Exception("Designating more than one column as a primary key is not allowed.");
-                            }
-                            $hasPrimaryKey = true;
-                            break;
-                            // date and time fields
-                        case 'timestamp':
-                            if ($hasTimeStamp) {
-                                throw new Exception("Designating more than one column as a timestamp is not allowed.");
-                            }
-                            $hasTimeStamp = true;
-                            break;
-                            // dreamfactory specific
-                        case 'picklist':
-                        case 'multipicklist':
-                            $picklist = '';
-                            $values = Utilities::getArrayValue('value', $field, '');
-                            if (empty($values)) {
-                                $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
-                            }
-                            if (empty($values)) {
-                                throw new Exception("[BAD_SCHEMA]: Invalid schema detected - no value element on picklist type.");
-                            }
-                            foreach ($values as $value) {
-                                if (!empty($picklist)) {
-                                    $picklist .= "\r";
-                                }
-                                $picklist .= $value;
-                            }
-                            break;
-                        case "reference":
-                            // special case for references because the table referenced may not be created yet
-                            $refTable = Utilities::getArrayValue('ref_table', $field, '');
-                            if (empty($refTable)) {
-                                throw new Exception("Invalid schema detected - no table element for reference type of $name.");
-                            }
-                            $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
-
-                            // will get to it later, $refTable may not be there
-                            $keyName = 'fk_' . $tableName . '_' . $name;
-                            $references[] = array('name' => $keyName,
-                                                  'table' => $tableName,
-                                                  'column' => $name,
-                                                  'ref_table' => $refTable,
-                                                  'ref_fields' => $refColumns,
-                                                  'delete' => null,
-                                                  'update' => null);
-                            break;
-                        default:
-                        }
-                        // need to add labels
-                        $label = Utilities::getArrayValue('label', $field, '');
-                        if (!empty($label) || !empty($picklist)) {
-                            $labels[] = array('table' => $tableName,
-                                              'field' => $name,
-                                              'label' => $label,
-                                              'plural' => '',
-                                              'picklist' => $picklist);
-                        }
-
-                        $command->reset();
-                        $command->addColumn($tableName, $name, $definition);
-                    }
-                }
-                catch (Exception $ex) {
-                    throw $ex;
-                }
-            }
-
-            if ($return_labels_refs) {
-                return array('references' => $references, 'labels' => $labels);
-            }
-
-            if (!empty($references)) {
-                foreach ($references as $reference) {
-                    $command->reset();
-                    $rows = $command->addForeignKey($reference['name'],
-                                                    $reference['table'],
-                                                    $reference['column'],
-                                                    $reference['ref_table'],
-                                                    $reference['ref_fields'],
-                                                    $reference['delete'],
-                                                    $reference['update']
-                    );
-
-                }
-            }
-            static::setLabels($labels);
-
-            return array('name' => $tableName);
+            // refresh the schema that we just added
+            $db->schema->refresh();
+            return array('name' => $table_name);
         }
         catch (Exception $ex) {
             error_log($ex->getMessage());
@@ -1617,13 +1305,8 @@ class DbUtilities
      */
     public static function dropField($db, $table_name, $field_name)
     {
-        if (empty($tableName)) {
+        if (empty($table_name)) {
             throw new Exception("Table name received is empty.", ErrorCodes::BAD_REQUEST);
-        }
-        // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if (Utilities::isInList($sysTables, $table_name, ',')) {
-            throw new Exception("System table '$table_name' not available through this interface.");
         }
         // does it already exist
         if (!static::doesTableExist($db, $table_name)) {
@@ -1632,9 +1315,13 @@ class DbUtilities
         try {
             $command = $db->createCommand();
             $command->dropColumn($table_name, $field_name);
-            static::removeLabels('table = :tn and field = :fn', array(':tn' => $table_name, ':fn' => $field_name));
+            $where = Yii::app()->db->quoteColumnName('table') . ' = :tn';
+            $where .= ' and ' . Yii::app()->db->quoteColumnName('field') . ' = :fn';
+            static::removeLabels($where, array(':tn' => $table_name, ':fn' => $field_name));
 
-            return array('name' => $tableName);
+            // refresh the schema that we just added
+            $db->schema->refresh();
+            return array('name' => $table_name);
         }
         catch (Exception $ex) {
             error_log($ex->getMessage());
@@ -1699,7 +1386,6 @@ class DbUtilities
     public static function removeLabels($where, $params = null)
     {
         if (static::doesTableExist(Yii::app()->db, 'label')) {
-//                Label::model()->deleteAll('table = :tn', array(':tn' => $tableName));
             $command = Yii::app()->db->createCommand();
             $command->delete('label', $where, $params);
         }

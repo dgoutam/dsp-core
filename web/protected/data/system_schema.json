@@ -6,12 +6,12 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "db_version",
-                    "type": "varchar",
-                    "size": 8,
+                    "type": "string",
+                    "length": 12,
                     "allow_null": false
                 }
             ]
@@ -21,8 +21,9 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "nvarchar",
-                    "size": 32,
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 32,
                     "allow_null": false,
                     "is_primary_key": true
                 },
@@ -33,9 +34,74 @@
                 },
                 {
                     "name": "data",
-                    "type": "nvarchar",
-                    "size": 4000,
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 4000,
                     "allow_null": false
+                }
+            ]
+        },
+        {
+            "name": "label",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "id"
+                },
+                {
+                    "name": "service",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "table",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": true,
+                    "is_index": true
+                },
+                {
+                    "name": "field",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": true,
+                    "is_index": true
+                },
+                {
+                    "name": "label",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "plural",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "picklist",
+                    "type": "text",
+                    "default": "",
+                    "allow_null": true
+                },
+                {
+                    "name": "validation",
+                    "type": "string",
+                    "length": 255,
+                    "default": "",
+                    "allow_null": true
                 }
             ]
         },
@@ -44,72 +110,84 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "username",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "is_unique": true,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "password",
-                    "type": "nvarchar",
-                    "size": 40,
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
                     "allow_null": true
                 },
                 {
                     "name": "first_name",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "is_index": true
                 },
                 {
                     "name": "last_name",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "is_index": true
                 },
                 {
                     "name": "display_name",
-                    "type": "nvarchar",
-                    "size": 80,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 80,
+                    "allow_null": false,
+                    "is_index": true,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "email",
-                    "type": "varchar",
-                    "size": 80,
-                    "allow_null": false
+                    "type": "string",
+                    "length": 120,
+                    "allow_null": false,
+                    "validation": "email"
                 },
                 {
                     "name": "phone",
-                    "type": "nvarchar",
-                    "size": 16,
+                    "type": "string",
+                    "length": 20,
                     "allow_null": true
                 },
                 {
                     "name": "is_active",
                     "type": "boolean",
-                    "default": 1,
+                    "default": true,
                     "allow_null": false
                 },
                 {
                     "name": "is_sys_admin",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "is_deleted",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "confirm_code",
-                    "type": "varchar",
-                    "size": 128,
+                    "type": "string",
+                    "length": 128,
                     "allow_null": true
                 },
                 {
@@ -117,6 +195,8 @@
                     "type": "reference",
                     "ref_table": "app",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "SET NULL",
                     "allow_null": true
                 },
                 {
@@ -124,43 +204,57 @@
                     "type": "reference",
                     "ref_table": "role",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "SET NULL",
                     "allow_null": true
                 },
                 {
                     "name": "security_question",
-                    "type": "nvarchar",
-                    "size": 128,
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
                     "allow_null": true
                 },
                 {
                     "name": "security_answer",
-                    "type": "nvarchar",
-                    "size": 80,
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 80,
                     "allow_null": true
                 },
                 {
                     "name": "created_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": 0,
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": true
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "SET NULL",
+                    "allow_null": true,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": true
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "SET NULL",
+                    "allow_null": true,
+                    "validation": "api_read_only"
                 }
             ]
         },
@@ -169,13 +263,15 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "name",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "description",
@@ -192,98 +288,41 @@
                     "type": "reference",
                     "ref_table": "app",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "SET NULL",
                     "allow_null": true
                 },
                 {
                     "name": "created_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": 0,
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
-                }
-            ]
-        },
-        {
-            "name": "role_service_access",
-            "field": [
-                {
-                    "name": "id",
-                    "type": "pk"
-                },
-                {
-                    "name": "role_id",
-                    "type": "reference",
-                    "ref_table": "role",
-                    "ref_fields": "id",
-                    "allow_null": false
-                },
-                {
-                    "name": "service_id",
-                    "type": "reference",
-                    "ref_table": "service",
-                    "ref_fields": "id",
-                    "allow_null": true
-                },
-                {
-                    "name": "service",
-                    "type": "varchar",
-                    "size": 40,
-                    "allow_null": false
-                },
-                {
-                    "name": "component",
-                    "type": "varchar",
-                    "size": 80,
-                    "allow_null": false
-                },
-                {
-                    "name": "access",
-                    "type": "picklist",
-                    "size": 40,
-                    "value": [ "No Access", "Read Only", "Write Only", "Read and Write", "Full Access"],
-                    "default": "No Access",
-                    "allow_null": false
-                },
-                {
-                    "name": "read",
-                    "type": "boolean",
-                    "default": 0,
-                    "allow_null": false
-                },
-                {
-                    "name": "create",
-                    "type": "boolean",
-                    "default": 0,
-                    "allow_null": false
-                },
-                {
-                    "name": "update",
-                    "type": "boolean",
-                    "default": 0,
-                    "allow_null": false
-                },
-                {
-                    "name": "delete",
-                    "type": "boolean",
-                    "default": 0,
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 }
             ]
         },
@@ -292,18 +331,20 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "name",
-                    "type": "varchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "length": 40,
+                    "allow_null": false,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "label",
-                    "type": "nvarchar",
-                    "size": 80,
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 80,
                     "allow_null": true
                 },
                 {
@@ -314,25 +355,25 @@
                 {
                     "name": "is_active",
                     "type": "boolean",
-                    "default": 1,
+                    "default": true,
                     "allow_null": false
                 },
                 {
                     "name": "type",
-                    "type": "varchar",
-                    "size": 40,
+                    "type": "string",
+                    "length": 40,
                     "allow_null": false
                 },
                 {
                     "name": "storage_name",
-                    "type": "varchar",
-                    "size": 80,
+                    "type": "string",
+                    "length": 80,
                     "allow_null": true
                 },
                 {
                     "name": "storage_type",
-                    "type": "varchar",
-                    "size": 40,
+                    "type": "string",
+                    "length": 40,
                     "allow_null": true
                 },
                 {
@@ -342,14 +383,14 @@
                 },
                 {
                     "name": "native_format",
-                    "type": "varchar",
-                    "size": 40,
+                    "type": "string",
+                    "length": 40,
                     "allow_null": true
                 },
                 {
                     "name": "base_url",
-                    "type": "varchar",
-                    "size": 255,
+                    "type": "string",
+                    "length": 255,
                     "allow_null": true
                 },
                 {
@@ -364,27 +405,35 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": 0,
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 }
             ]
         },
@@ -393,19 +442,22 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "name",
-                    "type": "varchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "length": 40,
+                    "allow_null": false,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "label",
-                    "type": "nvarchar",
-                    "size": 80,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 80,
+                    "allow_null": false,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "description",
@@ -415,7 +467,7 @@
                 {
                     "name": "is_active",
                     "type": "boolean",
-                    "default": 1,
+                    "default": true,
                     "allow_null": false
                 },
                 {
@@ -426,7 +478,7 @@
                 {
                     "name": "is_url_external",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
@@ -442,61 +494,70 @@
                 {
                     "name": "filter_by_device",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "filter_phone",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "filter_tablet",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "filter_desktop",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "requires_plugin",
                     "type": "boolean",
-                    "default": 0,
+                    "default": false,
                     "allow_null": false
                 },
                 {
                     "name": "import_url",
                     "type": "text",
-                    "allow_null": true
+                    "allow_null": true,
+                    "validation": "url"
                 },
                 {
                     "name": "created_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": 0,
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 }
             ]
         },
@@ -505,13 +566,15 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "name",
-                    "type": "nvarchar",
-                    "size": 40,
-                    "allow_null": false
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "description",
@@ -520,27 +583,35 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": 0,
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "datetime",
-                    "allow_null": false
+                    "type": "timestamp",
+                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
                     "type": "reference",
                     "ref_table": "user",
                     "ref_fields": "id",
-                    "allow_null": false
+                    "ref_on_update": "CASCADE",
+                    "allow_null": false,
+                    "validation": "api_read_only"
                 }
             ]
         },
@@ -549,13 +620,15 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "app_id",
                     "type": "reference",
                     "ref_table": "app",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
                     "allow_null": false
                 },
                 {
@@ -563,6 +636,8 @@
                     "type": "reference",
                     "ref_table": "app_group",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
                     "allow_null": false
                 }
             ]
@@ -572,13 +647,15 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "app_id",
                     "type": "reference",
                     "ref_table": "app",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
                     "allow_null": false
                 },
                 {
@@ -586,6 +663,8 @@
                     "type": "reference",
                     "ref_table": "role",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
                     "allow_null": false
                 }
             ]
@@ -595,13 +674,15 @@
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
                     "name": "app_id",
                     "type": "reference",
                     "ref_table": "app",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
                     "allow_null": false
                 },
                 {
@@ -609,65 +690,81 @@
                     "type": "reference",
                     "ref_table": "service",
                     "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
+                    "allow_null": false
+                },
+                {
+                    "name": "component",
+                    "type": "string",
+                    "length": 120,
                     "allow_null": false
                 }
             ]
         },
         {
-            "name": "label",
+            "name": "role_service_access",
             "field": [
                 {
                     "name": "id",
-                    "type": "pk"
+                    "type": "id"
                 },
                 {
-                    "name": "service",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
+                    "name": "role_id",
+                    "type": "reference",
+                    "ref_table": "role",
+                    "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
+                    "allow_null": false
+                },
+                {
+                    "name": "service_id",
+                    "type": "reference",
+                    "ref_table": "service",
+                    "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
                     "allow_null": true
                 },
                 {
-                    "name": "table",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
+                    "name": "component",
+                    "type": "string",
+                    "length": 120,
+                    "allow_null": false
                 },
                 {
-                    "name": "field",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
+                    "name": "access",
+                    "type": "string",
+                    "length": 40,
+                    "value": [ "No Access", "Read Only", "Write Only", "Read and Write", "Full Access"],
+                    "default": "No Access",
+                    "allow_null": false,
+                    "validation": "picklist"
                 },
                 {
-                    "name": "label",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
+                    "name": "read",
+                    "type": "boolean",
+                    "default": false,
+                    "allow_null": false
                 },
                 {
-                    "name": "plural",
-                    "type": "nvarchar",
-                    "size": 128,
-                    "default": "",
-                    "allow_null": true
+                    "name": "create",
+                    "type": "boolean",
+                    "default": false,
+                    "allow_null": false
                 },
                 {
-                    "name": "picklist",
-                    "type": "nvarchar",
-                    "size": 4000,
-                    "default": "",
-                    "allow_null": true
+                    "name": "update",
+                    "type": "boolean",
+                    "default": false,
+                    "allow_null": false
                 },
                 {
-                    "name": "validation",
-                    "type": "varchar",
-                    "size": 255,
-                    "default": "",
-                    "allow_null": true
+                    "name": "delete",
+                    "type": "boolean",
+                    "default": false,
+                    "allow_null": false
                 }
             ]
         }

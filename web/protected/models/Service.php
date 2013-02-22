@@ -79,6 +79,8 @@ class Service extends CActiveRecord
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'service_id'),
             'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+            'apps' => array(self::MANY_MANY, 'App', 'app_to_service(app_id, service_id)'),
+            'roles' => array(self::MANY_MANY, 'Role', 'role_service_access(service_id, role_id)'),
         );
     }
 
@@ -161,7 +163,7 @@ class Service extends CActiveRecord
      */
     protected function beforeSave()
     {
-        $userId = SessionManager::getCurrentUserId();
+        // until db's get their timestamp act together
         switch (DbUtilities::getDbDriverType($this->dbConnection)) {
         case DbUtilities::DRV_SQLSRV:
             $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
@@ -173,9 +175,14 @@ class Service extends CActiveRecord
         }
         if ($this->isNewRecord) {
             $this->created_date = $dateTime;
-            $this->created_by_id = $userId;
         }
         $this->last_modified_date = $dateTime;
+
+        // set user tracking
+        $userId = SessionManager::getCurrentUserId();
+        if ($this->isNewRecord) {
+            $this->created_by_id = $userId;
+        }
         $this->last_modified_by_id = $userId;
 
         return parent::beforeSave();

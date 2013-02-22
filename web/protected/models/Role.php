@@ -75,6 +75,7 @@ class Role extends CActiveRecord
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
             'users' => array(self::HAS_MANY, 'User', 'role_id'),
             'apps' => array(self::MANY_MANY, 'App', 'app_to_role(app_id, role_id)'),
+            'services' => array(self::MANY_MANY, 'Service', 'role_service_access(role_id, service_id)'),
             );
     }
 
@@ -138,7 +139,7 @@ class Role extends CActiveRecord
      */
     protected function beforeSave()
     {
-        $userId = SessionManager::getCurrentUserId();
+        // until db's get their timestamp act together
         switch (DbUtilities::getDbDriverType($this->dbConnection)) {
         case DbUtilities::DRV_SQLSRV:
             $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
@@ -150,9 +151,14 @@ class Role extends CActiveRecord
         }
         if ($this->isNewRecord) {
             $this->created_date = $dateTime;
-            $this->created_by_id = $userId;
         }
         $this->last_modified_date = $dateTime;
+
+        // set user tracking
+        $userId = SessionManager::getCurrentUserId();
+        if ($this->isNewRecord) {
+            $this->created_by_id = $userId;
+        }
         $this->last_modified_by_id = $userId;
 
         return parent::beforeSave();
@@ -172,18 +178,6 @@ class Role extends CActiveRecord
             throw new Exception("The current role can not be deleted.");
             //return false;
         }
-
-        // clean up user.role_id pointing here
-        $result = User::model()->findAll('role_id = :id', array(':id' => $myId));
-        if (!empty($result)) {
-            foreach ($result as $user) {
-                $user->role_id = null;
-                $user->save();
-            }
-        }
-
-        // clear out any service access records attached to this role
-        RoleServiceAccess::model()->deleteAll('role_id = :id', array(':id' => $myId));
 
         return parent::beforeDelete();
     }
