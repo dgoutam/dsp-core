@@ -193,7 +193,7 @@ class Role extends CActiveRecord
             return array('id');
         }
         elseif ('*' == $requested) {
-            return array('id','name','description','app_ids','default_app_id','services',
+            return array('id','name','description','app_ids','default_app_id','accesses',
                          'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
         else {

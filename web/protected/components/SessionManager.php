@@ -251,6 +251,9 @@ class SessionManager
         }
 
         $apps = Utilities::getArrayValue('apps', $roleInfo, null);
+        if (!is_array($apps) || empty($apps)) {
+            throw new Exception("Access to application '$appName' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN);
+        }
         $found = false;
         foreach ($apps as $app) {
             $temp = Utilities::getArrayValue('name', $app);
