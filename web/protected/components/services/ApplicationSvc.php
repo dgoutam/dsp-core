@@ -64,7 +64,7 @@ class ApplicationSvc extends CommonFileSvc
             $content = "<!DOCTYPE html>\n<html>\n<head>\n<title>".$name."</title>\n</head>\n";
             $content .= "<body>\nYour app ".$name." now lives here.</body>\n</html>";
             $path = $app_root . '/';
-            $path .= (!empty($url)) ? ltrim($url, '/') . $url : 'index.html';
+            $path .= (!empty($url)) ? ltrim($url, '/') : 'index.html';
             if (!$this->fileRestHandler->fileExists($path)) {
                 $this->fileRestHandler->writeFile($path, $content);
             }
