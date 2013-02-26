@@ -200,17 +200,30 @@ class App extends CActiveRecord
         }
         $this->last_modified_by_id = $userId;
 
+        if (!$this->is_url_external && empty($this->url)) {
+            $this->url = '/index.html';
+        }
+
+        return parent::beforeSave();
+    }
+
+    /**
+     * Overrides base class
+     * @return bool
+     */
+    protected function afterSave()
+    {
         // make sure we have an app in the folder
-        if (0 === $this->is_url_external) {
+        if (!$this->is_url_external) {
             $appSvc = ServiceHandler::getInstance()->getServiceObject('app');
             if ($appSvc) {
                 if (!$appSvc->appExists($this->api_name)) {
-                    $appSvc->createApp($this->api_name, $this->name);
+                    $appSvc->createApp($this->api_name, $this->name, $this->url);
                 }
             }
         }
 
-        return parent::beforeSave();
+        parent::afterSave();
     }
 
     /**
