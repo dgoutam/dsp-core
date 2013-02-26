@@ -753,6 +753,15 @@ class SystemManager implements iRestHandler
         try {
             // create DB record
             $obj = static::getNewResource($table);
+            // todo move this to model rules
+            if (isset($record['password'])) {
+                $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
+                unset($record['password']);
+            }
+            if (isset($record['security_answer'])) {
+                $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
+                unset($record['security_answer']);
+            }
             $obj->setAttributes($record);
             if (!$obj->save()) {
                 $msg = '';

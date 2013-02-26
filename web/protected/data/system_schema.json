@@ -260,14 +260,6 @@
                     "validation": "not_empty"
                 },
                 {
-                    "name": "label",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 80,
-                    "allow_null": false,
-                    "validation": "not_empty"
-                },
-                {
                     "name": "description",
                     "type": "text",
                     "allow_null": true
@@ -367,14 +359,6 @@
                     "length": 40,
                     "allow_null": false,
                     "is_unique": true,
-                    "validation": "not_empty"
-                },
-                {
-                    "name": "label",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 80,
-                    "allow_null": false,
                     "validation": "not_empty"
                 },
                 {
