@@ -6,7 +6,7 @@
  * The followings are the available columns in table 'service':
  * @property integer $id
  * @property string $name
- * @property string $label
+ * @property string $api_name
  * @property string $description
  * @property integer $is_active
  * @property string $type
@@ -58,13 +58,13 @@ class Service extends CActiveRecord
             array('name, type', 'required'),
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
-            array('name, type, storage_type, native_format', 'length', 'max' => 40),
-            array('label, storage_name', 'length', 'max' => 80),
+            array('name, api_name, type, storage_type, native_format', 'length', 'max' => 40),
+            array('storage_name', 'length', 'max' => 80),
             array('base_url', 'length', 'max' => 255),
             array('description, credentials, parameters, headers', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, label, description, is_active, type, storage_name, storage_type, credentials, native_format, base_url, parameters, headers, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, api_name, description, is_active, type, storage_name, storage_type, credentials, native_format, base_url, parameters, headers, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -92,7 +92,7 @@ class Service extends CActiveRecord
         return array(
             'id' => 'ID',
             'name' => 'Name',
-            'label' => 'Label',
+            'api_name' => 'API Name',
             'description' => 'Description',
             'is_active' => 'Is Active',
             'type' => 'Type',
@@ -123,7 +123,7 @@ class Service extends CActiveRecord
 
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
-        $criteria->compare('label', $this->label, true);
+        $criteria->compare('api_name', $this->api_name, true);
         $criteria->compare('description', $this->description, true);
         $criteria->compare('is_active', $this->is_active);
         $criteria->compare('type', $this->type, true);
@@ -210,7 +210,7 @@ class Service extends CActiveRecord
             return array('id');
         }
         elseif ('*' == $requested) {
-            return array('id','name','label','description','is_active','type',
+            return array('id','name','api_name','description','is_active','type',
                          'storage_name','storage_type','credentials','native_format',
                          'base_url','parameters','headers',
                          'created_date','created_by_id','last_modified_date','last_modified_by_id');

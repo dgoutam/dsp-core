@@ -301,6 +301,8 @@ class DbUtilities
             $validation = Utilities::getArrayValue('validation', $label_info, '');
             $picklist = Utilities::getArrayValue('picklist', $label_info, '');
             $picklist = (!empty($picklist)) ? explode("/n", $picklist) : array();
+            $timestampOnUpdate = Utilities::getArrayValue('timestamp_on_update', $label_info, null);
+            $userIdOnUpdate = Utilities::getArrayValue('user_id_on_update', $label_info, null);
             $refTable = '';
             $refFields = '';
             if (1 == $column->isForeignKey) {
@@ -310,7 +312,7 @@ class DbUtilities
             }
             return array('name' => $column->name,
                          'label'=> $label,
-                         'type' => static::determineDfType($column),
+                         'type' => static::determineDfType($column, $timestampOnUpdate, $userIdOnUpdate),
                          'db_type' => $column->dbType,
                          'length' => intval($column->size),
                          'precision' => intval($column->precision),
@@ -383,14 +385,19 @@ class DbUtilities
 
     /**
      * @param $column
+     * @param null|boolean $timestamp_on_update
+     * @param null|boolean $user_on_update
      * @return string
      */
-    protected static function determineDfType($column)
+    protected static function determineDfType($column, $timestamp_on_update = null, $user_on_update = null)
     {
         switch ($column->type) {
         case 'integer':
             if ($column->isPrimaryKey && $column->autoIncrement) {
                 return 'id';
+            }
+            if (isset($user_on_update)) {
+                return (Utilities::boolval($user_on_update)) ? 'user_id_on_update': 'user_id_on_create';
             }
             if ($column->isForeignKey) {
                 return 'reference';
@@ -400,8 +407,11 @@ class DbUtilities
             }
             break;
         }
-        if (0 === strcasecmp($column->dbType, 'datetimeoffset')) {
-            return 'datetime';
+        if ((0 === strcasecmp($column->dbType, 'datetimeoffset')) ||
+            (0 === strcasecmp($column->dbType, 'timestamp'))) {
+            if (isset($timestamp_on_update)) {
+                return (Utilities::boolval($timestamp_on_update)) ? 'timestamp_on_update': 'timestamp_on_create';
+            }
         }
         return $column->type;
     }
@@ -416,6 +426,7 @@ class DbUtilities
         case 'nchar':
         case 'nvarchar':
             return true;
+        // todo mysql shows these are varchar with a utf8 character set, not in column data
         default:
             return false;
         }
@@ -570,6 +581,24 @@ class DbUtilities
             // some types need massaging, some need other required properties
             case "reference":
                 $definition = 'int';
+                break;
+            case "timestamp_on_create":
+                $definition = 'timestamp';
+                $default = 0; // override
+                $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
+                break;
+            case "timestamp_on_update":
+                $definition = 'timestamp';
+                $default = 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'; // override
+                $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
+                break;
+            case "user_id_on_create":
+                $definition = 'int';
+                $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
+                break;
+            case "user_id_on_update":
+                $definition = 'int';
+                $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
                 break;
             // numbers
             case 'bool': // alias
@@ -748,22 +777,6 @@ class DbUtilities
                 $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varbinary(max)' : 'blob'; // microsoft recommended
                 $quoteDefault = true;
                 break;
-            // odd, needs help
-            case 'timestamp':
-                $definition = 'timestamp'; // behaves differently, sometimes just a number (sqlsrv), not a date!
-                $allowNull = true; // override addition below
-                break;
-            case 'datetimeoffset':
-                switch ($driver_type) {
-                case DbUtilities::DRV_SQLSRV:
-                    $definition = 'datetimeoffset';
-                    break;
-                default:
-                    $definition = 'timestamp';
-                    $allowNull = true; // override addition below
-                    break;
-                }
-                break;
             case 'datetime':
                 $definition = (DbUtilities::DRV_SQLSRV === $driver_type) ? 'datetime2' : 'datetime'; // microsoft recommends
                 break;
@@ -842,95 +855,127 @@ class DbUtilities
                     if (!empty($definition)) {
                         $columns[$name] = $definition;
                     }
-                }
 
-                // extra checks
-                $type = Utilities::getArrayValue('type', $field, '');
-                if (empty($type)) {
-                    // raw definition, just pass it on
-                    continue;
-                }
-                if ((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type))) {
-                    if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
-                        throw new Exception("Designating more than one column as a primary key is not allowed.");
+                    // extra checks
+                    $type = Utilities::getArrayValue('type', $field, '');
+                    if (empty($type)) {
+                        // raw definition, just pass it on
+                        continue;
                     }
-                    $primaryKey = $name;
-                }
-                elseif (Utilities::boolval(Utilities::getArrayValue('is_primary_key', $field, false))) {
-                    if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
-                        throw new Exception("Designating more than one column as a primary key is not allowed.");
-                    }
-                    $primaryKey = $name;
-                }
-                elseif ((0 === strcasecmp('reference', $type)) ||
-                        Utilities::boolval(Utilities::getArrayValue('is_foreign_key', $field, false))) {
-                    // special case for references because the table referenced may not be created yet
-                    $refTable = Utilities::getArrayValue('ref_table', $field, '');
-                    if (empty($refTable)) {
-                        throw new Exception("Invalid schema detected - no table element for reference type of $name.");
-                    }
-                    $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
-                    $refOnDelete = Utilities::getArrayValue('ref_on_delete', $field, null);
-                    $refOnUpdate = Utilities::getArrayValue('ref_on_update', $field, null);
 
-                    // will get to it later, $refTable may not be there
-                    $keyName = 'fk_' . $table_name . '_' . $name;
-                    $references[] = array('name' => $keyName,
-                                          'table' => $table_name,
-                                          'column' => $name,
-                                          'ref_table' => $refTable,
-                                          'ref_fields' => $refColumns,
-                                          'delete' => $refOnDelete,
-                                          'update' => $refOnUpdate);
-                }
-                elseif (Utilities::boolval(Utilities::getArrayValue('is_unique', $field, false))) {
-                    // will get to it later, create after table built
-                    $keyName = 'undx_' . $table_name . '_' . $name;
-                    $indexes[] = array('name' => $keyName,
-                                       'table' => $table_name,
-                                       'column' => $name,
-                                       'unique' => true);
-                }
-                elseif (Utilities::boolval(Utilities::getArrayValue('is_unique', $field, false))) {
-                    // will get to it later, create after table built
-                    $keyName = 'ndx_' . $table_name . '_' . $name;
-                    $indexes[] = array('name' => $keyName,
-                                       'table' => $table_name,
-                                       'column' => $name);
-                }
-
-                // validation
-                $validation = Utilities::getArrayValue('validation', $field, '');
-                if (!empty($validation)) {
-                    if (Utilities::findInList($validation, 'picklist', ',') ||
-                        Utilities::findInList($validation, 'multi_picklist', ',')) {
-                        $picklist = '';
-                        $values = Utilities::getArrayValue('value', $field, '');
-                        if (empty($values)) {
-                            $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
+                    $temp = array();
+                    if ((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type))) {
+                        if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
+                            throw new Exception("Designating more than one column as a primary key is not allowed.");
                         }
-                        if (!empty($values)) {
-                            foreach ($values as $value) {
-                                if (!empty($picklist)) {
-                                    $picklist .= "\r";
-                                }
-                                $picklist .= $value;
+                        $primaryKey = $name;
+                    }
+                    elseif (Utilities::boolval(Utilities::getArrayValue('is_primary_key', $field, false))) {
+                        if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
+                            throw new Exception("Designating more than one column as a primary key is not allowed.");
+                        }
+                        $primaryKey = $name;
+                    }
+                    elseif ((0 === strcasecmp('reference', $type)) ||
+                            Utilities::boolval(Utilities::getArrayValue('is_foreign_key', $field, false))) {
+                        // special case for references because the table referenced may not be created yet
+                        $refTable = Utilities::getArrayValue('ref_table', $field, '');
+                        if (empty($refTable)) {
+                            throw new Exception("Invalid schema detected - no table element for reference type of $name.");
+                        }
+                        $refColumns = Utilities::getArrayValue('ref_fields', $field, 'id');
+                        $refOnDelete = Utilities::getArrayValue('ref_on_delete', $field, null);
+                        $refOnUpdate = Utilities::getArrayValue('ref_on_update', $field, null);
+
+                        // will get to it later, $refTable may not be there
+                        $keyName = 'fk_' . $table_name . '_' . $name;
+                        $references[] = array('name' => $keyName,
+                                              'table' => $table_name,
+                                              'column' => $name,
+                                              'ref_table' => $refTable,
+                                              'ref_fields' => $refColumns,
+                                              'delete' => $refOnDelete,
+                                              'update' => $refOnUpdate);
+                    }
+                    elseif (Utilities::boolval(Utilities::getArrayValue('is_unique', $field, false))) {
+                        // will get to it later, create after table built
+                        $keyName = 'undx_' . $table_name . '_' . $name;
+                        $indexes[] = array('name' => $keyName,
+                                           'table' => $table_name,
+                                           'column' => $name,
+                                           'unique' => true);
+                    }
+                    elseif (Utilities::boolval(Utilities::getArrayValue('is_index', $field, false))) {
+                        // will get to it later, create after table built
+                        $keyName = 'ndx_' . $table_name . '_' . $name;
+                        $indexes[] = array('name' => $keyName,
+                                           'table' => $table_name,
+                                           'column' => $name);
+                    }
+                    elseif ((0 === strcasecmp('user_id_on_create', $type))) { // && static::is_local_db()
+                        // special case for references because the table referenced may not be created yet
+                        $temp['user_id_on_update'] = false;
+                        $keyName = 'fk_' . $table_name . '_' . $name;
+                        $references[] = array('name' => $keyName,
+                                              'table' => $table_name,
+                                              'column' => $name,
+                                              'ref_table' => 'user',
+                                              'ref_fields' => 'id',
+                                              'delete' => null,
+                                              'update' => 'CASCADE');
+                    }
+                    elseif ((0 === strcasecmp('user_id_on_update', $type))) { // && static::is_local_db()
+                        // special case for references because the table referenced may not be created yet
+                        $temp['user_id_on_update'] = true;
+                        $keyName = 'fk_' . $table_name . '_' . $name;
+                        $references[] = array('name' => $keyName,
+                                              'table' => $table_name,
+                                              'column' => $name,
+                                              'ref_table' => 'user',
+                                              'ref_fields' => 'id',
+                                              'delete' => null,
+                                              'update' => 'CASCADE');
+                    }
+                    elseif ((0 === strcasecmp('timestamp_on_create', $type))) {
+                        $temp['timestamp_on_update'] = false;
+                    }
+                    elseif ((0 === strcasecmp('timestamp_on_update', $type))) {
+                        $temp['timestamp_on_update'] = true;
+                    }
+
+                    $picklist = '';
+                    $values = Utilities::getArrayValue('value', $field, '');
+                    if (empty($values)) {
+                        $values = (isset($field['values']['value'])) ? $field['values']['value'] : array();
+                    }
+                    if (!empty($values)) {
+                        foreach ($values as $value) {
+                            if (!empty($picklist)) {
+                                $picklist .= "\r";
                             }
+                            $picklist .= $value;
                         }
                     }
-                }
-
-                // labels
-                $label = Utilities::getArrayValue('label', $field, '');
-                if (!empty($label) || !empty($validation) || !empty($picklist)) {
-                    $temp = array('table' => $table_name, 'field' => $name);
-                    if (!empty($label))
-                        $temp['label'] = $label;
-                    if (!empty($validation))
-                        $temp['validation'] = $validation;
-                    if (!empty($picklist))
+                    if (!empty($picklist)) {
                         $temp['picklist'] = $picklist;
-                    $labels[] = $temp;
+                    }
+
+                    // labels
+                    $label = Utilities::getArrayValue('label', $field, '');
+                    if (!empty($label)) {
+                        $temp['label'] = $label;
+                    }
+
+                    $validation = Utilities::getArrayValue('validation', $field, '');
+                    if (!empty($validation)) {
+                        $temp['validation'] = $validation;
+                    }
+
+                    if (!empty($temp)) {
+                        $temp['table'] = $table_name;
+                        $temp['field'] = $name;
+                        $labels[] = $temp;
+                    }
                 }
             }
             catch (Exception $ex) {
@@ -1338,10 +1383,10 @@ class DbUtilities
     public static function getLabels($where, $params = array(), $select = '*')
     {
         $labels = array();
-        if (static::doesTableExist(Yii::app()->db, 'label')) {
+        if (static::doesTableExist(Yii::app()->db, 'schema_extras')) {
             $command = Yii::app()->db->createCommand();
             $command->select($select);
-            $command->from('label');
+            $command->from('schema_extras');
             $command->where($where, $params);
             $labels = $command->queryAll();
         }
@@ -1354,7 +1399,7 @@ class DbUtilities
      */
     public static function setLabels($labels)
     {
-        if (!empty($labels) && static::doesTableExist(Yii::app()->db, 'label')) {
+        if (!empty($labels) && static::doesTableExist(Yii::app()->db, 'schema_extras')) {
             // todo batch this for speed
             $command = Yii::app()->db->createCommand();
             foreach ($labels as $each) {
@@ -1365,15 +1410,15 @@ class DbUtilities
                 $where .= ' and ' . Yii::app()->db->quoteColumnName('field') . ' = :fn';
                 $command->reset();
                 $command->select('(COUNT(*)) as ' . Yii::app()->db->quoteColumnName('count'));
-                $command->from('label');
+                $command->from('schema_extras');
                 $command->where($where, array(':tn'=>$table, ':fn'=>$field));
                 $count = intval($command->queryScalar());
                 $command->reset();
                 if (0 >= $count) {
-                    $rows = $command->insert('label', $each);
+                    $rows = $command->insert('schema_extras', $each);
                 }
                 else {
-                    $rows = $command->update('label', $each, $where);
+                    $rows = $command->update('schema_extras', $each, $where);
                 }
             }
         }
@@ -1385,9 +1430,9 @@ class DbUtilities
      */
     public static function removeLabels($where, $params = null)
     {
-        if (static::doesTableExist(Yii::app()->db, 'label')) {
+        if (static::doesTableExist(Yii::app()->db, 'schema_extras')) {
             $command = Yii::app()->db->createCommand();
-            $command->delete('label', $where, $params);
+            $command->delete('schema_extras', $where, $params);
         }
     }
 

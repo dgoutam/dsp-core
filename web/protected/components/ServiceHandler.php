@@ -97,11 +97,11 @@ class ServiceHandler
     public function getServiceListing()
     {
         try {
-            $criteria = new CDbCriteria(array('select' => 'name,label'));
+            $criteria = new CDbCriteria(array('select' => 'api_name,name'));
             $result = Service::model()->findAll($criteria);
             $out = array();
             foreach ($result as $service) {
-                $out[] = array('name' => $service->name, 'label' => $service->label);
+                $out[] = array('api_name' => $service->api_name, 'name' => $service->name);
             }
 
             return $out;
@@ -115,15 +115,15 @@ class ServiceHandler
      * Retrieves the record of the particular service
      *
      * @access private
-     * @param string $name
+     * @param string $api_name
      * @return array The service record array
      * @throws Exception if retrieving of service is not possible
      */
-    private function getService($name)
+    private function getService($api_name)
     {
         try {
-            $criteria = new CDbCriteria(array('condition' => 'name=:name',
-                                              'params' => array(':name' => $name)));
+            $criteria = new CDbCriteria(array('condition' => 'api_name=:name',
+                                              'params' => array(':name' => $api_name)));
             $result = Service::model()->find($criteria);
             if (isset($result)) {
                 return $result->attributes;
@@ -143,26 +143,26 @@ class ServiceHandler
      * the new service, passing in parameters based on the stored configuration settings.
      *
      * @access public
-     * @param string $name
+     * @param string $api_name
      * @param boolean $check_active Throws an exception if true and the service is not active.
      * @return object The new or previously constructed XXXSvc
      * @throws Exception if construction of service is not possible
      */
-    public function getServiceObject($name, $check_active=false)
+    public function getServiceObject($api_name, $check_active=false)
     {
-        if (empty($name)) {
+        if (empty($api_name)) {
             throw new Exception("Failed to launch service, no service name given.");
         }
 
         // if it hasn't been created, do so
-        $service = Utilities::getArrayValue($name, $this->_services, null);
+        $service = Utilities::getArrayValue($api_name, $this->_services, null);
         if (isset($service) && !empty($service)) {
             return $service;
         }
 
         try {
-            $record = $this->getService($name);
-            switch (strtolower($name)) {
+            $record = $this->getService($api_name);
+            switch (strtolower($api_name)) {
             // some special cases first
             case 'app':
                 $service = new ApplicationSvc($record);
@@ -213,14 +213,14 @@ class ServiceHandler
                 }
                 break;
             }
-            $this->_services[$name] = $service;
+            $this->_services[$api_name] = $service;
         }
         catch (Exception $ex) {
-            throw new Exception("Failed to launch service '$name'.\n{$ex->getMessage()}");
+            throw new Exception("Failed to launch service '$api_name'.\n{$ex->getMessage()}");
         }
 
         if ($check_active && !$service->getIsActive()) {
-            throw new Exception("Requested service '$name' is not active.");
+            throw new Exception("Requested service '$api_name' is not active.");
         }
 
         return $service;

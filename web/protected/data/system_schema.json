@@ -41,70 +41,6 @@
                 }
             ]
         },
-        {
-            "name": "label",
-            "field": [
-                {
-                    "name": "id",
-                    "type": "id"
-                },
-                {
-                    "name": "service",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 128,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "table",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 128,
-                    "default": "",
-                    "allow_null": true,
-                    "is_index": true
-                },
-                {
-                    "name": "field",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 128,
-                    "default": "",
-                    "allow_null": true,
-                    "is_index": true
-                },
-                {
-                    "name": "label",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 128,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "plural",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 128,
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "picklist",
-                    "type": "text",
-                    "default": "",
-                    "allow_null": true
-                },
-                {
-                    "name": "validation",
-                    "type": "string",
-                    "length": 255,
-                    "default": "",
-                    "allow_null": true
-                }
-            ]
-        },
 	    {
             "name": "user",
             "field": [
@@ -158,7 +94,8 @@
                     "type": "string",
                     "length": 120,
                     "allow_null": false,
-                    "validation": "email"
+                    "is_index": true,
+                    "validation": "not_empty,email"
                 },
                 {
                     "name": "phone",
@@ -224,35 +161,23 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "timestamp",
-                    "default": 0,
-                    "allow_null": false,
+                    "type": "timestamp_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "timestamp",
-                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-                    "allow_null": false,
+                    "type": "timestamp_on_update",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "ref_on_delete": "SET NULL",
+                    "type": "user_id_on_create",
                     "allow_null": true,
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "ref_on_delete": "SET NULL",
+                    "type": "user_id_on_update",
                     "allow_null": true,
                     "validation": "api_read_only"
                 }
@@ -271,15 +196,11 @@
                     "supports_multibyte": true,
                     "length": 40,
                     "allow_null": false,
+                    "is_unique": true,
                     "validation": "not_empty"
                 },
                 {
                     "name": "description",
-                    "type": "text",
-                    "allow_null": true
-                },
-                {
-                    "name": "app_ids",
                     "type": "text",
                     "allow_null": true
                 },
@@ -294,34 +215,22 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "timestamp",
-                    "default": 0,
-                    "allow_null": false,
+                    "type": "timestamp_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "timestamp",
-                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-                    "allow_null": false,
+                    "type": "timestamp_on_update",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_update",
                     "validation": "api_read_only"
                 }
             ]
@@ -334,10 +243,20 @@
                     "type": "id"
                 },
                 {
-                    "name": "name",
+                    "name": "api_name",
                     "type": "string",
                     "length": 40,
                     "allow_null": false,
+                    "is_unique": true,
+                    "validation": "not_empty"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "is_unique": true,
                     "validation": "not_empty"
                 },
                 {
@@ -345,7 +264,8 @@
                     "type": "string",
                     "supports_multibyte": true,
                     "length": 80,
-                    "allow_null": true
+                    "allow_null": false,
+                    "validation": "not_empty"
                 },
                 {
                     "name": "description",
@@ -405,34 +325,22 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "timestamp",
-                    "default": 0,
-                    "allow_null": false,
+                    "type": "timestamp_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "timestamp",
-                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-                    "allow_null": false,
+                    "type": "timestamp_on_update",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_update",
                     "validation": "api_read_only"
                 }
             ]
@@ -445,10 +353,20 @@
                     "type": "id"
                 },
                 {
-                    "name": "name",
+                    "name": "api_name",
                     "type": "string",
                     "length": 40,
                     "allow_null": false,
+                    "is_unique": true,
+                    "validation": "not_empty"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 40,
+                    "allow_null": false,
+                    "is_unique": true,
                     "validation": "not_empty"
                 },
                 {
@@ -480,11 +398,6 @@
                     "type": "boolean",
                     "default": false,
                     "allow_null": false
-                },
-                {
-                    "name": "app_group_ids",
-                    "type": "text",
-                    "allow_null": true
                 },
                 {
                     "name": "schemas",
@@ -529,34 +442,22 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "timestamp",
-                    "default": 0,
-                    "allow_null": false,
+                    "type": "timestamp_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "timestamp",
-                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-                    "allow_null": false,
+                    "type": "timestamp_on_update",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_update",
                     "validation": "api_read_only"
                 }
             ]
@@ -583,34 +484,22 @@
                 },
                 {
                     "name": "created_date",
-                    "type": "timestamp",
-                    "default": 0,
-                    "allow_null": false,
+                    "type": "timestamp_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_date",
-                    "type": "timestamp",
-                    "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-                    "allow_null": false,
+                    "type": "timestamp_on_update",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "created_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_create",
                     "validation": "api_read_only"
                 },
                 {
                     "name": "last_modified_by_id",
-                    "type": "reference",
-                    "ref_table": "user",
-                    "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
-                    "allow_null": false,
+                    "type": "user_id_on_update",
                     "validation": "api_read_only"
                 }
             ]
@@ -741,30 +630,79 @@
                     "default": "No Access",
                     "allow_null": false,
                     "validation": "picklist"
+                }
+            ]
+        },
+        {
+            "name": "schema_extras",
+            "field": [
+                {
+                    "name": "id",
+                    "type": "id"
                 },
                 {
-                    "name": "read",
-                    "type": "boolean",
-                    "default": false,
-                    "allow_null": false
+                    "name": "service_id",
+                    "type": "reference",
+                    "ref_table": "service",
+                    "ref_fields": "id",
+                    "ref_on_update": "CASCADE",
+                    "ref_on_delete": "CASCADE",
+                    "allow_null": true
                 },
                 {
-                    "name": "create",
-                    "type": "boolean",
-                    "default": false,
-                    "allow_null": false
+                    "name": "table",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": false,
+                    "is_index": true
                 },
                 {
-                    "name": "update",
-                    "type": "boolean",
-                    "default": false,
-                    "allow_null": false
+                    "name": "field",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "default": "",
+                    "allow_null": false,
+                    "is_index": true
                 },
                 {
-                    "name": "delete",
+                    "name": "label",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "allow_null": true
+                },
+                {
+                    "name": "plural",
+                    "type": "string",
+                    "supports_multibyte": true,
+                    "length": 128,
+                    "allow_null": true
+                },
+                {
+                    "name": "picklist",
+                    "type": "text",
+                    "allow_null": true
+                },
+                {
+                    "name": "validation",
+                    "type": "string",
+                    "length": 255,
+                    "allow_null": true
+                },
+                {
+                    "name": "user_id_on_update",
                     "type": "boolean",
-                    "default": false,
-                    "allow_null": false
+                    "default": null,
+                    "allow_null": true
+                },
+                {
+                    "name": "timestamp_on_update",
+                    "type": "boolean",
+                    "default": null,
+                    "allow_null": true
                 }
             ]
         }

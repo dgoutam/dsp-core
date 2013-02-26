@@ -7,7 +7,6 @@
  * @property integer $id
  * @property string $name
  * @property string $description
- * @property string $app_ids
  * @property integer $default_app_id
  * @property string $created_date
  * @property string $last_modified_date
@@ -21,6 +20,7 @@
  * @property RoleServiceAccess[] $role_service_accesses
  * @property User[] $users
  * @property App[] $apps
+ * @property Service[] $services
  */
 class Role extends CActiveRecord
 {
@@ -54,10 +54,10 @@ class Role extends CActiveRecord
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('default_app_id, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 40),
-            array('description, app_ids', 'safe'),
+            array('description', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, description, app_ids, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, description, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -88,7 +88,6 @@ class Role extends CActiveRecord
             'id' => 'ID',
             'name' => 'Name',
             'description' => 'Description',
-            'app_ids' => 'App Ids',
             'default_app_id' => 'Default App',
             'created_date' => 'Created Date',
             'last_modified_date' => 'Last Modified Date',
@@ -111,7 +110,6 @@ class Role extends CActiveRecord
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
         $criteria->compare('description', $this->description, true);
-        $criteria->compare('app_ids', $this->app_ids, true);
         $criteria->compare('default_app_id', $this->default_app_id);
         $criteria->compare('created_date', $this->created_date, true);
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
@@ -193,7 +191,7 @@ class Role extends CActiveRecord
             return array('id');
         }
         elseif ('*' == $requested) {
-            return array('id','name','description','app_ids','default_app_id','accesses',
+            return array('id','name','description','default_app_id','accesses',
                          'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
         else {

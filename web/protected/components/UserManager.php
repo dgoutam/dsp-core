@@ -554,7 +554,7 @@ class UserManager implements iRestHandler
         }
 
         try {
-            $theUser = User::model()->find('username=:un', array(':un'=>$username));
+            $theUser = User::model()->with('role.role_service_accesses','role.apps','role.services')->find('username=:un', array(':un'=>$username));
             if (null === $theUser) {
                 // bad username
                 throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
@@ -570,56 +570,48 @@ class UserManager implements iRestHandler
             }
 
             $isSysAdmin = $theUser->getAttribute('is_sys_admin');
-            $roleId = $theUser->getAttribute('role_id');
-            $roleId = trim(trim($roleId, ',')); // todo
-            if (empty($roleId) && !$isSysAdmin) {
+            $theRole = $theUser->getRelated('role');
+            if (!isset($theRole) && !$isSysAdmin) {
                 throw new Exception("The username '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN);
             }
 
             $defaultAppId = $theUser->getAttribute('default_app_id');
-            $fields = 'id,display_name,first_name,last_name,username,email,phone,is_sys_admin';
+            $fields = 'id,display_name,first_name,last_name,username,email,is_sys_admin';
             $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
             $userInfo = $theUser->getAttributes(explode(',', $fields));
             $data = $userInfo; // reply data
             $allowedApps = array();
-            if (!empty($roleId)) {
-                $theRole = Role::model()->findByPk($roleId);
-                if ((null === $theRole) && !$isSysAdmin) {
-                    throw new Exception("The username '$username' has not been assigned a valid role.", ErrorCodes::FORBIDDEN);
+            if (isset($theRole)) {
+                if (!isset($defaultAppId)) {
+                    $defaultAppId = $theRole->getAttribute('default_app_id');
                 }
-                else {
-                    if (!isset($defaultAppId)) {
-                        $defaultAppId = $theRole->getAttribute('default_app_id');
+                $role = $theRole->attributes;
+                $roleApps = $theRole->getRelated('apps');
+                if (!empty($roleApps)) {
+                    foreach($roleApps as $app) {
+                        $roleApps[] = array('id' => $app->getAttribute('id'),
+                                            'api_name' => $app->getAttribute('api_name'));
+                        if ($app->getAttribute('is_active'))
+                            $allowedApps[] = $app;
                     }
-                    $role = $theRole->attributes;
-                    $allowedAppIds = explode(',', trim($theRole->getAttribute('app_ids'), ','));
-                    try {
-                        $roleApps = array();
-                        if (!empty($allowedAppIds)) {
-                            $temp = App::model()->findAllByPk($allowedAppIds);
-                            foreach($temp as $app) {
-                                $roleApps[] = array('id' => $app->getAttribute('id'),
-                                                    'name' => $app->getAttribute('name'));
-                                if ($app->getAttribute('is_active'))
-                                    $allowedApps[] = $app;
-                            }
+                }
+                $role['apps'] = $roleApps;
+                $permsFields = array('service_id','component','access','read','create','update','delete');
+                $thePerms = $theRole->getRelated('role_service_accesses');
+                $theServices = $theRole->getRelated('services');
+                $perms = array();
+                foreach ($thePerms as $perm) {
+                    $permServiceId = $perm->getAttribute('service_id');
+                    $temp = $perm->getAttributes($permsFields);
+                    foreach ($theServices as $service) {
+                        if ($permServiceId === $service->getAttribute('id')) {
+                            $temp['service'] = $service->getAttribute('api_name');
                         }
-                        $role['apps'] = $roleApps;
-                        unset($role['app_ids']);
                     }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
-                    $permsFields = array('service','component','read','create','update','delete');
-                    $thePerms = RoleServiceAccess::model()->findAll('role_id=:rid',
-                                                                    array(':rid'=>$roleId));
-                    $perms = array();
-                    foreach ($thePerms as $perm) {
-                        $perms[] = $perm->getAttributes($permsFields);
-                    }
-                    $role['services'] = $perms;
-                    $userInfo['role'] = $role;
+                    $perms[] = $temp;
                 }
+                $role['services'] = $perms;
+                $userInfo['role'] = $role;
             }
 
             if (!isset($_SESSION)) {
@@ -635,29 +627,30 @@ class UserManager implements iRestHandler
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
 
-            $appFields = 'id,name,label,description,url,is_url_external,app_group_ids';
+            $appFields = 'id,api_name,name,description,url,is_url_external';
             $theApps = $allowedApps;
             if ($isSysAdmin) {
                 $theApps = App::model()->findAll('is_active = :ia', array(':ia'=>1));
             }
-            $theGroups = AppGroup::model()->findAll();
+            $theGroups = AppGroup::model()->with('apps')->findAll();
             $appGroups = array();
             $noGroupApps = array();
             foreach ($theApps as $app) {
                 $appId = $app->getAttribute('id');
-                $groupIds = $app->getAttribute('app_group_ids');
-                $groupIds = array_map('trim', explode(',', trim($groupIds, ',')));
+                $tempGroups = $app->getRelated('app_groups');
                 $appData = $app->getAttributes(explode(',', $appFields));
                 $appData['is_default'] = ($defaultAppId === $appId);
                 $found = false;
                 foreach ($theGroups as $g_key=>$group) {
                     $groupId = $group->getAttribute('id');
                     $groupData = (isset($appGroups[$g_key])) ? $appGroups[$g_key] : $group->getAttributes(array('id','name','description'));
-                    if (false !== array_search($groupId, $groupIds)) {
-                        $found = true;
-                        $temp = Utilities::getArrayValue('apps', $groupData, array());
-                        $temp[] = $appData;
-                        $groupData['apps'] = $temp;
+                    foreach ($tempGroups as $tempGroup) {
+                        if ($tempGroup->getAttribute('id') === $groupId) {
+                            $found = true;
+                            $temp = Utilities::getArrayValue('apps', $groupData, array());
+                            $temp[] = $appData;
+                            $groupData['apps'] = $temp;
+                        }
                     }
                     $appGroups[$g_key] = $groupData;
                 }
@@ -714,7 +707,7 @@ class UserManager implements iRestHandler
         }
 
         try {
-            $theUser = User::model()->findByPk($userId);
+            $theUser = User::model()->with('role.role_service_accesses','role.apps','role.services')->findByPk($userId);
             if (null === $theUser) {
                 throw new Exception("The user identified in the session or ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED);
             }
@@ -724,56 +717,48 @@ class UserManager implements iRestHandler
             }
 
             $isSysAdmin = $theUser->getAttribute('is_sys_admin');
-            $roleId = $theUser->getAttribute('role_id');
-            $roleId = trim(trim($roleId, ',')); // todo
-            if (empty($roleId) && !$isSysAdmin) {
+            $theRole = $theUser->getRelated('role');
+            if (!isset($theRole) && !$isSysAdmin) {
                 throw new Exception("The username '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN);
             }
 
             $defaultAppId = $theUser->getAttribute('default_app_id');
-            $fields = 'id,display_name,first_name,last_name,username,email,phone,is_sys_admin';
+            $fields = 'id,display_name,first_name,last_name,username,email,is_sys_admin';
             $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
             $userInfo = $theUser->getAttributes(explode(',', $fields));
             $data = $userInfo; // reply data
             $allowedApps = array();
-            if (!empty($roleId)) {
-                $theRole = Role::model()->findByPk($roleId);
-                if ((null === $theRole) && !$isSysAdmin) {
-                    throw new Exception("The username '$username' has not been assigned a valid role.", ErrorCodes::FORBIDDEN);
+            if (isset($theRole)) {
+                if (!isset($defaultAppId)) {
+                    $defaultAppId = $theRole->getAttribute('default_app_id');
                 }
-                else {
-                    if (!isset($defaultAppId)) {
-                        $defaultAppId = $theRole->getAttribute('default_app_id');
+                $role = $theRole->attributes;
+                $roleApps = $theRole->getRelated('apps');
+                if (!empty($roleApps)) {
+                    foreach($roleApps as $app) {
+                        $roleApps[] = array('id' => $app->getAttribute('id'),
+                                            'api_name' => $app->getAttribute('api_name'));
+                        if ($app->getAttribute('is_active'))
+                            $allowedApps[] = $app;
                     }
-                    $role = $theRole->attributes;
-                    $allowedAppIds = explode(',', trim($theRole->getAttribute('app_ids'), ','));
-                    try {
-                        $roleApps = array();
-                        if (!empty($allowedAppIds)) {
-                            $temp = App::model()->findAllByPk($allowedAppIds);
-                            foreach($temp as $app) {
-                                $roleApps[] = array('id' => $app->getAttribute('id'),
-                                                    'name' => $app->getAttribute('name'));
-                                if ($app->getAttribute('is_active'))
-                                    $allowedApps[] = $app;
-                            }
+                }
+                $role['apps'] = $roleApps;
+                $permsFields = array('service_id','component','access','read','create','update','delete');
+                $thePerms = $theRole->getRelated('role_service_accesses');
+                $theServices = $theRole->getRelated('services');
+                $perms = array();
+                foreach ($thePerms as $perm) {
+                    $permServiceId = $perm->getAttribute('service_id');
+                    $temp = $perm->getAttributes($permsFields);
+                    foreach ($theServices as $service) {
+                        if ($permServiceId === $service->getAttribute('id')) {
+                            $temp['service'] = $service->getAttribute('api_name');
                         }
-                        $role['apps'] = $roleApps;
-                        unset($role['app_ids']);
                     }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
-                    $permsFields = array('service','component','read','create','update','delete');
-                    $thePerms = RoleServiceAccess::model()->findAll('role_id=:rid',
-                                                                    array(':rid'=>$roleId));
-                    $perms = array();
-                    foreach ($thePerms as $perm) {
-                        $perms[] = $perm->getAttributes($permsFields);
-                    }
-                    $role['services'] = $perms;
-                    $userInfo['role'] = $role;
+                    $perms[] = $temp;
                 }
+                $role['services'] = $perms;
+                $userInfo['role'] = $role;
             }
 
             if (!isset($_SESSION)) {
@@ -789,29 +774,30 @@ class UserManager implements iRestHandler
             $data['ticket_expiry'] = time() + (5 * 60);
             $data['session_id'] = session_id();
 
-            $appFields = 'id,name,label,description,url,is_url_external,app_group_ids';
+            $appFields = 'id,api_name,name,description,url,is_url_external';
             $theApps = $allowedApps;
             if ($isSysAdmin) {
                 $theApps = App::model()->findAll('is_active = :ia', array(':ia'=>1));
             }
-            $theGroups = AppGroup::model()->findAll();
+            $theGroups = AppGroup::model()->with('apps')->findAll();
             $appGroups = array();
             $noGroupApps = array();
             foreach ($theApps as $app) {
                 $appId = $app->getAttribute('id');
-                $groupIds = $app->getAttribute('app_group_ids');
-                $groupIds = array_map('trim', explode(',', trim($groupIds, ',')));
+                $tempGroups = $app->getRelated('app_groups');
                 $appData = $app->getAttributes(explode(',', $appFields));
                 $appData['is_default'] = ($defaultAppId === $appId);
                 $found = false;
                 foreach ($theGroups as $g_key=>$group) {
                     $groupId = $group->getAttribute('id');
                     $groupData = (isset($appGroups[$g_key])) ? $appGroups[$g_key] : $group->getAttributes(array('id','name','description'));
-                    if (false !== array_search($groupId, $groupIds)) {
-                        $found = true;
-                        $temp = Utilities::getArrayValue('apps', $groupData, array());
-                        $temp[] = $appData;
-                        $groupData['apps'] = $temp;
+                    foreach ($tempGroups as $tempGroup) {
+                        if ($tempGroup->getAttribute('id') === $groupId) {
+                            $found = true;
+                            $temp = Utilities::getArrayValue('apps', $groupData, array());
+                            $temp[] = $appData;
+                            $groupData['apps'] = $temp;
+                        }
                     }
                     $appGroups[$g_key] = $groupData;
                 }

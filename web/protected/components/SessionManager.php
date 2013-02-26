@@ -256,7 +256,7 @@ class SessionManager
         }
         $found = false;
         foreach ($apps as $app) {
-            $temp = Utilities::getArrayValue('name', $app);
+            $temp = Utilities::getArrayValue('api_name', $app);
             if (0 === strcasecmp($appName, $temp)) {
                 $found = true;
             }
@@ -297,7 +297,7 @@ class SessionManager
                 $theComponent = Utilities::getArrayValue('component', $svcInfo);
                 if (!empty($component)) {
                     if (0 === strcasecmp($component, $theComponent)) {
-                        if (!Utilities::boolval(Utilities::getArrayValue($request, $svcInfo, false))) {
+                        if (static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''))) {
                             $msg = ucfirst($request) . " access to component '$component' of service '$service' ";
                             $msg .= "is not allowed by this user's role.";
                             throw new Exception($msg, ErrorCodes::FORBIDDEN);
@@ -305,13 +305,13 @@ class SessionManager
                         return; // component specific found and allowed, so bail
                     }
                     elseif (empty($theComponent) || ('*' == $theComponent)) {
-                        $serviceAllowed = Utilities::boolval(Utilities::getArrayValue($request, $svcInfo, false));
+                        $serviceAllowed = static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''));
                         $serviceFound = true;
                     }
                 }
                 else {
                     if (empty($theComponent) || ('*' == $theComponent)) {
-                        if (!Utilities::boolval(Utilities::getArrayValue($request, $svcInfo, false))) {
+                        if (static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''))) {
                             $msg = ucfirst($request) . " access to service '$service' ";
                             $msg .= "is not allowed by this user's role.";
                             throw new Exception($msg, ErrorCodes::FORBIDDEN);
@@ -321,7 +321,7 @@ class SessionManager
                 }
             }
             elseif ('*' == $theService) {
-                $allAllowed = Utilities::boolval(Utilities::getArrayValue($request, $svcInfo, false));
+                $allAllowed = static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''));
                 $allFound = true;
             }
         }
@@ -341,6 +341,50 @@ class SessionManager
             $msg .= "component '$component' of ";
         $msg .= "service '$service' is not allowed by this user's role.";
         throw new Exception($msg, ErrorCodes::FORBIDDEN);
+    }
+
+    /**
+     * @param $request
+     * @param $access
+     * @return bool
+     */
+    protected static function isAllowed($request, $access)
+    {
+        switch ($request) {
+        case 'read':
+            switch ($access) {
+            case 'Read Only':
+            case 'Read and Write':
+            case 'Full Access':
+                return true;
+            }
+            break;
+        case 'create':
+            switch ($access) {
+            case 'Write Only':
+            case 'Read and Write':
+            case 'Full Access':
+                return true;
+            }
+            break;
+        case 'update':
+            switch ($access) {
+            case 'Write Only':
+            case 'Read and Write':
+            case 'Full Access':
+                return true;
+            }
+            break;
+        case 'delete':
+            switch ($access) {
+            case 'Full Access':
+                return true;
+            }
+            break;
+        default:
+            break;
+        }
+        return false;
     }
 
     /**

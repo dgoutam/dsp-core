@@ -50,16 +50,21 @@ class ApplicationSvc extends CommonFileSvc
     }
 
     /**
-     * @param $app_root
+     * @param string $app_root
+     * @param string $name
      * @throws Exception
      */
-    public function createApp($app_root)
+    public function createApp($app_root, $name = '')
     {
         try {
             // create in permanent storage
             // place holder file for app check (faster than listing any blobs with that prefix)
             // also may include app folder permission properties
             $this->fileRestHandler->createFolder($app_root, true, array(), false);
+            $name = (!empty($name)) ? $name : $app_root;
+            $content = "<!DOCTYPE html>\n<html>\n<head>\n<title>".$name."</title>\n</head>\n";
+            $content .= "<body>\nYour app ".$name." now lives here.</body>\n</html>";
+            $this->fileRestHandler->writeFile($app_root . '/index.html', $content);
         }
         catch (Exception $ex) {
             throw $ex;

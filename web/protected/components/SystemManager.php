@@ -20,7 +20,7 @@ class SystemManager implements iRestHandler
     /**
      *
      */
-    const INTERNAL_TABLES = 'config,label,role_service_access,session,app_to_app_group,app_to_role,app_to_service';
+    const INTERNAL_TABLES = 'session,config,schema_extras,role_service_access,app_to_app_group,app_to_role,app_to_service';
 
     // Members
 
@@ -690,9 +690,6 @@ class SystemManager implements iRestHandler
         case 'appgroup':
             $model = AppGroup::model();
             break;
-        case 'label':
-            $model = Label::model();
-            break;
         case 'role':
             $model = Role::model();
             break;
@@ -719,9 +716,6 @@ class SystemManager implements iRestHandler
         case 'app_group':
         case 'appgroup':
             $obj = new AppGroup;
-            break;
-        case 'label':
-            $obj = new Label;
             break;
         case 'role':
             $obj = new Role;
@@ -779,32 +773,6 @@ class SystemManager implements iRestHandler
             $return_fields = $obj->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
             // after record create
-            // old relations
-            switch (strtolower($table)) {
-            case 'app_group':
-                if (isset($record['app_ids'])) {
-                    $appIds = $record['app_ids'];
-                    $this->assignAppGroups($id, $appIds);
-                }
-                break;
-            case 'role':
-                if (isset($record['users']['assign'])) {
-                    $users = $record['users']['assign'];
-                    $override = Utilities::boolval(Utilities::getArrayValue('override', $record['users'], false));
-                    $this->assignRole($id, $users, $override);
-                }
-                if (isset($record['accesses'])) {
-                    try {
-                        $services = $record['accesses'];
-                        $this->assignServiceAccess($id, $services);
-                    }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
-                }
-                break;
-            }
-            // new relations
             switch (strtolower($table)) {
             case 'app':
                 if (isset($record['app_groups'])) {
@@ -967,36 +935,6 @@ class SystemManager implements iRestHandler
             $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
             // after record update
-            // old relations
-            switch (strtolower($table)) {
-            case 'app_group':
-                if (isset($record['app_ids'])) {
-                    $appIds = $record['app_ids'];
-                    $this->assignAppGroups($id, $appIds, true);
-                }
-                break;
-            case 'role':
-                if (isset($record['users']['assign'])) {
-                    $users = $record['users']['assign'];
-                    $override = Utilities::boolval(Utilities::getArrayValue('override', $record['users'], false));
-                    $this->assignRole($id, $users, $override);
-                }
-                if (isset($record['users']['unassign'])) {
-                    $users = $record['users']['unassign'];
-                    $this->unassignRole($id, $users);
-                }
-                if (isset($record['accesses'])) {
-                    try {
-                        $services = $record['accesses'];
-                        $this->assignServiceAccess($id, $services);
-                    }
-                    catch (Exception $ex) {
-                        throw $ex;
-                    }
-                }
-                break;
-            }
-            // new relations
             switch (strtolower($table)) {
             case 'app':
                 if (isset($record['app_groups'])) {
@@ -1831,67 +1769,6 @@ class SystemManager implements iRestHandler
         if ((count($old) > 0) && isset($old[0]['id'])) {
             // delete any pre-existing access records
             $this->nativeDb->deleteSqlRecords('role_service_access', $old, 'id');
-        }
-    }
-
-    /**
-     * @param $app_group_id
-     * @param string $app_ids
-     * @param bool $for_update
-     * @throws Exception
-     * @return void
-     */
-    protected function assignAppGroups($app_group_id, $app_ids, $for_update = false)
-    {
-        if (empty($app_group_id)) {
-            throw new Exception('App group id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        // drop outer commas and spaces
-        $app_ids = implode(',', array_map('trim', explode(',', trim($app_ids, ','))));
-        try {
-            if ($for_update) {
-                // possibly remove existing groups
-                // %,$id,% is more accurate but in case of sloppy updating by client, filter for %$id%
-                $query = "(app_group_ids like '%$app_group_id%')";
-                if (!empty($app_ids)) {
-                    $query .= " and (id not in ($app_ids))";
-                }
-                $apps = $this->nativeDb->retrieveSqlRecordsByFilter('app', 'id,app_group_ids', $query);
-                foreach ($apps as $key => $app) {
-                    $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
-                    $groupIds = trim($groupIds, ','); // in case of sloppy updating
-                    if (false === stripos(",$groupIds,", ",$app_group_id,")) {
-                        // may not be there due to sloppy updating query
-                        unset($apps[$key]);
-                        continue;
-                    }
-                    $groupIds = trim(str_ireplace(",$app_group_id,", '', ",$groupIds,"), ',');
-                    if (!empty($groupIds))
-                        $groupIds = ",$groupIds,";
-                    $apps[$key]['app_group_ids'] = $groupIds;
-                }
-                $apps = array_values($apps);
-                if (!empty($apps)) {
-                    $this->nativeDb->updateSqlRecords('app', $apps, 'id');
-                }
-            }
-            if (!empty($app_ids)) {
-                // add new groups
-                $apps = $this->nativeDb->retrieveSqlRecordsByIds('app', $app_ids, 'id', 'id,app_group_ids');
-                foreach ($apps as $key => $app) {
-                    $groupIds = Utilities::getArrayValue('app_group_ids', $app, '');
-                    $groupIds = trim($groupIds, ','); // in case of sloppy updating
-                    $groupIds = Utilities::addOnceToList($groupIds, $app_group_id, ',');
-                    $apps[$key]['app_group_ids'] = ",$groupIds,";
-                }
-                $apps = array_values($apps);
-                if (!empty($apps)) {
-                    $this->nativeDb->updateSqlRecords('app', $apps, 'id');
-                }
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating users.\n{$ex->getMessage()}");
         }
     }
 

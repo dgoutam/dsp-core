@@ -1,27 +1,27 @@
 {
     "service": [
         {
-            "name":"db","label":"Database","is_active":1,"type":"Local SQL DB",
+            "api_name":"db","name":"Database","is_active":1,"type":"Local SQL DB",
             "description":"Local database access"
         },
         {
-            "name":"schema","label":"Schema","is_active":1,"type":"Local SQL DB Schema",
+            "api_name":"schema","name":"Schema","is_active":1,"type":"Local SQL DB Schema",
             "description":"Local database schema access"
         },
         {
-            "name":"app","label":"Application Storage","is_active":1,"type":"Local File Storage","storage_name":"applications",
+            "api_name":"app","name":"Application Storage","is_active":1,"type":"Local File Storage","storage_name":"applications",
             "description":"Storage for application files"
         },
         {
-            "name":"lib","label":"Library Storage","is_active":1,"type":"Local File Storage","storage_name":"libraries",
+            "api_name":"lib","name":"Library Storage","is_active":1,"type":"Local File Storage","storage_name":"libraries",
             "description":"Storage for library files shared by applications"
         },
         {
-            "name":"email","label":"Email Service","is_active":1,"type":"Local Email Service",
+            "api_name":"email","name":"Email Service","is_active":1,"type":"Local Email Service",
             "description":"Default system email utility access"
         },
         {
-            "name":"doc","label":"Document Storage","is_active":1,"type":"Local File Storage","storage_name":"documents",
+            "api_name":"doc","name":"Document Storage","is_active":1,"type":"Local File Storage","storage_name":"documents",
             "description":"Default storage for documents"
         }
     ]
