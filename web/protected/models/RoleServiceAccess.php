@@ -7,16 +7,12 @@
  * @property integer $id
  * @property integer $role_id
  * @property integer $service_id
- * @property string $service
  * @property string $component
- * @property integer $read
- * @property integer $create
- * @property integer $update
- * @property integer $delete
+ * @property string $access
  *
  * The followings are the available model relations:
  * @property Role $role
- * @property Service $service0
+ * @property Service $service
  */
 class RoleServiceAccess extends CActiveRecord
 {
@@ -46,13 +42,13 @@ class RoleServiceAccess extends CActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('role_id, service, component', 'required'),
-            array('role_id, service_id, read, create, update, delete', 'numerical', 'integerOnly' => true),
-            array('service', 'length', 'max' => 40),
+            array('role_id, service_id, component', 'required'),
+            array('role_id, service_id', 'numerical', 'integerOnly' => true),
+            array('access', 'length', 'max' => 40),
             array('component', 'length', 'max' => 80),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, role_id, service_id, service, component, read, create, update, delete', 'safe', 'on' => 'search'),
+            array('id, role_id, service_id, component, access', 'safe', 'on' => 'search'),
         );
     }
 
@@ -65,6 +61,7 @@ class RoleServiceAccess extends CActiveRecord
         // class name for the relations automatically generated below.
         return array(
             'role' => array(self::BELONGS_TO, 'Role', 'role_id'),
+            'service' => array(self::BELONGS_TO, 'Service', 'service_id'),
         );
     }
 
@@ -77,12 +74,8 @@ class RoleServiceAccess extends CActiveRecord
             'id' => 'ID',
             'role_id' => 'Role',
             'service_id' => 'Service',
-            'service' => 'Service',
             'component' => 'Component',
-            'read' => 'Read',
-            'create' => 'Create',
-            'update' => 'Update',
-            'delete' => 'Delete',
+            'access' => 'Access',
         );
     }
 
@@ -100,12 +93,8 @@ class RoleServiceAccess extends CActiveRecord
         $criteria->compare('id', $this->id);
         $criteria->compare('role_id', $this->role_id);
         $criteria->compare('service_id', $this->service_id);
-        $criteria->compare('service', $this->service, true);
         $criteria->compare('component', $this->component, true);
-        $criteria->compare('read', $this->read);
-        $criteria->compare('create', $this->create);
-        $criteria->compare('update', $this->update);
-        $criteria->compare('delete', $this->delete);
+        $criteria->compare('access', $this->access);
 
         return new CActiveDataProvider($this, array(
                                                    'criteria' => $criteria,
@@ -118,14 +107,6 @@ class RoleServiceAccess extends CActiveRecord
      */
     protected function beforeValidate()
     {
-        if (is_bool($this->read))
-            $this->read = intval($this->read);
-        if (is_bool($this->create))
-            $this->create = intval($this->create);
-        if (is_bool($this->update))
-            $this->update = intval($this->update);
-        if (is_bool($this->delete))
-            $this->delete = intval($this->delete);
 
         return parent::beforeValidate();
     }
@@ -162,8 +143,7 @@ class RoleServiceAccess extends CActiveRecord
             return array('id');
         }
         elseif ('*' == $requested) {
-            return array('id','role_id','service_id','service','component',
-                         'read','create','update','delete');
+            return array('id','role_id','service_id','component','access');
         }
         else {
             // remove any undesired retrievable fields
@@ -175,11 +155,5 @@ class RoleServiceAccess extends CActiveRecord
     public function afterFind()
     {
         parent::afterFind();
-
-        // correct data type
-        $this->read = intval($this->read);
-        $this->create = intval($this->create);
-        $this->update = intval($this->update);
-        $this->delete = intval($this->delete);
     }
 }

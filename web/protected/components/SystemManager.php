@@ -1359,21 +1359,6 @@ class SystemManager implements iRestHandler
                         $data = array_merge($data, $relatedData);
                     }
                 }
-                // todo temp backward compatibility
-                switch (strtolower($table)) {
-                case 'role':
-                    if (('*' == $return_fields) || (false !== array_search('accesses', $return_fields))) {
-                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
-                        $pk = $record->primaryKey;
-                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
-                        $perms = array();
-                        foreach ($rsa as $access) {
-                            $perms[] = $access->getAttributes($permFields);
-                        }
-                        $data['accesses'] = $perms;
-                    }
-                    break;
-                }
 
                 $out[] = $data;
             }
@@ -1453,21 +1438,6 @@ class SystemManager implements iRestHandler
                         $data = array_merge($data, $relatedData);
                     }
                 }
-                // todo temp backward compatibility
-                switch (strtolower($table)) {
-                case 'role':
-                    if (('*' == $return_fields) || (false !== array_search('accesses', $return_fields))) {
-                        $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
-                        $pk = $record->primaryKey;
-                        $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
-                        $perms = array();
-                        foreach ($rsa as $access) {
-                            $perms[] = $access->getAttributes($permFields);
-                        }
-                        $data['accesses'] = $perms;
-                    }
-                    break;
-                }
 
                 $ids[$key] = $data;
             }
@@ -1539,21 +1509,6 @@ class SystemManager implements iRestHandler
                 if (!empty($relatedData)) {
                     $data = array_merge($data, $relatedData);
                 }
-            }
-            // todo temp backward compatibility
-            switch (strtolower($table)) {
-            case 'role':
-                if (('*' == $return_fields) || (false !== array_search('accesses', $return_fields))) {
-                    $permFields = array('service_id', 'service', 'component', 'read', 'create', 'update', 'delete');
-                    $pk = $record->primaryKey;
-                    $rsa = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid' => $pk));
-                    $perms = array();
-                    foreach ($rsa as $access) {
-                        $perms[] = $access->getAttributes($permFields);
-                    }
-                    $data['accesses'] = $perms;
-                }
-                break;
             }
 
             return $data;
