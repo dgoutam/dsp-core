@@ -604,7 +604,7 @@
                     "name": "component",
                     "type": "string",
                     "length": 120,
-                    "allow_null": false
+                    "allow_null": true
                 },
                 {
                     "name": "access",

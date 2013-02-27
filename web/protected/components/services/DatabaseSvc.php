@@ -81,11 +81,21 @@ class DatabaseSvc extends CommonService implements iRestHandler
         default:
             // Most requests contain 'returned fields' parameter, all by default
             $fields = Utilities::getArrayValue('fields', $_REQUEST, '*');
+            $extras = array();
+            $related = Utilities::getArrayValue('related', $_REQUEST, '');
+            if (!empty($related)) {
+                $related = array_map('trim', explode(',', $related));
+                foreach ($related as $relative) {
+                    $extraFields = Utilities::getArrayValue($relative . '_fields', $_REQUEST, '*');
+                    $extraOrder = Utilities::getArrayValue($relative . '_order', $_REQUEST, '');
+                    $extras[] = array('name'=>$relative, 'fields'=>$extraFields, 'order'=> $extraOrder);
+                }
+            }
             $idField = Utilities::getArrayValue('id_field', $_REQUEST, '');
             if (empty($this->recordId)) {
                 $ids = Utilities::getArrayValue('ids', $_REQUEST, '');
                 if (!empty($ids)) {
-                    $result = $this->retrieveRecordsByIds($this->tableName, $ids, $idField, $fields);
+                    $result = $this->retrieveRecordsByIds($this->tableName, $ids, $idField, $fields, $extras);
                 }
                 else {
                     $data = Utilities::getPostDataAsArray();
@@ -95,7 +105,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             $idField = Utilities::getArrayValue('id_field', $data, '');
                         }
                         if (!empty($ids)) {
-                            $result = $this->retrieveRecordsByIds($this->tableName, $ids, $idField, $fields);
+                            $result = $this->retrieveRecordsByIds($this->tableName, $ids, $idField, $fields, $extras);
                         }
                         else {
                             $records = Utilities::getArrayValue('record', $data, null);
@@ -105,7 +115,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             }
                             if (!empty($records)) {
                                 // passing records to have them updated with new or more values, id field required
-                                $result = $this->retrieveRecords($this->tableName, $records, $idField, $fields);
+                                $result = $this->retrieveRecords($this->tableName, $records, $idField, $fields, $extras);
                             }
                             else {
                                 $filter = Utilities::getArrayValue('filter', $data, '');
@@ -114,7 +124,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                                 $offset = intval(Utilities::getArrayValue('offset', $data, 0));
                                 $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $data, false));
                                 $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter,
-                                                                         $limit, $order, $offset, $include_count);
+                                                                         $limit, $order, $offset, $include_count, $extras);
                             }
                         }
                     }
@@ -125,12 +135,12 @@ class DatabaseSvc extends CommonService implements iRestHandler
                         $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
                         $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $_REQUEST, false));
                         $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter,
-                                                                 $limit, $order, $offset, $include_count);
+                                                                 $limit, $order, $offset, $include_count, $extras);
                     }
                 }
             }
             else { // single entity by id
-                $result = $this->retrieveRecordById($this->tableName, $this->recordId, $idField, $fields);
+                $result = $this->retrieveRecordById($this->tableName, $this->recordId, $idField, $fields, $extras);
             }
             break;
         }
@@ -735,11 +745,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param string $order
      * @param int $offset
      * @param bool $include_count
+     * @param array $extras
      * @throws Exception
      * @return array
      */
     public function retrieveRecordsByFilter($table, $fields = '', $filter = '',
-                                            $limit = 0, $order = '', $offset = 0, $include_count = false)
+                                            $limit = 0, $order = '', $offset = 0,
+                                            $include_count = false, $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -748,7 +760,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
 
         try {
             $results = $this->sqlDb->retrieveSqlRecordsByFilter($table, $fields, $filter,
-                                                                $limit, $order, $offset, $include_count);
+                                                                $limit, $order, $offset,
+                                                                $include_count, $extras);
             if (isset($results['count'])) {
                 $count = $results['count'];
                 unset($results['count']);
@@ -770,10 +783,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param $records
      * @param string $id_field
      * @param string $fields
-     * @return array
+     * @param array $extras
      * @throws Exception
+     * @return array
      */
-    public function retrieveRecords($table, $records, $id_field = '', $fields = '')
+    public function retrieveRecords($table, $records, $id_field = '', $fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -788,7 +802,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             $records = array($records);
         }
         try {
-            $results = $this->sqlDb->retrieveSqlRecords($table, $records, $id_field, $fields);
+            $results = $this->sqlDb->retrieveSqlRecords($table, $records, $id_field, $fields, $extras);
 
             return array('record' => $results);
         }
@@ -802,10 +816,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param $record
      * @param string $id_field
      * @param string $fields
-     * @return array
+     * @param array $extras
      * @throws Exception
+     * @return array
      */
-    public function retrieveRecord($table, $record, $id_field = '', $fields = '')
+    public function retrieveRecord($table, $record, $id_field = '', $fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -815,7 +830,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
         try {
-            $results = $this->sqlDb->retrieveSqlRecords($table, $record, $id_field, $fields);
+            $results = $this->sqlDb->retrieveSqlRecords($table, $record, $id_field, $fields, $extras);
 
             return $results[0];
         }
@@ -829,10 +844,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param $id_list
      * @param string $id_field
      * @param string $fields
-     * @return array
+     * @param array $extras
      * @throws Exception
+     * @return array
      */
-    public function retrieveRecordsByIds($table, $id_list, $id_field = '', $fields = '')
+    public function retrieveRecordsByIds($table, $id_list, $id_field = '', $fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -840,7 +856,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->checkPermission('read', $table);
 
         try {
-            $results = $this->sqlDb->retrieveSqlRecordsByIds($table, $id_list, $id_field, $fields);
+            $results = $this->sqlDb->retrieveSqlRecordsByIds($table, $id_list, $id_field, $fields, $extras);
 
             return array('record' => $results);
         }
@@ -854,10 +870,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param $id
      * @param string $id_field
      * @param string $fields
-     * @return array
+     * @param array $extras
      * @throws Exception
+     * @return array
      */
-    public function retrieveRecordById($table, $id, $id_field = '', $fields = '')
+    public function retrieveRecordById($table, $id, $id_field = '', $fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -865,7 +882,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->checkPermission('read', $table);
 
         try {
-            $results = $this->sqlDb->retrieveSqlRecordsByIds($table, $id, $id_field, $fields);
+            $results = $this->sqlDb->retrieveSqlRecordsByIds($table, $id, $id_field, $fields, $extras);
 
             return $results[0];
         }

@@ -351,13 +351,15 @@ class DbUtilities
         foreach ($names as $name) {
             $table = $db->schema->getTable($name);
             $fks = $fks2 = $table->foreignKeys;
+            $pk = $table->primaryKey;
             foreach ($fks as $key => $value) {
                 $refTable = Utilities::getArrayValue(0, $value, '');
                 $refField = Utilities::getArrayValue(1, $value, '');
                 if (0 === strcasecmp($refTable, $parent_table)) {
                     // other, must be has_many or many_many
-                    $related[] = array('name' => Utilities::pluralize($name) .'_by_'. $key, 'type' => 'has_many',
-                                       'table' => $name, 'field' => $key);
+                    $relationName = Utilities::pluralize($name) .'_by_'. $key;
+                    $related[] = array('name' => $relationName, 'type' => 'has_many',
+                                       'ref_table' => $name, 'ref_field' => $key, 'field' => $pk);
                     // if other has many relationships exist, we can say these are related as well
                     foreach ($fks2 as $key2 => $value2) {
                         $tmpTable = Utilities::getArrayValue(0, $value2, '');
@@ -366,16 +368,19 @@ class DbUtilities
                             (0 !== strcasecmp($tmpTable, $name)) && // not self-referencing table
                             (0 !== strcasecmp($parent_table, $name))) { // not same as parent, i.e. via reference back to self
                             // not the same key
-                            $related[] = array('name' => Utilities::pluralize($tmpTable) .'_by_'. $name, 'type' => 'many_many',
-                                               'table' => $tmpTable, 'field' => $tmpField,
-                                               'join' => "$name($key,$key2)");
+                            $relationName = Utilities::pluralize($tmpTable) .'_by_'. $name;
+                            $related[] = array('name' => $relationName, 'type' => 'many_many',
+                                               'ref_table' => $tmpTable, 'ref_field' => $tmpField,
+                                               'join' => "$name($key,$key2)", 'field' => $pk);
                         }
                     }
                 }
                 if (0 === strcasecmp($name, $parent_table)) {
                     // self, get belongs to relations
-                    $related[] = array('name' => $refTable .'_by_'. $key, 'type' => 'belongs_to',
-                                       'table' => $refTable, 'field' => $refField);
+                    $relationName = $refTable .'_by_'. $key;
+                    $related[] = array('name' => $relationName, 'type' => 'belongs_to',
+                                       'ref_table' => $refTable, 'ref_field' => $refField,
+                                       'field' => $key);
                 }
             }
         }
