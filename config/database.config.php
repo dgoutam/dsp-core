@@ -1,9 +1,10 @@
 <?php
 global $_dbName;
 
-if ( 'cli' == PHP_SAPI )
+if ( 'cli' == PHP_SAPI || file_exists( '/var/www/launchpad/current' ) )
 {
 	$_dbName = 'dreamfactory';
+	$_dbUser = 'dsp_user';
 }
 else
 {
@@ -16,12 +17,13 @@ else
 
 	$_parts = explode( '.', $_host );
 	$_dbName = $_parts[0];
+	$_dbUser = $_dbName . '_user';
 }
 
 return array(
 	'connectionString' => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
-	'username'         => $_dbName . '_user',
-	'password'         => $_dbName . '_user',
+	'username'         => $_dbUser,
+	'password'         => $_dbUser,
 	'emulatePrepare'   => true,
 	'charset'          => 'utf8',
 );
