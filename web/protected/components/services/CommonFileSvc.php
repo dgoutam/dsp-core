@@ -431,6 +431,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         error_log("Empty content in write file $path to storage.");
                     }
                     $contentType = Utilities::getArrayValue('CONTENT_TYPE', $_SERVER, '');
+                    $path = substr($path, 0, strripos($path, '/') + 1);
                     $result = $this->handleFileContent($path, $name, $content, $contentType, $extract, $clean, $checkExist);
                 }
                 catch (Exception $ex) {
@@ -459,7 +460,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     throw new Exception("Multiple files uploaded to a single REST resource '$name'.");
                 }
                 $name = $files['name'][0];
-                $fullPathName = $path . $name;
+                $fullPathName = $path;
+                $path = substr($path, 0, strripos($path, '/') + 1);
                 $error = $files['error'][0];
                 if (UPLOAD_ERR_OK == $error) {
                     $tmpName = $files["tmp_name"][0];
@@ -472,7 +474,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 else {
-                    throw new Exception("Failed to create file $fullPathName.\n$error");
+                    throw new Exception("Failed to upload file $name.\n$error");
                 }
             }
             else {
@@ -716,6 +718,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         error_log("Empty content in write file $path to storage.");
                     }
                     $contentType = Utilities::getArrayValue('CONTENT_TYPE', $_SERVER, '');
+                    $path = substr($path, 0, strripos($path, '/') + 1);
                     $result = $this->handleFileContent($path, $name, $content, $contentType, $extract, $clean, $checkExist);
                 }
                 catch (Exception $ex) {
@@ -744,7 +747,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     throw new Exception("Multiple files uploaded to a single REST resource '$name'.");
                 }
                 $name = $files['name'][0];
-                $fullPathName = $path . $name;
+                $fullPathName = $path;
+                $path = substr($path, 0, strripos($path, '/') + 1);
                 $error = $files['error'][0];
                 if (UPLOAD_ERR_OK == $error) {
                     $tmpName = $files["tmp_name"][0];
@@ -757,7 +761,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 else {
-                    throw new Exception("Failed to update file $fullPathName.\n$error");
+                    throw new Exception("Failed to upload file $name.\n$error");
                 }
             }
             else {
@@ -1002,6 +1006,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                         error_log("Empty content in write file $path to storage.");
                     }
                     $contentType = Utilities::getArrayValue('CONTENT_TYPE', $_SERVER, '');
+                    $path = substr($path, 0, strripos($path, '/') + 1);
                     $result = $this->handleFileContent($path, $name, $content, $contentType, $extract, $clean, $checkExist);
                 }
                 catch (Exception $ex) {
@@ -1030,7 +1035,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     throw new Exception("Multiple files uploaded to a single REST resource '$name'.");
                 }
                 $name = $files['name'][0];
-                $fullPathName = $path . $name;
+                $fullPathName = $path;
+                $path = substr($path, 0, strripos($path, '/') + 1);
                 $error = $files['error'][0];
                 if (UPLOAD_ERR_OK == $error) {
                     $tmpName = $files["tmp_name"][0];
@@ -1043,7 +1049,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                     }
                 }
                 else {
-                    throw new Exception("Failed to update file $fullPathName.\n$error");
+                    throw new Exception("Failed to upload file $name.\n$error");
                 }
             }
             else {
