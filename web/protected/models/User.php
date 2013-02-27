@@ -27,7 +27,7 @@
  * The followings are the available model relations:
  * @property App[] $apps_created
  * @property App[] $apps_modified
- * @property AppGroup[] $appGroups_created
+ * @property AppGroup[] $app_groups_created
  * @property AppGroup[] $app_groups_modified
  * @property Role[] $roles_created
  * @property Role[] $roles_modified

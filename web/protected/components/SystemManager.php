@@ -1573,170 +1573,6 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $user_names
-     * @return string
-     * @throws Exception
-     */
-    protected function getUserIdsFromNames($user_names)
-    {
-        try {
-            $command = Yii::app()->db->createCommand();
-            $result = $command->select('id')->from('user')->where(array('in', 'username', $user_names));
-            $result = $this->nativeDb->retrieveSqlRecordsByIds('user', "'$user_names'", 'username', 'id');
-            $userIds = '';
-            foreach ($result as $item) {
-                if (!empty($userIds)) {
-                    $userIds .= ',';
-                }
-                $userIds .= $item['id'];
-            }
-
-            return $userIds;
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-    }
-
-    /**
-     * @param $role_id
-     * @param string $user_ids
-     * @param string $user_names
-     * @param bool $override
-     * @throws Exception
-     */
-    public function assignRole($role_id, $user_ids = '', $user_names = '', $override = false)
-    {
-        SessionManager::checkPermission('create', 'system', 'RoleAssign');
-        // ids have preference, if blank, use names for users
-        // override is true/false, true allows overriding an existing role assignment
-        // i.e. move user to a different role,
-        // false will return an error for that user that is already assigned to a role
-        if (empty($role_id)) {
-            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        if (empty($user_ids)) {
-            if (empty($user_names)) {
-                throw new Exception('User ids and names can not both be empty.', ErrorCodes::BAD_REQUEST);
-            }
-            // find user ids
-            try {
-                $user_ids = $this->getUserIdsFromNames($user_names);
-            }
-            catch (Exception $ex) {
-                throw new Exception("Error looking up users.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR);
-            }
-        }
-
-        $user_ids = implode(',', array_map('trim', explode(',', $user_ids)));
-        try {
-            $users = $this->nativeDb->retrieveSqlRecordsByIds('user', $user_ids, 'id', 'role_id,id');
-            foreach ($users as $key => $user) {
-                $users[$key]['role_id'] = $role_id;
-            }
-            $this->nativeDb->updateSqlRecords('user', $users, 'id', false, 'id');
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating users.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $role_id
-     * @param string $user_ids
-     * @param string $user_names
-     * @throws Exception
-     */
-    public function unassignRole($role_id, $user_ids = '', $user_names = '')
-    {
-        SessionManager::checkPermission('delete', 'system', 'RoleAssign');
-        // ids have preference, if blank, use names for both role and users
-        // use this to officially remove a user from the current app
-        if (empty($role_id)) {
-            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        if (empty($user_ids)) {
-            if (empty($user_names)) {
-                throw new Exception('User ids and names can not both be empty.', ErrorCodes::BAD_REQUEST);
-            }
-            // find user ids
-            try {
-                $user_ids = $this->getUserIdsFromNames($user_names);
-            }
-            catch (Exception $ex) {
-                throw new Exception("Error looking up users.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR);
-            }
-        }
-
-        $user_ids = implode(',', array_map('trim', explode(',', $user_ids)));
-        try {
-            $users = $this->nativeDb->retrieveSqlRecordsByIds('user', $user_ids, 'id', 'role_id,id');
-            foreach ($users as $key => $user) {
-                $userRoleId = trim($user['role_id']);
-                if ($userRoleId === $role_id) {
-                    $users[$key]['role_id'] = '';
-                }
-            }
-            $this->nativeDb->updateSqlRecords('user', $users, 'id', false, 'id');
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating users.\n{$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * @param $role_id
-     * @param array $services
-     * @throws Exception
-     */
-    protected function assignServiceAccess($role_id, $services = array())
-    {
-        // get any pre-existing access records
-        $old = $this->nativeDb->retrieveSqlRecordsByFilter('role_service_access', 'id', "role_id = '$role_id'");
-        // create a new access record for each service
-        $noDupes = array();
-        if (!empty($services)) {
-            foreach ($services as $key=>$sa) {
-                $services[$key]['role_id'] = $role_id;
-                // validate service
-                $component = Utilities::getArrayValue('component', $sa);
-                $serviceName = Utilities::getArrayValue('service', $sa);
-                $serviceId = Utilities::getArrayValue('service_id', $sa);
-                if (empty($serviceName) && empty($serviceId)) {
-                    throw new Exception("No service name or id in role service access.", ErrorCodes::BAD_REQUEST);
-                }
-                if ('*' !== $serviceName) { // special 'All Services' designation
-                    if (!empty($serviceId)) {
-                        $temp = Service::model()->findByPk($serviceId);
-                        if (!isset($temp)) {
-                            throw new Exception("Invalid service id '$serviceId' in role service access.", ErrorCodes::BAD_REQUEST);
-                        }
-                        $serviceName = $temp->getAttribute('name');
-                        $services[$key]['service'] = $serviceName;
-                    }
-                    elseif (!empty($serviceName)) {
-                        $temp = Service::model()->find('name = :name', array(':name'=>$serviceName));
-                        if (!isset($temp)) {
-                            throw new Exception("Invalid service name '$serviceName' in role service access.", ErrorCodes::BAD_REQUEST);
-                        }
-                        $services[$key]['service_id'] = $temp->getPrimaryKey();
-                    }
-                }
-                $test = $serviceName.'.'.$component;
-                if (false !== array_search($test, $noDupes)) {
-                    throw new Exception("Duplicated service and component combination '$serviceName $component' in role service access.", ErrorCodes::BAD_REQUEST);
-                }
-                $noDupes[] = $test;
-            }
-            $this->nativeDb->createSqlRecords('role_service_access', $services);
-        }
-        if ((count($old) > 0) && isset($old[0]['id'])) {
-            // delete any pre-existing access records
-            $this->nativeDb->deleteSqlRecords('role_service_access', $old, 'id');
-        }
-    }
-
-    /**
      * @param $role_id
      * @param array $accesses
      * @throws Exception
@@ -1758,22 +1594,13 @@ class SystemManager implements iRestHandler
                         // found it, make sure nothing needs to be updated
                         $newServiceId = Utilities::getArrayValue('service_id', $access, '');
                         $newComponent = Utilities::getArrayValue('component', $access, '');
-                        $newRead = Utilities::getArrayValue('read', $access, '');
-                        $newCreate = Utilities::getArrayValue('create', $access, '');
-                        $newUpdate = Utilities::getArrayValue('update', $access, '');
-                        $newDelete = Utilities::getArrayValue('delete', $access, '');
+                        $newAccess = Utilities::getArrayValue('access', $access, '');
                         if (($oldAccess->service_id != $newServiceId))
                             $oldAccess->service_id = $newServiceId;
                         if (($oldAccess->component != $newComponent))
                             $oldAccess->component = $newComponent;
-                        if (($oldAccess->read != $newRead))
-                            $oldAccess->read = $newRead;
-                        if (($oldAccess->create != $newCreate))
-                            $oldAccess->create = $newCreate;
-                        if (($oldAccess->update != $newUpdate))
-                            $oldAccess->update = $newUpdate;
-                        if (($oldAccess->delete != $newDelete))
-                            $oldAccess->delete = $newDelete;
+                        if (($oldAccess->access != $newAccess))
+                            $oldAccess->access = $newAccess;
                         $oldAccess->save();
                         // keeping it, so remove it from the list, as this becomes adds
                         unset($accesses[$key]);
@@ -1798,7 +1625,7 @@ class SystemManager implements iRestHandler
             }
         }
         catch (Exception $ex) {
-            throw new Exception("Error updating apps to app_group assignment.\n{$ex->getMessage()}");
+            throw new Exception("Error updating accesses to role assignment.\n{$ex->getMessage()}");
         }
     }
 
