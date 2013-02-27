@@ -1,20 +1,13 @@
 <?php
 global $_dbName;
 
-if ( 'cli' == PHP_SAPI || file_exists( '/var/www/launchpad/current' ) )
-{
-	$_dbName = 'dreamfactory';
-	$_dbUser = 'dsp_user';
-}
-else
-{
-	$_host = $_SERVER['HTTP_HOST'];
+$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
 
-	if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) && 'localhost' != $_host )
-	{
-		throw new CHttpException( 401, $_host . ': Not authorized.' );
-	}
+$_dbName = 'dreamfactory';
+$_dbUser = 'dsp_user';
 
+if ( false !== strpos( $_host, '.cloud.dreamfactory.com' ) )
+{
 	$_parts = explode( '.', $_host );
 	$_dbName = $_parts[0];
 	$_dbUser = $_dbName . '_user';
