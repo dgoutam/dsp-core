@@ -10,7 +10,7 @@ else
 {
 	$_host = $_SERVER['HTTP_HOST'];
 
-	if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
+	if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) && 'localhost' != $_host )
 	{
 		throw new CHttpException( 401, $_host . ': Not authorized.' );
 	}
