@@ -14,21 +14,28 @@
  */
 function _buildTree( $path )
 {
-	$_iterator = new \DirectoryIterator( $path );
-
 	$_data = array();
+	$_path = realpath( $path );
 
-	/** @var $_node \DirectoryIterator */
-	foreach ( $_iterator as $_node )
+	if ( false === stripos( $_path, '/var/www/launchpad/', 0 ) )
 	{
-		if ( $_node->isDir() && !$_node->isDot() )
+		return $_data;
+	}
+
+	$_objects = new \RecursiveIteratorIterator(
+		new \RecursiveDirectoryIterator( $_path ),
+		RecursiveIteratorIterator::SELF_FIRST
+	);
+
+	/** @var $_node \SplFileInfo */
+	foreach ( $_objects as $_name => $_node )
+	{
+		if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
 		{
-			$_data[$_node->getFilename()] = _buildTree( new \DirectoryIterator( $_node->getPathname() ) );
+			continue;
 		}
-		else if ( $_node->isFile() )
-		{
-			$_data[] = $_node->getFilename();
-		}
+
+		$_data[str_ireplace( $_path, null, dirname( $_node->getPathname() ) )][] = basename( $_name );
 	}
 
 	return $_data;
