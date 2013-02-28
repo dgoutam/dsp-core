@@ -235,13 +235,13 @@ class SessionManager
     {
         $userId = static::validateSession();
         $admin = (isset($_SESSION['public']['is_sys_admin'])) ? $_SESSION['public']['is_sys_admin'] : false;
+        if ($admin) {
+            return; // no need to check role
+        }
         $roleInfo = (isset($_SESSION['public']['role'])) ? $_SESSION['public']['role'] : array();
         if (empty($roleInfo)) {
-            if (!$admin) {
-                // no role assigned, if not sys admin, denied service
-                throw new Exception("A valid user role or system administrator is required to access services.", ErrorCodes::FORBIDDEN);
-            }
-            return; // no need to check role
+            // no role assigned, if not sys admin, denied service
+            throw new Exception("A valid user role or system administrator is required to access services.", ErrorCodes::FORBIDDEN);
         }
 
         // check if app allowed in role
