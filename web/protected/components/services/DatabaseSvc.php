@@ -452,7 +452,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
         try {
-            $result = $this->sqlDb->createSqlRecords($table, $record, false, $fields);
+            $records = array($record);
+            $result = $this->sqlDb->createSqlRecords($table, $records, false, $fields);
 
             return $result[0];
         }
@@ -511,7 +512,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
         try {
-            $results = $this->sqlDb->updateSqlRecords($table, $record, $idField, false, $fields);
+            $records = array($record);
+            $results = $this->sqlDb->updateSqlRecords($table, $records, $idField, false, $fields);
 
             return $results[0];
         }
@@ -653,7 +655,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
         try {
-            $results = $this->sqlDb->deleteSqlRecords($table, $record, $idField, false, $fields);
+            $records = array($record);
+            $results = $this->sqlDb->deleteSqlRecords($table, $records, $idField, false, $fields);
 
             return $results[0];
         }

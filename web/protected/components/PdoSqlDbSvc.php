@@ -217,7 +217,6 @@ class PdoSqlDbSvc
      */
     protected function parseRecord($record, $avail_fields, $for_update = false)
     {
-        // todo remove check for specific names
         $parsed = array();
         $record = Utilities::array_key_lower($record);
         $keys = array_keys($record);
@@ -346,6 +345,76 @@ class PdoSqlDbSvc
         }
 
         return $parsed;
+    }
+
+    /**
+     * @param $table
+     * @param $record
+     * @param $id
+     * @param $avail_relations
+     * @throws Exception
+     * @return void
+     */
+    protected function updateRelations($table, $record, $id, $avail_relations)
+    {
+        $record = Utilities::array_key_lower($record);
+        $keys = array_keys($record);
+        $values = array_values($record);
+        foreach ($avail_relations as $relationInfo) {
+            $name = mb_strtolower($relationInfo['name']);
+            $pos = array_search($name, $keys);
+            if (false !== $pos) {
+                $relations = $values[$pos];
+                $relationType = $relationInfo['type'];
+                switch ($relationType) {
+                case 'belongs_to':
+                    /*
+                    "name": "role_by_role_id",
+                    "type": "belongs_to",
+                    "ref_table": "role",
+                    "ref_field": "id",
+                    "field": "role_id"
+                    */
+                    // todo handle this?
+                    break;
+                case 'has_many':
+                    /*
+                    "name": "users_by_last_modified_by_id",
+                    "type": "has_many",
+                    "ref_table": "user",
+                    "ref_field": "last_modified_by_id",
+                    "field": "id"
+                    */
+                    $relatedTable = $relationInfo['ref_table'];
+                    $relatedField = $relationInfo['ref_field'];
+                    $this->assignManyToOne($table, $id, $relatedTable, $relatedField, $relations);
+                    break;
+                case 'many_many':
+                    /*
+                    "name": "roles_by_user",
+                    "type": "many_many",
+                    "ref_table": "role",
+                    "ref_field": "id",
+                    "join": "user(default_app_id,role_id)"
+                    */
+                    $relatedTable = $relationInfo['ref_table'];
+                    $join = $relationInfo['join'];
+                    $joinTable = substr($join, 0, strpos($join, '('));
+                    $other = explode(',', substr($join, strpos($join, '(') + 1, -1));
+                    $joinLeftField = trim($other[0]);
+                    $joinRightField = trim($other[1]);
+                    $this->assignManyToOneByMap($table, $id, $relatedTable,
+                                                $joinTable, $joinLeftField, $joinRightField,
+                                                $relations);
+                    break;
+                default:
+                    throw new Exception('Invalid relationship type detected.', ErrorCodes::INTERNAL_SERVER_ERROR);
+                    break;
+                }
+                unset($keys[$pos]);
+                unset($values[$pos]);
+            }
+        }
     }
 
     /**
@@ -500,8 +569,9 @@ class PdoSqlDbSvc
 
         $table = $this->correctTableName($table);
         try {
-            $field_info = $this->describeTableFields($table);
-            $id_field = DbUtilities::getPrimaryKeyFieldFromDescribe($field_info);
+            $fieldInfo = $this->describeTableFields($table);
+            $relatedInfo = $this->describeTableRelated($table);
+            $idField = DbUtilities::getPrimaryKeyFieldFromDescribe($fieldInfo);
             $command = $this->_sqlConn->createCommand();
             $ids = array();
             $errors = array();
@@ -511,17 +581,19 @@ class PdoSqlDbSvc
             $count = count($records);
             foreach ($records as $key => $record) {
                 try {
-                    $record = $this->parseRecord($record, $field_info);
-                    if (0 >= count($record)) {
+                    $parsed = $this->parseRecord($record, $fieldInfo);
+                    if (0 >= count($parsed)) {
                         throw new Exception("No valid fields were passed in the record [$key] request.");
                     }
                     // simple update request
                     $command->reset();
-                    $rows = $command->insert($this->_tablePrefix . $table, $record);
+                    $rows = $command->insert($this->_tablePrefix . $table, $parsed);
                     if (0 >= $rows) {
                         throw new Exception("Record insert failed for table '$table'.");
                     }
-                    $ids[$key] = $this->_sqlConn->lastInsertID;
+                    $id = $this->_sqlConn->lastInsertID;
+                    $this->updateRelations($table, $record, $id, $relatedInfo);
+                    $ids[$key] = $id;
                 }
                 catch (Exception $ex) {
                     if ($rollback) {
@@ -538,16 +610,16 @@ class PdoSqlDbSvc
             }
 
             $results = array();
-            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
+            if (empty($out_fields) || (0 === strcasecmp($idField, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
-                                    array($id_field => $ids[$i]) :
+                                    array($idField => $ids[$i]) :
                                     (isset($errors[$i]) ? $errors[$i] : null));
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
-                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
+                $out_fields = Utilities::addOnceToList($out_fields, $idField);
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $idField, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -577,26 +649,28 @@ class PdoSqlDbSvc
 
         $table = $this->correctTableName($table);
         try {
-            $field_info = $this->describeTableFields($table);
-            $id_field = DbUtilities::getPrimaryKeyFieldFromDescribe($field_info);
-            $record = $this->parseRecord($record, $field_info);
-            if (0 >= count($record)) {
+            $fieldInfo = $this->describeTableFields($table);
+            $relatedInfo = $this->describeTableRelated($table);
+            $idField = DbUtilities::getPrimaryKeyFieldFromDescribe($fieldInfo);
+            $parsed = $this->parseRecord($record, $fieldInfo);
+            if (0 >= count($parsed)) {
                 throw new Exception("No valid fields were passed in the record request.");
             }
 
             // simple update request
             $command = $this->_sqlConn->createCommand();
-            $rows = $command->insert($this->_tablePrefix . $table, $record);
+            $rows = $command->insert($this->_tablePrefix . $table, $parsed);
             if (0 >= $rows) {
                 throw new Exception("Record insert failed for table '$table'.");
             }
             $id = $this->_sqlConn->lastInsertID;
-            if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
-                return array(array($id_field => $id));
+            $this->updateRelations($table, $record, $id, $relatedInfo);
+            if (empty($out_fields) || (0 === strcasecmp($idField, $out_fields))) {
+                return array(array($idField => $id));
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
-                return $this->retrieveSqlRecordsByIds($table, $id, $id_field, $out_fields);
+                $out_fields = Utilities::addOnceToList($out_fields, $idField);
+                return $this->retrieveSqlRecordsByIds($table, $id, $idField, $out_fields);
             }
         }
         catch (Exception $ex) {
@@ -621,9 +695,10 @@ class PdoSqlDbSvc
 
         $table = $this->correctTableName($table);
         try {
-            $field_info = $this->describeTableFields($table);
+            $fieldInfo = $this->describeTableFields($table);
+            $relatedInfo = $this->describeTableRelated($table);
             if (empty($id_field)) {
-                $id_field = DbUtilities::getPrimaryKeyFieldFromDescribe($field_info);
+                $id_field = DbUtilities::getPrimaryKeyFieldFromDescribe($fieldInfo);
                 if (empty($id_field)) {
                     throw new Exception("Identifying field can not be empty.");
                 }
@@ -642,17 +717,18 @@ class PdoSqlDbSvc
                         throw new Exception("Identifying field '$id_field' can not be empty for update record [$key] request.");
                     }
                     $record = Utilities::removeOneFromArray($id_field, $record);
-                    $record = $this->parseRecord($record, $field_info, true);
-                    if (0 >= count($record)) {
+                    $parsed = $this->parseRecord($record, $fieldInfo, true);
+                    if (0 >= count($parsed)) {
                         throw new Exception("No valid fields were passed in the record [$key] request.");
                     }
                     // simple update request
                     $command->reset();
-                    $rows = $command->update($this->_tablePrefix . $table, $record, array('in', $id_field, $id));
+                    $rows = $command->update($this->_tablePrefix . $table, $parsed, array('in', $id_field, $id));
                     if (0 >= $rows) {
                         throw new Exception("Record update failed for table '$table'.");
                     }
                     $ids[$key] = $id;
+                    $this->updateRelations($table, $record, $id, $relatedInfo);
                 }
                 catch (Exception $ex) {
                     if ($rollback) {
@@ -711,9 +787,10 @@ class PdoSqlDbSvc
         }
         $table = $this->correctTableName($table);
         try {
-            $field_info = $this->describeTableFields($table);
+            $fieldInfo = $this->describeTableFields($table);
+            $relatedInfo = $this->describeTableRelated($table);
             if (empty($id_field)) {
-                $id_field = DbUtilities::getPrimaryKeyFieldFromDescribe($field_info);
+                $id_field = DbUtilities::getPrimaryKeyFieldFromDescribe($fieldInfo);
                 if (empty($id_field)) {
                     throw new Exception("Identifying field can not be empty.");
                 }
@@ -723,8 +800,8 @@ class PdoSqlDbSvc
             }
             $record = Utilities::removeOneFromArray($id_field, $record);
             // simple update request
-            $record = $this->parseRecord($record, $field_info, true);
-            if (empty($record)) {
+            $parsed = $this->parseRecord($record, $fieldInfo, true);
+            if (empty($parsed)) {
                 throw new Exception("No valid field values were passed in the request.");
             }
             $ids = array_map('trim', explode(',', trim($id_list, ',')));
@@ -743,10 +820,11 @@ class PdoSqlDbSvc
                     }
                     // simple update request
                     $command->reset();
-                    $rows = $command->update($this->_tablePrefix . $table, $record, array('in', $id_field, $id));
+                    $rows = $command->update($this->_tablePrefix . $table, $parsed, array('in', $id_field, $id));
                     if (0 >= $rows) {
                         throw new Exception("Record update failed for table '$table'.");
                     }
+                    $this->updateRelations($table, $record, $id, $relatedInfo);
                     $outIds[$key] = $id;
                 }
                 catch (Exception $ex) {
@@ -811,18 +889,20 @@ class PdoSqlDbSvc
         }
         $table = $this->correctTableName($table);
         try {
-            $field_info = $this->describeTableFields($table);
+            $fieldInfo = $this->describeTableFields($table);
+            $relatedInfo = $this->describeTableRelated($table);
             // simple update request
-            $record = $this->parseRecord($record, $field_info, true);
-            if (empty($record)) {
+            $parsed = $this->parseRecord($record, $fieldInfo, true);
+            if (empty($parsed)) {
                 throw new Exception("No valid field values were passed in the request.");
             }
             // parse filter
             $command = $this->_sqlConn->createCommand();
-            $rows = $command->update($this->_tablePrefix . $table, $record, $filter);
+            $rows = $command->update($this->_tablePrefix . $table, $parsed, $filter);
             if (0 >= $rows) {
                 throw new Exception("No records updated in table '$table'.");
             }
+            // todo how to update relations here?
 
             $results = array();
             if (!empty($out_fields)) {
@@ -1380,6 +1460,127 @@ class PdoSqlDbSvc
             }
             */
             throw $ex;
+        }
+    }
+
+    // generic assignments
+
+    /**
+     * @param string $one_table
+     * @param string $one_id
+     * @param string $many_table
+     * @param string $many_field
+     * @param array $many_records
+     * @throws Exception
+     * @return void
+     */
+    protected function assignManyToOne($one_table, $one_id, $many_table, $many_field, $many_records=array())
+    {
+        if (empty($one_id)) {
+            throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $manyFields = $this->describeTableFields($many_table);
+            $pkField = DbUtilities::getPrimaryKeyFieldFromDescribe($manyFields);
+            $oldMany = $this->retrieveSqlRecordsByFilter($many_table, "$pkField,$many_field", $many_field ." = '$one_id'");
+            foreach ($oldMany as $oldKey=>$old) {
+                $oldId = Utilities::getArrayValue($pkField, $old);
+                foreach ($many_records as $key=>$item) {
+                    $id = Utilities::getArrayValue($pkField, $item, '');
+                    if ($id == $oldId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($many_records[$key]);
+                        unset($oldMany[$oldKey]);
+                        continue;
+                    }
+                }
+            }
+            // reset arrays
+            $many_records = array_values($many_records);
+            $oldMany = array_values($oldMany);
+            if (!empty($oldMany)) {
+                // un-assign any left over old ones
+                $ids = array();
+                foreach ($oldMany as $item) {
+                    $ids[] = Utilities::getArrayValue($pkField, $item, '');
+                }
+                if (!empty($ids)) {
+                    $ids = implode(',', $ids);
+                    $this->updateSqlRecordsByIds($many_table, array($many_field => null), $ids, $pkField);
+                }
+            }
+            if (!empty($many_records)) {
+                // assign what is leftover
+                $ids = array();
+                foreach ($many_records as $item) {
+                    $ids[] = Utilities::getArrayValue($pkField, $item, '');
+                }
+                if (!empty($ids)) {
+                    $ids = implode(',', $ids);
+                    $this->updateSqlRecordsByIds($many_table, array($many_field => $one_id), $ids, $pkField);
+                }
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating many to one assignment.\n{$ex->getMessage()}", $ex->getCode());
+        }
+    }
+
+    /**
+     * @param $one_table
+     * @param $one_id
+     * @param $many_table
+     * @param $map_table
+     * @param $one_field
+     * @param $many_field
+     * @param array $many_records
+     * @throws Exception
+     * @return void
+     */
+    protected function assignManyToOneByMap($one_table, $one_id, $many_table, $map_table, $one_field, $many_field, $many_records=array())
+    {
+        if (empty($one_id)) {
+            throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $manyFields = $this->describeTableFields($many_table);
+            $pkManyField = DbUtilities::getPrimaryKeyFieldFromDescribe($manyFields);
+            $mapFields = $this->describeTableFields($map_table);
+            $pkMapField = DbUtilities::getPrimaryKeyFieldFromDescribe($mapFields);
+            $maps = $this->retrieveSqlRecordsByFilter($map_table, $pkMapField.','.$many_field, "$one_field = '$one_id'");
+            $toDelete = array();
+            foreach ($maps as $map) {
+                $manyId = Utilities::getArrayValue($many_field, $map, '');
+                $id = Utilities::getArrayValue($pkMapField, $map, '');
+                $found = false;
+                foreach ($many_records as $key=>$item) {
+                    $assignId = Utilities::getArrayValue($pkManyField, $item, '');
+                    if ($assignId == $manyId) {
+                        // found it, keeping it, so remove it from the list, as this becomes adds
+                        unset($many_records[$key]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $toDelete[] = $id;
+                    continue;
+                }
+            }
+            if (!empty($toDelete)) {
+                $this->deleteSqlRecordsByIds($map_table, implode(',', $toDelete), $pkMapField);
+            }
+            if (!empty($many_records)) {
+                $maps = array();
+                foreach ($many_records as $item) {
+                    $itemId = Utilities::getArrayValue($pkManyField, $item, '');
+                    $maps[] = array($many_field=>$itemId, $one_field=>$one_id);
+                }
+                $this->createSqlRecords($map_table, $maps);
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
