@@ -139,10 +139,11 @@ class SchemaSvc extends CommonService implements iRestHandler
                 $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
             }
             if (empty($tables)) {
-                throw new Exception('No tables in schema create request.');
+                // could be a single table definition
+                return $this->createTable($data);
             }
             $result = $this->createTables($tables);
-            $result = array('table' => $result);
+            return array('table' => $result);
         }
         else {
             if (empty($this->fieldName)) {
@@ -153,22 +154,17 @@ class SchemaSvc extends CommonService implements iRestHandler
                     $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : '';
                 }
                 if (empty($fields)) {
-                    throw new Exception('No fields in schema create request.');
+                    // could be a single field definition
+                    return $this->createField($this->tableName, $data);
                 }
                 $result = $this->createFields($this->tableName, $fields);
-                $result = array('field' => $result);
+                return array('field' => $result);
             }
             else {
-                // create new field in existing table
-                if (empty($data)) {
-                    throw new Exception('No data in schema create request.');
-                }
-                $result = $this->createField($this->tableName, $this->fieldName, $data);
-                $result = array('field' => $result);
+                // create new field indices?
+                throw new Exception('No new field resources currently supported.');
             }
         }
-
-        return $result;
     }
 
     /**
@@ -186,10 +182,11 @@ class SchemaSvc extends CommonService implements iRestHandler
                 $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
             }
             if (empty($tables)) {
-                throw new Exception('No tables in schema create request.');
+                // could be a single table definition
+                return $this->updateTable($data);
             }
             $result = $this->updateTables($tables);
-            $result = array('table' => $result);
+            return array('table' => $result);
         }
         else {
             if (empty($this->fieldName)) {
@@ -200,22 +197,20 @@ class SchemaSvc extends CommonService implements iRestHandler
                     $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : '';
                 }
                 if (empty($fields)) {
-                    throw new Exception('No fields in schema create request.');
+                    // could be a single field definition
+                    return $this->updateField($this->tableName, '', $data);
                 }
                 $result = $this->updateFields($this->tableName, $fields);
-                $result = array('field' => $result);
+                return array('field' => $result);
             }
             else {
                 // create new field in existing table
                 if (empty($data)) {
                     throw new Exception('No data in schema create request.');
                 }
-                $result = $this->updateField($this->tableName, $this->fieldName, $data);
-                $result = array('field' => $result);
+                return $this->updateField($this->tableName, $this->fieldName, $data);
             }
         }
-
-        return $result;
     }
 
     /**
@@ -233,10 +228,11 @@ class SchemaSvc extends CommonService implements iRestHandler
                 $tables = (isset($data['tables']['table'])) ? $data['tables']['table'] : '';
             }
             if (empty($tables)) {
-                throw new Exception('No tables in schema create request.');
+                // could be a single table definition
+                return $this->updateTable($data);
             }
             $result = $this->updateTables($tables);
-            $result = array('table' => $result);
+            return array('table' => $result);
         }
         else {
             if (empty($this->fieldName)) {
@@ -247,22 +243,20 @@ class SchemaSvc extends CommonService implements iRestHandler
                     $fields = (isset($data['fields']['field'])) ? $data['fields']['field'] : '';
                 }
                 if (empty($fields)) {
-                    throw new Exception('No fields in schema create request.');
+                    // could be a single field definition
+                    return $this->updateField($this->tableName, '', $data);
                 }
                 $result = $this->updateFields($this->tableName, $fields);
-                $result = array('field' => $result);
+                return array('field' => $result);
             }
             else {
                 // create new field in existing table
                 if (empty($data)) {
                     throw new Exception('No data in schema create request.');
                 }
-                $result = $this->updateField($this->tableName, $this->fieldName, $data);
-                $result = array('field' => $result);
+                return $this->updateField($this->tableName, $this->fieldName, $data);
             }
         }
-
-        return $result;
     }
 
     /**
@@ -275,18 +269,16 @@ class SchemaSvc extends CommonService implements iRestHandler
         if (!empty($this->tableName)) {
             if (!empty($this->fieldName)) {
                 $result = $this->deleteField($this->tableName, $this->fieldName);
-                $result = array('table' => $result);
+                return array('field' => $result);
             }
             else {
                 $result = $this->deleteTable($this->tableName);
-                $result = array('table' => $result);
+                return array('table' => $result);
             }
         }
         else {
             throw new Exception('Invalid format for DELETE Table request.');
         }
-
-        return $result;
     }
 
     /**
@@ -436,6 +428,17 @@ class SchemaSvc extends CommonService implements iRestHandler
 
     /**
      * @param $table
+     * @return array
+     * @throws Exception
+     */
+    public function createTable($table)
+    {
+        $result = $this->createTables($table);
+        return Utilities::getArrayValue(0, $result, array());
+    }
+
+    /**
+     * @param $table
      * @param $fields
      * @throws Exception
      * @return array
@@ -463,32 +466,14 @@ class SchemaSvc extends CommonService implements iRestHandler
 
     /**
      * @param $table
-     * @param $field
      * @param $data
      * @throws Exception
      * @return array
      */
-    public function createField($table, $field, $data)
+    public function createField($table, $data)
     {
-        if (empty($table)) {
-            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        if ($this->_isNative) {
-            // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' can not be modified.", ErrorCodes::BAD_REQUEST);
-            }
-        }
-        $this->checkPermission('create', $table);
-        try {
-            $data['name'] = $field;
-            $fields = array($data);
-            return DbUtilities::createFields($this->_sqlConn, $table, $fields);
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error creating database field '$field' for table '$table'.\n{$ex->getMessage()}", $ex->getCode());
-        }
+        $result = $this->createFields($table, $data);
+        return Utilities::getArrayValue(0, $result, array());
     }
 
     /**
@@ -528,6 +513,17 @@ class SchemaSvc extends CommonService implements iRestHandler
 
     /**
      * @param $table
+     * @return array
+     * @throws Exception
+     */
+    public function updateTable($table)
+    {
+        $result = $this->updateTables($table);
+        return Utilities::getArrayValue(0, $result, array());
+    }
+
+    /**
+     * @param $table
      * @param $fields
      * @throws Exception
      * @return array
@@ -562,25 +558,11 @@ class SchemaSvc extends CommonService implements iRestHandler
      */
     public function updateField($table, $field, $data)
     {
-        if (empty($table)) {
-            throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        if ($this->_isNative) {
-            // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' can not be modified.", ErrorCodes::BAD_REQUEST);
-            }
-        }
-        $this->checkPermission('update', $table);
-        try {
+        if (!empty($field)) {
             $data['name'] = $field;
-            $fields = array($data);
-            return DbUtilities::createFields($this->_sqlConn, $table, $fields, true);
         }
-        catch (Exception $ex) {
-            throw new Exception("Error updating database field '$field' for table '$table'.\n{$ex->getMessage()}", $ex->getCode());
-        }
+        $result = $this->updateFields($table, $data);
+        return Utilities::getArrayValue(0, $result, array());
     }
 
     /**
