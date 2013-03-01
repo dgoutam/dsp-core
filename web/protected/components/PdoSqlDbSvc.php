@@ -618,7 +618,9 @@ class PdoSqlDbSvc
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, $idField);
+                if ('*' !== $out_fields) {
+                    $out_fields = Utilities::addOnceToList($out_fields, $idField);
+                }
                 $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $idField, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
@@ -669,7 +671,9 @@ class PdoSqlDbSvc
                 return array(array($idField => $id));
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, $idField);
+                if ('*' !== $out_fields) {
+                    $out_fields = Utilities::addOnceToList($out_fields, $idField);
+                }
                 return $this->retrieveSqlRecordsByIds($table, $id, $idField, $out_fields);
             }
         }
@@ -754,7 +758,9 @@ class PdoSqlDbSvc
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                if ('*' !== $out_fields) {
+                    $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                }
                 $temp =  $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
@@ -858,7 +864,9 @@ class PdoSqlDbSvc
                 }
             }
             else {
-                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                if ('*' !== $out_fields) {
+                    $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                }
                 $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($outIds[$i]) ?
@@ -983,7 +991,9 @@ class PdoSqlDbSvc
             // get the returnable fields first, then issue delete
             $outResults = array();
             if (!(empty($out_fields) || (0 === strcasecmp($id_field, $out_fields)))) {
-                $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                if ('*' !== $out_fields) {
+                    $out_fields = Utilities::addOnceToList($out_fields, $id_field);
+                }
                 $outResults = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
             }
 
