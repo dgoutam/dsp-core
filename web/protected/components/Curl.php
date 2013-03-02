@@ -1,10 +1,9 @@
 <?php
 /**
- * Curl.php
- */
-/**
  * Curl
  * A kick-ass cURL wrapper
+ *
+ * @author Jerry Ablan <jerryablan@dreamfactory.com>
  */
 class Curl implements HttpMethod
 {
@@ -41,6 +40,10 @@ class Curl implements HttpMethod
 	 */
 	protected static $_lastHttpCode = null;
 	/**
+	 * @var array The last response headers
+	 */
+	protected static $_lastResponseHeaders = null;
+	/**
 	 * @var bool Enable/disable logging
 	 */
 	protected static $_debug = true;
@@ -66,7 +69,7 @@ class Curl implements HttpMethod
 	 */
 	public static function get( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Get, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Get, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -78,7 +81,7 @@ class Curl implements HttpMethod
 	 */
 	public static function put( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Put, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Put, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -90,7 +93,7 @@ class Curl implements HttpMethod
 	 */
 	public static function post( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Post, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Post, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -102,7 +105,7 @@ class Curl implements HttpMethod
 	 */
 	public static function delete( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Delete, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Delete, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -114,7 +117,7 @@ class Curl implements HttpMethod
 	 */
 	public static function head( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Head, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Head, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -126,7 +129,7 @@ class Curl implements HttpMethod
 	 */
 	public static function options( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Options, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Options, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -138,7 +141,7 @@ class Curl implements HttpMethod
 	 */
 	public static function copy( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Copy, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Copy, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -150,7 +153,7 @@ class Curl implements HttpMethod
 	 */
 	public static function patch( $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( static::Patch, $url, $payload, $curlOptions );
+		return self::_httpRequest( self::Patch, $url, $payload, $curlOptions );
 	}
 
 	/**
@@ -163,7 +166,7 @@ class Curl implements HttpMethod
 	 */
 	public static function request( $method, $url, $payload = array(), $curlOptions = array() )
 	{
-		return static::_httpRequest( $method, $url, $payload, $curlOptions );
+		return self::_httpRequest( $method, $url, $payload, $curlOptions );
 	}
 
 	//**************************************************************************
@@ -181,8 +184,13 @@ class Curl implements HttpMethod
 	 */
 	protected static function _httpRequest( $method = self::Get, $url, $payload = array(), $curlOptions = array() )
 	{
+		if ( !self::contains( $method ) )
+		{
+			throw new \InvalidArgumentException( 'Invalid method "' . $method . '" specified.' );
+		}
+
 		//	Reset!
-		static::$_lastHttpCode = static::$_error = static::$_info = $_tmpFile = null;
+		self::$_lastResponseHeaders = self::$_lastHttpCode = self::$_error = self::$_info = $_tmpFile = null;
 
 		//	Build a curl request...
 		$_curl = curl_init( $url );
@@ -191,16 +199,16 @@ class Curl implements HttpMethod
 		$_curlOptions = array(
 			CURLOPT_FOLLOWLOCATION => true,
 			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_HEADER         => false,
+			CURLOPT_HEADER         => true,
 			CURLOPT_SSL_VERIFYPEER => false,
 		);
 
 		//	Merge in the global options if any
-		if ( !empty( static::$_curlOptions ) )
+		if ( !empty( self::$_curlOptions ) )
 		{
 			$curlOptions = array_merge(
 				$curlOptions,
-				static::$_curlOptions
+				self::$_curlOptions
 			);
 		}
 
@@ -213,19 +221,19 @@ class Curl implements HttpMethod
 			}
 		}
 
-		if ( null !== static::$_userName || null !== static::$_password )
+		if ( null !== self::$_userName || null !== self::$_password )
 		{
 			$_curlOptions[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;
-			$_curlOptions[CURLOPT_USERPWD] = static::$_userName . ':' . static::$_password;
+			$_curlOptions[CURLOPT_USERPWD] = self::$_userName . ':' . self::$_password;
 		}
 
 		switch ( $method )
 		{
-			case static::Get:
+			case self::Get:
 				//	Do nothing, like the goggles...
 				break;
 
-			case static::Put:
+			case self::Put:
 				$_payload = json_encode( !empty( $payload ) ? $payload : array() );
 
 				$_tmpFile = tmpfile();
@@ -237,30 +245,30 @@ class Curl implements HttpMethod
 				$_curlOptions[CURLOPT_INFILESIZE] = mb_strlen( $_payload );
 				break;
 
-			case static::Post:
+			case self::Post:
 				$_curlOptions[CURLOPT_POST] = true;
 				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
 				break;
 
-			case static::Head:
+			case self::Head:
 				$_curlOptions[CURLOPT_NOBODY] = true;
 				break;
 
-			case static::Patch:
-				$_curlOptions[CURLOPT_CUSTOMREQUEST] = static::Patch;
+			case self::Patch:
+				$_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Patch;
 				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
 				break;
 
-			case static::Delete:
-			case static::Options:
-			case static::Copy:
+			case self::Delete:
+			case self::Options:
+			case self::Copy:
 				$_curlOptions[CURLOPT_CUSTOMREQUEST] = $method;
 				break;
 		}
 
-		if ( null !== static::$_hostPort && !isset( $_curlOptions[CURLOPT_PORT] ) )
+		if ( null !== self::$_hostPort && !isset( $_curlOptions[CURLOPT_PORT] ) )
 		{
-			$_curlOptions[CURLOPT_PORT] = static::$_hostPort;
+			$_curlOptions[CURLOPT_PORT] = self::$_hostPort;
 		}
 
 		//	Set our collected options
@@ -269,17 +277,17 @@ class Curl implements HttpMethod
 		//	Make the call!
 		$_result = curl_exec( $_curl );
 
-		static::$_info = curl_getinfo( $_curl );
-		static::$_lastHttpCode = isset( static::$_info, static::$_info['http_code'] ) ? static::$_info['http_code'] : null;
+		self::$_info = curl_getinfo( $_curl );
+		self::$_lastHttpCode = Option::get( self::$_info, 'http_code' );
 
-		if ( static::$_debug )
+		if ( self::$_debug )
 		{
 			//	@todo Add debug output
 		}
 
 		if ( false === $_result )
 		{
-			static::$_error = array(
+			self::$_error = array(
 				'code'    => curl_errno( $_curl ),
 				'message' => curl_error( $_curl ),
 			);
@@ -290,12 +298,49 @@ class Curl implements HttpMethod
 			$_result = null;
 		}
 
+		//	Split up the body and headers if requested
+		if ( $_curlOptions[CURLOPT_HEADER] )
+		{
+			static::$_lastResponseHeaders = array();
+
+			list( $_headers, $_body ) = explode( "\r\n\r\n", $_result, 2 );
+
+			if ( $_headers )
+			{
+				$_raw = explode( "\r\n", $_headers );
+
+				if ( !empty( $_raw ) )
+				{
+					$_first = true;
+
+					foreach ( $_raw as $_line )
+					{
+						//	Skip the first line (HTTP/1.x response)
+						if ( $_first )
+						{
+							$_first = false;
+							continue;
+						}
+
+						$_parts = explode( ':', $_line, 2 );
+
+						if ( !empty( $_parts ) )
+						{
+							static::$_lastResponseHeaders[trim( $_parts[0] )] = count( $_parts ) > 1 ? trim( $_parts[1] ) : null;
+						}
+					}
+				}
+			}
+
+			$_result = $_body;
+		}
+
 		//	Attempt to auto-decode inbound JSON
-		if ( !empty( $_result ) && 'application/json' == ( isset( static::$_info, static::$_info['content_type'] ) ? static::$_info['content_type'] : null ) )
+		if ( !empty( $_result ) && 'application/json' == Option::get( self::$_info, 'content_type' ) )
 		{
 			try
 			{
-				if ( false !== ( $_json = @json_decode( $_result, static::$_decodeToArray ) ) )
+				if ( false !== ( $_json = @json_decode( $_result, self::$_decodeToArray ) ) )
 				{
 					$_result = $_json;
 				}
@@ -322,9 +367,9 @@ class Curl implements HttpMethod
 	 */
 	public static function getErrorAsString()
 	{
-		if ( !empty( static::$_error ) )
+		if ( !empty( self::$_error ) )
 		{
-			return static::$_error['message'] . ' (' . static::$_error['code'] . ')';
+			return self::$_error['message'] . ' (' . self::$_error['code'] . ')';
 		}
 
 		return null;
@@ -341,7 +386,7 @@ class Curl implements HttpMethod
 	 */
 	protected static function _setError( $error )
 	{
-		static::$_error = $error;
+		self::$_error = $error;
 	}
 
 	/**
@@ -349,7 +394,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getError()
 	{
-		return static::$_error;
+		return self::$_error;
 	}
 
 	/**
@@ -359,7 +404,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setHostPort( $hostPort )
 	{
-		static::$_hostPort = $hostPort;
+		self::$_hostPort = $hostPort;
 	}
 
 	/**
@@ -367,7 +412,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getHostPort()
 	{
-		return static::$_hostPort;
+		return self::$_hostPort;
 	}
 
 	/**
@@ -377,7 +422,7 @@ class Curl implements HttpMethod
 	 */
 	protected static function _setInfo( $info )
 	{
-		static::$_info = $info;
+		self::$_info = $info;
 	}
 
 	/**
@@ -385,7 +430,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getInfo()
 	{
-		return static::$_info;
+		return self::$_info;
 	}
 
 	/**
@@ -395,7 +440,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setPassword( $password )
 	{
-		static::$_password = $password;
+		self::$_password = $password;
 	}
 
 	/**
@@ -403,7 +448,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getPassword()
 	{
-		return static::$_password;
+		return self::$_password;
 	}
 
 	/**
@@ -413,7 +458,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setUserName( $userName )
 	{
-		static::$_userName = $userName;
+		self::$_userName = $userName;
 	}
 
 	/**
@@ -421,7 +466,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getUserName()
 	{
-		return static::$_userName;
+		return self::$_userName;
 	}
 
 	/**
@@ -431,7 +476,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setCurlOptions( $curlOptions )
 	{
-		static::$_curlOptions = $curlOptions;
+		self::$_curlOptions = $curlOptions;
 	}
 
 	/**
@@ -439,7 +484,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getCurlOptions()
 	{
-		return static::$_curlOptions;
+		return self::$_curlOptions;
 	}
 
 	/**
@@ -447,7 +492,7 @@ class Curl implements HttpMethod
 	 */
 	protected static function _setLastHttpCode( $lastHttpCode )
 	{
-		static::$_lastHttpCode = $lastHttpCode;
+		self::$_lastHttpCode = $lastHttpCode;
 	}
 
 	/**
@@ -455,7 +500,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getLastHttpCode()
 	{
-		return static::$_lastHttpCode;
+		return self::$_lastHttpCode;
 	}
 
 	/**
@@ -463,7 +508,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setDebug( $debug )
 	{
-		static::$_debug = $debug;
+		self::$_debug = $debug;
 	}
 
 	/**
@@ -471,7 +516,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getDebug()
 	{
-		return static::$_debug;
+		return self::$_debug;
 	}
 
 	/**
@@ -479,7 +524,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setAutoDecodeJson( $autoDecodeJson )
 	{
-		static::$_autoDecodeJson = $autoDecodeJson;
+		self::$_autoDecodeJson = $autoDecodeJson;
 	}
 
 	/**
@@ -487,7 +532,7 @@ class Curl implements HttpMethod
 	 */
 	public static function getAutoDecodeJson()
 	{
-		return static::$_autoDecodeJson;
+		return self::$_autoDecodeJson;
 	}
 
 	/**
@@ -495,7 +540,7 @@ class Curl implements HttpMethod
 	 */
 	public static function setDecodeToArray( $decodeToArray )
 	{
-		static::$_decodeToArray = $decodeToArray;
+		self::$_decodeToArray = $decodeToArray;
 	}
 
 	/**
@@ -503,7 +548,15 @@ class Curl implements HttpMethod
 	 */
 	public static function getDecodeToArray()
 	{
-		return static::$_decodeToArray;
+		return self::$_decodeToArray;
+	}
+
+	/**
+	 * @return array
+	 */
+	public static function getLastResponseHeaders()
+	{
+		return self::$_lastResponseHeaders;
 	}
 
 }
