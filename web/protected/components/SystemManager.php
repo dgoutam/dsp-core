@@ -74,6 +74,12 @@ class SystemManager implements iRestHandler
         return self::$_instance;
     }
 
+    public static function doesDbVersionRequireUpgrade($old, $new)
+    {
+        // todo need to be fancier here
+        return (0 !== strcasecmp($old, $new));
+    }
+
     /**
      * Determines the current state of the system
      */
@@ -94,14 +100,28 @@ class SystemManager implements iRestHandler
                     return 'schema required';
                 }
             }
+            // need to check for db upgrade, based on tables or version
+            $contents = file_get_contents(Yii::app()->basePath . '/data/system_schema.json');
+            if (!empty($contents)) {
+                $contents = Utilities::jsonToArray($contents);
+                $version = Utilities::getArrayValue('version', $contents);
+                $oldVersion = '';
+                if (DbUtilities::doesTableExist(Yii::app()->db, 'config')) {
+                    $config = Config::model()->find();
+                    if (isset($config)) {
+                        $oldVersion = $config->getAttribute('db_version');
+                    }
+                }
+                if (static::doesDbVersionRequireUpgrade($oldVersion, $version)) {
+                    return 'schema required';
+                }
+            }
 
             // check for at least one system admin user
             $theUser = User::model()->find('is_sys_admin=:is', array(':is'=>1));
             if (null === $theUser) {
                 return 'admin required';
             }
-
-            // need to check for db upgrade, based on tables or version
 
             return 'ready';
         }
@@ -755,11 +775,15 @@ class SystemManager implements iRestHandler
             $obj = static::getNewResource($table);
             // todo move this to model rules
             if (isset($record['password'])) {
-                $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
+                if (!empty($record['password'])) {
+                    $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
+                }
                 unset($record['password']);
             }
             if (isset($record['security_answer'])) {
-                $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
+                if (!empty($record['security_answer'])) {
+                    $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
+                }
                 unset($record['security_answer']);
             }
             $obj->setAttributes($record);
@@ -920,14 +944,43 @@ class SystemManager implements iRestHandler
         }
         try {
             $record = Utilities::removeOneFromArray('id', $record);
-            // todo move this to model rules
-            if (isset($record['password'])) {
-                $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
-                unset($record['password']);
-            }
-            if (isset($record['security_answer'])) {
-                $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
-                unset($record['security_answer']);
+            $sessionAction = '';
+            switch (strtolower($table)) {
+            case 'user':
+                // todo move this to model rules
+                if (isset($record['password'])) {
+                    if (!empty($record['password'])) {
+                        $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
+                    }
+                    unset($record['password']);
+                }
+                if (isset($record['security_answer'])) {
+                    if (!empty($record['security_answer'])) {
+                        $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
+                    }
+                    unset($record['security_answer']);
+                }
+                if ($obj->is_active && isset($record['is_active'])) {
+                    $isActive = Utilities::boolval($record['is_active']);
+                    if (Utilities::boolval($obj->is_active) !== $isActive) {
+                        $sessionAction = 'delete';
+                    }
+                }
+                if (isset($record['is_sys_admin'])) {
+                    $isSysAdmin = Utilities::boolval($record['is_sys_admin']);
+                    if (Utilities::boolval($obj->is_sys_admin) !== $isSysAdmin) {
+                        $sessionAction = 'update';
+                    }
+                }
+                if (isset($record['role_id'])) {
+                    $roleId = $record['role_id'];
+                    if ($obj->role_id !== $roleId) {
+                        $sessionAction = 'update';
+                    }
+                }
+                break;
+            case 'role':
+                break;
             }
             $obj->setAttributes($record);
             if (!$obj->save()) {
@@ -970,6 +1023,28 @@ class SystemManager implements iRestHandler
                 }
                 if (isset($record['services'])) {
                     $this->assignManyToOneByMap($table, $id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
+                }
+                switch ($sessionAction) {
+                case 'delete':
+//                    $user_ids = array();
+//                    SessionManager::getInstance()->deleteSessions($user_ids);
+                    break;
+                case 'update':
+                    $user_ids = array();
+                    foreach ($user_ids as $user_id) {
+//                        SessionManager::getInstance()->updateSession($user_id);
+                    }
+                    break;
+                }
+                break;
+            case 'user':
+                switch ($sessionAction) {
+                case 'delete':
+                    SessionManager::getInstance()->deleteSessions($id);
+                    break;
+                case 'update':
+                    SessionManager::getInstance()->updateSession($id);
+                    break;
                 }
                 break;
             }

@@ -5,6 +5,7 @@
  *
  * The followings are the available columns in table 'session':
  * @property string $id
+ * @property integer $user_id
  * @property integer $start_time
  * @property string $data
  */
@@ -55,6 +56,7 @@ class Session extends CActiveRecord
     {
         return array(
             'id' => 'Id',
+            'user_id' => 'User Id',
             'start_time' => 'Start Time',
             'data' => 'Data',
         );
@@ -71,6 +73,7 @@ class Session extends CActiveRecord
 
         $criteria = new CDbCriteria;
         $criteria->compare('id', $this->id, true);
+        $criteria->compare('user_id', $this->user_id);
         $criteria->compare('start_time', $this->start_time);
 
         return new CActiveDataProvider($this, array(

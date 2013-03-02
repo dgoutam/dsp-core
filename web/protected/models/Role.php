@@ -7,6 +7,7 @@
  * @property integer $id
  * @property string $name
  * @property string $description
+ * @property integer $is_active
  * @property integer $default_app_id
  * @property string $created_date
  * @property string $last_modified_date
@@ -52,12 +53,12 @@ class Role extends CActiveRecord
         return array(
             array('name', 'required'),
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
-            array('default_app_id, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
+            array('is_active, default_app_id', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 40),
             array('description', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, description, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, description, is_active, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -88,6 +89,7 @@ class Role extends CActiveRecord
             'id' => 'ID',
             'name' => 'Name',
             'description' => 'Description',
+            'is_active' => 'Is Active',
             'default_app_id' => 'Default App',
             'created_date' => 'Created Date',
             'last_modified_date' => 'Last Modified Date',
@@ -110,6 +112,7 @@ class Role extends CActiveRecord
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
         $criteria->compare('description', $this->description, true);
+        $criteria->compare('is_active', $this->is_active);
         $criteria->compare('default_app_id', $this->default_app_id);
         $criteria->compare('created_date', $this->created_date, true);
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
@@ -127,6 +130,8 @@ class Role extends CActiveRecord
      */
     protected function beforeValidate()
     {
+        if (is_bool($this->is_active))
+            $this->is_active = intval($this->is_active);
 
         return parent::beforeValidate();
     }
@@ -191,7 +196,7 @@ class Role extends CActiveRecord
             return array('id');
         }
         elseif ('*' == $requested) {
-            return array('id','name','description','default_app_id',
+            return array('id','name','description','is_active','default_app_id',
                          'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
         else {
@@ -199,6 +204,14 @@ class Role extends CActiveRecord
 //            $requested = Utilities::removeOneFromList($requested, 'password', ',');
             return explode(',', $requested);
         }
+    }
+
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->is_active = intval($this->is_active);
     }
 
 }

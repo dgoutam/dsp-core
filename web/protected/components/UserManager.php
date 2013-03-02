@@ -525,116 +525,43 @@ class UserManager implements iRestHandler
     }
 
     /**
-     * @param $confkey
+     * @param $conf_key
      * @return string
      */
-    protected function makeConfirmationMd5($confkey)
+    protected function makeConfirmationMd5($conf_key)
     {
-        $randno1 = rand();
-        $randno2 = rand();
+        $randNo1 = rand();
+        $randNo2 = rand();
 
-        return md5($confkey . $this->randKey . $randno1 . '' . $randno2);
+        return md5($conf_key . $this->randKey . $randNo1 . '' . $randNo2);
     }
 
-    //-------- User Operations ------------------------------------------------
-
     /**
-     * @param $username
-     * @param $password
+     * @param array $session
+     * @param bool $is_sys_admin
+     * @param bool $add_apps
      * @return array
-     * @throws Exception
      */
-    public function userLogin($username, $password)
+    protected static function addSessionExtras($session, $is_sys_admin=false, $add_apps=false)
     {
-        if (empty($username)) {
-            throw new Exception("Login request is missing required username.", ErrorCodes::BAD_REQUEST);
-        }
-        if (empty($password)) {
-            throw new Exception("Login request is missing required password.", ErrorCodes::BAD_REQUEST);
-        }
+        $data = Utilities::getArrayValue('data', $session, array());
+        $userId = Utilities::getArrayValue('id', $data, '');
+        $timestamp = time();
+        $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
+        $data['ticket'] = $ticket;
+        $data['ticket_expiry'] = time() + (5 * 60);
+        $data['session_id'] = session_id();
 
-        try {
-            $theUser = User::model()->with('role.role_service_accesses','role.apps','role.services')->find('username=:un', array(':un'=>$username));
-            if (null === $theUser) {
-                // bad username
-                throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
-            }
-            if ('y' !== $theUser->getAttribute('confirm_code')) {
-                throw new Exception("Login registration has not been confirmed.");
-            }
-            if (!CPasswordHelper::verifyPassword($password, $theUser->getAttribute('password'))) {
-                throw new Exception("Either the username or password supplied does not match system records.", ErrorCodes::UNAUTHORIZED);
-            }
-            if (!$theUser->getAttribute('is_active')) {
-                throw new Exception("The login with username '$username' is not currently active.", ErrorCodes::FORBIDDEN);
-            }
-
-            $isSysAdmin = $theUser->getAttribute('is_sys_admin');
-            $theRole = $theUser->getRelated('role');
-            if (!isset($theRole) && !$isSysAdmin) {
-                throw new Exception("The username '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN);
-            }
-
-            $defaultAppId = $theUser->getAttribute('default_app_id');
-            $fields = 'id,display_name,first_name,last_name,username,email,is_sys_admin';
-            $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
-            $userInfo = $theUser->getAttributes(explode(',', $fields));
-            $data = $userInfo; // reply data
-            $allowedApps = array();
-            if (isset($theRole)) {
-                if (!isset($defaultAppId)) {
-                    $defaultAppId = $theRole->getAttribute('default_app_id');
-                }
-                $role = $theRole->attributes;
-                $roleApps = $theRole->getRelated('apps');
-                if (!empty($roleApps)) {
-                    foreach($roleApps as $app) {
-                        $roleApps[] = array('id' => $app->getAttribute('id'),
-                                            'api_name' => $app->getAttribute('api_name'));
-                        if ($app->getAttribute('is_active'))
-                            $allowedApps[] = $app;
-                    }
-                }
-                $role['apps'] = $roleApps;
-                $permsFields = array('service_id','component','access','read','create','update','delete');
-                $thePerms = $theRole->getRelated('role_service_accesses');
-                $theServices = $theRole->getRelated('services');
-                $perms = array();
-                foreach ($thePerms as $perm) {
-                    $permServiceId = $perm->getAttribute('service_id');
-                    $temp = $perm->getAttributes($permsFields);
-                    foreach ($theServices as $service) {
-                        if ($permServiceId === $service->getAttribute('id')) {
-                            $temp['service'] = $service->getAttribute('api_name');
-                        }
-                    }
-                    $perms[] = $temp;
-                }
-                $role['services'] = $perms;
-                $userInfo['role'] = $role;
-            }
-
-            if (!isset($_SESSION)) {
-                session_start();
-            }
-            $_SESSION['public'] = $userInfo;
-
-            // additional stuff for session - launchpad mainly
-            $userId = $userInfo['id'];
-            $timestamp = time();
-            $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
-            $data['ticket'] = $ticket;
-            $data['ticket_expiry'] = time() + (5 * 60);
-            $data['session_id'] = session_id();
-
+        if ($add_apps) {
             $appFields = 'id,api_name,name,description,url,is_url_external';
-            $theApps = $allowedApps;
-            if ($isSysAdmin) {
+            $theApps = Utilities::getArrayValue('allowed_apps', $session, array());
+            if ($is_sys_admin) {
                 $theApps = App::model()->findAll('is_active = :ia', array(':ia'=>1));
             }
             $theGroups = AppGroup::model()->with('apps')->findAll();
             $appGroups = array();
             $noGroupApps = array();
+            $defaultAppId = Utilities::getArrayValue('default_app_id', $session, null);
             foreach ($theApps as $app) {
                 $appId = $app->getAttribute('id');
                 $tempGroups = $app->getRelated('app_groups');
@@ -666,8 +593,54 @@ class UserManager implements iRestHandler
             }
             $data['app_groups'] = array_values($appGroups); // reset indexing
             $data['no_group_apps'] = $noGroupApps;
+        }
 
-            return $data;
+        return $data;
+    }
+
+    //-------- User Operations ------------------------------------------------
+
+    /**
+     * @param $username
+     * @param $password
+     * @return array
+     * @throws Exception
+     */
+    public function userLogin($username, $password)
+    {
+        if (empty($username)) {
+            throw new Exception("Login request is missing required username.", ErrorCodes::BAD_REQUEST);
+        }
+        if (empty($password)) {
+            throw new Exception("Login request is missing required password.", ErrorCodes::BAD_REQUEST);
+        }
+
+        try {
+            $theUser = User::model()->with('role.role_service_accesses','role.apps','role.services')->find('username=:un', array(':un'=>$username));
+            if (null === $theUser) {
+                // bad username
+                throw new Exception("The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED);
+            }
+            if ('y' !== $theUser->getAttribute('confirm_code')) {
+                throw new Exception("Login registration has not been confirmed.");
+            }
+            if (!CPasswordHelper::verifyPassword($password, $theUser->getAttribute('password'))) {
+                throw new Exception("The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED);
+            }
+            $isSysAdmin = $theUser->getAttribute('is_sys_admin');
+            $result = SessionManager::generateSessionData(null, $theUser);
+
+            // write back login datetime
+            $theUser->last_login_date = new CDbExpression('NOW()');
+            $theUser->save();
+
+            if (!isset($_SESSION)) {
+                session_start();
+            }
+            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());
+
+            // additional stuff for session - launchpad mainly
+            return static::addSessionExtras($result, $isSysAdmin, true);
         }
         catch (Exception $ex) {
             throw $ex;
@@ -711,110 +684,16 @@ class UserManager implements iRestHandler
             if (null === $theUser) {
                 throw new Exception("The user identified in the session or ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED);
             }
-            $username = $theUser->getAttribute('username');
-            if (!$theUser->getAttribute('is_active')) {
-                throw new Exception("The login with username '$username' is not currently active.", ErrorCodes::FORBIDDEN);
-            }
-
             $isSysAdmin = $theUser->getAttribute('is_sys_admin');
-            $theRole = $theUser->getRelated('role');
-            if (!isset($theRole) && !$isSysAdmin) {
-                throw new Exception("The username '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN);
-            }
-
-            $defaultAppId = $theUser->getAttribute('default_app_id');
-            $fields = 'id,display_name,first_name,last_name,username,email,is_sys_admin';
-            $fields .= ',created_date,created_by_id,last_modified_date,last_modified_by_id';
-            $userInfo = $theUser->getAttributes(explode(',', $fields));
-            $data = $userInfo; // reply data
-            $allowedApps = array();
-            if (isset($theRole)) {
-                if (!isset($defaultAppId)) {
-                    $defaultAppId = $theRole->getAttribute('default_app_id');
-                }
-                $role = $theRole->attributes;
-                $roleApps = $theRole->getRelated('apps');
-                if (!empty($roleApps)) {
-                    foreach($roleApps as $app) {
-                        $roleApps[] = array('id' => $app->getAttribute('id'),
-                                            'api_name' => $app->getAttribute('api_name'));
-                        if ($app->getAttribute('is_active'))
-                            $allowedApps[] = $app;
-                    }
-                }
-                $role['apps'] = $roleApps;
-                $permsFields = array('service_id','component','access','read','create','update','delete');
-                $thePerms = $theRole->getRelated('role_service_accesses');
-                $theServices = $theRole->getRelated('services');
-                $perms = array();
-                foreach ($thePerms as $perm) {
-                    $permServiceId = $perm->getAttribute('service_id');
-                    $temp = $perm->getAttributes($permsFields);
-                    foreach ($theServices as $service) {
-                        if ($permServiceId === $service->getAttribute('id')) {
-                            $temp['service'] = $service->getAttribute('api_name');
-                        }
-                    }
-                    $perms[] = $temp;
-                }
-                $role['services'] = $perms;
-                $userInfo['role'] = $role;
-            }
+            $result = SessionManager::generateSessionData(null, $theUser);
 
             if (!isset($_SESSION)) {
                 session_start();
             }
-            $_SESSION['public'] = $userInfo;
+            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());;
 
             // additional stuff for session - launchpad mainly
-            $userId = $userInfo['id'];
-            $timestamp = time();
-            $ticket = Utilities::encryptCreds("$userId,$timestamp", "gorilla");
-            $data['ticket'] = $ticket;
-            $data['ticket_expiry'] = time() + (5 * 60);
-            $data['session_id'] = session_id();
-
-            $appFields = 'id,api_name,name,description,url,is_url_external';
-            $theApps = $allowedApps;
-            if ($isSysAdmin) {
-                $theApps = App::model()->findAll('is_active = :ia', array(':ia'=>1));
-            }
-            $theGroups = AppGroup::model()->with('apps')->findAll();
-            $appGroups = array();
-            $noGroupApps = array();
-            foreach ($theApps as $app) {
-                $appId = $app->getAttribute('id');
-                $tempGroups = $app->getRelated('app_groups');
-                $appData = $app->getAttributes(explode(',', $appFields));
-                $appData['is_default'] = ($defaultAppId === $appId);
-                $found = false;
-                foreach ($theGroups as $g_key=>$group) {
-                    $groupId = $group->getAttribute('id');
-                    $groupData = (isset($appGroups[$g_key])) ? $appGroups[$g_key] : $group->getAttributes(array('id','name','description'));
-                    foreach ($tempGroups as $tempGroup) {
-                        if ($tempGroup->getAttribute('id') === $groupId) {
-                            $found = true;
-                            $temp = Utilities::getArrayValue('apps', $groupData, array());
-                            $temp[] = $appData;
-                            $groupData['apps'] = $temp;
-                        }
-                    }
-                    $appGroups[$g_key] = $groupData;
-                }
-                if (!$found) {
-                    $noGroupApps[] = $appData;
-                }
-            }
-            // clean out any empty groups
-            foreach ($appGroups as $g_key=>$group) {
-                if (!isset($group['apps'])) {
-                    unset($appGroups[$g_key]);
-                }
-            }
-            $data['app_groups'] = array_values($appGroups); // reset indexing
-            $data['no_group_apps'] = $noGroupApps;
-
-            return $data;
+            return static::addSessionExtras($result, $isSysAdmin, true);
         }
         catch (Exception $ex) {
             throw $ex;

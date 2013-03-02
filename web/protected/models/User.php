@@ -19,6 +19,7 @@
  * @property integer $role_id
  * @property string $security_question
  * @property string $security_answer
+ * @property string $last_login_date
  * @property string $created_date
  * @property string $last_modified_date
  * @property integer $created_by_id
@@ -78,7 +79,7 @@ class User extends CActiveRecord
             array('confirm_code, security_question', 'length', 'max' => 128),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, username, first_name, last_name, display_name, email, phone, is_active, is_sys_admin, confirm_code, default_app_id, role_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, username, first_name, last_name, display_name, email, phone, is_active, is_sys_admin, confirm_code, default_app_id, role_id, last_login_data, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -128,6 +129,7 @@ class User extends CActiveRecord
             'role_id' => 'Role',
             'security_question' => 'Security Question',
             'security_answer' => 'Security Answer',
+            'last_login_date' => 'Last Login Date',
             'created_date' => 'Created Date',
             'last_modified_date' => 'Last Modified Date',
             'created_by_id' => 'Created By',
@@ -158,6 +160,7 @@ class User extends CActiveRecord
         $criteria->compare('confirm_code', $this->confirm_code, true);
         $criteria->compare('default_app_id', $this->default_app_id);
         $criteria->compare('role_id', $this->role_id);
+        $criteria->compare('last_login_date', $this->created_date, true);
         $criteria->compare('created_date', $this->created_date, true);
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
         $criteria->compare('created_by_id', $this->created_by_id);

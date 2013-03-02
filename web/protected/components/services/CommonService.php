@@ -45,7 +45,7 @@ abstract class CommonService
     public function __construct($config = array())
     {
         // Validate basic configuration
-        $this->_name = Utilities::getArrayValue('name', $config, '');
+        $this->_name = Utilities::getArrayValue('api_name', $config, '');
         if (empty($this->_name)) {
             throw new \InvalidArgumentException('Service name can not be empty.');
         }

@@ -13,6 +13,9 @@ ini_set('session.gc_divisor', 10);
 // 10 minutes for debug
 ini_set('session.gc_maxlifetime', 600);
 
+/**
+ * Class SessionManager
+ */
 class SessionManager
 {
     /**
@@ -98,12 +101,11 @@ class SessionManager
     public function read($id)
     {
         try {
-            Utilities::markTimeStart('SESS_TIME');
-            if (!$this->_sqlConn->active) $this->_sqlConn->active = true;
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
             $command->select('data')->from('session')->where(array('in', 'id', array($id)));
             $result = $command->queryRow();
-            Utilities::markTimeStop('SESS_TIME');
             if (!empty($result)) {
                 $data = (isset($result['data'])) ? $result['data'] : '';
                 if (!empty($data)) {
@@ -113,7 +115,6 @@ class SessionManager
             }
         }
         catch (Exception $ex) {
-            Utilities::markTimeStop('SESS_TIME');
             error_log($ex->getMessage());
         }
 
@@ -129,28 +130,27 @@ class SessionManager
     {
         try {
             $data = base64_encode(serialize($data));
-            $start_time = time();
-            $params = array($id, $start_time, $data);
+            $startTime = time();
+            $userId = static::getCurrentUserId();
+            $params = array($id, $userId, $startTime, $data);
             switch ($this->_driverType) {
             case DbUtilities::DRV_SQLSRV:
-                $sql = "{call UpdateOrInsertSession(?,?,?)}";
+                $sql = "{call UpdateOrInsertSession(?,?,?,?)}";
                 break;
             case DbUtilities::DRV_MYSQL:
-                $sql = "call UpdateOrInsertSession(?,?,?)";
+                $sql = "call UpdateOrInsertSession(?,?,?,?)";
                 break;
             default:
-                $sql = "call UpdateOrInsertSession(?,?,?)";
+                $sql = "call UpdateOrInsertSession(?,?,?,?)";
                 break;
             }
-            Utilities::markTimeStart('SESS_TIME');
-            if (!$this->_sqlConn->active) $this->_sqlConn->active = true;
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand($sql);
             $result = $command->execute($params);
-            Utilities::markTimeStop('SESS_TIME');
             return true;
         }
         catch (Exception $ex) {
-            Utilities::markTimeStop('SESS_TIME');
             error_log($ex->getMessage());
         }
 
@@ -164,15 +164,13 @@ class SessionManager
     public function destroy($id)
     {
         try {
-            Utilities::markTimeStart('SESS_TIME');
-            if (!$this->_sqlConn->active) $this->_sqlConn->active = true;
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
-            $command->delete('session', array('in', 'Id', array($id)));
-            Utilities::markTimeStop('SESS_TIME');
+            $command->delete('session', array('in', 'id', array($id)));
             return true;
         }
         catch (Exception $ex) {
-            Utilities::markTimeStop('SESS_TIME');
             error_log($ex->getMessage());
         }
 
@@ -187,15 +185,13 @@ class SessionManager
     {
         try {
             $expired = time() - $lifeTime;
-            Utilities::markTimeStart('SESS_TIME');
-            if (!$this->_sqlConn->active) $this->_sqlConn->active = true;
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
             $command->delete('session', "start_time < $expired");
-            Utilities::markTimeStop('SESS_TIME');
             return true;
         }
         catch (Exception $ex) {
-            Utilities::markTimeStop('SESS_TIME');
             error_log($ex->getMessage());
         }
 
@@ -203,6 +199,136 @@ class SessionManager
     }
     
     // helper functions
+
+    /**
+     * @param $user_ids
+     */
+    public function deleteSessions($user_ids)
+    {
+        try {
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
+            $command = $this->_sqlConn->createCommand();
+            if (is_array($user_ids)) {
+                $command->delete('session', array('in', 'user_id', $user_ids));
+            }
+            elseif (!empty($user_ids)) {
+                $command->delete('session', 'user_id=:id', array(':id'=>$user_ids));
+            }
+            else {
+                // delete all sessions
+                $command->delete('session');
+            }
+        }
+        catch (Exception $ex) {
+            error_log($ex->getMessage());
+        }
+    }
+
+    /**
+     * @param $user_id
+     */
+    public function updateSession($user_id)
+    {
+        try {
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
+            $command = $this->_sqlConn->createCommand();
+            $command->select('id')->from('session')->where('user_id=:id', array(':id'=>$user_id));
+            $results = $command->queryScalar();
+            if (false !== $results) {
+                try {
+                    $data = static::generateSessionData($user_id);
+                    $data = array('public' => $data['public']);
+                    $command->reset();
+                    $data = base64_encode(serialize($data));
+                    $command->update('session', array('data'=>$data), 'user_id=:id', array(':id'=>$user_id));
+                }
+                catch (Exception $ex) {
+                    // delete sessions because something bad happened
+                    $command->reset();
+                    $command->delete('session', 'user_id=:id', array(':id'=>$user_id));
+                }
+            }
+        }
+        catch (Exception $ex) {
+            error_log($ex->getMessage());
+        }
+    }
+
+    /**
+     * @param $user_id
+     * @param null $user
+     * @return array
+     * @throws Exception
+     */
+    public static function generateSessionData($user_id, $user=null)
+    {
+        if (!isset($user)) {
+            $user = User::model()->with('role.role_service_accesses','role.apps','role.services')->findByPk($user_id);
+        }
+        if (null === $user) {
+            throw new Exception("The user with id $user_id does not exist in the system.", ErrorCodes::UNAUTHORIZED);
+        }
+        $username = $user->getAttribute('username');
+        if (!$user->getAttribute('is_active')) {
+            throw new Exception("The user with username '$username' is not currently active.", ErrorCodes::FORBIDDEN);
+        }
+
+        $isSysAdmin = $user->getAttribute('is_sys_admin');
+        $defaultAppId = $user->getAttribute('default_app_id');
+        $fields = array('id','display_name','first_name','last_name','username','email','is_sys_admin','last_login_date');
+        $userInfo = $user->getAttributes($fields);
+        $data = $userInfo; // reply data
+        $allowedApps = array();
+
+        if (!$isSysAdmin) {
+            $theRole = $user->getRelated('role');
+            if (!isset($theRole)) {
+                throw new Exception("The user '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN);
+            }
+            if (!$theRole->getAttribute('is_active')) {
+                throw new Exception("The role this user is assigned to is not currently active.", ErrorCodes::FORBIDDEN);
+            }
+
+            if (!isset($defaultAppId)) {
+                $defaultAppId = $theRole->getAttribute('default_app_id');
+            }
+            $role = $theRole->attributes;
+            $theApps = $theRole->getRelated('apps');
+            $roleApps = array();
+            if (!empty($theApps)) {
+                $appFields = array('id','api_name','is_active');
+                foreach($theApps as $app) {
+                    $roleApps[] = $app->getAttributes($appFields);
+                    if ($app->getAttribute('is_active'))
+                        $allowedApps[] = $app;
+                }
+            }
+            $role['apps'] = $roleApps;
+            $permsFields = array('service_id','component','access');
+            $thePerms = $theRole->getRelated('role_service_accesses');
+            $theServices = $theRole->getRelated('services');
+            $perms = array();
+            foreach ($thePerms as $perm) {
+                $permServiceId = $perm->getAttribute('service_id');
+                $temp = $perm->getAttributes($permsFields);
+                foreach ($theServices as $service) {
+                    if ($permServiceId === $service->getAttribute('id')) {
+                        $temp['service'] = $service->getAttribute('api_name');
+                    }
+                }
+                $perms[] = $temp;
+            }
+            $role['services'] = $perms;
+            $userInfo['role'] = $role;
+        }
+
+        return array('public' => $userInfo,
+                     'data' => $data,
+                     'allowed_apps'=> $allowedApps,
+                     'default_app_id' => $defaultAppId);
+    }
 
     /**
      * @return string
@@ -293,11 +419,12 @@ class SessionManager
         $serviceFound = false;
         foreach ($services as $svcInfo) {
             $theService = Utilities::getArrayValue('service', $svcInfo);
+            $theAccess = Utilities::getArrayValue('access', $svcInfo, '');
             if (0 === strcasecmp($service, $theService)) {
                 $theComponent = Utilities::getArrayValue('component', $svcInfo);
                 if (!empty($component)) {
                     if (0 === strcasecmp($component, $theComponent)) {
-                        if (static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''))) {
+                        if (!static::isAllowed($request, $theAccess)) {
                             $msg = ucfirst($request) . " access to component '$component' of service '$service' ";
                             $msg .= "is not allowed by this user's role.";
                             throw new Exception($msg, ErrorCodes::FORBIDDEN);
@@ -305,13 +432,13 @@ class SessionManager
                         return; // component specific found and allowed, so bail
                     }
                     elseif (empty($theComponent) || ('*' == $theComponent)) {
-                        $serviceAllowed = static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''));
+                        $serviceAllowed = static::isAllowed($request, $theAccess);
                         $serviceFound = true;
                     }
                 }
                 else {
                     if (empty($theComponent) || ('*' == $theComponent)) {
-                        if (static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''))) {
+                        if (!static::isAllowed($request, $theAccess)) {
                             $msg = ucfirst($request) . " access to service '$service' ";
                             $msg .= "is not allowed by this user's role.";
                             throw new Exception($msg, ErrorCodes::FORBIDDEN);
@@ -320,8 +447,8 @@ class SessionManager
                     }
                 }
             }
-            elseif ('*' == $theService) {
-                $allAllowed = static::isAllowed($request, Utilities::getArrayValue('access', $svcInfo, ''));
+            elseif (empty($theService) || ('*' == $theService)) {
+                $allAllowed = static::isAllowed($request, $theAccess);
                 $allFound = true;
             }
         }

@@ -1,5 +1,5 @@
 {
-    "version": "0.3.0",
+    "version": "0.4.2",
 	"table": [
         {
             "name": "config",
@@ -31,6 +31,11 @@
                     "name": "start_time",
                     "type": "integer",
                     "allow_null": false
+                },
+                {
+                    "name": "user_id",
+                    "type": "integer",
+                    "allow_null": true
                 },
                 {
                     "name": "data",
@@ -160,6 +165,10 @@
                     "allow_null": true
                 },
                 {
+                    "name": "last_login_date",
+                    "type": "datetime"
+                },
+                {
                     "name": "created_date",
                     "type": "timestamp_on_create",
                     "validation": "api_read_only"
@@ -203,6 +212,12 @@
                     "name": "description",
                     "type": "text",
                     "allow_null": true
+                },
+                {
+                    "name": "is_active",
+                    "type": "boolean",
+                    "default": true,
+                    "allow_null": false
                 },
                 {
                     "name": "default_app_id",
