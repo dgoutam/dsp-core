@@ -12,11 +12,13 @@ const AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/user/credenti
 //	This file must be present to hit this block...
 if ( file_exists( '/var/www/.fabric_hosted' ) )
 {
+	require_once dirname( __DIR__ ) . '/web/protected/components/Curl.php';
+
 	$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
 
 	if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 	{
-		throw new CHttpException( 401, 'You are not authorized to access this system.' );
+		throw new \CHttpException( 401, 'You are not authorized to access this system.' );
 	}
 
 	if ( isset( $_SESSION['_db_credentials_cache'] ) )
@@ -29,7 +31,7 @@ if ( file_exists( '/var/www/.fabric_hosted' ) )
 		$_dspName = $_parts[0];
 
 		//	Get the credentials from the auth server...
-		$_response = Curl::get( AUTH_ENDPOINT . '/' . $_dspName . '/database' );
+		$_response = \Curl::get( AUTH_ENDPOINT . '/' . $_dspName . '/database' );
 
 		if ( false === $_response || !is_object( $_response ) || 'false' == $_response->success )
 		{
