@@ -5,7 +5,7 @@
  *
  * @author Jerry Ablan <jerryablan@dreamfactory.com>
  */
-class Curl implements HttpMethod
+class Curl implements \HttpMethod
 {
 	//*************************************************************************
 	//* Private Members
@@ -184,10 +184,10 @@ class Curl implements HttpMethod
 	 */
 	protected static function _httpRequest( $method = self::Get, $url, $payload = array(), $curlOptions = array() )
 	{
-		if ( !self::contains( $method ) )
-		{
-			throw new \InvalidArgumentException( 'Invalid method "' . $method . '" specified.' );
-		}
+//		if ( !self::contains( $method ) )
+//		{
+//			throw new \InvalidArgumentException( 'Invalid method "' . $method . '" specified.' );
+//		}
 
 		//	Reset!
 		self::$_lastResponseHeaders = self::$_lastHttpCode = self::$_error = self::$_info = $_tmpFile = null;
@@ -278,7 +278,7 @@ class Curl implements HttpMethod
 		$_result = curl_exec( $_curl );
 
 		self::$_info = curl_getinfo( $_curl );
-		self::$_lastHttpCode = Option::get( self::$_info, 'http_code' );
+		self::$_lastHttpCode = ( isset( self::$_info['http_code'] ) ? self::$_info['http_code'] : null );
 
 		if ( self::$_debug )
 		{
@@ -336,7 +336,9 @@ class Curl implements HttpMethod
 		}
 
 		//	Attempt to auto-decode inbound JSON
-		if ( !empty( $_result ) && 'application/json' == Option::get( self::$_info, 'content_type' ) )
+		$_contentType = isset( self::$_info['content_type'] ) ? self::$_info['content_type'] : null;
+
+		if ( !empty( $_result ) && 'application/json' == $_contentType )
 		{
 			try
 			{

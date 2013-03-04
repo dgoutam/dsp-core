@@ -16,7 +16,7 @@ class Drupal
 	/**
 	 * @var string
 	 */
-	const Endpoint = 'http://developer.dreamfactory.com/api';
+	const Endpoint = 'http://cerberus.fabric.dreamfactory.com/api/drupal';
 
 	//*************************************************************************
 	//* Methods
