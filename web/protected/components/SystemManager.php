@@ -360,100 +360,31 @@ class SystemManager implements iRestHandler
     {
         try {
             $this->detectCommonParams();
+
+            $result = SwaggerUtilities::swaggerBaseInfo('system');
             $resources = array(
                 array('path' => '/system',
                       'description' => '',
                       'operations' => array(
                           array("httpMethod"=> "GET",
                                 "summary"=> "List resources available in the system service",
-                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "notes"=> "Use these resources for system administration.",
                                 "responseClass"=> "array",
                                 "nickname"=> "getResources",
-                                "parameters"=> array(),
-                                "errorResponses"=> array()
-                          ),
-                      )
-                ),
-                array('path' => '/system/app',
-                      'description' => '',
-                      'operations' => array(
-                          array("httpMethod"=> "GET",
-                                "summary"=> "Retrieve all applications",
-                                "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
-                                "responseClass"=> "array",
-                                "nickname"=> "getAllApps",
-                                "parameters"=> array(),
-                                "errorResponses"=> array()
-                          ),
-                      )
-                ),
-                array('path' => '/system/app_group',
-                      'description' => '',
-                      'operations' => array(
-                          array("httpMethod"=> "GET",
-                                "summary"=> "List resources available in the system service",
-                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
-                                "responseClass"=> "array",
-                                "nickname"=> "getAllAppGroups",
-                                "parameters"=> array(),
-                                "errorResponses"=> array()
-                          ),
-                      )
-                ),
-                array('path' => '/system/config',
-                      'description' => '',
-                      'operations' => array(
-                          array("httpMethod"=> "GET",
-                                "summary"=> "List resources available in the system service",
-                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
-                                "responseClass"=> "array",
-                                "nickname"=> "getResources",
-                                "parameters"=> array(),
-                                "errorResponses"=> array()
-                          ),
-                      )
-                ),
-                array('path' => '/system/role',
-                      'description' => '',
-                      'operations' => array(
-                          array("httpMethod"=> "GET",
-                                "summary"=> "List resources available in the system service",
-                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
-                                "responseClass"=> "array",
-                                "nickname"=> "getResources",
-                                "parameters"=> array(),
-                                "errorResponses"=> array()
-                          ),
-                      )
-                ),
-                array('path' => '/system/service',
-                      'description' => '',
-                      'operations' => array(
-                          array("httpMethod"=> "GET",
-                                "summary"=> "List resources available in the system service",
-                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
-                                "responseClass"=> "array",
-                                "nickname"=> "getResources",
-                                "parameters"=> array(),
-                                "errorResponses"=> array()
-                          ),
-                      )
-                ),
-                array('path' => '/system/user',
-                      'description' => '',
-                      'operations' => array(
-                          array("httpMethod"=> "GET",
-                                "summary"=> "List resources available in the system service",
-                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
-                                "responseClass"=> "array",
-                                "nickname"=> "getResources",
-                                "parameters"=> array(),
+                                "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
                                 "errorResponses"=> array()
                           ),
                       )
                 ),
             );
-            $result = array('apis' => $resources);
+            $resources = array_merge($resources,
+                SwaggerUtilities::swaggerPerResource('system', 'app'),
+                SwaggerUtilities::swaggerPerResource('system', 'app_group'),
+                SwaggerUtilities::swaggerPerResource('system', 'role'),
+                SwaggerUtilities::swaggerPerResource('system', 'service'),
+                SwaggerUtilities::swaggerPerResource('system', 'user')
+            );
+            $result['apis'] = $resources;
             return $result;
         }
         catch (Exception $ex) {
