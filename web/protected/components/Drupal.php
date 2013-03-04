@@ -30,7 +30,7 @@ class Drupal
 	 *
 	 * @return \stdClass|string
 	 */
-	protected static function _drupal( $url, $payload, $options = array(), $method = Curl::Post )
+	protected static function _drupal( $url, array $payload = array(), array $options = array(), $method = Curl::Post )
 	{
 		$_url = '/' . ltrim( $url, '/' );
 
@@ -48,28 +48,17 @@ class Drupal
 			$options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
 		}
 
-		if ( !is_scalar( $payload ) )
-		{
-			//	Add in a source block
-			$payload['source'] = array(
-				'host'    => gethostname(),
-				'address' => gethostbynamel( gethostname() ),
-			);
+		//	Add in a source block
+		$payload['source'] = array(
+			'host'    => gethostname(),
+			'address' => gethostbynamel( gethostname() ),
+		);
 
-			$payload = json_encode( $payload );
-		}
+		$payload['dsp-auth-key'] = md5( microtime( true ) );
 
-		$_response = Curl::request( $method, static::Endpoint . $_url, $payload, $options );
+//		$payload = json_encode( $payload );
 
-		if ( $_response && isset( $_response->result ) )
-		{
-			if ( isset( $_response->resultData ) )
-			{
-				return $_response->resultData;
-			}
-		}
-
-		return $_response;
+		return Curl::request( $method, static::Endpoint . $_url, json_encode( $payload ), $options );
 	}
 
 	/**
@@ -87,9 +76,9 @@ class Drupal
 
 		if ( false !== ( $_response = static::_drupal( 'drupalValidate', $_payload ) ) )
 		{
-			if ( 'true' == $_response->success )
+			if ( $_response->success )
 			{
-				return $_response;
+				return $_response->details;
 			}
 		}
 
@@ -107,6 +96,8 @@ class Drupal
 			'id' => $userId,
 		);
 
-		return static::_drupal( 'drupalUser', $_payload );
+		$_response = static::_drupal( 'drupalUser', $_payload );
+
+		return $_response->details;
 	}
 }

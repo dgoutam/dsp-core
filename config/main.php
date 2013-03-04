@@ -104,13 +104,16 @@ return array(
 	),
 	// application-level parameters that can be accessed
 	// using Yii::app()->params['paramName']
-	'params'      => array(
-		'storage_base_path'     => '/data/storage',
-		'dsp_name'              => $_dbName,
-		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require_once( $_blobConfig ) : array(),
-		// this is used in contact page
-		'adminEmail'            => 'leehicks@dreamfactory.com',
-		'companyLabel'          => 'My Dream Cloud',
-		'allowOpenRegistration' => 'true',
+	'params'      => array_merge(
+		array(
+			 'storage_base_path'     => '/data/storage',
+			 'dsp_name'              => $_dbName,
+			 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require_once( $_blobConfig ) : array(),
+			 // this is used in contact page
+			 'adminEmail'            => 'leehicks@dreamfactory.com',
+			 'companyLabel'          => 'My Dream Cloud',
+			 'allowOpenRegistration' => 'true',
+		),
+		@require( __DIR__ . '/storage.paths.php' )
 	),
 );
