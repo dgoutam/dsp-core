@@ -356,6 +356,115 @@ class SystemManager implements iRestHandler
      * @return array
      * @throws Exception
      */
+    public function actionSwagger()
+    {
+        try {
+            $this->detectCommonParams();
+            $resources = array(
+                array('path' => '/system',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "List resources available in the system service",
+                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "responseClass"=> "array",
+                                "nickname"=> "getResources",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+                array('path' => '/system/app',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "Retrieve all applications",
+                                "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
+                                "responseClass"=> "array",
+                                "nickname"=> "getAllApps",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+                array('path' => '/system/app_group',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "List resources available in the system service",
+                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "responseClass"=> "array",
+                                "nickname"=> "getAllAppGroups",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+                array('path' => '/system/config',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "List resources available in the system service",
+                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "responseClass"=> "array",
+                                "nickname"=> "getResources",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+                array('path' => '/system/role',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "List resources available in the system service",
+                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "responseClass"=> "array",
+                                "nickname"=> "getResources",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+                array('path' => '/system/service',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "List resources available in the system service",
+                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "responseClass"=> "array",
+                                "nickname"=> "getResources",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+                array('path' => '/system/user',
+                      'description' => '',
+                      'operations' => array(
+                          array("httpMethod"=> "GET",
+                                "summary"=> "List resources available in the system service",
+                                "notes"=> "For valid response try integer IDs with value <= 5. Anything above 5 or nonintegers will generate API errors",
+                                "responseClass"=> "array",
+                                "nickname"=> "getResources",
+                                "parameters"=> array(),
+                                "errorResponses"=> array()
+                          ),
+                      )
+                ),
+            );
+            $result = array('apis' => $resources);
+            return $result;
+        }
+        catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionGet()
     {
         try {
@@ -363,11 +472,11 @@ class SystemManager implements iRestHandler
             switch ($this->modelName) {
             case '':
                 $result = array(array('name' => 'app', 'label' => 'Application'),
-                    array('name' => 'app_group', 'label' => 'Application Group'),
-                    array('name' => 'config', 'label' => 'Configuration'),
-                    array('name' => 'role', 'label' => 'Role'),
-                    array('name' => 'service', 'label' => 'Service'),
-                    array('name' => 'user', 'label' => 'User'));
+                                array('name' => 'app_group', 'label' => 'Application Group'),
+                                array('name' => 'config', 'label' => 'Configuration'),
+                                array('name' => 'role', 'label' => 'Role'),
+                                array('name' => 'service', 'label' => 'Service'),
+                                array('name' => 'user', 'label' => 'User'));
                 $result = array('resource' => $result);
                 break;
             case 'app':
@@ -1659,24 +1768,36 @@ class SystemManager implements iRestHandler
             throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         try {
+            $accesses = array_values($accesses); // reset indices if needed
+            $count = count($accesses);
+            // check for dupes before processing
+            for ($key1 = 0; $key1 < $count; $key1++) {
+                $access = $accesses[$key1];
+                $serviceId = Utilities::getArrayValue('service_id', $access, null);
+                $component = Utilities::getArrayValue('component', $access, '');
+                for ($key2 = $key1 + 1; $key2 < $count; $key2++) {
+                    $access2 = $accesses[$key2];
+                    $serviceId2 = Utilities::getArrayValue('service_id', $access2, null);
+                    $component2 = Utilities::getArrayValue('component', $access2, '');
+                    if (($serviceId === $serviceId2) && ($component === $component2)) {
+                        throw new Exception("Duplicated service and component combination '$serviceId $component' in role service access.", ErrorCodes::BAD_REQUEST);
+                    }
+                }
+            }
             $oldAccesses = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
             foreach ($oldAccesses as $oldAccess) {
-                $oldId = $oldAccess->primaryKey;
                 $found = false;
                 foreach ($accesses as $key=>$access) {
-                    $id = Utilities::getArrayValue('id', $access, '');
-                    if ($id == $oldId) {
+                    $newServiceId = Utilities::getArrayValue('service_id', $access, null);
+                    $newComponent = Utilities::getArrayValue('component', $access, '');
+                    if (($newServiceId === $oldAccess->service_id) &&
+                        ($newComponent === $oldAccess->component)) {
                         // found it, make sure nothing needs to be updated
-                        $newServiceId = Utilities::getArrayValue('service_id', $access, '');
-                        $newComponent = Utilities::getArrayValue('component', $access, '');
                         $newAccess = Utilities::getArrayValue('access', $access, '');
-                        if (($oldAccess->service_id != $newServiceId))
-                            $oldAccess->service_id = $newServiceId;
-                        if (($oldAccess->component != $newComponent))
-                            $oldAccess->component = $newComponent;
-                        if (($oldAccess->access != $newAccess))
+                        if (($oldAccess->access != $newAccess)) {
                             $oldAccess->access = $newAccess;
-                        $oldAccess->save();
+                            $oldAccess->save();
+                        }
                         // keeping it, so remove it from the list, as this becomes adds
                         unset($accesses[$key]);
                         $found = true;
