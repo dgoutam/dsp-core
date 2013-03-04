@@ -113,4 +113,14 @@ abstract class CommonService
     {
         SessionManager::checkPermission($request, $this->_name, $component);
     }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public function actionSwagger()
+    {
+        $result = SwaggerUtilities::swaggerBaseInfo($this->_name);
+        return $result;
+    }
 }

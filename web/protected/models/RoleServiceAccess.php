@@ -42,8 +42,8 @@ class RoleServiceAccess extends CActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('role_id, service_id, component', 'required'),
-            array('role_id, service_id', 'numerical', 'integerOnly' => true),
+            array('role_id', 'required'),
+            array('role_id', 'numerical', 'integerOnly' => true),
             array('access', 'length', 'max' => 40),
             array('component', 'length', 'max' => 80),
             // The following rule is used by search().
@@ -93,7 +93,7 @@ class RoleServiceAccess extends CActiveRecord
         $criteria->compare('id', $this->id);
         $criteria->compare('role_id', $this->role_id);
         $criteria->compare('service_id', $this->service_id);
-        $criteria->compare('component', $this->component, true);
+        $criteria->compare('component', $this->component);
         $criteria->compare('access', $this->access);
 
         return new CActiveDataProvider($this, array(

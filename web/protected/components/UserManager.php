@@ -100,6 +100,130 @@ class UserManager implements iRestHandler
      * @return array
      * @throws Exception
      */
+    public function actionSwagger()
+    {
+        $this->detectCommonParams();
+        $result = SwaggerUtilities::swaggerBaseInfo('user');
+        $resources = array(
+            array('path' => '/user',
+                 'description' => "Operations on the user service",
+                 'operations' => array(
+                     array("httpMethod"=> "GET",
+                           "summary"=> "List resources available in the user service",
+                           "notes"=> "Use these resources to maintain session, update profile and change password.",
+                           "responseClass"=> "array",
+                           "nickname"=> "getResources",
+                           "parameters"=> array(),
+                           "errorResponses"=> array()
+                     )
+                 )
+            ),
+            array('path' => '/user/session',
+                 'description' => "Operations on a user's session",
+                 'operations' => array(
+                     array("httpMethod"=> "GET",
+                           "summary"=> "Retrieve the current user session information",
+                           "notes"=> "Calling this refreshes the current session.",
+                           "responseClass"=> "array",
+                           "nickname"=> "getSession",
+                           "parameters"=> array(),
+                           "errorResponses"=> array()
+                     ),
+                     array("httpMethod"=> "POST",
+                           "summary"=> "Login and create a new user session",
+                           "notes"=> "Calling this creates a new session and logs in the user.",
+                           "responseClass"=> "array",
+                           "nickname"=> "login",
+                           "parameters"=> array(),
+                           "errorResponses"=> array()
+                     ),
+                     array("httpMethod"=> "DELETE",
+                           "summary"=> "Logout and destroy the current user session",
+                           "notes"=> "Calling this deletes the current session and logs out the user.",
+                           "responseClass"=> "array",
+                           "nickname"=> "logout",
+                           "parameters"=> array(),
+                           "errorResponses"=> array()
+                     ),
+                 )
+            ),
+            array('path' => '/user/profile',
+                  'description' => "Operations on a user's profile",
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve the current user's profile information",
+                            "notes"=> "This profile, along with password, is the only things that the user can directly change.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getProfile",
+                            "parameters"=> array(),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Update the current user's profile information",
+                            "notes"=> "Update the security question and answer through this api, as well as, display name, email, etc.",
+                            "responseClass"=> "array",
+                            "nickname"=> "changeProfile",
+                            "parameters"=> array(),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/user/password',
+                  'description' => "Operations on a user's password",
+                  'operations' => array(
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Update the current user's password",
+                            "notes"=> "A valid session is required to change the password through this API.",
+                            "responseClass"=> "array",
+                            "nickname"=> "changePassword",
+                            "parameters"=> array(),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/user/challenge',
+                  'description' => '',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve the security challenge question for the given username",
+                            "notes"=> "Use this to retrieve the challenge question to present to the user.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getChallenge",
+                            "parameters"=> array(),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Answer the security challenge question for the given username",
+                            "notes"=> "Use this to gain temporary access to change password.",
+                            "responseClass"=> "array",
+                            "nickname"=> "answerChallenge",
+                            "parameters"=> array(),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/user/register',
+                  'description' => '',
+                  'operations' => array()
+            ),
+            array('path' => '/user/confirm',
+                  'description' => '',
+                  'operations' => array()
+            ),
+            array('path' => '/user/ticket',
+                  'description' => '',
+                  'operations' => array()
+            )
+        );
+        $result['apis'] = $resources;
+
+        return $result;
+    }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
     public function actionGet()
     {
         $this->detectCommonParams();

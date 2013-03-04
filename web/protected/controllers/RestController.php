@@ -9,9 +9,16 @@ class RestController extends Controller
 
     /**
      * Default response format
+     * @var string
      * either 'json' or 'xml'
      */
     private $format = 'json';
+
+    /**
+     * Swagger controlled get
+     * @var bool
+     */
+    private $swagger = false;
 
     /**
      * @return array action filters
@@ -46,6 +53,20 @@ class RestController extends Controller
     public function actionIndex()
     {
         try {
+            if ($this->swagger) {
+                $managers = array(array('path' => '/system', 'description' => 'System Configuration'),
+                                  array('path' => '/user', 'description' => 'User Login'));
+                $criteria = new CDbCriteria(array('select' => 'api_name,name,description'));
+                $result = Service::model()->findAll($criteria);
+                $services = array();
+                foreach ($result as $service) {
+                    $services[] = array('path' => '/'.$service->api_name, 'description' => $service->name);
+                }
+                $services = array_merge($managers, $services);
+                $result = SwaggerUtilities::swaggerBaseInfo();
+                $result['apis'] = $services;
+                $this->handleResults($result);
+            }
             // add non-service managers
             $managers = array(array('name' => 'system', 'label' => 'System Configuration'),
                               array('name' => 'user', 'label' => 'User Login'));
@@ -66,20 +87,34 @@ class RestController extends Controller
         try {
             switch (strtolower($service)) {
             case 'system':
-                $result = SystemManager::getInstance()->actionGet();
+                if ($this->swagger) {
+                    $result = SystemManager::getInstance()->actionSwagger();
+                }
+                else {
+                    $result = SystemManager::getInstance()->actionGet();
+                }
                 break;
             case 'user':
-                $result = UserManager::getInstance()->actionGet();
+                if ($this->swagger) {
+                    $result = UserManager::getInstance()->actionSwagger();
+                }
+                else {
+                    $result = UserManager::getInstance()->actionGet();
+                }
                 break;
             default:
                 $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
-                $result = $svcObj->actionGet();
-
-                $type = $svcObj->getType();
-                if (0 === strcasecmp($type, 'Remote Web Service')) {
-                    $nativeFormat = $svcObj->getNativeFormat();
-                    if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                        // reformat the code here
+                if ($this->swagger) {
+                    $result = $svcObj->actionSwagger();
+                }
+                else {
+                    $result = $svcObj->actionGet();
+                    $type = $svcObj->getType();
+                    if (0 === strcasecmp($type, 'Remote Web Service')) {
+                        $nativeFormat = $svcObj->getNativeFormat();
+                        if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                            // reformat the code here
+                        }
                     }
                 }
                 break;
@@ -274,8 +309,14 @@ class RestController extends Controller
             $appName = Utilities::getArrayValue('app_name', $_REQUEST, '');
         }
         if (empty($appName)) {
-            $ex = new Exception("No application name header or parameter value in REST request.", ErrorCodes::BAD_REQUEST);
-            $this->handleErrors($ex);
+            $apiKey = Utilities::getArrayValue('api_key', $_REQUEST, '');
+            if (0 === strcasecmp('swagger', $apiKey)) {
+                $this->swagger = true;
+            }
+            else {
+                $ex = new Exception("No application name header or parameter value in REST request.", ErrorCodes::BAD_REQUEST);
+                $this->handleErrors($ex);
+            }
         }
         $GLOBALS['app_name'] = $appName;
 
@@ -296,27 +337,12 @@ class RestController extends Controller
 
     /**
      * @param Exception $ex
-     * @return void
      */
     private function handleErrors(Exception $ex)
     {
-        $code = ErrorCodes::getHttpStatusCode($ex->getCode());
-        $title = ErrorCodes::getHttpStatusCodeTitle($code);
-        $msg = $ex->getMessage();
-        $result = array("error" => array(array("message" => htmlentities($msg),
-                                               "code" => $code)));
-        header("HTTP/1.1 $code $title");
-        switch ($this->format) {
-        case 'json':
-            $result = json_encode($result);
-            Utilities::sendJsonResponse($result);
-            break;
-        case 'xml':
-            $result = Utilities::arrayToXml('', $result);
-            Utilities::sendXmlResponse($result);
-            break;
-        }
-        Yii::app()->end();
+        $result = array("error" => array(array("message" => htmlentities($ex->getMessage()),
+                                               "code" => $ex->getCode())));
+        $this->handleResults($result, $ex->getCode());
     }
 
     /**
