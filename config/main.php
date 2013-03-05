@@ -106,6 +106,8 @@ return array(
 	// using Yii::app()->params['paramName']
 	'params'      => array(
 		'storage_base_path'     => '/data/storage',
+		'private_path'          => '/data/storage/' . $_dbName . '/.private',
+		'storage_path'          => '/data/storage/' . $_dbName . '/blob',
 		'dsp_name'              => $_dbName,
 		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require_once( $_blobConfig ) : array(),
 		// this is used in contact page
