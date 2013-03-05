@@ -34,25 +34,27 @@ class Defaults
 	 */
 	public static function getStoragePath( $append = null )
 	{
+		if ( file_exists( '/var/www/.fabric_hosted' ) )
+		{
+			return Yii::app()->params['storage_path'] . ( $append ? DIRECTORY_SEPARATOR . $append : null );
+		}
+
 		$_base = Yii::app()->params['base_storage_path'];
 		$_dspName = Yii::app()->params['dsp_name'];
 
 		if ( empty( $_base ) || empty( $_dspName ) )
 		{
-			$_base = dirname( $_SERVER['DOCUMENT_ROOT'] ) . DIRECTORY_SEPARATOR . 'storage';
+			return dirname( $_SERVER['DOCUMENT_ROOT'] ) . DIRECTORY_SEPARATOR . 'storage' . ( $append ? DIRECTORY_SEPARATOR . $append : null );
 		}
-		else
-		{
-			$_base .= $_dspName;
 
-			if ( !file_exists( $_base ) )
-			{
-				@mkdir( $_base, 0777, true );
-			}
+		$_base .= $_dspName;
+
+		if ( !file_exists( $_base ) )
+		{
+			@mkdir( $_base, 0777, true );
 		}
 
 		return $_base . ( $append ? DIRECTORY_SEPARATOR . $append : null );
-
 	}
 
 	/**
@@ -69,26 +71,26 @@ class Defaults
 				'ripemd128',
 				uniqid( '', true ) . ( $_uuid ? : microtime( true ) ) . md5(
 					$namespace . $_SERVER['REQUEST_TIME']
-					. $_SERVER['HTTP_USER_AGENT']
-					. $_SERVER['LOCAL_ADDR']
-					. $_SERVER['LOCAL_PORT']
-					. $_SERVER['REMOTE_ADDR']
-					. $_SERVER['REMOTE_PORT']
+						. $_SERVER['HTTP_USER_AGENT']
+						. $_SERVER['LOCAL_ADDR']
+						. $_SERVER['LOCAL_PORT']
+						. $_SERVER['REMOTE_ADDR']
+						. $_SERVER['REMOTE_PORT']
 				)
 			)
 		);
 
 		$_uuid = '{' .
-				 substr( $_hash, 0, 8 ) .
-				 '-' .
-				 substr( $_hash, 8, 4 ) .
-				 '-' .
-				 substr( $_hash, 12, 4 ) .
-				 '-' .
-				 substr( $_hash, 16, 4 ) .
-				 '-' .
-				 substr( $_hash, 20, 12 ) .
-				 '}';
+			substr( $_hash, 0, 8 ) .
+			'-' .
+			substr( $_hash, 8, 4 ) .
+			'-' .
+			substr( $_hash, 12, 4 ) .
+			'-' .
+			substr( $_hash, 16, 4 ) .
+			'-' .
+			substr( $_hash, 20, 12 ) .
+			'}';
 
 		return $_uuid;
 	}
