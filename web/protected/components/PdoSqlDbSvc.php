@@ -908,7 +908,7 @@ class PdoSqlDbSvc
             $command = $this->_sqlConn->createCommand();
             $rows = $command->update($this->_tablePrefix . $table, $parsed, $filter);
             if (0 >= $rows) {
-                throw new Exception("No records updated in table '$table'.");
+//                throw new Exception("No records updated in table '$table'.");
             }
             // todo how to update relations here?
 
@@ -1081,7 +1081,7 @@ class PdoSqlDbSvc
             $command->reset();
             $rows = $command->delete($this->_tablePrefix . $table, $filter);
             if (0 >= $rows) {
-                throw new Exception("No records deleted from table '$table'.");
+//                throw new Exception("No records deleted from table '$table'.");
             }
 
             return $results;
