@@ -13,12 +13,17 @@ abstract class CommonService
     /**
      * @var string
      */
+    protected $_api_name;
+
+    /**
+     * @var string
+     */
     protected $_name;
 
     /**
      * @var string
      */
-    protected $_label;
+    protected $_description;
 
     /**
      * @var string
@@ -45,15 +50,16 @@ abstract class CommonService
     public function __construct($config = array())
     {
         // Validate basic configuration
-        $this->_name = Utilities::getArrayValue('api_name', $config, '');
-        if (empty($this->_name)) {
+        $this->_api_name = Utilities::getArrayValue('api_name', $config, '');
+        if (empty($this->_api_name)) {
             throw new \InvalidArgumentException('Service name can not be empty.');
         }
         $this->_type = Utilities::getArrayValue('type', $config, '');
         if (empty($this->_type)) {
             throw new \InvalidArgumentException('Service type can not be empty.');
         }
-        $this->_label = Utilities::getArrayValue('label', $config, '');
+        $this->_name = Utilities::getArrayValue('name', $config, '');
+        $this->_description = Utilities::getArrayValue('description', $config, '');
         $this->_nativeFormat = Utilities::getArrayValue('native_format', $config, '');
         $this->_isActive = Utilities::boolval(Utilities::getArrayValue('is_active', $config, false));
     }
@@ -76,9 +82,9 @@ abstract class CommonService
     /**
      * @return string
      */
-    public function getLabel()
+    public function getApiName()
     {
-        return $this->_label;
+        return $this->_api_name;
     }
 
     /**
@@ -111,7 +117,7 @@ abstract class CommonService
      */
     protected function checkPermission($request, $component = '')
     {
-        SessionManager::checkPermission($request, $this->_name, $component);
+        SessionManager::checkPermission($request, $this->_api_name, $component);
     }
 
     /**

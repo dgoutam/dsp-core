@@ -375,7 +375,7 @@ class SystemManager implements iRestHandler
                                 "errorResponses"=> array()
                           ),
                       )
-                ),
+                )
             );
             $resources = array_merge($resources,
                 SwaggerUtilities::swaggerPerResource('system', 'app'),

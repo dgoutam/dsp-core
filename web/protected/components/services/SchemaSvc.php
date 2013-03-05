@@ -104,6 +104,28 @@ class SchemaSvc extends CommonService implements iRestHandler
 
     /**
      * @return array
+     * @throws Exception
+     */
+    public function actionSwagger()
+    {
+        try {
+            $this->detectCommonParams();
+
+            $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
+            // check for system tables and deny
+            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+//            $tables = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
+            $resources = SwaggerUtilities::swaggerPerSchema($this->_api_name, $this->_description);
+            $result['apis'] = $resources;
+            return $result;
+        }
+        catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    /**
+     * @return array
      */
     public function actionGet()
     {

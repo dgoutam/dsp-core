@@ -122,9 +122,7 @@ class ServiceHandler
     private function getService($api_name)
     {
         try {
-            $criteria = new CDbCriteria(array('condition' => 'api_name=:name',
-                                              'params' => array(':name' => $api_name)));
-            $result = Service::model()->find($criteria);
+            $result = Service::model()->find('api_name=:name', array(':name' => $api_name));
             if (isset($result)) {
                 return $result->attributes;
             }
