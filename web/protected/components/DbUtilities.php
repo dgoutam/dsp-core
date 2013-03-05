@@ -101,13 +101,11 @@ class DbUtilities
      * @return array
      * @throws Exception
      */
-    public static function describeDatabase($db, $include = '', $exclude = '')
+    public static function listTables($db, $include = '', $exclude = '')
     {
         // todo need to assess schemas in ms sql and load them separately.
         try {
             $names = $db->schema->getTableNames();
-            natcasesort($names);
-            $names = array_values($names);
             $includeArray = array_map('trim', explode(',', strtolower($include)));
             $excludeArray = array_map('trim', explode(',', strtolower($exclude)));
             $temp = array();
@@ -125,6 +123,44 @@ class DbUtilities
                 $temp[] = $name;
             }
             $names = $temp;
+            natcasesort($names);
+            return array_values($names);
+        }
+        catch (Exception $ex) {
+            throw new Exception("Failed to list database tables.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param CDbConnection $db
+     * @param string $include
+     * @param string $exclude
+     * @return array
+     * @throws Exception
+     */
+    public static function describeDatabase($db, $include = '', $exclude = '')
+    {
+        // todo need to assess schemas in ms sql and load them separately.
+        try {
+            $names = $db->schema->getTableNames();
+            $includeArray = array_map('trim', explode(',', strtolower($include)));
+            $excludeArray = array_map('trim', explode(',', strtolower($exclude)));
+            $temp = array();
+            foreach ($names as $name) {
+                if (!empty($include)) {
+                    if (false === array_search(strtolower($name), $includeArray)) {
+                        continue;
+                    }
+                }
+                elseif (!empty($exclude)) {
+                    if (false !== array_search(strtolower($name), $excludeArray)) {
+                        continue;
+                    }
+                }
+                $temp[] = $name;
+            }
+            $names = $temp;
+            natcasesort($names);
             $labels = static::getLabels(array('and', "field=''", array('in', 'table', $names)), array(),
                                         'table,label,plural');
             $tables = array();
@@ -351,7 +387,6 @@ class DbUtilities
         foreach ($names as $name) {
             $table = $db->schema->getTable($name);
             $fks = $fks2 = $table->foreignKeys;
-            $pk = $table->primaryKey;
             foreach ($fks as $key => $value) {
                 $refTable = Utilities::getArrayValue(0, $value, '');
                 $refField = Utilities::getArrayValue(1, $value, '');
@@ -359,7 +394,7 @@ class DbUtilities
                     // other, must be has_many or many_many
                     $relationName = Utilities::pluralize($name) .'_by_'. $key;
                     $related[] = array('name' => $relationName, 'type' => 'has_many',
-                                       'ref_table' => $name, 'ref_field' => $key, 'field' => $pk);
+                                       'ref_table' => $name, 'ref_field' => $key, 'field' => $refField);
                     // if other has many relationships exist, we can say these are related as well
                     foreach ($fks2 as $key2 => $value2) {
                         $tmpTable = Utilities::getArrayValue(0, $value2, '');
@@ -371,7 +406,7 @@ class DbUtilities
                             $relationName = Utilities::pluralize($tmpTable) .'_by_'. $name;
                             $related[] = array('name' => $relationName, 'type' => 'many_many',
                                                'ref_table' => $tmpTable, 'ref_field' => $tmpField,
-                                               'join' => "$name($key,$key2)", 'field' => $pk);
+                                               'join' => "$name($key,$key2)", 'field' => $refField);
                         }
                     }
                 }

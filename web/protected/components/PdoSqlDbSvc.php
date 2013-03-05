@@ -728,9 +728,6 @@ class PdoSqlDbSvc
                     // simple update request
                     $command->reset();
                     $rows = $command->update($this->_tablePrefix . $table, $parsed, array('in', $id_field, $id));
-                    if (0 >= $rows) {
-                        throw new Exception("Record update failed for table '$table'.");
-                    }
                     $ids[$key] = $id;
                     $this->updateRelations($table, $record, $id, $relatedInfo);
                 }
@@ -827,9 +824,6 @@ class PdoSqlDbSvc
                     // simple update request
                     $command->reset();
                     $rows = $command->update($this->_tablePrefix . $table, $parsed, array('in', $id_field, $id));
-                    if (0 >= $rows) {
-                        throw new Exception("Record update failed for table '$table'.");
-                    }
                     $this->updateRelations($table, $record, $id, $relatedInfo);
                     $outIds[$key] = $id;
                 }
@@ -847,13 +841,6 @@ class PdoSqlDbSvc
 //                    throw new Exception("Transaction failed.");
 //                }
             }
-/*
-            $rows = $command->update($table, $record, array('in', 'id', array_values($ids)));
-            if (0 >= $rows) {
-                throw new Exception("No records updated in table '$table'.");
-//                throw new Exception("Record with $id_field '$id' not found in table '$table'.");
-            }
-*/
             $results = array();
             // todo figure out primary key
             if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
@@ -907,9 +894,6 @@ class PdoSqlDbSvc
             // parse filter
             $command = $this->_sqlConn->createCommand();
             $rows = $command->update($this->_tablePrefix . $table, $parsed, $filter);
-            if (0 >= $rows) {
-//                throw new Exception("No records updated in table '$table'.");
-            }
             // todo how to update relations here?
 
             $results = array();
@@ -1009,7 +993,7 @@ class PdoSqlDbSvc
                     $command->reset();
                     $rows = $command->delete($this->_tablePrefix . $table, array('in', $id_field, $id));
                     if (0 >= $rows) {
-                        throw new Exception("Record delete failed for table '$table'.");
+                        throw new Exception("Record with $id_field '$id' not found in table '$table'.", ErrorCodes::NOT_FOUND);
                     }
                     $ids[$key] = $id;
                 }
@@ -1026,13 +1010,6 @@ class PdoSqlDbSvc
 //                    throw new Exception("Transaction failed.");
 //                }
             }
-/*
-            $rows = $command->delete($table, array('in', 'id', array_values($ids)));
-            if (0 >= $rows) {
-                throw new Exception("No records deleted in table '$table'.");
-//                throw new Exception("Record with $id_field '$id' not found in table '$table'.");
-            }
-*/
             $results = array();
             if (empty($out_fields) || (0 === strcasecmp($id_field, $out_fields))) {
                 for ($i=0; $i<$count; $i++) {
@@ -1080,9 +1057,6 @@ class PdoSqlDbSvc
             // parse filter
             $command->reset();
             $rows = $command->delete($this->_tablePrefix . $table, $filter);
-            if (0 >= $rows) {
-//                throw new Exception("No records deleted from table '$table'.");
-            }
 
             return $results;
         }
