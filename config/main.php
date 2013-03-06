@@ -7,7 +7,7 @@
  * Location of the database credentials.
  */
 $_dbName = null;
-$_dbConfig = __DIR__ . DIRECTORY_SEPARATOR . 'database.config.php';
+$_dbConfig = require( __DIR__ . '/database.config.php' );
 
 /*
  * Location of the blob storage credentials if provisioned,
@@ -81,7 +81,7 @@ return array(
 				'gii/<controller:\w+>/<action:\w+>'      => 'gii/<controller>/<action>',
 			),
 		),
-		'db'           => require_once( $_dbConfig ),
+		'db'           => $_dbConfig,
 		'errorHandler' => array(
 			// use 'site/error' action to display errors
 			'errorAction' => 'site/error',
@@ -109,7 +109,7 @@ return array(
 		'private_path'          => '/data/storage/' . $_dbName . '/.private',
 		'storage_path'          => '/data/storage/' . $_dbName . '/blob',
 		'dsp_name'              => $_dbName,
-		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require_once( $_blobConfig ) : array(),
+		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
 		// this is used in contact page
 		'adminEmail'            => 'leehicks@dreamfactory.com',
 		'companyLabel'          => 'My Dream Cloud',
