@@ -1,6 +1,6 @@
 <?php
 /**
- * blob.config.php
+ * common.config.php
  *
  * This file is part of the DreamFactory Document Service Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -20,10 +20,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *
- * This is the main configuration file for blob services
+ * Parameters common to SAPI and CLI apps
  */
+global $_dbName, $_blobConfig;
+
 return array(
-//    'type'        => 'WindowsAzureBlob',
-//    'accountName' => 'youraccountname',
-//    'accountKey'  => 'youraccountkey',
+	'storage_base_path'     => '/data/storage',
+	'private_path'          => '/data/storage/' . $_dbName . '/.private',
+	'storage_path'          => '/data/storage/' . $_dbName . '/blob',
+	'dsp_name'              => $_dbName,
+	'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
+	'adminEmail'            => 'developer-support@dreamfactory.com',
+	'companyLabel'          => 'DreamFactory DSP',
+	'allowOpenRegistration' => 'true',
 );

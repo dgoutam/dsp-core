@@ -1,29 +1,52 @@
 <?php
-/*
+/**
+ * web.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
  * This is the main configuration file for the Document Services Platform server application.
  */
-
-/*
- * Location of the database credentials.
- */
 $_dbName = null;
+$_appName = 'DreamFactory Document Services Platform';
+
+//	Read in the database configuration
 $_dbConfig = require( __DIR__ . '/database.config.php' );
+$_commonConfig = __DIR__ . '/common.config.php';
 
-/*
- * Location of the blob storage credentials if provisioned,
- * otherwise local file storage is used.
- */
-$_blobConfig = __DIR__ . DIRECTORY_SEPARATOR . 'blob.config.php';
+//	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
+$_blobConfig = __DIR__ . '/blob.config.php';
 
-$_theRoot = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR;
+//	Our base path
+$_basePath = dirname( __DIR__ );
+
+//	Our log file path. Log name is set by startup script
+$_logFilePath = $_basePath . '/log';
 
 return array(
-	'basePath'    => $_theRoot . 'web' . DIRECTORY_SEPARATOR . 'protected',
-	'name'        => 'DreamFactory Document Services Platform',
-	'runtimePath' => $_theRoot . 'log',
-	// preloading 'log' component
+	//.........................................................................
+	//. Base Configuration
+	//.........................................................................
+
+	'basePath'    => $_basePath . '/web/protected',
+	'name'        => $_appName,
+	'runtimePath' => $_logFilePath,
 	'preload'     => array( 'log' ),
-	// autoloading model and component classes
 	'import'      => array(
 		'application.models.*',
 		'application.models.forms.*',
@@ -33,15 +56,15 @@ return array(
 		'application.components.services.*',
 	),
 	'modules'     => array(
-		// uncomment the following to enable the Gii tool
 		'gii' => array(
 			'class'    => 'system.gii.GiiModule',
-			'password' => 'Dream123',
-			// If removed, Gii defaults to localhost only. Edit carefully to taste.
-			//'ipFilters'=>array('127.0.0.1','::1'),
+			'password' => 'xyzzy',
 		),
 	),
-	// application components
+	//.........................................................................
+	//. Application Components
+	//.........................................................................
+
 	'components'  => array(
 		'user'         => array(
 			// enable cookie-based authentication
@@ -83,36 +106,24 @@ return array(
 		),
 		'db'           => $_dbConfig,
 		'errorHandler' => array(
-			// use 'site/error' action to display errors
 			'errorAction' => 'site/error',
 		),
 		'log'          => array(
 			'class'  => 'CLogRouter',
 			'routes' => array(
 				array(
-					'class'  => 'CFileLogRoute',
-					'levels' => 'error, warning',
+					'class'       => 'CFileLogRoute',
+					'maxFileSize' => '102400',
+					'logFile'     => basename( \Kisma::get( 'app.log_file' ) ),
+					'logPath'     => $_logFilePath,
+					'levels'      => 'error, warning, trace, info, profile, debug',
 				),
-				// uncomment the following to show log messages on web pages
-				/*
-				array(
-					'class'=>'CWebLogRoute',
-				),
-				*/
 			),
 		),
 	),
-	// application-level parameters that can be accessed
-	// using Yii::app()->params['paramName']
-	'params'      => array(
-		'storage_base_path'     => '/data/storage',
-		'private_path'          => '/data/storage/' . $_dbName . '/.private',
-		'storage_path'          => '/data/storage/' . $_dbName . '/blob',
-		'dsp_name'              => $_dbName,
-		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
-		// this is used in contact page
-		'adminEmail'            => 'leehicks@dreamfactory.com',
-		'companyLabel'          => 'My Dream Cloud',
-		'allowOpenRegistration' => 'true',
-	),
+	//.........................................................................
+	//. Application Parameters
+	//.........................................................................
+
+	'params'      => file_exists( $_commonConfig ) ? require( $_commonConfig ) : array(),
 );
