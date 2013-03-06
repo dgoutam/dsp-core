@@ -1,9 +1,61 @@
 <?php
 /**
  * SiteController.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * This is the default controller for the DSP
+ */
+use Kisma\Core\Utility\FilterInput;
+
+/**
+ * SiteController.php
  */
 class SiteController extends Controller
 {
+	/**
+	 * Returns the filter configurations.
+	 *
+	 * By overriding this method, child classes can specify filters to be applied to actions.
+	 *
+	 * This method returns an array of filter specifications. Each array element specify a single filter.
+	 *
+	 * For a method-based filter (called inline filter), it is specified as 'FilterName[ +|- Action1, Action2, ...]',
+	 * where the '+' ('-') operators describe which actions should be (should not be) applied with the filter.
+	 *
+	 * For a class-based filter, it is specified as an array like the following:
+	 * <pre>
+	 * array(
+	 *     'FilterClass[ +|- Action1, Action2, ...]',
+	 *     'name1'=>'value1',
+	 *     'name2'=>'value2',
+	 *     ...
+	 * )
+	 * </pre>
+	 * where the name-value pairs will be used to initialize the properties of the filter.
+	 *
+	 * Note, in order to inherit filters defined in the parent class, a child class needs to
+	 * merge the parent filters with child filters using functions like array_merge().
+	 *
+	 * @return array a list of filter configurations.
+	 * @see CFilter
+	 */
 	public function filters()
 	{
 		return array(
@@ -11,6 +63,12 @@ class SiteController extends Controller
 		);
 	}
 
+	/**
+	 * Returns the access rules for this controller.
+	 * Override this method if you use the {@link filterAccessControl accessControl} filter.
+	 *
+	 * @return array list of access rules. See {@link CAccessControlFilter} for details about rule specification.
+	 */
 	public function accessRules()
 	{
 		return array(
@@ -34,13 +92,10 @@ class SiteController extends Controller
 	public function actions()
 	{
 		return array(
-			// captcha action renders the CAPTCHA image displayed on the contact page
 			'captcha' => array(
 				'class'     => 'CCaptchaAction',
 				'backColor' => 0xFFFFFF,
 			),
-			// page action renders "static" pages stored under 'protected/views/site/pages'
-			// They can be accessed via: index.php?r=site/page&view=FileName
 			'page'    => array(
 				'class' => 'CViewAction',
 			),
@@ -56,6 +111,7 @@ class SiteController extends Controller
 		try
 		{
 			$state = SystemManager::getInstance()->getSystemState();
+
 			switch ( $state )
 			{
 				case 'ready':
@@ -297,9 +353,58 @@ class SiteController extends Controller
 		$this->render( 'environment' );
 	}
 
-	public function actionTestDrupalValidate( $e, $p )
+	/**
+	 * Makes a file tree. Used exclusively by the snapshot service at this time.
+	 *
+	 * @param string $instanceName
+	 * @param string $path
+	 *
+	 * @return string
+	 */
+	public function actionFileTree( $instanceName = null, $path = null )
 	{
-		$this->layout = false;
-		print_r( Drupal::authenticateUser( $e, $p ) );
+		$instanceName = $instanceName ? : \Kisma::get( 'app.dsp_name', FilterInput::request( 'instanceName' ) );
+		$path = $path ? : FilterInput::request( 'path' );
+
+		$_data = array();
+
+		$_path = realpath(
+			$path
+				? :
+				$instanceName && file_exists( '/var/www/.fabric_hosted' )
+					?
+					'/data/storage/' . $instanceName . '/blob'
+					:
+					dirname( __DIR__ ) . '/storage'
+		);
+
+		if ( !empty( $_path ) )
+		{
+			$_objects = new \RecursiveIteratorIterator(
+				new \RecursiveDirectoryIterator( $_path ),
+				RecursiveIteratorIterator::SELF_FIRST
+			);
+
+			/** @var $_node \SplFileInfo */
+			foreach ( $_objects as $_name => $_node )
+			{
+				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
+				{
+					continue;
+				}
+
+				$_cleanPath = str_ireplace( $_path, null, dirname( $_node->getPathname() ) );
+
+				if ( empty( $_cleanPath ) )
+				{
+					$_cleanPath = '/';
+				}
+
+				$_data[$_cleanPath][] = basename( $_name );
+			}
+		}
+
+		echo json_encode( $_data );
+		die();
 	}
 }

@@ -1,109 +1,109 @@
 CREATE TABLE df_user (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(128) NOT NULL,
-    password VARCHAR(128) NOT NULL,
-    email VARCHAR(128) NOT NULL,
-    full_name VARCHAR(80) NOT NULL,
-    first_name VARCHAR(40) NOT NULL,
-    last_name VARCHAR(40) NOT NULL,
-    phone VARCHAR(16),
-    active BOOLEAN NOT NULL DEFAULT 1,
-    admin BOOLEAN NOT NULL DEFAULT 0,
-    confirm_code VARCHAR(40),
-    role_id INT,
-    security_question VARCHAR(160),
-    security_answer VARCHAR(80),
-    created_date DATETIME NOT NULL DEFAULT NOW(),
-    last_modified_date DATETIME NOT NULL DEFAULT NOW(),
-    created_by_id INT,
-    last_modified_by_id INT
+		id                  INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		username            VARCHAR(128) NOT NULL,
+		password            VARCHAR(128) NOT NULL,
+		email               VARCHAR(128) NOT NULL,
+		full_name           VARCHAR(80)  NOT NULL,
+		first_name          VARCHAR(40)  NOT NULL,
+		last_name           VARCHAR(40)  NOT NULL,
+		phone               VARCHAR(16),
+		active              BOOLEAN      NOT NULL DEFAULT 1,
+		admin               BOOLEAN      NOT NULL DEFAULT 0,
+		confirm_code        VARCHAR(40),
+		role_id             INT,
+		security_question   VARCHAR(160),
+		security_answer     VARCHAR(80),
+		created_date        DATETIME     NOT NULL DEFAULT NOW(),
+		last_modified_date  DATETIME     NOT NULL DEFAULT NOW(),
+		created_by_id       INT,
+		last_modified_by_id INT
 );
 
 CREATE TABLE df_role (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(128) NOT NULL,
-    description VARCHAR(8000),
-    app_ids VARCHAR(8000),
-    created_date DATETIME NOT NULL DEFAULT NOW(),
-    last_modified_date DATETIME NOT NULL DEFAULT NOW(),
-    created_by_id INT,
-    last_modified_by_id INT
+		id                  INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		name                VARCHAR(128) NOT NULL,
+		description         VARCHAR(8000),
+		app_ids             VARCHAR(8000),
+		created_date        DATETIME     NOT NULL DEFAULT NOW(),
+		last_modified_date  DATETIME     NOT NULL DEFAULT NOW(),
+		created_by_id       INT,
+		last_modified_by_id INT
 );
 
 CREATE TABLE df_role_service_access (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    role_id INT NOT NULL,
-    service_id INT,
-    service VARCHAR(128) NOT NULL,
-    component VARCHAR(128) NOT NULL,
-    read BOOLEAN NOT NULL DEFAULT 0,
-    create BOOLEAN NOT NULL DEFAULT 0,
-    update BOOLEAN NOT NULL DEFAULT 0,
-    delete BOOLEAN NOT NULL DEFAULT 0
+		id         INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		role_id    INT          NOT NULL,
+		service_id INT,
+		service    VARCHAR(128) NOT NULL,
+		component  VARCHAR(128) NOT NULL,
+		`read`     BOOLEAN      NOT NULL DEFAULT 0,
+		`create`   BOOLEAN      NOT NULL DEFAULT 0,
+		`update`   BOOLEAN      NOT NULL DEFAULT 0,
+		`delete`   BOOLEAN      NOT NULL DEFAULT 0
 );
 
 CREATE TABLE df_service (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(128) NOT NULL,
-    label VARCHAR(128),
-    active BOOLEAN NOT NULL DEFAULT 1,
-    type VARCHAR(40) NOT NULL,
-    native_format VARCHAR(40),
-    base_url VARCHAR(255),
-    params VARCHAR(8000),
-    headers VARCHAR(8000),
-    created_date DATETIME NOT NULL DEFAULT NOW(),
-    last_modified_date DATETIME NOT NULL DEFAULT NOW(),
-    created_by_id INT,
-    last_modified_by_id INT
+		id                  INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		name                VARCHAR(128) NOT NULL,
+		label               VARCHAR(128),
+		active              BOOLEAN      NOT NULL DEFAULT 1,
+		type                VARCHAR(40)  NOT NULL,
+		native_format       VARCHAR(40),
+		base_url            VARCHAR(255),
+		params              VARCHAR(8000),
+		headers             VARCHAR(8000),
+		created_date        DATETIME     NOT NULL DEFAULT NOW(),
+		last_modified_date  DATETIME     NOT NULL DEFAULT NOW(),
+		created_by_id       INT,
+		last_modified_by_id INT
 );
 
 CREATE TABLE df_app (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(128) NOT NULL,
-    label VARCHAR(128) NOT NULL,
-    description VARCHAR(4000),
-    active BOOLEAN NOT NULL DEFAULT 1,
-    url VARCHAR(4000),
-    is_url_external BOOLEAN NOT NULL DEFAULT 0,
-    app_group_ids VARCHAR(4000),
-    created_date DATETIME NOT NULL DEFAULT NOW(),
-    last_modified_date DATETIME NOT NULL DEFAULT NOW(),
-    created_by_id INT,
-    last_modified_by_id INT
+		id                  INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		name                VARCHAR(128) NOT NULL,
+		label               VARCHAR(128) NOT NULL,
+		description         VARCHAR(4000),
+		active              BOOLEAN      NOT NULL DEFAULT 1,
+		url                 VARCHAR(4000),
+		is_url_external     BOOLEAN      NOT NULL DEFAULT 0,
+		app_group_ids       VARCHAR(4000),
+		created_date        DATETIME     NOT NULL DEFAULT NOW(),
+		last_modified_date  DATETIME     NOT NULL DEFAULT NOW(),
+		created_by_id       INT,
+		last_modified_by_id INT
 );
 
 CREATE TABLE df_app_group (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(128) NOT NULL,
-    label VARCHAR(128) NOT NULL,
-    description VARCHAR(4000),
-    created_date DATETIME NOT NULL DEFAULT NOW(),
-    last_modified_date DATETIME NOT NULL DEFAULT NOW(),
-    created_by_id INT,
-    last_modified_by_id INT
+		id                  INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		name                VARCHAR(128) NOT NULL,
+		label               VARCHAR(128) NOT NULL,
+		description         VARCHAR(4000),
+		created_date        DATETIME     NOT NULL DEFAULT NOW(),
+		last_modified_date  DATETIME     NOT NULL DEFAULT NOW(),
+		created_by_id       INT,
+		last_modified_by_id INT
 );
 
 CREATE TABLE df_label (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    table VARCHAR(128) DEFAULT '',
-    field VARCHAR(128) DEFAULT '',
-    picklist VARCHAR(8000) DEFAULT '',
-    label VARCHAR(128) DEFAULT '',
-    plural VARCHAR(128) DEFAULT ''
+		id       INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		`table`  VARCHAR(128) DEFAULT '',
+		field    VARCHAR(128) DEFAULT '',
+		picklist VARCHAR(8000) DEFAULT '',
+		label    VARCHAR(128) DEFAULT '',
+		plural   VARCHAR(128) DEFAULT ''
 );
 
 CREATE TABLE df_session (
-    id VARCHAR(128) NOT NULL PRIMARY KEY,
-    start_time INT NOT NULL,
-    data VARCHAR(4000) NOT NULL
+		id         VARCHAR(128)  NOT NULL PRIMARY KEY,
+		start_time INT           NOT NULL,
+		data       VARCHAR(4000) NOT NULL
 );
 
 CREATE TABLE tbl_user (
-    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(128) NOT NULL,
-    password VARCHAR(128) NOT NULL,
-    email VARCHAR(128) NOT NULL
+		id       INTEGER      NOT NULL PRIMARY KEY AUTO_INCREMENT,
+		username VARCHAR(128) NOT NULL,
+		password VARCHAR(128) NOT NULL,
+		email    VARCHAR(128) NOT NULL
 );
 
 INSERT INTO tbl_user (username, password, email) VALUES ('test1', 'pass1', 'test1@example.com');

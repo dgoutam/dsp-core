@@ -3,7 +3,11 @@
     <words>
       <w>dflib</w>
       <w>finfo</w>
+      <w>multibyte</w>
+      <w>picklist</w>
       <w>ripemd</w>
+      <w>unserialization</w>
+      <w>xyzzy</w>
     </words>
   </dictionary>
 </component>

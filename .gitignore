@@ -4,10 +4,6 @@ vendor
 log
 storage
 composer.lock
-web/protected/runtime
-web/protected/tests
-web/protected/yiic*
-web/public/admin
 web/public/assets
 web/public/launchpad
 web/public/web-core
