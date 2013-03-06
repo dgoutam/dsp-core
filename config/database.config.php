@@ -23,11 +23,11 @@ if ( file_exists( '/var/www/.fabric_hosted' ) )
 	}
 
 	$_parts = explode( '.', $_host );
-	$_dspName = $_parts[0];
+	$_dbName = $_dspName = $_parts[0];
 
 	//	Check for db config from provisioning...
 	$_privatePath = '/data/storage/' . $_dspName . '/.private';
-	$_config = include_once( $_privatePath . '/database.config.php' );
+	$_config = require( $_privatePath . '/database.config.php' );
 
 	if ( !empty( $_config ) && is_array( $_config ) )
 	{
