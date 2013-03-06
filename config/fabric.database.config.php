@@ -33,7 +33,7 @@ $_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : geth
 
 if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 {
-	throw new \CHttpException( 401, 'You are not authorized to access this system.' );
+	throw new \CHttpException( 401, 'You are not authorized to access this system (' . $_host . ').' );
 }
 
 $_parts = explode( '.', $_host );
