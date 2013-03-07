@@ -1278,13 +1278,15 @@ class PdoSqlDbSvc
      * @param string $order
      * @param int $offset
      * @param bool $include_count
+     * @param bool $include_schema
      * @param array $extras
      * @throws Exception
      * @return array
      */
     public function retrieveSqlRecordsByFilter($table, $fields = '', $filter = '',
                                                $limit = 0, $order = '', $offset = 0,
-                                               $include_count = false, $extras = array())
+                                               $include_count = false, $include_schema = false,
+                                               $extras = array())
     {
         $table = $this->correctTableName($table);
         try {
@@ -1418,17 +1420,22 @@ class PdoSqlDbSvc
                 $data[$count++] = $temp;
             }
 
-            // count total records
-            if ($include_count) {
-                $command->reset();
-                $command->select('(COUNT(*)) as ' . $this->_sqlConn->quoteColumnName('count'));
-                $command->from($this->_tablePrefix . $table);
-                if (!empty($filter)) {
-                    $command->where($filter);
+            if ($include_count || $include_schema) {
+                // count total records
+                if ($include_count) {
+                    $command->reset();
+                    $command->select('(COUNT(*)) as ' . $this->_sqlConn->quoteColumnName('count'));
+                    $command->from($this->_tablePrefix . $table);
+                    if (!empty($filter)) {
+                        $command->where($filter);
+                    }
+                    $data['meta']['count'] = intval($command->queryScalar());
                 }
-                $data['count'] = intval($command->queryScalar());
+                // count total records
+                if ($include_schema) {
+                    $data['meta']['schema'] = DbUtilities::describeTable($this->_sqlConn, $table);
+                }
             }
-
             Utilities::markTimeStop('DB_TIME');
 //            error_log('retrievefilter: ' . PHP_EOL . print_r($data, true));
 

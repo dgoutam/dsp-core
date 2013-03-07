@@ -57,6 +57,104 @@ class DatabaseSvc extends CommonService implements iRestHandler
         unset($this->sqlDb);
     }
 
+    /**
+     * @param string $service
+     * @param string $description
+     * @return array
+     */
+    public static function swaggerPerDb($service, $description='')
+    {
+        $swagger = array(
+            array('path' => '/'.$service,
+                  'description' => $description,
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "List tables available in the database service",
+                            "notes"=> "Use the table names in available record operations.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getTables",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/'.$service.'/{table_name}',
+                  'description' => 'Operations for per table administration.',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve multiple records",
+                            "notes"=> "Use the 'ids' or 'filter' parameter to limit records that are returned.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','ids',
+                                                                                     'filter','limit','offset','order',
+                                                                                     'fields','related','include_count',
+                                                                                     'include_schema')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Create one or more records",
+                            "notes"=> "Post data should be an array of fields for a single record or an array of records",
+                            "responseClass"=> "array",
+                            "nickname"=> "createRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name',
+                                                                                     'fields','related',
+                                                                                     'record')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one or more records",
+                            "notes"=> "Post data should be an array of fields for a single record or an array of records",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name',
+                                                                                     'fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "DELETE",
+                            "summary"=> "Delete one or more records",
+                            "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
+                            "responseClass"=> "array",
+                            "nickname"=> "deleteRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/'.$service.'/{table_name}/{id}',
+                  'description' => 'Operations for single record administration.',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve one record by identifier",
+                            "notes"=> "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getRecord",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one record by identifier",
+                            "notes"=> "Post data should be an array of fields for a single record",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateRecord",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "DELETE",
+                            "summary"=> "Delete one record by identifier",
+                            "notes"=> "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
+                            "responseClass"=> "array",
+                            "nickname"=> "deleteRecord",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+        );
+
+        return $swagger;
+    }
+
     // Controller based methods
 
     /**
@@ -72,7 +170,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             // check for system tables and deny
             $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
 //            $tables = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
-            $resources = SwaggerUtilities::swaggerPerDb($this->_api_name, $this->_description);
+            $resources = static::swaggerPerDb($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;
         }
@@ -145,8 +243,10 @@ class DatabaseSvc extends CommonService implements iRestHandler
                                 $order = Utilities::getArrayValue('order', $data, '');
                                 $offset = intval(Utilities::getArrayValue('offset', $data, 0));
                                 $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $data, false));
-                                $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter,
-                                                                         $limit, $order, $offset, $include_count, $extras);
+                                $include_schema = Utilities::boolval(Utilities::getArrayValue('include_schema', $data, false));
+                                $result = $this->retrieveRecordsByFilter($this->tableName, $fields,
+                                                                         $filter, $limit, $order, $offset,
+                                                                         $include_count, $include_schema, $extras);
                             }
                         }
                     }
@@ -156,8 +256,10 @@ class DatabaseSvc extends CommonService implements iRestHandler
                         $order = Utilities::getArrayValue('order', $_REQUEST, '');
                         $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
                         $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $_REQUEST, false));
-                        $result = $this->retrieveRecordsByFilter($this->tableName, $fields, $filter,
-                                                                 $limit, $order, $offset, $include_count, $extras);
+                        $include_schema = Utilities::boolval(Utilities::getArrayValue('include_schema', $_REQUEST, false));
+                        $result = $this->retrieveRecordsByFilter($this->tableName, $fields,
+                                                                 $filter, $limit, $order, $offset,
+                                                                 $include_count, $include_schema, $extras);
                     }
                 }
             }
@@ -770,13 +872,15 @@ class DatabaseSvc extends CommonService implements iRestHandler
      * @param string $order
      * @param int $offset
      * @param bool $include_count
+     * @param bool $include_schema
      * @param array $extras
      * @throws Exception
      * @return array
      */
     public function retrieveRecordsByFilter($table, $fields = '', $filter = '',
                                             $limit = 0, $order = '', $offset = 0,
-                                            $include_count = false, $extras = array())
+                                            $include_count = false, $include_schema = false,
+                                            $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -786,11 +890,12 @@ class DatabaseSvc extends CommonService implements iRestHandler
         try {
             $results = $this->sqlDb->retrieveSqlRecordsByFilter($table, $fields, $filter,
                                                                 $limit, $order, $offset,
-                                                                $include_count, $extras);
-            if (isset($results['count'])) {
-                $count = $results['count'];
-                unset($results['count']);
-                $results = array('record' => $results, 'meta' => array('count' => $count));
+                                                                $include_count, $include_schema,
+                                                                $extras);
+            if (isset($results['meta'])) {
+                $meta = $results['meta'];
+                unset($results['meta']);
+                $results = array('record' => $results, 'meta' => $meta);
             }
             else {
                 $results = array('record' => $results);

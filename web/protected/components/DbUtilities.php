@@ -229,15 +229,18 @@ class DbUtilities
             $labels = static::reformatFieldLabelArray($labels);
             $labelInfo = Utilities::getArrayValue('', $labels, array());
             $label = Utilities::getArrayValue('label', $labelInfo);
-            $plural = Utilities::getArrayValue('plural', $labelInfo);
             if (empty($label))
                 $label = Utilities::labelize($table->name);
+            $plural = Utilities::getArrayValue('plural', $labelInfo);
             if (empty($plural))
                 $plural = Utilities::pluralize($label);
+            $name_field = Utilities::getArrayValue('name_field', $labelInfo);
 
             $basic = array('name' => $table->name,
                            'label' => $label,
                            'plural' => $plural,
+                           'primary_key' => $table->primaryKey,
+                           'name_field' => $name_field,
                            'field' => static::describeTableFields($db, $name, $labels),
                            'related' => static::describeTableRelated($db, $name));
 

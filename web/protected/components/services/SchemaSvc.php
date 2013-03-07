@@ -100,6 +100,114 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
     }
 
+    /**
+     * @param string $service
+     * @param string $description
+     * @return array
+     */
+    public static function swaggerPerSchema($service, $description='')
+    {
+        $swagger = array(
+            array('path' => '/'.$service,
+                  'description' => $description,
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "List tables available to the schema service",
+                            "notes"=> "Use the table names in available schema operations.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getTables",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Create one or more tables",
+                            "notes"=> "Post data should be a single table definition or an array of table definitions",
+                            "responseClass"=> "array",
+                            "nickname"=> "createTables",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one or more tables",
+                            "notes"=> "Post data should be a single table definition or an array of table definitions",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateTables",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/'.$service.'/{table_name}',
+                  'description' => 'Operations for per table administration.',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve table definition for the given table",
+                            "notes"=> "This describes the table, its fields and relations to other tables.",
+                            "responseClass"=> "array",
+                            "nickname"=> "describeTable",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Create one or more fields in the given table",
+                            "notes"=> "Post data should be an array of field properties for a single record or an array of fields",
+                            "responseClass"=> "array",
+                            "nickname"=> "createFields",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one or more fields in the given table",
+                            "notes"=> "Post data should be an array of field properties for a single record or an array of fields",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateFields",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "DELETE",
+                            "summary"=> "Delete (aka drop) the given table",
+                            "notes"=> "Careful, this drops the database table and all of its contents.",
+                            "responseClass"=> "array",
+                            "nickname"=> "deleteTable",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/'.$service.'/{table_name}/{field_name}',
+                  'description' => 'Operations for single record administration.',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve the definition of the given field for the given table",
+                            "notes"=> "This describes the field and its properties.",
+                            "responseClass"=> "array",
+                            "nickname"=> "describeField",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','field_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one record by identifier",
+                            "notes"=> "Post data should be an array of field properties for the given field",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateField",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','field_name')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "DELETE",
+                            "summary"=> "Delete (aka drop) the given field from the given table",
+                            "notes"=> "Careful, this drops the database table field/column and all of its contents.",
+                            "responseClass"=> "array",
+                            "nickname"=> "deleteField",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','field_name')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+        );
+
+        return $swagger;
+    }
+
     // Controller based methods
 
     /**
@@ -115,7 +223,7 @@ class SchemaSvc extends CommonService implements iRestHandler
             // check for system tables and deny
             $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
 //            $tables = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
-            $resources = SwaggerUtilities::swaggerPerSchema($this->_api_name, $this->_description);
+            $resources = static::swaggerPerSchema($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;
         }

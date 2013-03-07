@@ -43,7 +43,7 @@ class RoleServiceAccess extends CActiveRecord
         // will receive user inputs.
         return array(
             array('role_id', 'required'),
-            array('role_id', 'numerical', 'integerOnly' => true),
+            array('role_id, service_id', 'numerical', 'integerOnly' => true),
             array('access', 'length', 'max' => 40),
             array('component', 'length', 'max' => 80),
             // The following rule is used by search().
