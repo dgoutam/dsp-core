@@ -1,9 +1,33 @@
 <?php
 
 /**
- * This is the model class for table "app".
+ * App.php
  *
- * The followings are the available columns in table 'app':
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * The system application model for the DSP
+ */
+
+/**
+ * This is the model class for table "df_sys_app".
+ *
+ * The followings are the available columns in table 'df_sys_app':
  * @property integer $id
  * @property string $name
  * @property string $api_name
@@ -11,7 +35,6 @@
  * @property boolean $is_active
  * @property string $url
  * @property integer $is_url_external
- * @property string $schemas
  * @property boolean $filter_by_device
  * @property boolean $filter_phone
  * @property boolean $filter_tablet
@@ -48,7 +71,7 @@ class App extends CActiveRecord
      */
     public function tableName()
     {
-        return 'app';
+        return 'df_sys_app';
     }
 
     /**
@@ -62,12 +85,12 @@ class App extends CActiveRecord
             array('name, api_name', 'required'),
             array('name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
-            array('name', 'length', 'max' => 40),
-            array('api_name', 'length', 'max' => 40),
-            array('description, url, schemas, import_url', 'safe'),
+            array('name', 'length', 'max' => 64),
+            array('api_name', 'length', 'max' => 64),
+            array('description, url, import_url', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, api_name, description, is_active, url, is_url_external, schemas, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, import_url, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, api_name, is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -83,8 +106,8 @@ class App extends CActiveRecord
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
             'roles_default_app' => array(self::HAS_MANY, 'Role', 'default_app_id'),
             'users_default_app' => array(self::HAS_MANY, 'User', 'default_app_id'),
-            'app_groups' => array(self::MANY_MANY, 'AppGroup', 'app_to_app_group(app_id, app_group_id)'),
-            'roles' => array(self::MANY_MANY, 'Role', 'app_to_role(app_id, role_id)'),
+            'app_groups' => array(self::MANY_MANY, 'AppGroup', 'df_sys_app_to_app_group(app_id, app_group_id)'),
+            'roles' => array(self::MANY_MANY, 'Role', 'df_sys_app_to_role(app_id, role_id)'),
         );
     }
 
@@ -94,14 +117,13 @@ class App extends CActiveRecord
     public function attributeLabels()
     {
         return array(
-            'id' => 'ID',
+            'id' => 'App Id',
             'name' => 'Name',
             'api_name' => 'API Name',
             'description' => 'Description',
             'is_active' => 'Is Active',
             'url' => 'Url',
             'is_url_external' => 'Is Url External',
-            'schemas' => 'Schemas',
             'filter_by_device' => 'Filter By Device',
             'filter_phone' => 'Filter Phone',
             'filter_tablet' => 'Filter Tablet',
@@ -129,17 +151,13 @@ class App extends CActiveRecord
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
         $criteria->compare('api_name', $this->api_name, true);
-        $criteria->compare('description', $this->description, true);
         $criteria->compare('is_active', $this->is_active);
-        $criteria->compare('url', $this->url, true);
         $criteria->compare('is_url_external', $this->is_url_external);
-        $criteria->compare('schemas', $this->schemas, true);
         $criteria->compare('filter_by_device', $this->filter_by_device);
         $criteria->compare('filter_phone', $this->filter_phone);
         $criteria->compare('filter_tablet', $this->filter_tablet);
         $criteria->compare('filter_desktop', $this->filter_desktop);
         $criteria->compare('requires_plugin', $this->requires_plugin);
-        $criteria->compare('import_url', $this->import_url, true);
         $criteria->compare('created_date', $this->created_date, true);
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
         $criteria->compare('created_by_id', $this->created_by_id);
@@ -258,7 +276,7 @@ class App extends CActiveRecord
         }
         elseif ('*' == $requested) {
             return array('id','name','api_name','description','is_active',
-                         'url','is_url_external','import_url','schemas',
+                         'url','is_url_external','import_url',
                          'filter_by_device','filter_phone','filter_tablet','filter_desktop','requires_plugin',
                          'created_date','created_by_id','last_modified_date','last_modified_by_id');
         }
@@ -274,6 +292,7 @@ class App extends CActiveRecord
         parent::afterFind();
 
         // correct data type
+        $this->id = intval($this->id);
         $this->is_active = intval($this->is_active);
         $this->is_url_external = intval($this->is_url_external);
         $this->filter_by_device = intval($this->filter_by_device);

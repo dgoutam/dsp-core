@@ -1,6 +1,30 @@
 <?php
 
 /**
+ * Config.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * The system configuration model for the DSP
+ */
+
+/**
  * This is the model class for table "config".
  *
  * The followings are the available columns in table 'config':
@@ -24,7 +48,7 @@ class Config extends CActiveRecord
      */
     public function tableName()
     {
-        return 'config';
+        return 'df_sys_config';
     }
 
     /**
@@ -35,7 +59,7 @@ class Config extends CActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('db_version', 'length', 'max' => 8),
+            array('db_version', 'length', 'max' => 32),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
             array('id, db_version', 'safe', 'on' => 'search'),
@@ -58,7 +82,7 @@ class Config extends CActiveRecord
     public function attributeLabels()
     {
         return array(
-            'id' => 'ID',
+            'id' => 'Config Id',
             'db_version' => 'Db Version',
         );
     }

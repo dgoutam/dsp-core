@@ -15,12 +15,7 @@ class SystemManager implements iRestHandler
     /**
      *
      */
-    const SYSTEM_TABLES = 'app,app_group,role,user,service';
-
-    /**
-     *
-     */
-    const INTERNAL_TABLES = 'session,config,schema_extras,role_service_access,app_to_app_group,app_to_role,app_to_service';
+    const SYSTEM_TABLE_PREFIX = 'df_sys_';
 
     // Members
 
@@ -40,17 +35,11 @@ class SystemManager implements iRestHandler
     protected $modelId;
 
     /**
-     * @var PdoSqlDbSvc
-     */
-    protected $nativeDb;
-
-    /**
      * Creates a new SystemManager instance
      *
      */
     public function __construct()
     {
-        $this->nativeDb = new PdoSqlDbSvc();
     }
 
     /**
@@ -93,24 +82,23 @@ class SystemManager implements iRestHandler
                 return 'init required';
             }
 
-            // check for any missing necessary tables
-            $needed = explode(',', self::SYSTEM_TABLES . ',' . self::INTERNAL_TABLES);
-            foreach ($needed as $name) {
-                if (!in_array($name, $tables)) {
-                    return 'schema required';
-                }
-            }
             // need to check for db upgrade, based on tables or version
             $contents = file_get_contents(Yii::app()->basePath . '/data/system_schema.json');
             if (!empty($contents)) {
                 $contents = Utilities::jsonToArray($contents);
+                // check for any missing necessary tables
+                $needed = Utilities::getArrayValue('table', $contents, array());
+                foreach ($needed as $table) {
+                    $name = Utilities::getArrayValue('name', $table, '');
+                    if (!empty($name) && !in_array($name, $tables)) {
+                        return 'schema required';
+                    }
+                }
                 $version = Utilities::getArrayValue('version', $contents);
                 $oldVersion = '';
-                if (DbUtilities::doesTableExist(Yii::app()->db, 'config')) {
-                    $config = Config::model()->find();
-                    if (isset($config)) {
-                        $oldVersion = $config->getAttribute('db_version');
-                    }
+                $config = Config::model()->find();
+                if (isset($config)) {
+                    $oldVersion = $config->getAttribute('db_version');
                 }
                 if (static::doesDbVersionRequireUpgrade($oldVersion, $version)) {
                     return 'schema required';
@@ -160,7 +148,7 @@ class SystemManager implements iRestHandler
             $version = Utilities::getArrayValue('version', $contents);
             $config = null;
             $oldVersion = '';
-            if (DbUtilities::doesTableExist(Yii::app()->db, 'config')) {
+            if (DbUtilities::doesTableExist(Yii::app()->db, static::SYSTEM_TABLE_PREFIX . 'config')) {
                 $config = Config::model()->find();
                 if (isset($config)) {
                     $oldVersion = $config->getAttribute('db_version');
@@ -240,24 +228,28 @@ class SystemManager implements iRestHandler
             $username = Utilities::getArrayValue('username', $data);
             $theUser = User::model()->find('username=:un', array(':un'=>$username));
             if (null !== $theUser) {
-                throw new Exception("A User already exists with the username '$username'.", ErrorCodes::BAD_REQUEST);
+                throw new Exception("A user already exists with the username '$username'.", ErrorCodes::BAD_REQUEST);
             }
             $firstName = Utilities::getArrayValue('firstName', $data);
             $lastName = Utilities::getArrayValue('lastName', $data);
             $displayName = Utilities::getArrayValue('displayName', $data);
+            $displayName = (empty($displayName) ? $firstName . (empty($lastName) ? '' : ' ' . $lastName)
+                                                : $displayName);
             $pwd = Utilities::getArrayValue('password', $data, '');
             $fields = array('username' => $username,
                             'email' => Utilities::getArrayValue('email', $data),
                             'password' => CPasswordHelper::hashPassword($pwd),
                             'first_name' => $firstName,
                             'last_name' => $lastName,
-                            'display_name' => (empty($displayName) ? $firstName . ' ' . $lastName : $displayName),
+                            'display_name' => $displayName,
                             'is_active' => true,
                             'is_sys_admin' => true,
                             'confirm_code' => 'y'
             );
             $user = new User();
             $user->setAttributes($fields);
+            // write back login datetime
+            $user->last_login_date = new CDbExpression('NOW()');
             if (!$user->save()) {
                 $msg = '';
                 if ($user->hasErrors()) {
@@ -269,6 +261,12 @@ class SystemManager implements iRestHandler
             }
             $userId = $user->getPrimaryKey();
             SessionManager::setCurrentUserId($userId);
+            $result = SessionManager::generateSessionData(null, $user);
+
+            if (!isset($_SESSION)) {
+                session_start();
+            }
+            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());
         }
         catch (\Exception $ex) {
             throw $ex;
@@ -304,9 +302,8 @@ class SystemManager implements iRestHandler
             $contents = Utilities::jsonToArray($contents);
             $result = Service::model()->findAll();
             if (empty($result)) {
-                $services = Utilities::getArrayValue('service', $contents);
+                $services = Utilities::getArrayValue('df_sys_service', $contents);
                 if (empty($services)) {
-                    error_log(print_r($contents, true));
                     throw new \Exception("No default system services found.");
                 }
                 foreach ($services as $service) {
@@ -326,7 +323,7 @@ class SystemManager implements iRestHandler
             }
             $result = App::model()->findAll();
             if (empty($result)) {
-                $apps = Utilities::getArrayValue('app', $contents);
+                $apps = Utilities::getArrayValue('df_sys_app', $contents);
                 if (!empty($apps)) {
                     foreach ($apps as $app) {
                         $obj = new App;
@@ -1828,11 +1825,17 @@ class SystemManager implements iRestHandler
         if (empty($one_id)) {
             throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
         }
+        $map_table = static::SYSTEM_TABLE_PREFIX . $map_table;
         try {
             $manyObj = static::getNewResource($many_table);
             $pkManyField = $manyObj->tableSchema->primaryKey;
             $pkMapField = 'id';
-            $maps = $this->nativeDb->retrieveSqlRecordsByFilter($map_table, $pkMapField.','.$many_field, "$one_field = '$one_id'");
+            // use query builder
+            $command = Yii::app()->db->createCommand();
+            $command->select($pkMapField.','.$many_field);
+            $command->from($map_table);
+            $command->where("$one_field = '$one_id'");
+            $maps = $command->queryAll();
             $toDelete = array();
             foreach ($maps as $map) {
                 $manyId = Utilities::getArrayValue($many_field, $map, '');
@@ -1853,20 +1856,31 @@ class SystemManager implements iRestHandler
                 }
             }
             if (!empty($toDelete)) {
-                $this->nativeDb->deleteSqlRecordsByIds($map_table, implode(',', $toDelete), $pkMapField);
+                $command->reset();
+
+                foreach ($toDelete as $key => $id) {
+                    // simple delete request
+                    $command->reset();
+                    $rows = $command->delete($map_table, array('in', $pkMapField, $id));
+                }
             }
             if (!empty($many_records)) {
-                $maps = array();
                 foreach ($many_records as $item) {
                     $itemId = Utilities::getArrayValue($pkManyField, $item, '');
-                    $maps[] = array($many_field=>$itemId, $one_field=>$one_id);
+                    $record = array($many_field=>$itemId, $one_field=>$one_id);
+                    // simple update request
+                    $command->reset();
+                    $rows = $command->insert($map_table, $record);
+                    if (0 >= $rows) {
+                        throw new Exception("Record insert failed for table '$map_table'.");
+                    }
                 }
-                $this->nativeDb->createSqlRecords($map_table, $maps);
             }
         }
         catch (Exception $ex) {
             throw new Exception("Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
+
 
 }

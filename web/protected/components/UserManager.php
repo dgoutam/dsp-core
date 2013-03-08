@@ -33,6 +33,17 @@
  * @version    $Id: Services.php 66505 2012-04-02 08:45:51Z unknown $
  */
 
+//use Swagger\Annotations as SWG;
+
+/**
+ * @SWG\Resource(
+ *     apiVersion="0.2",
+ *     swaggerVersion="1.1",
+ *     resourcePath="/user",
+ *     basePath="{{swagger_url}}"
+ * )
+ */
+
 /**
  *
  */

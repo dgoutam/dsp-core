@@ -1,4 +1,29 @@
 <?php
+
+/**
+ * User.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * The system user model for the DSP
+ */
+
 /**
  * This is the model for table "user".
  *
@@ -58,7 +83,7 @@ class User extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'user';
+		return 'df_sys_user';
 	}
 
 	/**
@@ -68,13 +93,13 @@ class User extends CActiveRecord
 	{
 		return array(
 			array( 'username, first_name, display_name, email', 'required' ),
-			array( 'username', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
+			array( 'username, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 			array( 'email', 'email' ),
 			array( 'is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true ),
-			array( 'username, password, first_name, last_name', 'length', 'max' => 64 ),
-			array( 'display_name, email, security_answer', 'length', 'max' => 255 ),
-			array( 'phone', 'length', 'max' => 16 ),
-			array( 'confirm_code, security_question', 'length', 'max' => 128 ),
+			array( 'username, password, first_name, last_name, security_answer', 'length', 'max' => 64 ),
+			array( 'email', 'length', 'max' => 255 ),
+			array( 'phone', 'length', 'max' => 32 ),
+			array( 'confirm_code, display_name, security_question', 'length', 'max' => 128 ),
 			array(
 				'id, username, first_name, last_name, display_name, email, phone, is_active, is_sys_admin, confirm_code, default_app_id, role_id, last_login_data, created_date, last_modified_date, created_by_id, last_modified_by_id',
 				'safe',
@@ -112,7 +137,7 @@ class User extends CActiveRecord
 	public function attributeLabels()
 	{
 		return array(
-			'id'                  => 'ID',
+			'id'                  => 'User Id',
 			'username'            => 'Username',
 			'password'            => 'Password',
 			'first_name'          => 'First Name',

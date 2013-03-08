@@ -1,5 +1,5 @@
 {
-    "service": [
+    "df_sys_service": [
         {
             "api_name":"db","name":"Database","is_active":1,"type":"Local SQL DB",
             "description":"Local database access"

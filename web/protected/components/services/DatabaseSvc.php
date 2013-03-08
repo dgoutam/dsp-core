@@ -28,6 +28,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
     protected $sqlDb;
 
     /**
+     * @var boolean
+     */
+    protected $_isNative = false;
+
+    /**
      * Creates a new DatabaseSvc instance
      *
      * @param array $config
@@ -39,11 +44,12 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $dsn = Utilities::getArrayValue('dsn', $config, '');
         $user = Utilities::getArrayValue('user', $config, '');
         $pwd = Utilities::getArrayValue('pwd', $config, '');
-        if (!empty($dsn))
-        {
+        if (!empty($dsn)) {
+            $this->_isNative = false;
             $this->sqlDb = new PdoSqlDbSvc('', $dsn, $user, $pwd);
         }
         else {
+            $this->_isNative = true;
             $this->sqlDb = new PdoSqlDbSvc();
         }
     }
@@ -167,9 +173,6 @@ class DatabaseSvc extends CommonService implements iRestHandler
             $this->detectCommonParams();
 
             $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
-            // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-//            $tables = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
             $resources = static::swaggerPerDb($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;
@@ -188,10 +191,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         switch (strtolower($this->tableName)) {
         case '':
-            // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+            $exclude = '';
+            if ($this->_isNative) {
+                // check for system tables
+                $exclude = SystemManager::SYSTEM_TABLE_PREFIX;
+            }
             try {
-                $result = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
+                $result = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $exclude);
                 $result = array('resource' => $result['table']);
             }
             catch (Exception $ex) {
@@ -283,7 +289,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         switch (strtolower($this->tableName)) {
         case '':
             // batch support for multiple tables
-            throw new Exception('Mutli-table batch request not yet implemented.');
+            throw new Exception('Multi-table batch request not yet implemented.');
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -323,7 +329,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         switch (strtolower($this->tableName)) {
         case '':
             // batch support for multiple tables
-            throw new Exception('Mutli-table batch request not yet implemented.');
+            throw new Exception('Multi-table batch request not yet implemented.');
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -390,7 +396,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         switch (strtolower($this->tableName)) {
         case '':
             // batch support for multiple tables
-            throw new Exception('Mutli-table batch request not yet implemented.');
+            throw new Exception('Multi-table batch request not yet implemented.');
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -457,7 +463,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         switch (strtolower($this->tableName)) {
         case '':
             // batch support for multiple tables
-            throw new Exception('Mutli-table batch request not yet implemented.', ErrorCodes::BAD_REQUEST);
+            throw new Exception('Multi-table batch request not yet implemented.', ErrorCodes::BAD_REQUEST);
             break;
         default:
             // Most requests contain 'returned fields' parameter
@@ -540,6 +546,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('create', $table);
         if (!isset($records) || empty($records)) {
             throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
@@ -571,6 +584,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('create', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -599,6 +619,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
         }
         $this->checkPermission('update', $table);
         if (!isset($records) || empty($records)) {
@@ -631,6 +658,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('update', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -659,6 +693,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('update', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -669,7 +710,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return array('record' => $results);
         }
         catch (Exception $ex) {
-            throw new Exception("Error updating $table records.\nquery: $filter\n{$ex->getMessage()}");
+            throw new Exception("Error updating $table records.\nquery: $filter\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -687,6 +728,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('update', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -697,7 +745,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return $results[0];
         }
         catch (Exception $ex) {
-            throw new Exception("Error updating $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error updating $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -715,6 +763,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('update', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -725,7 +780,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return $results[0];
         }
         catch (Exception $ex) {
-            throw new Exception("Error updating $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error updating $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -742,6 +797,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
         }
         $this->checkPermission('delete', $table);
         if (!isset($records) || empty($records)) {
@@ -774,6 +836,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('delete', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -801,6 +870,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('delete', $table);
 
         try {
@@ -809,7 +885,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return array('record' => $results);
         }
         catch (Exception $ex) {
-            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -827,6 +903,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('delete', $table);
 
         try {
@@ -835,7 +918,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return array('record' => $results);
         }
         catch (Exception $ex) {
-            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -852,6 +935,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('delete', $table);
 
         try {
@@ -860,7 +950,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return $results[0];
         }
         catch (Exception $ex) {
-            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error deleting $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -885,6 +975,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('read', $table);
 
         try {
@@ -904,7 +1001,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return $results;
         }
         catch (Exception $ex) {
-            throw new Exception("Error retrieving $table records.\nquery: $filter\n{$ex->getMessage()}");
+            throw new Exception("Error retrieving $table records.\nquery: $filter\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -921,6 +1018,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
         }
         $this->checkPermission('read', $table);
         if (!isset($records) || empty($records)) {
@@ -955,6 +1059,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('read', $table);
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
@@ -983,6 +1094,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('read', $table);
 
         try {
@@ -991,7 +1109,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return array('record' => $results);
         }
         catch (Exception $ex) {
-            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 
@@ -1009,6 +1127,13 @@ class DatabaseSvc extends CommonService implements iRestHandler
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
+        if ($this->_isNative) {
+            // check for system tables and deny
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
+            }
+        }
         $this->checkPermission('read', $table);
 
         try {
@@ -1017,7 +1142,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             return $results[0];
         }
         catch (Exception $ex) {
-            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}");
+            throw new Exception("Error retrieving $table records.\n{$ex->getMessage()}", $ex->getCode());
         }
     }
 

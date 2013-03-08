@@ -119,7 +119,118 @@ class CommonFileSvc extends CommonService implements iRestHandler
         }
     }
 
+    /**
+     * @param string $service
+     * @param string $description
+     * @return array
+     */
+    public static function swaggerForFiles($service, $description='')
+    {
+        $swagger = array(
+            array('path' => '/'.$service,
+                  'description' => $description,
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "List root folders and files",
+                            "notes"=> "Use the available parameters to limit information returned.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getRoot",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/'.$service.'/{directory}/',
+                  'description' => 'Operations for per table administration.',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "List folders and files",
+                            "notes"=> "Use the 'ids' or 'filter' parameter to limit records that are returned.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getDirectory",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','ids',
+                                                                                     'filter','limit','offset','order',
+                                                                                     'fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "POST",
+                            "summary"=> "Create one or more records",
+                            "notes"=> "Post data should be an array of fields for a single record or an array of records",
+                            "responseClass"=> "array",
+                            "nickname"=> "createRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one or more records",
+                            "notes"=> "Post data should be an array of fields for a single record or an array of records",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "DELETE",
+                            "summary"=> "Delete one or more records",
+                            "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
+                            "responseClass"=> "array",
+                            "nickname"=> "deleteRecords",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+            array('path' => '/'.$service.'/{table_name}/{id}',
+                  'description' => 'Operations for single record administration.',
+                  'operations' => array(
+                      array("httpMethod"=> "GET",
+                            "summary"=> "Retrieve one record by identifier",
+                            "notes"=> "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
+                            "responseClass"=> "array",
+                            "nickname"=> "getRecord",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "PUT",
+                            "summary"=> "Update one record by identifier",
+                            "notes"=> "Post data should be an array of fields for a single record",
+                            "responseClass"=> "array",
+                            "nickname"=> "updateRecord",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                      array("httpMethod"=> "DELETE",
+                            "summary"=> "Delete one record by identifier",
+                            "notes"=> "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
+                            "responseClass"=> "array",
+                            "nickname"=> "deleteRecord",
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id','fields','related')),
+                            "errorResponses"=> array()
+                      ),
+                  )
+            ),
+        );
+
+        return $swagger;
+    }
+
     // Controller based methods
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public function actionSwagger()
+    {
+        try {
+            $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
+            $resources = static::swaggerForFiles($this->_api_name, $this->_description);
+            $result['apis'] = $resources;
+            return $result;
+        }
+        catch (Exception $ex) {
+            throw $ex;
+        }
+    }
 
     /**
      * @return array

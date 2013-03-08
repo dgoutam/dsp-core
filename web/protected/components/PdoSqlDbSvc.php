@@ -155,18 +155,7 @@ class PdoSqlDbSvc
      */
     public function correctTableName($name)
     {
-        if (empty($name)) {
-            throw new InvalidArgumentException('Table name can not be empty.');
-        }
-        $tables = $this->_sqlConn->schema->getTableNames();
-         // make search case insensitive
-        foreach ($tables as $table) {
-            if (0 == strcasecmp($table, $name)) {
-                return $table;
-            }
-        }
-        error_log(print_r($tables, true));
-        throw new Exception("Table '$name' does not exist in the database.");
+        return DbUtilities::correctTableName($this->_sqlConn, $name);
     }
 
     /**

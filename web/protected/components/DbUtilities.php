@@ -57,7 +57,7 @@ class DbUtilities
     public static function correctTableName($db, $name)
     {
         if (empty($name)) {
-            throw new InvalidArgumentException('Table name can not be empty.');
+            throw new InvalidArgumentException('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $tables = $db->schema->getTableNames();
         // make search case insensitive
@@ -67,7 +67,7 @@ class DbUtilities
             }
         }
         error_log(print_r($tables, true));
-        throw new Exception("Table '$name' does not exist in the database.");
+        throw new Exception("Table '$name' does not exist in the database.", ErrorCodes::NOT_FOUND);
     }
 
     /**
@@ -80,7 +80,7 @@ class DbUtilities
     public static function doesTableExist($db, $name)
     {
         if (empty($name)) {
-            throw new InvalidArgumentException('Table name can not be empty.');
+            throw new InvalidArgumentException('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         $tables = $db->schema->getTableNames();
         // make search case insensitive
@@ -138,22 +138,20 @@ class DbUtilities
      * @return array
      * @throws Exception
      */
-    public static function describeDatabase($db, $include = '', $exclude = '')
+    public static function describeDatabase($db, $include_prefix = '', $exclude_prefix = '')
     {
         // todo need to assess schemas in ms sql and load them separately.
         try {
             $names = $db->schema->getTableNames();
-            $includeArray = array_map('trim', explode(',', strtolower($include)));
-            $excludeArray = array_map('trim', explode(',', strtolower($exclude)));
             $temp = array();
             foreach ($names as $name) {
-                if (!empty($include)) {
-                    if (false === array_search(strtolower($name), $includeArray)) {
+                if (!empty($include_prefix)) {
+                    if (0 !== substr_compare($name, $include_prefix, 0, strlen($include_prefix), true)) {
                         continue;
                     }
                 }
-                elseif (!empty($exclude)) {
-                    if (false !== array_search(strtolower($name), $excludeArray)) {
+                elseif (!empty($exclude_prefix)) {
+                    if (0 === substr_compare($name, $exclude_prefix, 0, strlen($exclude_prefix), true)) {
                         continue;
                     }
                 }
@@ -222,7 +220,7 @@ class DbUtilities
         try {
             $table = $db->schema->getTable($name);
             if (!$table) {
-                throw new Exception("Table '$name' does not exist in the database.");
+                throw new Exception("Table '$name' does not exist in the database.", ErrorCodes::NOT_FOUND);
             }
             $query = $db->quoteColumnName('table') . ' = :tn';
             $labels = static::getLabels($query, array(':tn'=>$name));
@@ -263,7 +261,7 @@ class DbUtilities
         $name = static::correctTableName($db, $name);
         $table = $db->schema->getTable($name);
         if (!$table) {
-            throw new Exception("Table '$name' does not exist in the database.");
+            throw new Exception("Table '$name' does not exist in the database.", ErrorCodes::NOT_FOUND);
         }
         try {
             if (empty($labels)) {
@@ -297,7 +295,7 @@ class DbUtilities
         $table_name = static::correctTableName($db, $table_name);
         $table = $db->schema->getTable($table_name);
         if (!$table) {
-            throw new Exception("Table '$table_name' does not exist in the database.");
+            throw new Exception("Table '$table_name' does not exist in the database.", ErrorCodes::NOT_FOUND);
         }
         $field = array();
         try {
@@ -966,7 +964,7 @@ class DbUtilities
                         $references[] = array('name' => $keyName,
                                               'table' => $table_name,
                                               'column' => $name,
-                                              'ref_table' => 'user',
+                                              'ref_table' => 'df_sys_user',
                                               'ref_fields' => 'id',
                                               'delete' => null,
                                               'update' => 'CASCADE');
@@ -980,7 +978,7 @@ class DbUtilities
                         $references[] = array('name' => $keyName,
                                               'table' => $table_name,
                                               'column' => $name,
-                                              'ref_table' => 'user',
+                                              'ref_table' => 'df_sys_user',
                                               'ref_fields' => 'id',
                                               'delete' => null,
                                               'update' => 'CASCADE');
@@ -1405,12 +1403,7 @@ class DbUtilities
         if (empty($table_name)) {
             throw new Exception("Table name received is empty.", ErrorCodes::BAD_REQUEST);
         }
-        // check for system tables and deny
-        $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-        if (Utilities::isInList($sysTables, $table_name, ',')) {
-            throw new Exception("System table '$table_name' not available through this interface.");
-        }
-        // does it already exist
+        // does it exist
         if (!static::doesTableExist($db, $table_name)) {
             throw new Exception("A table with name '$table_name' does not exist in the database.", ErrorCodes::NOT_FOUND);
         }
@@ -1472,10 +1465,10 @@ class DbUtilities
     public static function getLabels($where, $params = array(), $select = '*')
     {
         $labels = array();
-        if (static::doesTableExist(Yii::app()->db, 'schema_extras')) {
+        if (static::doesTableExist(Yii::app()->db, 'df_sys_schema_extras')) {
             $command = Yii::app()->db->createCommand();
             $command->select($select);
-            $command->from('schema_extras');
+            $command->from('df_sys_schema_extras');
             $command->where($where, $params);
             $labels = $command->queryAll();
         }
@@ -1488,7 +1481,7 @@ class DbUtilities
      */
     public static function setLabels($labels)
     {
-        if (!empty($labels) && static::doesTableExist(Yii::app()->db, 'schema_extras')) {
+        if (!empty($labels) && static::doesTableExist(Yii::app()->db, 'df_sys_schema_extras')) {
             // todo batch this for speed
             $command = Yii::app()->db->createCommand();
             foreach ($labels as $each) {
@@ -1499,15 +1492,15 @@ class DbUtilities
                 $where .= ' and ' . Yii::app()->db->quoteColumnName('field') . " = '$field'";
                 $command->reset();
                 $command->select('(COUNT(*)) as ' . Yii::app()->db->quoteColumnName('count'));
-                $command->from('schema_extras');
+                $command->from('df_sys_schema_extras');
                 $command->where($where);
                 $count = intval($command->queryScalar());
                 $command->reset();
                 if (0 >= $count) {
-                    $rows = $command->insert('schema_extras', $each);
+                    $rows = $command->insert('df_sys_schema_extras', $each);
                 }
                 else {
-                    $rows = $command->update('schema_extras', $each, $where);
+                    $rows = $command->update('df_sys_schema_extras', $each, $where);
                 }
             }
         }
@@ -1519,9 +1512,9 @@ class DbUtilities
      */
     public static function removeLabels($where, $params = null)
     {
-        if (static::doesTableExist(Yii::app()->db, 'schema_extras')) {
+        if (static::doesTableExist(Yii::app()->db, 'df_sys_schema_extras')) {
             $command = Yii::app()->db->createCommand();
-            $command->delete('schema_extras', $where, $params);
+            $command->delete('df_sys_schema_extras', $where, $params);
         }
     }
 

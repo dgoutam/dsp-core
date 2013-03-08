@@ -1,6 +1,30 @@
 <?php
 
 /**
+ * AppGroup.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * The system application group model for the DSP
+ */
+
+/**
  * This is the model class for table "app_group".
  *
  * The followings are the available columns in table 'app_group':
@@ -34,7 +58,7 @@ class AppGroup extends CActiveRecord
      */
     public function tableName()
     {
-        return 'app_group';
+        return 'df_sys_app_group';
     }
 
     /**
@@ -48,11 +72,11 @@ class AppGroup extends CActiveRecord
             array('name', 'required'),
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
-            array('name', 'length', 'max' => 40),
+            array('name', 'length', 'max' => 64),
             array('description', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, description, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -66,7 +90,7 @@ class AppGroup extends CActiveRecord
         return array(
             'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
-            'apps' => array(self::MANY_MANY, 'App', 'app_to_app_group(app_id, app_group_id)'),
+            'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_app_group(app_id, app_group_id)'),
         );
     }
 
@@ -76,7 +100,7 @@ class AppGroup extends CActiveRecord
     public function attributeLabels()
     {
         return array(
-            'id' => 'ID',
+            'id' => 'App Group Id',
             'name' => 'Name',
             'description' => 'Description',
             'created_date' => 'Created Date',
@@ -99,7 +123,6 @@ class AppGroup extends CActiveRecord
 
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
-        $criteria->compare('description', $this->description, true);
         $criteria->compare('created_date', $this->created_date, true);
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
         $criteria->compare('created_by_id', $this->created_by_id);

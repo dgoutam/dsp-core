@@ -29,6 +29,11 @@ class SessionManager
     private static $_userId = null;
 
     /**
+     * @var null
+     */
+    private static $_roleId = null;
+
+    /**
      * @var \CDbConnection
      */
     protected $_sqlConn;
@@ -46,14 +51,16 @@ class SessionManager
         $this->_sqlConn = Yii::app()->db;
         $this->_driverType = DbUtilities::getDbDriverType($this->_sqlConn);
 
-        session_set_save_handler(
-            array($this, 'open'),
-            array($this, 'close'),
-            array($this, 'read'),
-            array($this, 'write'),
-            array($this, 'destroy'),
-            array($this, 'gc')
-        );
+        if (!session_set_save_handler(array($this, 'open'),
+                                      array($this, 'close'),
+                                      array($this, 'read'),
+                                      array($this, 'write'),
+                                      array($this, 'destroy'),
+                                      array($this, 'gc'))) {
+            error_log("Failed to set session handler.");
+        }
+        // make sure we close out the session
+        register_shutdown_function('session_write_close');
     }
 
     /**
@@ -104,7 +111,7 @@ class SessionManager
             if (!$this->_sqlConn->active)
                 $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
-            $command->select('data')->from('session')->where(array('in', 'id', array($id)));
+            $command->select('data')->from('df_sys_session')->where(array('in', 'id', array($id)));
             $result = $command->queryRow();
             if (!empty($result)) {
                 $data = (isset($result['data'])) ? $result['data'] : '';
@@ -131,17 +138,18 @@ class SessionManager
         try {
             $data = base64_encode(serialize($data));
             $startTime = time();
-            $userId = static::getCurrentUserId();
-            $params = array($id, $userId, $startTime, $data);
+//            $userId = static::getCurrentUserId();
+//            $roleId = static::getCurrentRoleId();
+            $params = array($id, null, null, $startTime, $data);
             switch ($this->_driverType) {
             case DbUtilities::DRV_SQLSRV:
-                $sql = "{call UpdateOrInsertSession(?,?,?,?)}";
+                $sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
                 break;
             case DbUtilities::DRV_MYSQL:
-                $sql = "call UpdateOrInsertSession(?,?,?,?)";
+                $sql = "call UpdateOrInsertSession(?,?,?,?,?)";
                 break;
             default:
-                $sql = "call UpdateOrInsertSession(?,?,?,?)";
+                $sql = "call UpdateOrInsertSession(?,?,?,?,?)";
                 break;
             }
             if (!$this->_sqlConn->active)
@@ -167,7 +175,7 @@ class SessionManager
             if (!$this->_sqlConn->active)
                 $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
-            $command->delete('session', array('in', 'id', array($id)));
+            $command->delete('df_sys_session', array('in', 'id', array($id)));
             return true;
         }
         catch (Exception $ex) {
@@ -188,7 +196,7 @@ class SessionManager
             if (!$this->_sqlConn->active)
                 $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
-            $command->delete('session', "start_time < $expired");
+            $command->delete('df_sys_session', "start_time < $expired");
             return true;
         }
         catch (Exception $ex) {
@@ -210,14 +218,14 @@ class SessionManager
                 $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
             if (is_array($user_ids)) {
-                $command->delete('session', array('in', 'user_id', $user_ids));
+                $command->delete('df_sys_session', array('in', 'user_id', $user_ids));
             }
             elseif (!empty($user_ids)) {
-                $command->delete('session', 'user_id=:id', array(':id'=>$user_ids));
+                $command->delete('df_sys_session', 'user_id=:id', array(':id'=>$user_ids));
             }
             else {
                 // delete all sessions
-                $command->delete('session');
+                $command->delete('df_sys_session');
             }
         }
         catch (Exception $ex) {
@@ -234,7 +242,7 @@ class SessionManager
             if (!$this->_sqlConn->active)
                 $this->_sqlConn->active = true;
             $command = $this->_sqlConn->createCommand();
-            $command->select('id')->from('session')->where('user_id=:id', array(':id'=>$user_id));
+            $command->select('id')->from('df_sys_session')->where('user_id=:id', array(':id'=>$user_id));
             $results = $command->queryScalar();
             if (false !== $results) {
                 try {
@@ -242,12 +250,12 @@ class SessionManager
                     $data = array('public' => $data['public']);
                     $command->reset();
                     $data = base64_encode(serialize($data));
-                    $command->update('session', array('data'=>$data), 'user_id=:id', array(':id'=>$user_id));
+                    $command->update('df_sys_session', array('data'=>$data), 'user_id=:id', array(':id'=>$user_id));
                 }
                 catch (Exception $ex) {
                     // delete sessions because something bad happened
                     $command->reset();
-                    $command->delete('session', 'user_id=:id', array(':id'=>$user_id));
+                    $command->delete('df_sys_session', 'user_id=:id', array(':id'=>$user_id));
                 }
             }
         }
@@ -344,11 +352,11 @@ class SessionManager
             throw new Exception("There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED);
         }
 
-        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : '';
-        if (empty($userId)) {
+        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : null;
+        if (!isset($userId)) {
             throw new Exception("There is no valid user data in the current session.", ErrorCodes::UNAUTHORIZED);
         }
-        return $userId;
+        return (isset($userId) ? intval($userId) : $userId);
     }
 
     /**
@@ -523,7 +531,7 @@ class SessionManager
     }
 
     /**
-     * @return null
+     * @return int|null
      */
     public static function getCurrentUserId()
     {
@@ -543,9 +551,13 @@ class SessionManager
      */
     public static function getCurrentRoleId()
     {
+        if (isset(static::$_roleId)) return static::$_roleId;
+
         try {
             static::validateSession();
-            return (isset($_SESSION['public']['role']['id'])) ? intval($_SESSION['public']['role']['id']) : null;
+            $temp = (isset($_SESSION['public']['role']['id'])) ? $_SESSION['public']['role']['id'] : null;
+            static::$_roleId = (isset($temp)) ? intval($temp) : $temp;
+            return static::$_roleId;
         }
         catch (Exception $ex) {
             return null;

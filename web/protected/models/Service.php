@@ -1,6 +1,30 @@
 <?php
 
 /**
+ * Service.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * The system service model for the DSP
+ */
+
+/**
  * This is the model class for table "service".
  *
  * The followings are the available columns in table 'service':
@@ -44,7 +68,7 @@ class Service extends CActiveRecord
      */
     public function tableName()
     {
-        return 'service';
+        return 'df_sys_service';
     }
 
     /**
@@ -55,16 +79,16 @@ class Service extends CActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('name, type', 'required'),
-            array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
+            array('name, api_name, type', 'required'),
+            array('name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
-            array('name, api_name, type, storage_type, native_format', 'length', 'max' => 40),
+            array('name, api_name, type, storage_type, native_format', 'length', 'max' => 64),
             array('storage_name', 'length', 'max' => 80),
             array('base_url', 'length', 'max' => 255),
             array('description, credentials, parameters, headers', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, api_name, description, is_active, type, storage_name, storage_type, credentials, native_format, base_url, parameters, headers, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, api_name, is_active, type, storage_name, storage_type, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -79,8 +103,8 @@ class Service extends CActiveRecord
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'service_id'),
             'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
             'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
-            'apps' => array(self::MANY_MANY, 'App', 'app_to_service(app_id, service_id)'),
-            'roles' => array(self::MANY_MANY, 'Role', 'role_service_access(service_id, role_id)'),
+            'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_service(app_id, service_id)'),
+            'roles' => array(self::MANY_MANY, 'Role', 'df_sys_role_service_access(service_id, role_id)'),
         );
     }
 
@@ -90,7 +114,7 @@ class Service extends CActiveRecord
     public function attributeLabels()
     {
         return array(
-            'id' => 'ID',
+            'id' => 'Service Id',
             'name' => 'Name',
             'api_name' => 'API Name',
             'description' => 'Description',
@@ -124,16 +148,10 @@ class Service extends CActiveRecord
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
         $criteria->compare('api_name', $this->api_name, true);
-        $criteria->compare('description', $this->description, true);
         $criteria->compare('is_active', $this->is_active);
         $criteria->compare('type', $this->type, true);
         $criteria->compare('storage_name', $this->storage_name, true);
         $criteria->compare('storage_type', $this->storage_type, true);
-        $criteria->compare('credentials', $this->credentials, true);
-        $criteria->compare('native_format', $this->native_format, true);
-        $criteria->compare('base_url', $this->base_url, true);
-        $criteria->compare('parameters', $this->parameters, true);
-        $criteria->compare('headers', $this->headers, true);
         $criteria->compare('created_date', $this->created_date, true);
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
         $criteria->compare('created_by_id', $this->created_by_id);

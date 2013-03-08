@@ -220,9 +220,6 @@ class SchemaSvc extends CommonService implements iRestHandler
             $this->detectCommonParams();
 
             $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
-            // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-//            $tables = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $sysTables);
             $resources = static::swaggerPerSchema($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;
@@ -431,8 +428,8 @@ class SchemaSvc extends CommonService implements iRestHandler
         $this->checkPermission('read');
         $exclude = '';
         if ($this->_isNative) {
-            // check for system tables and deny
-            $exclude = SystemManager::INTERNAL_TABLES;
+            // check for system tables
+            $exclude = SystemManager::SYSTEM_TABLE_PREFIX;
         }
         try {
             return DbUtilities::describeDatabase($this->_sqlConn, '', $exclude);
@@ -449,13 +446,13 @@ class SchemaSvc extends CommonService implements iRestHandler
      */
     public function describeTables($table_list)
     {
-        // check for system tables and deny
-        $sysTables = SystemManager::INTERNAL_TABLES;
         $tables = array_map('trim', explode(',', trim($table_list, ',')));
+        // check for system tables and deny
+        $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
         foreach ($tables as $table) {
             if ($this->_isNative) {
-                if (Utilities::isInList($sysTables, $table, ',')) {
-                    throw new Exception("System table '$table' not available through this interface.", ErrorCodes::BAD_REQUEST);
+                if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                    throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
                 }
             }
             $this->checkPermission('read', $table);
@@ -480,9 +477,9 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' not available through this interface.", ErrorCodes::BAD_REQUEST);
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
             }
         }
         $this->checkPermission('read', $table);
@@ -507,9 +504,9 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' not available through this interface.", ErrorCodes::BAD_REQUEST);
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
             }
         }
         $this->checkPermission('read', $table);
@@ -533,21 +530,19 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
             if (isset($tables[0])) {
                 foreach ($tables as $table) {
                     $name = Utilities::getArrayValue('name', $table, '');
-                    // check for system tables and deny
-                    if (Utilities::isInList($sysTables, $name, ',')) {
-                        throw new Exception("System table '$name' can not be modified.");
+                    if (0 === substr_compare($name, $sysPrefix, 0, strlen($sysPrefix))) {
+                        throw new Exception("Tables can not use the prefix '$sysPrefix'. '$name' can not be created.", ErrorCodes::BAD_REQUEST);
                     }
                 }
             }
             else { // single table
                 $name = Utilities::getArrayValue('name', $tables, '');
-                // check for system tables and deny
-                if (Utilities::isInList($sysTables, $name, ',')) {
-                    throw new Exception("System table '$name' can not be modified.");
+                if (0 === substr_compare($name, $sysPrefix, 0, strlen($sysPrefix))) {
+                    throw new Exception("Tables can not use the prefix '$sysPrefix'. '$name' can not be created.", ErrorCodes::BAD_REQUEST);
                 }
             }
         }
@@ -580,9 +575,9 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' can not be modified.", ErrorCodes::BAD_REQUEST);
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
             }
         }
         $this->checkPermission('create', $table);
@@ -618,21 +613,19 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
             if (isset($tables[0])) {
                 foreach ($tables as $table) {
                     $name = Utilities::getArrayValue('name', $table, '');
-                    // check for system tables and deny
-                    if (Utilities::isInList($sysTables, $name, ',')) {
-                        throw new Exception("System table '$name' can not be modified.");
+                    if (0 === substr_compare($name, $sysPrefix, 0, strlen($sysPrefix))) {
+                        throw new Exception("Tables can not use the prefix '$sysPrefix'. '$name' can not be created.", ErrorCodes::BAD_REQUEST);
                     }
                 }
             }
             else { // single table
                 $name = Utilities::getArrayValue('name', $tables, '');
-                // check for system tables and deny
-                if (Utilities::isInList($sysTables, $name, ',')) {
-                    throw new Exception("System table '$name' can not be modified.");
+                if (0 === substr_compare($name, $sysPrefix, 0, strlen($sysPrefix))) {
+                    throw new Exception("Tables can not use the prefix '$sysPrefix'. '$name' can not be created.", ErrorCodes::BAD_REQUEST);
                 }
             }
         }
@@ -665,9 +658,9 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' can not be modified.", ErrorCodes::BAD_REQUEST);
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
             }
         }
         $this->checkPermission('update', $table);
@@ -707,9 +700,9 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' can not be modified.", ErrorCodes::BAD_REQUEST);
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
             }
         }
         $this->checkPermission('delete', $table);
@@ -730,9 +723,9 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         if ($this->_isNative) {
             // check for system tables and deny
-            $sysTables = SystemManager::SYSTEM_TABLES . ',' . SystemManager::INTERNAL_TABLES;
-            if (Utilities::isInList($sysTables, $table, ',')) {
-                throw new Exception("System table '$table' can not be modified.", ErrorCodes::BAD_REQUEST);
+            $sysPrefix = SystemManager::SYSTEM_TABLE_PREFIX;
+            if (0 === substr_compare($table, $sysPrefix, 0, strlen($sysPrefix))) {
+                throw new Exception("Table '$table' not found.", ErrorCodes::NOT_FOUND);
             }
         }
         $this->checkPermission('delete', $table);

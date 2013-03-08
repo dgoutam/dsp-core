@@ -1,6 +1,30 @@
 <?php
 
 /**
+ * Role.php
+ *
+ * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This source file and all is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * The system role model for the DSP
+ */
+
+/**
  * This is the model class for table "role".
  *
  * The followings are the available columns in table 'role':
@@ -40,7 +64,7 @@ class Role extends CActiveRecord
      */
     public function tableName()
     {
-        return 'role';
+        return 'df_sys_role';
     }
 
     /**
@@ -54,11 +78,11 @@ class Role extends CActiveRecord
             array('name', 'required'),
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, default_app_id', 'numerical', 'integerOnly' => true),
-            array('name', 'length', 'max' => 40),
+            array('name', 'length', 'max' => 64),
             array('description', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, name, description, is_active, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
+            array('id, name, is_active, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
     }
 
@@ -75,8 +99,8 @@ class Role extends CActiveRecord
             'default_app' => array(self::BELONGS_TO, 'App', 'default_app_id'),
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
             'users' => array(self::HAS_MANY, 'User', 'role_id'),
-            'apps' => array(self::MANY_MANY, 'App', 'app_to_role(app_id, role_id)'),
-            'services' => array(self::MANY_MANY, 'Service', 'role_service_access(role_id, service_id)'),
+            'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_role(app_id, role_id)'),
+            'services' => array(self::MANY_MANY, 'Service', 'df_sys_role_service_access(role_id, service_id)'),
             );
     }
 
@@ -86,7 +110,7 @@ class Role extends CActiveRecord
     public function attributeLabels()
     {
         return array(
-            'id' => 'ID',
+            'id' => 'Role Id',
             'name' => 'Name',
             'description' => 'Description',
             'is_active' => 'Is Active',
@@ -111,7 +135,6 @@ class Role extends CActiveRecord
 
         $criteria->compare('id', $this->id);
         $criteria->compare('name', $this->name, true);
-        $criteria->compare('description', $this->description, true);
         $criteria->compare('is_active', $this->is_active);
         $criteria->compare('default_app_id', $this->default_app_id);
         $criteria->compare('created_date', $this->created_date, true);
