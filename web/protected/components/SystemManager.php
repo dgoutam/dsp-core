@@ -425,7 +425,6 @@ class SystemManager implements iRestHandler
                     }
                 }
 
-
                 if (empty($this->modelId)) {
                     $ids = Utilities::getArrayValue('ids', $_REQUEST, '');
                     if (!empty($ids)) {
@@ -499,6 +498,16 @@ class SystemManager implements iRestHandler
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
             $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
+            $extras = array();
+            $related = Utilities::getArrayValue('related', $_REQUEST, '');
+            if (!empty($related)) {
+                $related = array_map('trim', explode(',', $related));
+                foreach ($related as $relative) {
+                    $extraFields = Utilities::getArrayValue($relative . '_fields', $_REQUEST, '*');
+                    $extraOrder = Utilities::getArrayValue($relative . '_order', $_REQUEST, '');
+                    $extras[] = array('name'=>$relative, 'fields'=>$extraFields, 'order'=> $extraOrder);
+                }
+            }
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -517,14 +526,14 @@ class SystemManager implements iRestHandler
                     if (empty($data)) {
                         throw new Exception('No record in POST create request.', ErrorCodes::BAD_REQUEST);
                     }
-                    $result = $this->createRecord($this->modelName, $data, $fields);
+                    $result = $this->createRecord($this->modelName, $data, $fields, $extras);
                 }
                 else {
                     $rollback = (isset($_REQUEST['rollback'])) ? Utilities::boolval($_REQUEST['rollback']) : null;
                     if (!isset($rollback)) {
                         $rollback = Utilities::boolval(Utilities::getArrayValue('rollback', $data, false));
                     }
-                    $result = $this->createRecords($this->modelName, $records, $rollback, $fields);
+                    $result = $this->createRecords($this->modelName, $records, $rollback, $fields, $extras);
                 }
                 break;
             default:
@@ -549,6 +558,16 @@ class SystemManager implements iRestHandler
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
             $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
+            $extras = array();
+            $related = Utilities::getArrayValue('related', $_REQUEST, '');
+            if (!empty($related)) {
+                $related = array_map('trim', explode(',', $related));
+                foreach ($related as $relative) {
+                    $extraFields = Utilities::getArrayValue($relative . '_fields', $_REQUEST, '*');
+                    $extraOrder = Utilities::getArrayValue($relative . '_order', $_REQUEST, '');
+                    $extras[] = array('name'=>$relative, 'fields'=>$extraFields, 'order'=> $extraOrder);
+                }
+            }
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -568,7 +587,7 @@ class SystemManager implements iRestHandler
                         $ids = Utilities::getArrayValue('ids', $data, '');
                     }
                     if (!empty($ids)) {
-                        $result = $this->updateRecordsByIds($this->modelName, $ids, $data, $rollback, $fields);
+                        $result = $this->updateRecordsByIds($this->modelName, $ids, $data, $rollback, $fields, $extras);
                     }
                     else {
                         $records = Utilities::getArrayValue('record', $data, null);
@@ -580,15 +599,15 @@ class SystemManager implements iRestHandler
                             if (empty($data)) {
                                 throw new Exception('No record in PUT update request.', ErrorCodes::BAD_REQUEST);
                             }
-                            $result = $this->updateRecord($this->modelName, $data, $fields);
+                            $result = $this->updateRecord($this->modelName, $data, $fields, $extras);
                         }
                         else {
-                            $result = $this->updateRecords($this->modelName, $records, $rollback, $fields);
+                            $result = $this->updateRecords($this->modelName, $records, $rollback, $fields, $extras);
                         }
                     }
                 }
                 else {
-                    $result = $this->updateRecordById($this->modelName, $this->modelId, $data, $fields);
+                    $result = $this->updateRecordById($this->modelName, $this->modelId, $data, $fields, $extras);
                 }
                 break;
             default:
@@ -613,6 +632,16 @@ class SystemManager implements iRestHandler
             $data = Utilities::getPostDataAsArray();
             // Most requests contain 'returned fields' parameter
             $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
+            $extras = array();
+            $related = Utilities::getArrayValue('related', $_REQUEST, '');
+            if (!empty($related)) {
+                $related = array_map('trim', explode(',', $related));
+                foreach ($related as $relative) {
+                    $extraFields = Utilities::getArrayValue($relative . '_fields', $_REQUEST, '*');
+                    $extraOrder = Utilities::getArrayValue($relative . '_order', $_REQUEST, '');
+                    $extras[] = array('name'=>$relative, 'fields'=>$extraFields, 'order'=> $extraOrder);
+                }
+            }
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -632,7 +661,7 @@ class SystemManager implements iRestHandler
                         $ids = Utilities::getArrayValue('ids', $data, '');
                     }
                     if (!empty($ids)) {
-                        $result = $this->updateRecordsByIds($this->modelName, $ids, $data, $rollback, $fields);
+                        $result = $this->updateRecordsByIds($this->modelName, $ids, $data, $rollback, $fields, $extras);
                     }
                     else {
                         $records = Utilities::getArrayValue('record', $data, null);
@@ -644,15 +673,15 @@ class SystemManager implements iRestHandler
                             if (empty($data)) {
                                 throw new Exception('No record in MERGE update request.', ErrorCodes::BAD_REQUEST);
                             }
-                            $result = $this->updateRecord($this->modelName, $data, $fields);
+                            $result = $this->updateRecord($this->modelName, $data, $fields, $extras);
                         }
                         else {
-                            $result = $this->updateRecords($this->modelName, $records, $rollback, $fields);
+                            $result = $this->updateRecords($this->modelName, $records, $rollback, $fields, $extras);
                         }
                     }
                 }
                 else {
-                    $result = $this->updateRecordById($this->modelName, $this->modelId, $data, $fields);
+                    $result = $this->updateRecordById($this->modelName, $this->modelId, $data, $fields, $extras);
                 }
                 break;
             default:
@@ -676,6 +705,16 @@ class SystemManager implements iRestHandler
             $this->detectCommonParams();
             // Most requests contain 'returned fields' parameter
             $fields = Utilities::getArrayValue('fields', $_REQUEST, '');
+            $extras = array();
+            $related = Utilities::getArrayValue('related', $_REQUEST, '');
+            if (!empty($related)) {
+                $related = array_map('trim', explode(',', $related));
+                foreach ($related as $relative) {
+                    $extraFields = Utilities::getArrayValue($relative . '_fields', $_REQUEST, '*');
+                    $extraOrder = Utilities::getArrayValue($relative . '_order', $_REQUEST, '');
+                    $extras[] = array('name'=>$relative, 'fields'=>$extraFields, 'order'=> $extraOrder);
+                }
+            }
             switch ($this->modelName) {
             case '':
                 throw new Exception("Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN);
@@ -692,7 +731,7 @@ class SystemManager implements iRestHandler
                         $ids = Utilities::getArrayValue('ids', $data, '');
                     }
                     if (!empty($ids)) {
-                        $result = $this->deleteRecordsByIds($this->modelName, $ids, $fields);
+                        $result = $this->deleteRecordsByIds($this->modelName, $ids, $fields, $extras);
                     }
                     else {
                         $records = Utilities::getArrayValue('record', $data, null);
@@ -704,15 +743,15 @@ class SystemManager implements iRestHandler
                             if (empty($data)) {
                                 throw new Exception("Id list or record containing Id field required to delete $this->modelName records.", ErrorCodes::BAD_REQUEST);
                             }
-                            $result = $this->deleteRecord($this->modelName, $data, $fields);
+                            $result = $this->deleteRecord($this->modelName, $data, $fields, $extras);
                         }
                         else {
-                            $result = $this->deleteRecords($this->modelName, $records, $fields);
+                            $result = $this->deleteRecords($this->modelName, $records, $fields, $extras);
                         }
                     }
                 }
                 else {
-                    $result = $this->deleteRecordById($this->modelName, $this->modelId, $fields);
+                    $result = $this->deleteRecordById($this->modelName, $this->modelId, $fields, $extras);
                 }
                 break;
             default:
@@ -795,13 +834,15 @@ class SystemManager implements iRestHandler
     // records is an array of field arrays
 
     /**
-     * @param $table
-     * @param $record
+     * @param        $table
+     * @param        $record
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    protected function createRecordLow($table, $record, $return_fields = '')
+    protected function createRecordLow($table, $record, $return_fields = '', $extras = array())
     {
         if (empty($record)) {
             throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
@@ -840,8 +881,6 @@ class SystemManager implements iRestHandler
                 throw new Exception("Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
-            $return_fields = $obj->getRetrievableAttributes($return_fields);
-            $data = $obj->getAttributes($return_fields);
             // after record create
             switch (strtolower($table)) {
             case 'app':
@@ -895,6 +934,42 @@ class SystemManager implements iRestHandler
                 }
             }
             */
+            // get returnables
+            $return_fields = $obj->getRetrievableAttributes($return_fields);
+            $data = $obj->getAttributes($return_fields);
+            if (!empty($extras)) {
+                $relations = $obj->relations();
+                $relatedData = array();
+                foreach ($extras as $extra) {
+                    $extraName = $extra['name'];
+                    if (!isset($relations[$extraName])) {
+                        throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
+                    }
+                    $extraFields = $extra['fields'];
+                    $relatedRecords = $obj->getRelated($extraName, true);
+                    if (is_array($relatedRecords)) {
+                        // an array of records
+                        $tempData = array();
+                        if (!empty($relatedRecords)) {
+                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                            foreach ($relatedRecords as $relative) {
+                                $tempData[] = $relative->getAttributes($relatedFields);
+                            }
+                        }
+                    }
+                    else {
+                        $tempData = null;
+                        if (isset($relatedRecords)) {
+                            $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                            $tempData = $relatedRecords->getAttributes($relatedFields);
+                        }
+                    }
+                    $relatedData[$extraName] = $tempData;
+                }
+                if (!empty($relatedData)) {
+                    $data = array_merge($data, $relatedData);
+                }
+            }
 
             return $data;
         }
@@ -908,14 +983,16 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $records
-     * @param bool $rollback
+     * @param        $table
+     * @param        $records
+     * @param bool   $rollback
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function createRecords($table, $records, $rollback = false, $return_fields = '')
+    public function createRecords($table, $records, $rollback = false, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -932,7 +1009,7 @@ class SystemManager implements iRestHandler
         $out = array();
         foreach ($records as $record) {
             try {
-                $out[] = $this->createRecordLow($table, $record, $return_fields);
+                $out[] = $this->createRecordLow($table, $record, $return_fields, $extras);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -943,30 +1020,34 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $record
+     * @param        $table
+     * @param        $record
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function createRecord($table, $record, $return_fields = '')
+    public function createRecord($table, $record, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('create', 'system', $table);
-        return $this->createRecordLow($table, $record, $return_fields);
+        return $this->createRecordLow($table, $record, $return_fields, $extras);
     }
 
     /**
-     * @param $table
-     * @param $id
-     * @param $record
-     * @param $return_fields
-     * @return array
+     * @param        $table
+     * @param        $id
+     * @param        $record
+     * @param string $return_fields
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    protected function updateRecordLow($table, $id, $record, $return_fields = '')
+    protected function updateRecordLow($table, $id, $record, $return_fields = '', $extras = array())
     {
         if (empty($record)) {
             throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
@@ -1031,8 +1112,6 @@ class SystemManager implements iRestHandler
                 throw new Exception("Failed to update user.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
-            $return_fields = $model->getRetrievableAttributes($return_fields);
-            $data = $obj->getAttributes($return_fields);
             // after record update
             switch (strtolower($table)) {
             case 'app':
@@ -1100,6 +1179,42 @@ class SystemManager implements iRestHandler
                 }
             }
             */
+            // get returnables
+            $return_fields = $model->getRetrievableAttributes($return_fields);
+            $data = $obj->getAttributes($return_fields);
+            if (!empty($extras)) {
+                $relations = $obj->relations();
+                $relatedData = array();
+                foreach ($extras as $extra) {
+                    $extraName = $extra['name'];
+                    if (!isset($relations[$extraName])) {
+                        throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
+                    }
+                    $extraFields = $extra['fields'];
+                    $relatedRecords = $obj->getRelated($extraName, true);
+                    if (is_array($relatedRecords)) {
+                        // an array of records
+                        $tempData = array();
+                        if (!empty($relatedRecords)) {
+                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                            foreach ($relatedRecords as $relative) {
+                                $tempData[] = $relative->getAttributes($relatedFields);
+                            }
+                        }
+                    }
+                    else {
+                        $tempData = null;
+                        if (isset($relatedRecords)) {
+                            $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                            $tempData = $relatedRecords->getAttributes($relatedFields);
+                        }
+                    }
+                    $relatedData[$extraName] = $tempData;
+                }
+                if (!empty($relatedData)) {
+                    $data = array_merge($data, $relatedData);
+                }
+            }
 
             return $data;
         }
@@ -1109,14 +1224,16 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $records
-     * @param bool $rollback
+     * @param        $table
+     * @param        $records
+     * @param bool   $rollback
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function updateRecords($table, $records, $rollback = false, $return_fields = '')
+    public function updateRecords($table, $records, $rollback = false, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1134,7 +1251,7 @@ class SystemManager implements iRestHandler
             try {
                 // todo this needs to use $model->getPrimaryKey()
                 $id = Utilities::getArrayValue('id', $record, '');
-                $out[] = $this->updateRecordLow($table, $id, $record, $return_fields);
+                $out[] = $this->updateRecordLow($table, $id, $record, $return_fields, $extras);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -1145,13 +1262,15 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $record
-    * @param string $return_fields
-     * @return array
+     * @param        $table
+     * @param        $record
+     * @param string $return_fields
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function updateRecord($table, $record, $return_fields = '')
+    public function updateRecord($table, $record, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1162,19 +1281,21 @@ class SystemManager implements iRestHandler
         SessionManager::checkPermission('update', 'system', $table);
         // todo this needs to use $model->getPrimaryKey()
         $id = Utilities::getArrayValue('id', $record, '');
-        return $this->updateRecordLow($table, $id, $record, $return_fields);
+        return $this->updateRecordLow($table, $id, $record, $return_fields, $extras);
     }
 
     /**
-     * @param $table
-     * @param $id_list
-     * @param $record
-     * @param bool $rollback
+     * @param        $table
+     * @param        $id_list
+     * @param        $record
+     * @param bool   $rollback
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function updateRecordsByIds($table, $id_list, $record, $rollback = false, $return_fields = '')
+    public function updateRecordsByIds($table, $id_list, $record, $rollback = false, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1187,7 +1308,7 @@ class SystemManager implements iRestHandler
         $out = array();
         foreach ($ids as $id) {
             try {
-                $out[] = $this->updateRecordLow($table, $id, $record, $return_fields);
+                $out[] = $this->updateRecordLow($table, $id, $record, $return_fields, $extras);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -1198,14 +1319,16 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $id
-     * @param $record
+     * @param        $table
+     * @param        $id
+     * @param        $record
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function updateRecordById($table, $id, $record, $return_fields = '')
+    public function updateRecordById($table, $id, $record, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1214,17 +1337,19 @@ class SystemManager implements iRestHandler
             throw new Exception('There is no record in the request.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('update', 'system', $table);
-        return $this->updateRecordLow($table, $id, $record, $return_fields);
+        return $this->updateRecordLow($table, $id, $record, $return_fields, $extras);
     }
 
     /**
-     * @param $table
-     * @param $id
-     * @param $return_fields
-     * @return array
+     * @param        $table
+     * @param        $id
+     * @param string $return_fields
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    protected function deleteRecordLow($table, $id, $return_fields = '')
+    protected function deleteRecordLow($table, $id, $return_fields = '', $extras = array())
     {
         if (empty($id)) {
             throw new Exception("Identifying field 'id' can not be empty for delete request.", ErrorCodes::BAD_REQUEST);
@@ -1248,6 +1373,39 @@ class SystemManager implements iRestHandler
 
             $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
+            if (!empty($extras)) {
+                $relations = $obj->relations();
+                $relatedData = array();
+                foreach ($extras as $extra) {
+                    $extraName = $extra['name'];
+                    if (!isset($relations[$extraName])) {
+                        throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
+                    }
+                    $extraFields = $extra['fields'];
+                    $relatedRecords = $obj->getRelated($extraName, true);
+                    if (is_array($relatedRecords)) {
+                        // an array of records
+                        $tempData = array();
+                        if (!empty($relatedRecords)) {
+                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                            foreach ($relatedRecords as $relative) {
+                                $tempData[] = $relative->getAttributes($relatedFields);
+                            }
+                        }
+                    }
+                    else {
+                        $tempData = null;
+                        if (isset($relatedRecords)) {
+                            $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                            $tempData = $relatedRecords->getAttributes($relatedFields);
+                        }
+                    }
+                    $relatedData[$extraName] = $tempData;
+                }
+                if (!empty($relatedData)) {
+                    $data = array_merge($data, $relatedData);
+                }
+            }
 
             return $data;
         }
@@ -1257,14 +1415,16 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $records
-     * @param bool $rollback
+     * @param        $table
+     * @param        $records
+     * @param bool   $rollback
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function deleteRecords($table, $records, $rollback = false, $return_fields = '')
+    public function deleteRecords($table, $records, $rollback = false, $return_fields = '', $extras = array())
     {
         if (!isset($records) || empty($records)) {
             throw new Exception('There are no record sets in the request.', ErrorCodes::BAD_REQUEST);
@@ -1280,7 +1440,7 @@ class SystemManager implements iRestHandler
             }
             $id = Utilities::getArrayValue('id', $record, '');
             try {
-                $out[] = $this->deleteRecordLow($table, $id, $return_fields);
+                $out[] = $this->deleteRecordLow($table, $id, $return_fields, $extras);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -1291,29 +1451,33 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $record
+     * @param        $table
+     * @param        $record
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function deleteRecord($table, $record, $return_fields = '')
+    public function deleteRecord($table, $record, $return_fields = '', $extras = array())
     {
         if (!isset($record) || empty($record)) {
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
         $id = Utilities::getArrayValue('id', $record, '');
-        return $this->deleteRecordById($table, $id, $return_fields);
+        return $this->deleteRecordById($table, $id, $return_fields, $extras);
     }
 
     /**
-     * @param $table
-     * @param $id_list
+     * @param        $table
+     * @param        $id_list
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function deleteRecordsByIds($table, $id_list, $return_fields = '')
+    public function deleteRecordsByIds($table, $id_list, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
@@ -1323,7 +1487,7 @@ class SystemManager implements iRestHandler
         $out = array();
         foreach ($ids as $id) {
             try {
-                $out[] = $this->deleteRecordLow($table, $id, $return_fields);
+                $out[] = $this->deleteRecordLow($table, $id, $return_fields, $extras);
             }
             catch (Exception $ex) {
                 $out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
@@ -1334,19 +1498,21 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
-     * @param $id
+     * @param        $table
+     * @param        $id
      * @param string $return_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function deleteRecordById($table, $id, $return_fields = '')
+    public function deleteRecordById($table, $id, $return_fields = '', $extras = array())
     {
         if (empty($table)) {
             throw new Exception('Table name can not be empty.', ErrorCodes::BAD_REQUEST);
         }
         SessionManager::checkPermission('delete', 'system', $table);
-        return $this->deleteRecordLow($table, $id, $return_fields);
+        return $this->deleteRecordLow($table, $id, $return_fields, $extras);
     }
 
     /**
