@@ -543,14 +543,16 @@ class PdoSqlDbSvc
     }
 
     /**
-     * @param $table
-     * @param $records
-     * @param bool $rollback
+     * @param        $table
+     * @param        $records
+     * @param bool   $rollback
      * @param string $out_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function createSqlRecords($table, $records, $rollback = false, $out_fields = '')
+    public function createSqlRecords($table, $records, $rollback = false, $out_fields = '', $extras = array())
     {
         if (!isset($records) || !is_array($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
@@ -610,7 +612,7 @@ class PdoSqlDbSvc
                 if ('*' !== $out_fields) {
                     $out_fields = Utilities::addOnceToList($out_fields, $idField);
                 }
-                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $idField, $out_fields);
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $idField, $out_fields, $extras);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -626,13 +628,15 @@ class PdoSqlDbSvc
     }
 
     /**
-     * @param $table
-     * @param $record
+     * @param        $table
+     * @param        $record
      * @param string $out_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function createSqlRecord($table, $record, $out_fields = '')
+    public function createSqlRecord($table, $record, $out_fields = '', $extras = array())
     {
         if (!isset($record) || !is_array($record) || empty($record)) {
             throw new Exception('[InvalidParam]: There are no record fields in the request.');
@@ -663,7 +667,7 @@ class PdoSqlDbSvc
                 if ('*' !== $out_fields) {
                     $out_fields = Utilities::addOnceToList($out_fields, $idField);
                 }
-                return $this->retrieveSqlRecordsByIds($table, $id, $idField, $out_fields);
+                return $this->retrieveSqlRecordsByIds($table, $id, $idField, $out_fields, $extras);
             }
         }
         catch (Exception $ex) {
@@ -672,15 +676,17 @@ class PdoSqlDbSvc
     }
 
     /**
-     * @param $table
-     * @param $records
-     * @param $id_field
-     * @param bool $rollback
+     * @param        $table
+     * @param        $records
+     * @param        $id_field
+     * @param bool   $rollback
      * @param string $out_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function updateSqlRecords($table, $records, $id_field, $rollback = false, $out_fields = '')
+    public function updateSqlRecords($table, $records, $id_field, $rollback = false, $out_fields = '', $extras = array())
     {
         if (!isset($records) || !is_array($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
@@ -747,7 +753,7 @@ class PdoSqlDbSvc
                 if ('*' !== $out_fields) {
                     $out_fields = Utilities::addOnceToList($out_fields, $id_field);
                 }
-                $temp =  $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
+                $temp =  $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields, $extras);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($ids[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -764,15 +770,17 @@ class PdoSqlDbSvc
 
     /**
      * @param string $table
-     * @param array $record
+     * @param array  $record
      * @param string $id_list
      * @param string $id_field
-     * @param bool $rollback
+     * @param bool   $rollback
      * @param string $out_fields
+     * @param array  $extras
+     *
      * @throws Exception
      * @return array
      */
-    public function updateSqlRecordsByIds($table, $record, $id_list, $id_field, $rollback = false, $out_fields = '')
+    public function updateSqlRecordsByIds($table, $record, $id_list, $id_field, $rollback = false, $out_fields = '', $extras = array())
     {
         if (!is_array($record) || empty($record)) {
             throw new Exception("No record fields were passed in the request.");
@@ -843,7 +851,7 @@ class PdoSqlDbSvc
                 if ('*' !== $out_fields) {
                     $out_fields = Utilities::addOnceToList($out_fields, $id_field);
                 }
-                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
+                $temp = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields, $extras);
                 for ($i=0; $i<$count; $i++) {
                     $results[$i] = (isset($outIds[$i]) ?
                                     $temp[$i] : // todo bad assumption
@@ -859,14 +867,16 @@ class PdoSqlDbSvc
     }
 
     /**
-     * @param $table
-     * @param $record
+     * @param        $table
+     * @param        $record
      * @param string $filter
      * @param string $out_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function updateSqlRecordsByFilter($table, $record, $filter = '', $out_fields = '')
+    public function updateSqlRecordsByFilter($table, $record, $filter = '', $out_fields = '', $extras = array())
     {
         if (!is_array($record) || empty($record)) {
             throw new Exception("No record fields were passed in the request.");
@@ -887,7 +897,7 @@ class PdoSqlDbSvc
 
             $results = array();
             if (!empty($out_fields)) {
-                $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter);
+                $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter, 0, '', 0, false, false, $extras);
             }
 
             return $results;
@@ -898,15 +908,17 @@ class PdoSqlDbSvc
     }
 
     /**
-     * @param $table
-     * @param $records
-     * @param $id_field
-     * @param bool $rollback
+     * @param        $table
+     * @param        $records
+     * @param        $id_field
+     * @param bool   $rollback
      * @param string $out_fields
-     * @return array|string
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array|string
      */
-    public function deleteSqlRecords($table, $records, $id_field, $rollback = false, $out_fields = '')
+    public function deleteSqlRecords($table, $records, $id_field, $rollback = false, $out_fields = '', $extras = array())
     {
         if (!isset($records) || !is_array($records) || empty($records)) {
             throw new Exception('[InvalidParam]: There are no record sets in the request.');
@@ -929,19 +941,21 @@ class PdoSqlDbSvc
             $ids[] = $id;
         }
         $idList = implode(',', $ids);
-        return $this->deleteSqlRecordsByIds($table, $idList, $id_field, $rollback, $out_fields);
+        return $this->deleteSqlRecordsByIds($table, $idList, $id_field, $rollback, $out_fields, $extras);
     }
 
     /**
-     * @param $table
-     * @param $id_list
-     * @param $id_field
-     * @param bool $rollback
+     * @param        $table
+     * @param        $id_list
+     * @param        $id_field
+     * @param bool   $rollback
      * @param string $out_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function deleteSqlRecordsByIds($table, $id_list, $id_field, $rollback = false, $out_fields = '')
+    public function deleteSqlRecordsByIds($table, $id_list, $id_field, $rollback = false, $out_fields = '', $extras = array())
     {
         $table = $this->correctTableName($table);
         try {
@@ -967,7 +981,7 @@ class PdoSqlDbSvc
                 if ('*' !== $out_fields) {
                     $out_fields = Utilities::addOnceToList($out_fields, $id_field);
                 }
-                $outResults = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields);
+                $outResults = $this->retrieveSqlRecordsByIds($table, implode(',', $ids), $id_field, $out_fields, $extras);
             }
 
             if ($rollback) {
@@ -1023,13 +1037,15 @@ class PdoSqlDbSvc
     }
 
     /**
-     * @param $table
-     * @param $filter
+     * @param        $table
+     * @param        $filter
      * @param string $out_fields
-     * @return array
+     * @param array  $extras
+     *
      * @throws Exception
+     * @return array
      */
-    public function deleteSqlRecordsByFilter($table, $filter, $out_fields = '')
+    public function deleteSqlRecordsByFilter($table, $filter, $out_fields = '', $extras = array())
     {
         if (empty($filter)) {
             throw new Exception("Filter for delete request can not be empty.");
@@ -1040,7 +1056,7 @@ class PdoSqlDbSvc
             $results = array();
             // get the returnable fields first, then issue delete
             if (!empty($out_fields)) {
-                $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter);
+                $results = $this->retrieveSqlRecordsByFilter($table, $out_fields, $filter, 0, '', 0, false, false, $extras);
             }
 
             // parse filter
@@ -1146,85 +1162,7 @@ class PdoSqlDbSvc
                     $temp[$binding['name']] = $dummy[$binding['name']];
                 }
                 if (!empty($extras)) {
-                    $relatedData = array();
-                    foreach ($extras as $extra) {
-                        $extraName = $extra['name'];
-                        if (!isset($relations[$extraName])) {
-                            throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
-                        }
-                        $relation = $relations[$extraName];
-                        $relationType = $relation['type'];
-                        $relatedTable = $relation['ref_table'];
-                        $relatedField = $relation['ref_field'];
-                        $extraFields = $extra['fields'];
-                        switch ($relationType) {
-                        case 'belongs_to':
-                            /*
-                            "name": "role_by_role_id",
-                            "type": "belongs_to",
-                            "ref_table": "role",
-                            "ref_field": "id",
-                            "field": "role_id"
-                            */
-                            $field = $relation['field'];
-                            $fieldVal = Utilities::getArrayValue($field, $temp);
-                            $relatedRecords = $this->retrieveSqlRecordsByFilter($relatedTable, $extraFields, "$relatedField = '$fieldVal'");
-                            if (!empty($relatedRecords)) {
-                                $tempData = $relatedRecords[0];
-                            }
-                            else {
-                                $tempData = null;
-                            }
-                            break;
-                        case 'has_many':
-                            /*
-                            "name": "users_by_last_modified_by_id",
-                            "type": "has_many",
-                            "ref_table": "user",
-                            "ref_field": "last_modified_by_id",
-                            "field": "id"
-                            */
-                            $field = $relation['field'];
-                            $fieldVal = Utilities::getArrayValue($field, $temp);
-                            $tempData = $this->retrieveSqlRecordsByFilter($relatedTable, $extraFields, "$relatedField = '$fieldVal'");
-                            break;
-                        case 'many_many':
-                            /*
-                            "name": "roles_by_user",
-                            "type": "many_many",
-                            "ref_table": "role",
-                            "ref_field": "id",
-                            "join": "user(default_app_id,role_id)"
-                            */
-                            $field = $relation['field'];
-                            $fieldVal = Utilities::getArrayValue($field, $temp);
-                            $join = $relation['join'];
-                            $joinTable = substr($join, 0, strpos($join, '('));
-                            $other = explode(',', substr($join, strpos($join, '(') + 1, -1));
-                            $joinLeftField = trim($other[0]);
-                            $joinRightField = trim($other[1]);
-                            $joinData = $this->retrieveSqlRecordsByFilter($joinTable, $joinRightField, "$joinLeftField = '$fieldVal'");
-                            $tempData = array();
-                            if (!empty($joinData)) {
-                                $relatedIds = array();
-                                foreach ($joinData as $record) {
-                                    $relatedIds[] = $record[$joinRightField];
-                                }
-                                if (!empty($relatedIds)) {
-                                    $relatedIds = implode(',', $relatedIds);
-                                    $tempData = $this->retrieveSqlRecordsByIds($relatedTable, $relatedIds, $relatedField, $extraFields);
-                                }
-                            }
-                            break;
-                        default:
-                            throw new Exception('Invalid relationship type detected.', ErrorCodes::INTERNAL_SERVER_ERROR);
-                            break;
-                        }
-                        $relatedData[$extraName] = $tempData;
-                    }
-                    if (!empty($relatedData)) {
-                        $temp = array_merge($temp, $relatedData);
-                    }
+                    $temp = $this->retrieveRelatedRecords($relations, $temp, $extras);
                 }
                 $data[$count++] = $temp;
             }
@@ -1327,84 +1265,7 @@ class PdoSqlDbSvc
                     $temp[$binding['name']] = $dummy[$binding['name']];
                 }
                 if (!empty($extras)) {
-                    $relatedData = array();
-                    foreach ($extras as $extra) {
-                        $extraName = $extra['name'];
-                        if (!isset($relations[$extraName])) {
-                            throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
-                        }
-                        $relation = $relations[$extraName];
-                        $relationType = $relation['type'];
-                        $relatedTable = $relation['ref_table'];
-                        $relatedField = $relation['ref_field'];
-                        $extraFields = $extra['fields'];
-                        switch ($relationType) {
-                        case 'belongs_to':
-                            /*
-                            "name": "role_by_role_id",
-                            "type": "belongs_to",
-                            "ref_table": "role",
-                            "ref_field": "id",
-                            "field": "role_id"
-                            */
-                            $field = $relation['field'];
-                            $fieldVal = Utilities::getArrayValue($field, $temp);
-                            $relatedRecords = $this->retrieveSqlRecordsByFilter($relatedTable, $extraFields, "$relatedField = '$fieldVal'");
-                            if (!empty($relatedRecords)) {
-                                $tempData = $relatedRecords[0];
-                            }
-                            else {
-                                $tempData = null;
-                            }
-                            break;
-                        case 'has_many':
-                            /*
-                            "name": "users_by_last_modified_by_id",
-                            "type": "has_many",
-                            "ref_table": "user",
-                            "ref_field": "last_modified_by_id"
-                            */
-                            $field = $relation['field'];
-                            $fieldVal = Utilities::getArrayValue($field, $temp);
-                            $tempData = $this->retrieveSqlRecordsByFilter($relatedTable, $extraFields, "$relatedField = '$fieldVal'");
-                            break;
-                        case 'many_many':
-                            /*
-                            "name": "roles_by_user",
-                            "type": "many_many",
-                            "ref_table": "role",
-                            "ref_field": "id",
-                            "join": "user(default_app_id,role_id)"
-                            */
-                            $field = $relation['field'];
-                            $fieldVal = Utilities::getArrayValue($field, $temp);
-                            $join = $relation['join'];
-                            $joinTable = substr($join, 0, strpos($join, '('));
-                            $other = explode(',', substr($join, strpos($join, '(') + 1, -1));
-                            $joinLeftField = trim($other[0]);
-                            $joinRightField = trim($other[1]);
-                            $joinData = $this->retrieveSqlRecordsByFilter($joinTable, $joinRightField, "$joinLeftField = '$fieldVal'");
-                            $tempData = array();
-                            if (!empty($joinData)) {
-                                $relatedIds = array();
-                                foreach ($joinData as $record) {
-                                    $relatedIds[] = $record[$joinRightField];
-                                }
-                                if (!empty($relatedIds)) {
-                                    $relatedIds = implode(',', $relatedIds);
-                                    $tempData = $this->retrieveSqlRecordsByIds($relatedTable, $relatedIds, $relatedField, $extraFields);
-                                }
-                            }
-                            break;
-                        default:
-                            throw new Exception('Invalid relationship type detected.', ErrorCodes::INTERNAL_SERVER_ERROR);
-                            break;
-                        }
-                        $relatedData[$extraName] = $tempData;
-                    }
-                    if (!empty($relatedData)) {
-                        $temp = array_merge($temp, $relatedData);
-                    }
+                    $temp = $this->retrieveRelatedRecords($relations, $temp, $extras);
                 }
                 $data[$count++] = $temp;
             }
@@ -1445,6 +1306,72 @@ class PdoSqlDbSvc
 
     // generic assignments
 
+    protected function retrieveRelatedRecords($relations, $data, $extras)
+    {
+        if (!empty($extras)) {
+            $relatedData = array();
+            foreach ($extras as $extra) {
+                $extraName = $extra['name'];
+                if (!isset($relations[$extraName])) {
+                    throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
+                }
+                $relation = $relations[$extraName];
+                $relationType = $relation['type'];
+                $relatedTable = $relation['ref_table'];
+                $relatedField = $relation['ref_field'];
+                $extraFields = $extra['fields'];
+                switch ($relationType) {
+                case 'belongs_to':
+                    $field = $relation['field'];
+                    $fieldVal = Utilities::getArrayValue($field, $data);
+                    $relatedRecords = $this->retrieveSqlRecordsByFilter($relatedTable, $extraFields, "$relatedField = '$fieldVal'");
+                    if (!empty($relatedRecords)) {
+                        $tempData = $relatedRecords[0];
+                    }
+                    else {
+                        $tempData = null;
+                    }
+                    break;
+                case 'has_many':
+                    $field = $relation['field'];
+                    $fieldVal = Utilities::getArrayValue($field, $data);
+                    $tempData = $this->retrieveSqlRecordsByFilter($relatedTable, $extraFields, "$relatedField = '$fieldVal'");
+                    break;
+                case 'many_many':
+                    $field = $relation['field'];
+                    $fieldVal = Utilities::getArrayValue($field, $data);
+                    $join = $relation['join'];
+                    $joinTable = substr($join, 0, strpos($join, '('));
+                    $other = explode(',', substr($join, strpos($join, '(') + 1, -1));
+                    $joinLeftField = trim($other[0]);
+                    $joinRightField = trim($other[1]);
+                    $joinData = $this->retrieveSqlRecordsByFilter($joinTable, $joinRightField, "$joinLeftField = '$fieldVal'");
+                    $tempData = array();
+                    if (!empty($joinData)) {
+                        $relatedIds = array();
+                        foreach ($joinData as $record) {
+                            $relatedIds[] = $record[$joinRightField];
+                        }
+                        if (!empty($relatedIds)) {
+                            $relatedIds = implode(',', $relatedIds);
+                            $tempData = $this->retrieveSqlRecordsByIds($relatedTable, $relatedIds, $relatedField, $extraFields);
+                        }
+                    }
+                    break;
+                default:
+                    throw new Exception('Invalid relationship type detected.', ErrorCodes::INTERNAL_SERVER_ERROR);
+                    break;
+                }
+                $relatedData[$extraName] = $tempData;
+            }
+            if (!empty($relatedData)) {
+                $data = array_merge($data, $relatedData);
+            }
+        }
+
+        return $data;
+
+    }
     /**
      * @param string $one_table
      * @param string $one_id
