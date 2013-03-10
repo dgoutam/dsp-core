@@ -31,14 +31,14 @@ abstract class CommonService
     protected $_type;
 
     /**
-     * @var string
-     */
-    protected $_nativeFormat;
-
-    /**
      * @var boolean
      */
     protected $_isActive;
+
+    /**
+     * @var string
+     */
+    protected $_nativeFormat;
 
     /**
      * Creates a new Service instance
@@ -72,14 +72,6 @@ abstract class CommonService
     }
 
     /**
-     * @return boolean
-     */
-    public function getIsActive()
-    {
-        return $this->_isActive;
-    }
-
-    /**
      * @return string
      */
     public function getApiName()
@@ -98,9 +90,9 @@ abstract class CommonService
     /**
      * @return string
      */
-    public function getNativeFormat()
+    public function getDescription()
     {
-        return $this->_nativeFormat;
+        return $this->_description;
     }
 
     /**
@@ -109,6 +101,22 @@ abstract class CommonService
     public function getType()
     {
         return $this->_type;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function getIsActive()
+    {
+        return $this->_isActive;
+    }
+
+    /**
+     * @return string
+     */
+    public function getNativeFormat()
+    {
+        return $this->_nativeFormat;
     }
 
     /**

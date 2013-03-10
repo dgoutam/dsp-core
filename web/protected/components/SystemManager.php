@@ -454,8 +454,10 @@ class SystemManager implements iRestHandler
                                     $order = Utilities::getArrayValue('order', $data, '');
                                     $offset = intval(Utilities::getArrayValue('offset', $data, 0));
                                     $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $data, false));
+                                    $include_schema = Utilities::boolval(Utilities::getArrayValue('include_schema', $data, false));
                                     $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter,
-                                                                             $limit, $order, $offset, $include_count,
+                                                                             $limit, $order, $offset,
+                                                                             $include_count, $include_schema,
                                                                              $extras);
                                 }
                             }
@@ -466,8 +468,10 @@ class SystemManager implements iRestHandler
                             $order = Utilities::getArrayValue('order', $_REQUEST, '');
                             $offset = intval(Utilities::getArrayValue('offset', $_REQUEST, 0));
                             $include_count = Utilities::boolval(Utilities::getArrayValue('include_count', $_REQUEST, false));
+                            $include_schema = Utilities::boolval(Utilities::getArrayValue('include_schema', $_REQUEST, false));
                             $result = $this->retrieveRecordsByFilter($this->modelName, $fields, $filter,
-                                                                     $limit, $order, $offset, $include_count,
+                                                                     $limit, $order, $offset,
+                                                                     $include_count, $include_schema,
                                                                      $extras);
                         }
                     }
@@ -851,19 +855,6 @@ class SystemManager implements iRestHandler
         try {
             // create DB record
             $obj = static::getNewResource($table);
-            // todo move this to model rules
-            if (isset($record['password'])) {
-                if (!empty($record['password'])) {
-                    $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
-                }
-                unset($record['password']);
-            }
-            if (isset($record['security_answer'])) {
-                if (!empty($record['security_answer'])) {
-                    $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
-                }
-                unset($record['security_answer']);
-            }
             $obj->setAttributes($record);
             if (!$obj->save()) {
                 $msg = '';
@@ -882,58 +873,8 @@ class SystemManager implements iRestHandler
             }
 
             // after record create
-            switch (strtolower($table)) {
-            case 'app':
-                if (isset($record['app_groups'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
-                }
-                if (isset($record['roles'])) {
-                    $this->assignManyToOneByMap($table, $id, 'role', 'app_to_role', 'app_id', 'role_id', $record['roles']);
-                }
-                break;
-            case 'app_group':
-                if (isset($record['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $record['apps']);
-                }
-                break;
-            case 'role':
-                if (isset($record['role_service_accesses'])) {
-                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
-                }
-                if (isset($record['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
-                }
-                if (isset($record['users'])) {
-                    $this->assignManyToOne($table, $id, 'user', 'role_id', $record['users']);
-                }
-                if (isset($record['services'])) {
-                    $this->assignManyToOneByMap($table, $id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
-                }
-                break;
-            case 'service':
-                if (isset($record['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_service', 'service_id', 'app_id', $record['apps']);
-                }
-                if (isset($record['roles'])) {
-                    $this->assignManyToOneByMap($table, $id, 'role', 'role_service_access', 'service_id', 'role_id', $record['roles']);
-                }
-                break;
-            }
-            /*
-            $relations = $obj->relations();
-            foreach ($relations as $key=>$related) {
-                if (isset($record[$key])) {
-                    switch ($related[0]) {
-                    case CActiveRecord::HAS_MANY:
-                        $this->assignManyToOne($table, $id, $related[1], $related[2], $record[$key]);
-                        break;
-                    case CActiveRecord::MANY_MANY:
-                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $record[$key]);
-                        break;
-                    }
-                }
-            }
-            */
+            $obj->setRelated($record);
+
             // get returnables
             $return_fields = $obj->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
@@ -1065,19 +1006,6 @@ class SystemManager implements iRestHandler
             $sessionAction = '';
             switch (strtolower($table)) {
             case 'user':
-                // todo move this to model rules
-                if (isset($record['password'])) {
-                    if (!empty($record['password'])) {
-                        $obj->setAttribute('password', CPasswordHelper::hashPassword($record['password']));
-                    }
-                    unset($record['password']);
-                }
-                if (isset($record['security_answer'])) {
-                    if (!empty($record['security_answer'])) {
-                        $obj->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
-                    }
-                    unset($record['security_answer']);
-                }
                 if ($obj->is_active && isset($record['is_active'])) {
                     $isActive = Utilities::boolval($record['is_active']);
                     if (Utilities::boolval($obj->is_active) !== $isActive) {
@@ -1112,34 +1040,11 @@ class SystemManager implements iRestHandler
                 throw new Exception("Failed to update user.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR);
             }
 
-            // after record update
+            // after record create
+            $obj->setRelated($record);
+
             switch (strtolower($table)) {
-            case 'app':
-                if (isset($record['app_groups'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
-                }
-                if (isset($record['roles'])) {
-                    $this->assignManyToOneByMap($table, $id, 'role', 'app_to_role', 'app_id', 'role_id', $record['roles']);
-                }
-                break;
-            case 'app_group':
-                if (isset($record['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $record['apps']);
-                }
-                break;
             case 'role':
-                if (isset($record['role_service_accesses'])) {
-                    $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
-                }
-                if (isset($record['apps'])) {
-                    $this->assignManyToOneByMap($table, $id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
-                }
-                if (isset($record['users'])) {
-                    $this->assignManyToOne($table, $id, 'user', 'role_id', $record['users']);
-                }
-                if (isset($record['services'])) {
-                    $this->assignManyToOneByMap($table, $id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
-                }
                 switch ($sessionAction) {
                 case 'delete':
 //                    $user_ids = array();
@@ -1164,21 +1069,7 @@ class SystemManager implements iRestHandler
                 }
                 break;
             }
-            /*
-            $relations = $obj->relations();
-            foreach ($relations as $key=>$related) {
-                if (isset($record[$key])) {
-                    switch ($related[0]) {
-                    case CActiveRecord::HAS_MANY:
-                        $this->assignManyToOne($table, $id, $related[1], $related[2], $record[$key]);
-                        break;
-                    case CActiveRecord::MANY_MANY:
-                        $this->assignManyToOneByMap($table, $id, $related[1], 'app_to_role', 'role_id', 'app_id', $record[$key]);
-                        break;
-                    }
-                }
-            }
-            */
+
             // get returnables
             $return_fields = $model->getRetrievableAttributes($return_fields);
             $data = $obj->getAttributes($return_fields);
@@ -1560,19 +1451,22 @@ class SystemManager implements iRestHandler
     }
 
     /**
-     * @param $table
+     * @param        $table
      * @param string $return_fields
      * @param string $filter
-     * @param int $limit
+     * @param int    $limit
      * @param string $order
-     * @param int $offset
-     * @param bool $include_count
-     * @param array $extras
+     * @param int    $offset
+     * @param bool   $include_count
+     * @param bool   $include_schema
+     * @param array  $extras
+     *
      * @throws Exception
      * @return array
      */
     public function retrieveRecordsByFilter($table, $return_fields = '', $filter = '',
-                                            $limit = 0, $order = '', $offset = 0, $include_count = false,
+                                            $limit = 0, $order = '', $offset = 0,
+                                            $include_count = false, $include_schema = false,
                                             $extras = array())
     {
         if (empty($table)) {
@@ -1642,9 +1536,16 @@ class SystemManager implements iRestHandler
             }
 
             $results = array('record' => $out);
-            if ($include_count) {
-                $count = $model->count($command);
-                $results['meta'] = array('count' => $count);
+            if ($include_count || $include_schema) {
+                // count total records
+                if ($include_count) {
+                    $count = $model->count($command);
+                    $results['meta']['count'] = intval($count);
+                }
+                // count total records
+                if ($include_schema) {
+                    $results['meta']['schema'] = DbUtilities::describeTable(Yii::app()->db, $model->tableName(), static::SYSTEM_TABLE_PREFIX);
+                }
             }
             return $results;
         }
@@ -1849,204 +1750,5 @@ class SystemManager implements iRestHandler
     {
         return $this->getAppIdFromName(SessionManager::getCurrentAppName());
     }
-
-    /**
-     * @param $role_id
-     * @param array $accesses
-     * @throws Exception
-     * @return void
-     */
-    protected function assignRoleServiceAccesses($role_id, $accesses=array())
-    {
-        if (empty($role_id)) {
-            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
-        }
-        try {
-            $accesses = array_values($accesses); // reset indices if needed
-            $count = count($accesses);
-            // check for dupes before processing
-            for ($key1 = 0; $key1 < $count; $key1++) {
-                $access = $accesses[$key1];
-                $serviceId = Utilities::getArrayValue('service_id', $access, null);
-                $component = Utilities::getArrayValue('component', $access, '');
-                for ($key2 = $key1 + 1; $key2 < $count; $key2++) {
-                    $access2 = $accesses[$key2];
-                    $serviceId2 = Utilities::getArrayValue('service_id', $access2, null);
-                    $component2 = Utilities::getArrayValue('component', $access2, '');
-                    if (($serviceId === $serviceId2) && ($component === $component2)) {
-                        throw new Exception("Duplicated service and component combination '$serviceId $component' in role service access.", ErrorCodes::BAD_REQUEST);
-                    }
-                }
-            }
-            $oldAccesses = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
-            foreach ($oldAccesses as $oldAccess) {
-                $found = false;
-                foreach ($accesses as $key=>$access) {
-                    $newServiceId = Utilities::getArrayValue('service_id', $access, null);
-                    $newComponent = Utilities::getArrayValue('component', $access, '');
-                    if (($newServiceId === $oldAccess->service_id) &&
-                        ($newComponent === $oldAccess->component)) {
-                        // found it, make sure nothing needs to be updated
-                        $newAccess = Utilities::getArrayValue('access', $access, '');
-                        if (($oldAccess->access != $newAccess)) {
-                            $oldAccess->access = $newAccess;
-                            $oldAccess->save();
-                        }
-                        // keeping it, so remove it from the list, as this becomes adds
-                        unset($accesses[$key]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $oldAccess->delete();
-                    continue;
-                }
-            }
-            if (!empty($accesses)) {
-                // add what is leftover
-                foreach ($accesses as $access) {
-                    $newAccess = new RoleServiceAccess;
-                    if ($newAccess) {
-                        $newAccess->setAttributes($access);
-                        $newAccess->save();
-                    }
-                }
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating accesses to role assignment.\n{$ex->getMessage()}");
-        }
-    }
-
-    // generic assignments
-    /**
-     * @param string $one_table
-     * @param string $one_id
-     * @param string $many_table
-     * @param string $many_field
-     * @param array $many_records
-     * @throws Exception
-     * @return void
-     */
-    protected function assignManyToOne($one_table, $one_id, $many_table, $many_field, $many_records=array())
-    {
-        $oneModel = static::getResourceModel($one_table);
-        $manyModel = static::getResourceModel($many_table);
-        if (empty($one_id)) {
-            throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
-        }
-        try {
-            $manyObj = static::getNewResource($many_table);
-            $pkField = $manyObj->tableSchema->primaryKey;
-            $oldMany = $manyModel->findAll($many_field .' = :oid', array(':oid'=>$one_id));
-            foreach ($oldMany as $old) {
-                $oldId = $old->primaryKey;
-                $found = false;
-                foreach ($many_records as $key=>$item) {
-                    $id = Utilities::getArrayValue($pkField, $item, '');
-                    if ($id == $oldId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($many_records[$key]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $old->setAttribute($many_field, null);
-                    $old->save();
-                    continue;
-                }
-            }
-            if (!empty($many_records)) {
-                // add what is leftover
-                foreach ($many_records as $item) {
-                    $id = Utilities::getArrayValue($pkField, $item, '');
-                    $assigned = $manyModel->findByPk($id);
-                    if ($assigned) {
-                        $assigned->setAttribute($many_field, $one_id);
-                        $assigned->save();
-                    }
-                }
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating many to one assignment.\n{$ex->getMessage()}", $ex->getCode());
-        }
-    }
-
-    /**
-     * @param $one_table
-     * @param $one_id
-     * @param $many_table
-     * @param $map_table
-     * @param $one_field
-     * @param $many_field
-     * @param array $many_records
-     * @throws Exception
-     * @return void
-     */
-    protected function assignManyToOneByMap($one_table, $one_id, $many_table, $map_table, $one_field, $many_field, $many_records=array())
-    {
-        if (empty($one_id)) {
-            throw new Exception("The $one_table id can not be empty.", ErrorCodes::BAD_REQUEST);
-        }
-        $map_table = static::SYSTEM_TABLE_PREFIX . $map_table;
-        try {
-            $manyObj = static::getNewResource($many_table);
-            $pkManyField = $manyObj->tableSchema->primaryKey;
-            $pkMapField = 'id';
-            // use query builder
-            $command = Yii::app()->db->createCommand();
-            $command->select($pkMapField.','.$many_field);
-            $command->from($map_table);
-            $command->where("$one_field = '$one_id'");
-            $maps = $command->queryAll();
-            $toDelete = array();
-            foreach ($maps as $map) {
-                $manyId = Utilities::getArrayValue($many_field, $map, '');
-                $id = Utilities::getArrayValue($pkMapField, $map, '');
-                $found = false;
-                foreach ($many_records as $key=>$item) {
-                    $assignId = Utilities::getArrayValue($pkManyField, $item, '');
-                    if ($assignId == $manyId) {
-                        // found it, keeping it, so remove it from the list, as this becomes adds
-                        unset($many_records[$key]);
-                        $found = true;
-                        continue;
-                    }
-                }
-                if (!$found) {
-                    $toDelete[] = $id;
-                    continue;
-                }
-            }
-            if (!empty($toDelete)) {
-                $command->reset();
-
-                foreach ($toDelete as $key => $id) {
-                    // simple delete request
-                    $command->reset();
-                    $rows = $command->delete($map_table, array('in', $pkMapField, $id));
-                }
-            }
-            if (!empty($many_records)) {
-                foreach ($many_records as $item) {
-                    $itemId = Utilities::getArrayValue($pkManyField, $item, '');
-                    $record = array($many_field=>$itemId, $one_field=>$one_id);
-                    // simple update request
-                    $command->reset();
-                    $rows = $command->insert($map_table, $record);
-                    if (0 >= $rows) {
-                        throw new Exception("Record insert failed for table '$map_table'.");
-                    }
-                }
-            }
-        }
-        catch (Exception $ex) {
-            throw new Exception("Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode());
-        }
-    }
-
 
 }

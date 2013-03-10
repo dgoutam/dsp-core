@@ -64,7 +64,7 @@
  * @property App        $default_app
  * @property Role       $role
  */
-class User extends CActiveRecord
+class User extends BaseSystemModel
 {
 	/**
 	 * Returns the static model of the specified AR class.
@@ -83,7 +83,7 @@ class User extends CActiveRecord
 	 */
 	public function tableName()
 	{
-		return 'df_sys_user';
+		return static::tableNamePrefix() . 'user';
 	}
 
 	/**
@@ -91,7 +91,7 @@ class User extends CActiveRecord
 	 */
 	public function rules()
 	{
-		return array(
+		$rules =  array(
 			array( 'username, first_name, display_name, email', 'required' ),
 			array( 'username, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 			array( 'email', 'email' ),
@@ -106,6 +106,8 @@ class User extends CActiveRecord
 				'on' => 'search'
 			),
 		);
+
+        return array_merge(parent::rules(), $rules);
 	}
 
 	/**
@@ -113,7 +115,7 @@ class User extends CActiveRecord
 	 */
 	public function relations()
 	{
-		return array(
+		$relations = array(
 			'apps_created'        => array( self::HAS_MANY, 'App', 'created_by_id' ),
 			'apps_modified'       => array( self::HAS_MANY, 'App', 'last_modified_by_id' ),
 			'app_groups_created'  => array( self::HAS_MANY, 'AppGroup', 'created_by_id' ),
@@ -124,11 +126,11 @@ class User extends CActiveRecord
 			'services_modified'   => array( self::HAS_MANY, 'Service', 'last_modified_by_id' ),
 			'users_created'       => array( self::HAS_MANY, 'User', 'created_by_id' ),
 			'users_modified'      => array( self::HAS_MANY, 'User', 'last_modified_by_id' ),
-			'created_by'          => array( self::BELONGS_TO, 'User', 'created_by_id' ),
-			'last_modified_by'    => array( self::BELONGS_TO, 'User', 'last_modified_by_id' ),
 			'default_app'         => array( self::BELONGS_TO, 'App', 'default_app_id' ),
 			'role'                => array( self::BELONGS_TO, 'Role', 'role_id' ),
 		);
+
+        return array_merge(parent::relations(), $relations);
 	}
 
 	/**
@@ -136,8 +138,7 @@ class User extends CActiveRecord
 	 */
 	public function attributeLabels()
 	{
-		return array(
-			'id'                  => 'User Id',
+		$labels = array(
 			'username'            => 'Username',
 			'password'            => 'Password',
 			'first_name'          => 'First Name',
@@ -145,19 +146,16 @@ class User extends CActiveRecord
 			'display_name'        => 'Display Name',
 			'email'               => 'Email',
 			'phone'               => 'Phone',
-			'is_active'           => 'Is Active',
-			'is_sys_admin'        => 'Is System Admin',
+            'is_active'           => 'Is Active',
+            'is_sys_admin'        => 'Is System Admin',
 			'confirm_code'        => 'Confirmation Code',
 			'default_app_id'      => 'Default App',
 			'role_id'             => 'Role',
 			'security_question'   => 'Security Question',
 			'security_answer'     => 'Security Answer',
-			'last_login_date'     => 'Last Login Date',
-			'created_date'        => 'Created Date',
-			'last_modified_date'  => 'Last Modified Date',
-			'created_by_id'       => 'Created By',
-			'last_modified_by_id' => 'Last Modified By',
 		);
+
+        return array_merge(parent::attributeLabels(), $labels);
 	}
 
 	/**
@@ -193,8 +191,39 @@ class User extends CActiveRecord
 		return new CActiveDataProvider( $this, array( 'criteria' => $criteria, ) );
 	}
 
-	/**
-	 * Overrides base class
+    /**
+     * {@InheritDoc}
+     */
+    public function setAttributes($values, $safeOnly=true)
+    {
+        if (isset($values['password'])) {
+            if (!empty($values['password'])) {
+                $this->setAttribute('password', CPasswordHelper::hashPassword($values['password']));
+            }
+            unset($values['password']);
+        }
+        if (isset($values['security_answer'])) {
+            if (!empty($values['security_answer'])) {
+                $this->setAttribute('security_answer', CPasswordHelper::hashPassword($values['security_answer']));
+            }
+            unset($values['security_answer']);
+        }
+
+        parent::setAttributes($values, $safeOnly);
+    }
+
+
+    /**
+     * @param array $values
+     */
+    public function setRelated($values)
+    {
+        // default app id
+        // role id
+    }
+
+    /**
+     * {@InheritDoc}
 	 *
 	 * @return bool
 	 */
@@ -232,42 +261,18 @@ class User extends CActiveRecord
 	}
 
 	/**
-	 * Overrides base class
+     * {@InheritDoc}
 	 *
 	 * @return bool
 	 */
 	protected function beforeSave()
 	{
-		// until db's get their timestamp act together
-		switch ( DbUtilities::getDbDriverType( $this->dbConnection ) )
-		{
-			case DbUtilities::DRV_SQLSRV:
-				$dateTime = new CDbExpression( 'SYSDATETIMEOFFSET()' );
-				break;
-			case DbUtilities::DRV_MYSQL:
-			default:
-				$dateTime = new CDbExpression( 'NOW()' );
-				break;
-		}
-		if ( $this->isNewRecord )
-		{
-			$this->created_date = $dateTime;
-		}
-		$this->last_modified_date = $dateTime;
-
-		// set user tracking
-		$userId = SessionManager::getCurrentUserId();
-		if ( $this->isNewRecord )
-		{
-			$this->created_by_id = $userId;
-		}
-		$this->last_modified_by_id = $userId;
 
 		return parent::beforeSave();
 	}
 
 	/**
-	 * Overrides base class
+     * {@InheritDoc}
 	 *
 	 * @return bool
 	 * @throws Exception
@@ -279,7 +284,6 @@ class User extends CActiveRecord
 		if ( $currUser === $this->getPrimaryKey() )
 		{
 			throw new Exception( "The current logged in user can not be deleted." );
-			//return false;
 		}
 		// check and make sure this is not the last admin user
 		$count = static::model()->count( 'is_sys_admin=:is and id != :id', array( ':is' => 1, ':id' => $this->getPrimaryKey() ) );
@@ -292,50 +296,6 @@ class User extends CActiveRecord
 	}
 
 	/**
-	 * @param string $requested
-	 *
-	 * @return array
-	 */
-	public function getRetrievableAttributes( $requested )
-	{
-		if ( empty( $requested ) )
-		{
-			// primary keys only
-			return array( 'id' );
-		}
-		elseif ( '*' == $requested )
-		{
-			return array(
-				'id',
-				'display_name',
-				'first_name',
-				'last_name',
-				'username',
-				'email',
-				'phone',
-				'is_active',
-				'is_sys_admin',
-				'role_id',
-				'default_app_id',
-				'created_date',
-				'created_by_id',
-				'last_modified_date',
-				'last_modified_by_id'
-			);
-		}
-		else
-		{
-			// remove any undesired retrievable fields
-			$requested = Utilities::removeOneFromList( $requested, 'password', ',' );
-			$requested = Utilities::removeOneFromList( $requested, 'security_question', ',' );
-			$requested = Utilities::removeOneFromList( $requested, 'security_answer', ',' );
-			$requested = Utilities::removeOneFromList( $requested, 'confirm_code', ',' );
-
-			return explode( ',', $requested );
-		}
-	}
-
-	/**
 	 * {@InheritDoc}
 	 */
 	public function afterFind()
@@ -343,8 +303,52 @@ class User extends CActiveRecord
 		parent::afterFind();
 
 		// correct data type
-		$this->is_active = intval( $this->is_active );
+        $this->is_active = intval( $this->is_active );
 		$this->is_sys_admin = intval( $this->is_sys_admin );
 	}
+
+    /**
+     * @param string $requested
+     *
+     * @return array
+     */
+    public function getRetrievableAttributes( $requested )
+    {
+        if ( empty( $requested ) )
+        {
+            // primary keys only
+            return array( 'id' );
+        }
+        elseif ( '*' == $requested )
+        {
+            return array(
+                'id',
+                'display_name',
+                'first_name',
+                'last_name',
+                'username',
+                'email',
+                'phone',
+                'is_active',
+                'is_sys_admin',
+                'role_id',
+                'default_app_id',
+                'created_date',
+                'created_by_id',
+                'last_modified_date',
+                'last_modified_by_id'
+            );
+        }
+        else
+        {
+            // remove any undesired retrievable fields
+            $requested = Utilities::removeOneFromList( $requested, 'password', ',' );
+            $requested = Utilities::removeOneFromList( $requested, 'security_question', ',' );
+            $requested = Utilities::removeOneFromList( $requested, 'security_answer', ',' );
+            $requested = Utilities::removeOneFromList( $requested, 'confirm_code', ',' );
+
+            return explode( ',', $requested );
+        }
+    }
 
 }

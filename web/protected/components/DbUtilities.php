@@ -187,16 +187,18 @@ class DbUtilities
 
     /**
      * @param CDbConnection $db
-     * @param null $names
-     * @return array|string
+     * @param null          $names
+     * @param string        $remove_prefix
+     *
      * @throws Exception
+     * @return array|string
      */
-    public static function describeTables($db, $names = null)
+    public static function describeTables($db, $names = null, $remove_prefix='')
     {
         try {
             $out = array();
             foreach ($names as $table) {
-                $temp = static::describeTable($db, $table);
+                $temp = static::describeTable($db, $table, $remove_prefix='');
                 $out[] = $temp['table'];
             }
 
@@ -210,11 +212,13 @@ class DbUtilities
 
     /**
      * @param CDbConnection $db
-     * @param $name
-     * @return array
+     * @param string        $name
+     * @param string        $remove_prefix
+     *
      * @throws Exception
+     * @return array
      */
-    public static function describeTable($db, $name)
+    public static function describeTable($db, $name, $remove_prefix='')
     {
         $name = static::correctTableName($db, $name);
         try {
@@ -226,15 +230,21 @@ class DbUtilities
             $labels = static::getLabels($query, array(':tn'=>$name));
             $labels = static::reformatFieldLabelArray($labels);
             $labelInfo = Utilities::getArrayValue('', $labels, array());
+            $publicName =$table->name;
+            if (!empty($remove_prefix)) {
+                if (substr($publicName, 0, strlen($remove_prefix)) == $remove_prefix) {
+                    $publicName = substr($publicName, strlen($remove_prefix), strlen($publicName));
+                }
+            }
             $label = Utilities::getArrayValue('label', $labelInfo);
             if (empty($label))
-                $label = Utilities::labelize($table->name);
+                $label = Utilities::labelize($publicName);
             $plural = Utilities::getArrayValue('plural', $labelInfo);
             if (empty($plural))
                 $plural = Utilities::pluralize($label);
             $name_field = Utilities::getArrayValue('name_field', $labelInfo);
 
-            $basic = array('name' => $table->name,
+            $basic = array('name' => $publicName,
                            'label' => $label,
                            'plural' => $plural,
                            'primary_key' => $table->primaryKey,

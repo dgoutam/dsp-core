@@ -54,7 +54,7 @@
  * @property AppGroup[] $app_groups
  * @property Role[] $roles
  */
-class App extends CActiveRecord
+class App extends BaseSystemModel
 {
     /**
      * Returns the static model of the specified AR class.
@@ -71,7 +71,7 @@ class App extends CActiveRecord
      */
     public function tableName()
     {
-        return 'df_sys_app';
+        return static::tableNamePrefix() . 'app';
     }
 
     /**
@@ -81,10 +81,10 @@ class App extends CActiveRecord
     {
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
-        return array(
+        $rules = array(
             array('name, api_name', 'required'),
             array('name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
-            array('is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
+            array('is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 64),
             array('api_name', 'length', 'max' => 64),
             array('description, url, import_url', 'safe'),
@@ -92,6 +92,8 @@ class App extends CActiveRecord
             // Please remove those attributes that should not be searched.
             array('id, name, api_name, is_active, is_url_external, filter_by_device, filter_phone, filter_tablet, filter_desktop, requires_plugin, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
+
+        return array_merge(parent::rules(), $rules);
     }
 
     /**
@@ -101,14 +103,14 @@ class App extends CActiveRecord
     {
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
-        return array(
-            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+        $relations = array(
             'roles_default_app' => array(self::HAS_MANY, 'Role', 'default_app_id'),
             'users_default_app' => array(self::HAS_MANY, 'User', 'default_app_id'),
             'app_groups' => array(self::MANY_MANY, 'AppGroup', 'df_sys_app_to_app_group(app_id, app_group_id)'),
             'roles' => array(self::MANY_MANY, 'Role', 'df_sys_app_to_role(app_id, role_id)'),
         );
+
+        return array_merge(parent::relations(), $relations);
     }
 
     /**
@@ -116,8 +118,7 @@ class App extends CActiveRecord
      */
     public function attributeLabels()
     {
-        return array(
-            'id' => 'App Id',
+        $labels = array(
             'name' => 'Name',
             'api_name' => 'API Name',
             'description' => 'Description',
@@ -130,11 +131,9 @@ class App extends CActiveRecord
             'filter_desktop' => 'Filter Desktop',
             'requires_plugin' => 'Requires Plugin',
             'import_url' => 'Import Url',
-            'created_date' => 'Created Date',
-            'last_modified_date' => 'Last Modified Date',
-            'created_by_id' => 'Created By',
-            'last_modified_by_id' => 'Last Modified By',
         );
+
+        return array_merge(parent::attributeLabels(), $labels);
     }
 
     /**
@@ -167,8 +166,20 @@ class App extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * @param array $values
+     */
+    public function setRelated($values)
+    {
+        if (isset($record['app_groups'])) {
+            $this->assignManyToOneByMap($id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
+        }
+        if (isset($record['roles'])) {
+            $this->assignManyToOneByMap($id, 'role', 'app_to_role', 'app_id', 'role_id', $record['roles']);
+        }
+    }
+
+    /**
+     * {@InheritDoc}
      */
     protected function beforeValidate()
     {
@@ -191,33 +202,10 @@ class App extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * {@InheritDoc}
      */
     protected function beforeSave()
     {
-        // until db's get their timestamp act together
-        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
-        case DbUtilities::DRV_SQLSRV:
-            $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
-            break;
-        case DbUtilities::DRV_MYSQL:
-        default:
-            $dateTime = new CDbExpression('NOW()');
-            break;
-        }
-        if ($this->isNewRecord) {
-            $this->created_date = $dateTime;
-        }
-        $this->last_modified_date = $dateTime;
-
-        // set user tracking
-        $userId = SessionManager::getCurrentUserId();
-        if ($this->isNewRecord) {
-            $this->created_by_id = $userId;
-        }
-        $this->last_modified_by_id = $userId;
-
         if (!$this->is_url_external && empty($this->url)) {
             $this->url = '/index.html';
         }
@@ -226,8 +214,7 @@ class App extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * {@InheritDoc}
      */
     protected function afterSave()
     {
@@ -245,9 +232,7 @@ class App extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
-     * @throws Exception
+     * {@InheritDoc}
      */
     protected function beforeDelete()
     {
@@ -262,6 +247,24 @@ class App extends CActiveRecord
         $store->deleteApp($this->api_name);
 
         return parent::beforeDelete();
+    }
+
+    /**
+     * {@InheritDoc}
+     */
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->id = intval($this->id);
+        $this->is_active = intval($this->is_active);
+        $this->is_url_external = intval($this->is_url_external);
+        $this->filter_by_device = intval($this->filter_by_device);
+        $this->filter_phone = intval($this->filter_phone);
+        $this->filter_tablet = intval($this->filter_tablet);
+        $this->filter_desktop = intval($this->filter_desktop);
+        $this->requires_plugin = intval($this->requires_plugin);
     }
 
     /**
@@ -287,18 +290,4 @@ class App extends CActiveRecord
         }
     }
 
-    public function afterFind()
-    {
-        parent::afterFind();
-
-        // correct data type
-        $this->id = intval($this->id);
-        $this->is_active = intval($this->is_active);
-        $this->is_url_external = intval($this->is_url_external);
-        $this->filter_by_device = intval($this->filter_by_device);
-        $this->filter_phone = intval($this->filter_phone);
-        $this->filter_tablet = intval($this->filter_tablet);
-        $this->filter_desktop = intval($this->filter_desktop);
-        $this->requires_plugin = intval($this->requires_plugin);
-    }
 }

@@ -51,7 +51,7 @@
  * @property User $created_by
  * @property User $last_modified_by
  */
-class Service extends CActiveRecord
+class Service extends BaseSystemModel
 {
     /**
      * Returns the static model of the specified AR class.
@@ -68,7 +68,7 @@ class Service extends CActiveRecord
      */
     public function tableName()
     {
-        return 'df_sys_service';
+        return static::tableNamePrefix() . 'service';
     }
 
     /**
@@ -78,10 +78,10 @@ class Service extends CActiveRecord
     {
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
-        return array(
+        $rules =  array(
             array('name, api_name, type', 'required'),
             array('name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
-            array('is_active, created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
+            array('is_active', 'numerical', 'integerOnly' => true),
             array('name, api_name, type, storage_type, native_format', 'length', 'max' => 64),
             array('storage_name', 'length', 'max' => 80),
             array('base_url', 'length', 'max' => 255),
@@ -90,6 +90,8 @@ class Service extends CActiveRecord
             // Please remove those attributes that should not be searched.
             array('id, name, api_name, is_active, type, storage_name, storage_type, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
+
+        return array_merge(parent::rules(), $rules);
     }
 
     /**
@@ -99,13 +101,13 @@ class Service extends CActiveRecord
     {
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
-        return array(
+        $relations = array(
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'service_id'),
-            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
             'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_service(app_id, service_id)'),
             'roles' => array(self::MANY_MANY, 'Role', 'df_sys_role_service_access(service_id, role_id)'),
         );
+
+        return array_merge(parent::relations(), $relations);
     }
 
     /**
@@ -113,8 +115,7 @@ class Service extends CActiveRecord
      */
     public function attributeLabels()
     {
-        return array(
-            'id' => 'Service Id',
+        $labels = array(
             'name' => 'Name',
             'api_name' => 'API Name',
             'description' => 'Description',
@@ -127,11 +128,9 @@ class Service extends CActiveRecord
             'base_url' => 'Base Url',
             'parameters' => 'Parameters',
             'headers' => 'Headers',
-            'created_date' => 'Created Date',
-            'last_modified_date' => 'Last Modified Date',
-            'created_by_id' => 'Created By',
-            'last_modified_by_id' => 'Last Modified By',
         );
+
+        return array_merge(parent::attributeLabels(), $labels);
     }
 
     /**
@@ -163,8 +162,20 @@ class Service extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * @param array $values
+     */
+    public function setRelated($values)
+    {
+        if (isset($record['apps'])) {
+            $this->assignManyToOneByMap($id, 'app', 'app_to_service', 'service_id', 'app_id', $record['apps']);
+        }
+        if (isset($record['roles'])) {
+            $this->assignManyToOneByMap($id, 'role', 'role_service_access', 'service_id', 'role_id', $record['roles']);
+        }
+    }
+
+    /**
+     * {@InheritDoc}
      */
     protected function beforeValidate()
     {
@@ -176,45 +187,32 @@ class Service extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * {@InheritDoc}
      */
     protected function beforeSave()
     {
-        // until db's get their timestamp act together
-        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
-        case DbUtilities::DRV_SQLSRV:
-            $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
-            break;
-        case DbUtilities::DRV_MYSQL:
-        default:
-            $dateTime = new CDbExpression('NOW()');
-            break;
-        }
-        if ($this->isNewRecord) {
-            $this->created_date = $dateTime;
-        }
-        $this->last_modified_date = $dateTime;
-
-        // set user tracking
-        $userId = SessionManager::getCurrentUserId();
-        if ($this->isNewRecord) {
-            $this->created_by_id = $userId;
-        }
-        $this->last_modified_by_id = $userId;
 
         return parent::beforeSave();
     }
 
     /**
-     * Overrides base class
-     * @return bool
-     * @throws Exception
+     * {@InheritDoc}
      */
     protected function beforeDelete()
     {
 
         return parent::beforeDelete();
+    }
+
+    /**
+     * {@InheritDoc}
+     */
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->is_active = intval($this->is_active);
     }
 
     /**
@@ -240,11 +238,4 @@ class Service extends CActiveRecord
         }
     }
 
-    public function afterFind()
-    {
-        parent::afterFind();
-
-        // correct data type
-        $this->is_active = intval($this->is_active);
-    }
 }

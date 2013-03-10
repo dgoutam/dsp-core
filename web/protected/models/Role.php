@@ -47,7 +47,7 @@
  * @property App[] $apps
  * @property Service[] $services
  */
-class Role extends CActiveRecord
+class Role extends BaseSystemModel
 {
     /**
      * Returns the static model of the specified AR class.
@@ -64,7 +64,7 @@ class Role extends CActiveRecord
      */
     public function tableName()
     {
-        return 'df_sys_role';
+        return static::tableNamePrefix() . 'role';
     }
 
     /**
@@ -74,7 +74,7 @@ class Role extends CActiveRecord
     {
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
-        return array(
+        $rules = array(
             array('name', 'required'),
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
             array('is_active, default_app_id', 'numerical', 'integerOnly' => true),
@@ -84,6 +84,8 @@ class Role extends CActiveRecord
             // Please remove those attributes that should not be searched.
             array('id, name, is_active, default_app_id, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
+
+        return array_merge(parent::rules(), $rules);
     }
 
     /**
@@ -93,15 +95,15 @@ class Role extends CActiveRecord
     {
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
-        return array(
-            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+        $relations = array(
             'default_app' => array(self::BELONGS_TO, 'App', 'default_app_id'),
             'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'role_id'),
             'users' => array(self::HAS_MANY, 'User', 'role_id'),
             'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_role(app_id, role_id)'),
             'services' => array(self::MANY_MANY, 'Service', 'df_sys_role_service_access(role_id, service_id)'),
             );
+
+        return array_merge(parent::relations(), $relations);
     }
 
     /**
@@ -109,17 +111,14 @@ class Role extends CActiveRecord
      */
     public function attributeLabels()
     {
-        return array(
-            'id' => 'Role Id',
+        $labels = array(
             'name' => 'Name',
             'description' => 'Description',
             'is_active' => 'Is Active',
             'default_app_id' => 'Default App',
-            'created_date' => 'Created Date',
-            'last_modified_date' => 'Last Modified Date',
-            'created_by_id' => 'Created By',
-            'last_modified_by_id' => 'Last Modified By',
         );
+
+        return array_merge(parent::attributeLabels(), $labels);
     }
 
     /**
@@ -148,8 +147,26 @@ class Role extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * @param array $values
+     */
+    public function setRelated($values)
+    {
+        if (isset($record['role_service_accesses'])) {
+            $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
+        }
+        if (isset($record['apps'])) {
+            $this->assignManyToOneByMap($id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
+        }
+        if (isset($record['users'])) {
+            $this->assignManyToOne($id, 'user', 'role_id', $record['users']);
+        }
+        if (isset($record['services'])) {
+            $this->assignManyToOneByMap($id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
+        }
+    }
+
+    /**
+     * {@InheritDoc}
      */
     protected function beforeValidate()
     {
@@ -160,40 +177,16 @@ class Role extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * {@InheritDoc}
      */
     protected function beforeSave()
     {
-        // until db's get their timestamp act together
-        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
-        case DbUtilities::DRV_SQLSRV:
-            $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
-            break;
-        case DbUtilities::DRV_MYSQL:
-        default:
-            $dateTime = new CDbExpression('NOW()');
-            break;
-        }
-        if ($this->isNewRecord) {
-            $this->created_date = $dateTime;
-        }
-        $this->last_modified_date = $dateTime;
-
-        // set user tracking
-        $userId = SessionManager::getCurrentUserId();
-        if ($this->isNewRecord) {
-            $this->created_by_id = $userId;
-        }
-        $this->last_modified_by_id = $userId;
 
         return parent::beforeSave();
     }
 
     /**
-     * Overrides base class
-     * @return bool
-     * @throws Exception
+     * {@InheritDoc}
      */
     protected function beforeDelete()
     {
@@ -206,6 +199,17 @@ class Role extends CActiveRecord
         }
 
         return parent::beforeDelete();
+    }
+
+    /**
+     * {@InheritDoc}
+     */
+    public function afterFind()
+    {
+        parent::afterFind();
+
+        // correct data type
+        $this->is_active = intval($this->is_active);
     }
 
     /**
@@ -229,12 +233,73 @@ class Role extends CActiveRecord
         }
     }
 
-    public function afterFind()
+    /**
+     * @param $role_id
+     * @param array $accesses
+     * @throws Exception
+     * @return void
+     */
+    protected function assignRoleServiceAccesses($role_id, $accesses=array())
     {
-        parent::afterFind();
-
-        // correct data type
-        $this->is_active = intval($this->is_active);
+        if (empty($role_id)) {
+            throw new Exception('Role id can not be empty.', ErrorCodes::BAD_REQUEST);
+        }
+        try {
+            $accesses = array_values($accesses); // reset indices if needed
+            $count = count($accesses);
+            // check for dupes before processing
+            for ($key1 = 0; $key1 < $count; $key1++) {
+                $access = $accesses[$key1];
+                $serviceId = Utilities::getArrayValue('service_id', $access, null);
+                $component = Utilities::getArrayValue('component', $access, '');
+                for ($key2 = $key1 + 1; $key2 < $count; $key2++) {
+                    $access2 = $accesses[$key2];
+                    $serviceId2 = Utilities::getArrayValue('service_id', $access2, null);
+                    $component2 = Utilities::getArrayValue('component', $access2, '');
+                    if (($serviceId === $serviceId2) && ($component === $component2)) {
+                        throw new Exception("Duplicated service and component combination '$serviceId $component' in role service access.", ErrorCodes::BAD_REQUEST);
+                    }
+                }
+            }
+            $oldAccesses = RoleServiceAccess::model()->findAll('role_id = :rid', array(':rid'=>$role_id));
+            foreach ($oldAccesses as $oldAccess) {
+                $found = false;
+                foreach ($accesses as $key=>$access) {
+                    $newServiceId = Utilities::getArrayValue('service_id', $access, null);
+                    $newComponent = Utilities::getArrayValue('component', $access, '');
+                    if (($newServiceId === $oldAccess->service_id) &&
+                        ($newComponent === $oldAccess->component)) {
+                        // found it, make sure nothing needs to be updated
+                        $newAccess = Utilities::getArrayValue('access', $access, '');
+                        if (($oldAccess->access != $newAccess)) {
+                            $oldAccess->access = $newAccess;
+                            $oldAccess->save();
+                        }
+                        // keeping it, so remove it from the list, as this becomes adds
+                        unset($accesses[$key]);
+                        $found = true;
+                        continue;
+                    }
+                }
+                if (!$found) {
+                    $oldAccess->delete();
+                    continue;
+                }
+            }
+            if (!empty($accesses)) {
+                // add what is leftover
+                foreach ($accesses as $access) {
+                    $newAccess = new RoleServiceAccess;
+                    if ($newAccess) {
+                        $newAccess->setAttributes($access);
+                        $newAccess->save();
+                    }
+                }
+            }
+        }
+        catch (Exception $ex) {
+            throw new Exception("Error updating accesses to role assignment.\n{$ex->getMessage()}");
+        }
     }
 
 }

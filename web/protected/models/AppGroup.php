@@ -41,7 +41,7 @@
  * @property User $last_modified_by
  * @property App[] $apps
  */
-class AppGroup extends CActiveRecord
+class AppGroup extends BaseSystemModel
 {
     /**
      * Returns the static model of the specified AR class.
@@ -58,7 +58,7 @@ class AppGroup extends CActiveRecord
      */
     public function tableName()
     {
-        return 'df_sys_app_group';
+        return static::tableNamePrefix() . 'app_group';
     }
 
     /**
@@ -68,16 +68,17 @@ class AppGroup extends CActiveRecord
     {
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
-        return array(
+        $rules = array(
             array('name', 'required'),
             array('name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
-            array('created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 64),
             array('description', 'safe'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
             array('id, name, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
         );
+
+        return array_merge(parent::rules(), $rules);
     }
 
     /**
@@ -87,11 +88,11 @@ class AppGroup extends CActiveRecord
     {
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
-        return array(
-            'created_by' => array(self::BELONGS_TO, 'User', 'created_by_id'),
-            'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+        $relations = array(
             'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_app_group(app_id, app_group_id)'),
         );
+
+        return array_merge(parent::relations(), $relations);
     }
 
     /**
@@ -99,15 +100,12 @@ class AppGroup extends CActiveRecord
      */
     public function attributeLabels()
     {
-        return array(
-            'id' => 'App Group Id',
+        $labels = array(
             'name' => 'Name',
             'description' => 'Description',
-            'created_date' => 'Created Date',
-            'last_modified_date' => 'Last Modified Date',
-            'created_by_id' => 'Created By',
-            'last_modified_by_id' => 'Last Modified By',
         );
+
+        return array_merge(parent::attributeLabels(), $labels);
     }
 
     /**
@@ -134,8 +132,17 @@ class AppGroup extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * @param array $values
+     */
+    public function setRelated($values)
+    {
+        if (isset($record['apps'])) {
+            $this->assignManyToOneByMap($id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $record['apps']);
+        }
+    }
+
+    /**
+     * {@InheritDoc}
      */
     protected function beforeValidate()
     {
@@ -144,40 +151,16 @@ class AppGroup extends CActiveRecord
     }
 
     /**
-     * Overrides base class
-     * @return bool
+     * {@InheritDoc}
      */
     protected function beforeSave()
     {
-        // until db's get their timestamp act together
-        switch (DbUtilities::getDbDriverType($this->dbConnection)) {
-        case DbUtilities::DRV_SQLSRV:
-            $dateTime = new CDbExpression('SYSDATETIMEOFFSET()');
-            break;
-        case DbUtilities::DRV_MYSQL:
-        default:
-            $dateTime = new CDbExpression('NOW()');
-            break;
-        }
-        if ($this->isNewRecord) {
-            $this->created_date = $dateTime;
-        }
-        $this->last_modified_date = $dateTime;
-
-        // set user tracking
-        $userId = SessionManager::getCurrentUserId();
-        if ($this->isNewRecord) {
-            $this->created_by_id = $userId;
-        }
-        $this->last_modified_by_id = $userId;
 
         return parent::beforeSave();
     }
 
     /**
-     * Overrides base class
-     * @return bool
-     * @throws Exception
+     * {@InheritDoc}
      */
     protected function beforeDelete()
     {
