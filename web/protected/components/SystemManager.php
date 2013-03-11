@@ -63,7 +63,12 @@ class SystemManager implements iRestHandler
         return self::$_instance;
     }
 
-    public static function doesDbVersionRequireUpgrade($old, $new)
+    /**
+     * @param $old
+     * @param $new
+     *
+     * @return bool
+     */public static function doesDbVersionRequireUpgrade($old, $new)
     {
         // todo need to be fancier here
         return (0 !== strcasecmp($old, $new));
@@ -784,7 +789,11 @@ class SystemManager implements iRestHandler
         $this->modelId = (isset($resource[1])) ? $resource[1] : '';
     }
 
-    public static function getResourceModel($resource)
+    /**
+     * @param $resource
+     * @return App|AppGroup|Role|Service|User
+     * @throws Exception
+     */public static function getResourceModel($resource)
     {
         switch (strtolower($resource)) {
         case 'app':
@@ -811,7 +820,11 @@ class SystemManager implements iRestHandler
         return $model;
     }
 
-    public static function getNewResource($resource)
+    /**
+     * @param $resource
+     * @return App|AppGroup|Role|Service|User
+     * @throws Exception
+     */public static function getNewResource($resource)
     {
         switch (strtolower($resource)) {
         case 'app':
@@ -1030,6 +1043,12 @@ class SystemManager implements iRestHandler
                 }
                 break;
             case 'role':
+                if ($obj->is_active && isset($record['is_active'])) {
+                    $isActive = Utilities::boolval($record['is_active']);
+                    if (Utilities::boolval($obj->is_active) !== $isActive) {
+                        $sessionAction = 'delete';
+                    }
+                }
                 break;
             }
             $obj->setAttributes($record);
@@ -1051,24 +1070,20 @@ class SystemManager implements iRestHandler
             case 'role':
                 switch ($sessionAction) {
                 case 'delete':
-//                    $user_ids = array();
-//                    SessionManager::getInstance()->deleteSessions($user_ids);
+                    SessionManager::getInstance()->deleteSessionsByRole($id);
                     break;
                 case 'update':
-                    $user_ids = array();
-                    foreach ($user_ids as $user_id) {
-//                        SessionManager::getInstance()->updateSession($user_id);
-                    }
+                    SessionManager::getInstance()->updateSessionByRole($id);
                     break;
                 }
                 break;
             case 'user':
                 switch ($sessionAction) {
                 case 'delete':
-                    SessionManager::getInstance()->deleteSessions($id);
+                    SessionManager::getInstance()->deleteSessionsByUser($id);
                     break;
                 case 'update':
-                    SessionManager::getInstance()->updateSession($id);
+                    SessionManager::getInstance()->updateSessionByUser($id);
                     break;
                 }
                 break;

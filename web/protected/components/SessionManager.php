@@ -138,9 +138,9 @@ class SessionManager
         try {
             $data = base64_encode(serialize($data));
             $startTime = time();
-//            $userId = static::getCurrentUserId();
-//            $roleId = static::getCurrentRoleId();
-            $params = array($id, null, null, $startTime, $data);
+            $userId = static::getCurrentUserId();
+            $roleId = static::getCurrentRoleId();
+            $params = array($id, $userId, $roleId, $startTime, $data);
             switch ($this->_driverType) {
             case DbUtilities::DRV_SQLSRV:
                 $sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
@@ -211,7 +211,7 @@ class SessionManager
     /**
      * @param $user_ids
      */
-    public function deleteSessions($user_ids)
+    public function deleteSessionsByUser($user_ids)
     {
         try {
             if (!$this->_sqlConn->active)
@@ -223,9 +223,26 @@ class SessionManager
             elseif (!empty($user_ids)) {
                 $command->delete('df_sys_session', 'user_id=:id', array(':id'=>$user_ids));
             }
-            else {
-                // delete all sessions
-                $command->delete('df_sys_session');
+        }
+        catch (Exception $ex) {
+            error_log($ex->getMessage());
+        }
+    }
+
+    /**
+     * @param $user_ids
+     */
+    public function deleteSessionsByRole($role_ids)
+    {
+        try {
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
+            $command = $this->_sqlConn->createCommand();
+            if (is_array($role_ids)) {
+                $command->delete('df_sys_session', array('in', 'role_id', $role_ids));
+            }
+            elseif (!empty($role_ids)) {
+                $command->delete('df_sys_session', 'role_id=:id', array(':id'=>$role_ids));
             }
         }
         catch (Exception $ex) {
@@ -236,7 +253,7 @@ class SessionManager
     /**
      * @param $user_id
      */
-    public function updateSession($user_id)
+    public function updateSessionByUser($user_id)
     {
         try {
             if (!$this->_sqlConn->active)
@@ -256,6 +273,42 @@ class SessionManager
                     // delete sessions because something bad happened
                     $command->reset();
                     $command->delete('df_sys_session', 'user_id=:id', array(':id'=>$user_id));
+                }
+            }
+        }
+        catch (Exception $ex) {
+            error_log($ex->getMessage());
+        }
+    }
+
+    /**
+     * @param $user_id
+     */
+    public function updateSessionByRole($role_id)
+    {
+        try {
+            if (!$this->_sqlConn->active)
+                $this->_sqlConn->active = true;
+            $command = $this->_sqlConn->createCommand();
+            $command->select('user_id')->from('df_sys_session')->where('role_id=:id', array(':id'=>$role_id));
+            $results = $command->queryAll();
+            if (false !== $results) {
+                foreach ($results as $result) {
+                    $user_id = Utilities::getArrayValue('user_id', $result, '');
+                    if (!empty($user_id)) {
+                        try {
+                            $data = static::generateSessionData($user_id);
+                            $data = array('public' => $data['public']);
+                            $data = base64_encode(serialize($data));
+                            $command->reset();
+                            $command->update('df_sys_session', array('data'=>$data), 'user_id=:id', array(':id'=>$user_id));
+                        }
+                        catch (Exception $ex) {
+                            // delete sessions because something bad happened
+                            $command->reset();
+                            $command->delete('df_sys_session', 'user_id=:id', array(':id'=>$user_id));
+                        }
+                    }
                 }
             }
         }

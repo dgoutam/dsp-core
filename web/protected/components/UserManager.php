@@ -1122,10 +1122,12 @@ class UserManager implements iRestHandler
                 // bad session
                 throw new Exception("The user for the current session was not found in the system.");
             }
-            // todo protect certain attributes here
-            if (isset($record['security_answer'])) {
-                $theUser->setAttribute('security_answer', CPasswordHelper::hashPassword($record['security_answer']));
-                unset($record['security_answer']);
+            $allow = array('first_name','last_name','display_name','email',
+                           'phone','security_question','security_answer','default_app_id');
+            foreach ($record as $key=>$value) {
+                if (false === array_search($key, $allow)) {
+                    throw new Exception("Attribute '$key' can not be updated through profile change.", ErrorCodes::INTERNAL_SERVER_ERROR);
+                }
             }
             $theUser->setAttributes($record);
             if (!$theUser->save()) {
@@ -1156,7 +1158,8 @@ class UserManager implements iRestHandler
                 throw new Exception("The user for the current session was not found in the system.");
             }
             // todo protect certain attributes here
-            $fields = $theUser->getAttributes(array('first_name','last_name','display_name','email','phone','security_question'));
+            $fields = $theUser->getAttributes(array('first_name','last_name','display_name','email',
+                                                    'phone','security_question','default_app_id'));
 
             return $fields;
         }
