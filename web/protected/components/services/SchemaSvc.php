@@ -42,9 +42,12 @@ class SchemaSvc extends CommonService implements iRestHandler
     public function __construct($config)
     {
         parent::__construct($config);
-        $dsn = Utilities::getArrayValue('dsn', $config, '');
-        $user = Utilities::getArrayValue('user', $config, '');
-        $pwd = Utilities::getArrayValue('pwd', $config, '');
+        $type = Utilities::getArrayValue('storage_type', $config, '');
+        $credentials = Utilities::getArrayValue('credentials', $config, '{}');
+        $credentials = json_decode($credentials, true);
+        $dsn = Utilities::getArrayValue('dsn', $credentials, '');
+        $user = Utilities::getArrayValue('user', $credentials, '');
+        $pwd = Utilities::getArrayValue('pwd', $credentials, '');
         if (empty($dsn) && empty($user) && empty($pwd)) {
             $this->_sqlConn = Yii::app()->db;
             $this->_isNative = true;
@@ -82,6 +85,8 @@ class SchemaSvc extends CommonService implements iRestHandler
             Utilities::markTimeStop('DB_TIME');
         }
 
+        $attributes = Utilities::getArrayValue('parameters', $config, '{}');
+        $attributes = json_decode($attributes, true);
         if (!empty($attributes) && is_array($attributes)) {
             foreach ($attributes as $key=>$value) {
                 $this->_sqlConn->setAttribute($key, $value);
