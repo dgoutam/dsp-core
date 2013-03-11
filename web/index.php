@@ -20,11 +20,15 @@
  *
  * This script is the main entry point for the DSP.
  */
-//	Get the autoloader
-$_autoloader = require_once( dirname( __DIR__ ) . '/vendor/autoload.php' );
-
-//	Create the application and run
 require_once dirname( __DIR__ ) . '/vendor/yiisoft/yii/framework/yii.php';
-require_once  __DIR__ . '/protected/components/Pii.php';
+require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
-\Pii::run( __DIR__, $_autoloader );
+//	Main DSP web configuration
+$_config = dirname( __DIR__ ) . '/config/web.php';
+
+//	Comment out the following lines in production
+defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
+//	Specify how many levels of call stack should be shown in each log message
+defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
+
+Yii::createWebApplication( $_config )->run();
