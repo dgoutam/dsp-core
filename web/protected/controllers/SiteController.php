@@ -145,6 +145,9 @@ class SiteController extends Controller
 				case 'upgrade required':
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
+                case 'data required':
+                    $this->redirect( array( 'site/initData' ) );
+                    break;
 			}
 		}
 		catch ( Exception $ex )

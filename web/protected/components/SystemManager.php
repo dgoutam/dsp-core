@@ -110,6 +110,10 @@ class SystemManager implements iRestHandler
             if (null === $theUser) {
                 return 'admin required';
             }
+            $result = Service::model()->findAll();
+            if (empty($result)) {
+                return 'data required';
+            }
 
             return 'ready';
         }
