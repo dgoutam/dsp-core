@@ -33,8 +33,8 @@ $_dbPassword = 'dsp_user';
 
 return array(
 	'connectionString' => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
-	'username'         => $_dbUser,
-	'password'         => $_dbPassword,
+	'username'         => 'root',
+	'password'         => 'Dream123',
 	'emulatePrepare'   => true,
 	'charset'          => 'utf8',
 );

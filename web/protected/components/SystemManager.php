@@ -238,7 +238,7 @@ class SystemManager implements iRestHandler
             $pwd = Utilities::getArrayValue('password', $data, '');
             $fields = array('username' => $username,
                             'email' => Utilities::getArrayValue('email', $data),
-                            'password' => CPasswordHelper::hashPassword($pwd),
+                            'password' => $pwd,
                             'first_name' => $firstName,
                             'last_name' => $lastName,
                             'display_name' => $displayName,

@@ -885,7 +885,7 @@ class UserManager implements iRestHandler
     {
         $confirmCode = $this->makeConfirmationMd5($username);
         // fill out the user fields for creation
-        $fields = array('username' => $username, 'email' => $email, 'password' => CPasswordHelper::hashPassword($password));
+        $fields = array('username' => $username, 'email' => $email, 'password' => $password);
         $fields['first_name'] = (!empty($first_name)) ? $first_name : $username;
         $fields['last_name'] = (!empty($last_name)) ? $last_name : $username;
         $fullName = (!empty($first_name) && !empty($last_name)) ? $first_name . ' ' . $last_name : $username;
