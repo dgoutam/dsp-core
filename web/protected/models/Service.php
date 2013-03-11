@@ -170,7 +170,31 @@ class Service extends BaseSystemModel
     }
 
     /**
+     * {@InheritDoc}
+     */
+    public function setAttributes($values, $safeOnly=true)
+    {
+        if (!$this->isNewRecord) {
+            if (isset($values['type'])) {
+                if (0 !== strcasecmp($this->type, $values['type'])) {
+                    throw new Exception('Service type currently can not be modified after creation.', ErrorCodes::BAD_REQUEST);
+                }
+            }
+            if ((0 === strcasecmp('app', $this->api_name)) || (0 === strcasecmp('lib', $this->api_name))) {
+                if (isset($values['api_name'])) {
+                    if (0 !== strcasecmp($this->api_name, $values['api_name'])) {
+                        throw new Exception('Service API name currently can not be modified after creation.', ErrorCodes::BAD_REQUEST);
+                    }
+                }
+            }
+        }
+
+        parent::setAttributes($values, $safeOnly);
+    }
+
+    /**
      * @param array $values
+     * @param       $id
      */
     public function setRelated($values, $id)
     {
@@ -208,6 +232,25 @@ class Service extends BaseSystemModel
      */
     protected function beforeDelete()
     {
+        // add fake field for client
+        $this->is_system = false;
+        switch ($this->type) {
+        case 'Local SQL DB':
+        case 'Local SQL DB Schema':
+            throw new Exception('System generated database services can not be deleted.', ErrorCodes::BAD_REQUEST);
+            break;
+        case 'Local Email Service':
+            throw new Exception('System generated email service can not be deleted.', ErrorCodes::BAD_REQUEST);
+            break;
+        case 'Local File Storage':
+            switch ($this->api_name) {
+            case 'app':
+            case 'lib':
+                throw new Exception('System generated storage service can not be deleted.', ErrorCodes::BAD_REQUEST);
+                break;
+            }
+            break;
+        }
 
         return parent::beforeDelete();
     }
@@ -225,8 +268,8 @@ class Service extends BaseSystemModel
         $this->is_system = false;
         switch ($this->type) {
         case 'Local SQL DB':
-        case 'Local SQL Schema':
-        case 'Local Email':
+        case 'Local SQL DB Schema':
+        case 'Local Email Service':
             $this->is_system = true;
             break;
         case 'Local File Storage':

@@ -168,20 +168,11 @@ class ServiceHandler
             case 'lib':
                 $service = new LibrarySvc($record);
                 break;
-            case 'db':
-                $service = new DatabaseSvc($record);
-                break;
-            case 'schema':
-                $service = new SchemaSvc($record);
-                break;
             case 'attachment':
                 $service = new AttachmentSvc($record);
                 break;
             case 'doc':
                 $service = new DocumentSvc($record);
-                break;
-            case 'email':
-                $service = new EmailSvc($record);
                 break;
             default:
                 $type = Utilities::getArrayValue('type', $record, '');
