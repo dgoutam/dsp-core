@@ -873,7 +873,7 @@ class SystemManager implements iRestHandler
             }
 
             // after record create
-            $obj->setRelated($record);
+            $obj->setRelated($record, $id);
 
             // get returnables
             $return_fields = $obj->getRetrievableAttributes($return_fields);
@@ -1041,7 +1041,7 @@ class SystemManager implements iRestHandler
             }
 
             // after record create
-            $obj->setRelated($record);
+            $obj->setRelated($record, $id);
 
             switch (strtolower($table)) {
             case 'role':

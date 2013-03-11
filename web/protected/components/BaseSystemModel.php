@@ -193,7 +193,7 @@ abstract class BaseSystemModel extends CActiveRecord
     /**
      * @param array $values
      */
-    public function setRelated($values)
+    public function setRelated($values, $id)
     {
         /*
         $relations = $obj->relations();
@@ -230,7 +230,7 @@ abstract class BaseSystemModel extends CActiveRecord
             throw new Exception("The id can not be empty.", ErrorCodes::BAD_REQUEST);
         }
         try {
-            $manyObj = static::getNewResource($many_table);
+            $manyObj = SystemManager::getNewResource($many_table);
             $pkField = $manyObj->tableSchema->primaryKey;
             $oldMany = $manyModel->findAll($many_field .' = :oid', array(':oid'=>$one_id));
             foreach ($oldMany as $old) {

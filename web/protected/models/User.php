@@ -216,7 +216,7 @@ class User extends BaseSystemModel
     /**
      * @param array $values
      */
-    public function setRelated($values)
+    public function setRelated($values, $id)
     {
         // default app id
         // role id

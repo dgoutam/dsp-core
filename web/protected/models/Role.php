@@ -149,19 +149,19 @@ class Role extends BaseSystemModel
     /**
      * @param array $values
      */
-    public function setRelated($values)
+    public function setRelated($values, $id)
     {
-        if (isset($record['role_service_accesses'])) {
-            $this->assignRoleServiceAccesses($id, $record['role_service_accesses']);
+        if (isset($values['role_service_accesses'])) {
+            $this->assignRoleServiceAccesses($id, $values['role_service_accesses']);
         }
-        if (isset($record['apps'])) {
-            $this->assignManyToOneByMap($id, 'app', 'app_to_role', 'role_id', 'app_id', $record['apps']);
+        if (isset($values['apps'])) {
+            $this->assignManyToOneByMap($id, 'app', 'app_to_role', 'role_id', 'app_id', $values['apps']);
         }
-        if (isset($record['users'])) {
-            $this->assignManyToOne($id, 'user', 'role_id', $record['users']);
+        if (isset($values['users'])) {
+            $this->assignManyToOne($id, 'user', 'role_id', $values['users']);
         }
-        if (isset($record['services'])) {
-            $this->assignManyToOneByMap($id, 'service', 'role_service_access', 'role_id', 'service_id', $record['services']);
+        if (isset($values['services'])) {
+            $this->assignManyToOneByMap($id, 'service', 'role_service_access', 'role_id', 'service_id', $values['services']);
         }
     }
 

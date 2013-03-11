@@ -168,13 +168,13 @@ class App extends BaseSystemModel
     /**
      * @param array $values
      */
-    public function setRelated($values)
+    public function setRelated($values, $id)
     {
-        if (isset($record['app_groups'])) {
-            $this->assignManyToOneByMap($id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $record['app_groups']);
+        if (isset($values['app_groups'])) {
+            $this->assignManyToOneByMap($id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $values['app_groups']);
         }
-        if (isset($record['roles'])) {
-            $this->assignManyToOneByMap($id, 'role', 'app_to_role', 'app_id', 'role_id', $record['roles']);
+        if (isset($values['roles'])) {
+            $this->assignManyToOneByMap($id, 'role', 'app_to_role', 'app_id', 'role_id', $values['roles']);
         }
     }
 

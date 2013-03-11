@@ -134,10 +134,10 @@ class AppGroup extends BaseSystemModel
     /**
      * @param array $values
      */
-    public function setRelated($values)
+    public function setRelated($values, $id)
     {
-        if (isset($record['apps'])) {
-            $this->assignManyToOneByMap($id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $record['apps']);
+        if (isset($values['apps'])) {
+            $this->assignManyToOneByMap($id, 'app', 'app_to_app_group', 'app_group_id', 'app_id', $values['apps']);
         }
     }
 

@@ -53,6 +53,14 @@
  */
 class Service extends BaseSystemModel
 {
+
+    /**
+     * Is this service a system service that should not be deleted
+     * or modified in certain ways, i.e. api name and type.
+     * @var bool
+     */
+    protected $is_system = false;
+
     /**
      * Returns the static model of the specified AR class.
      * @param string $className active record class name.
@@ -164,13 +172,13 @@ class Service extends BaseSystemModel
     /**
      * @param array $values
      */
-    public function setRelated($values)
+    public function setRelated($values, $id)
     {
-        if (isset($record['apps'])) {
-            $this->assignManyToOneByMap($id, 'app', 'app_to_service', 'service_id', 'app_id', $record['apps']);
+        if (isset($values['apps'])) {
+            $this->assignManyToOneByMap($id, 'app', 'app_to_service', 'service_id', 'app_id', $values['apps']);
         }
-        if (isset($record['roles'])) {
-            $this->assignManyToOneByMap($id, 'role', 'role_service_access', 'service_id', 'role_id', $record['roles']);
+        if (isset($values['roles'])) {
+            $this->assignManyToOneByMap($id, 'role', 'role_service_access', 'service_id', 'role_id', $values['roles']);
         }
     }
 
@@ -213,6 +221,23 @@ class Service extends BaseSystemModel
 
         // correct data type
         $this->is_active = intval($this->is_active);
+        // add fake field for client
+        $this->is_system = false;
+        switch ($this->type) {
+        case 'Local SQL DB':
+        case 'Local SQL Schema':
+        case 'Local Email':
+            $this->is_system = true;
+            break;
+        case 'Local File Storage':
+            switch ($this->api_name) {
+            case 'app':
+            case 'lib':
+                $this->is_system = true;
+                break;
+            }
+            break;
+        }
     }
 
     /**
@@ -226,7 +251,7 @@ class Service extends BaseSystemModel
             return array('id');
         }
         elseif ('*' == $requested) {
-            return array('id','name','api_name','description','is_active','type',
+            return array('id','name','api_name','description','is_active','type','is_system',
                          'storage_name','storage_type','credentials','native_format',
                          'base_url','parameters','headers',
                          'created_date','created_by_id','last_modified_date','last_modified_by_id');
