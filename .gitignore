@@ -5,5 +5,6 @@ log
 storage
 composer.lock
 web/public/assets
+web/public/admin
 web/public/launchpad
 web/public/web-core
