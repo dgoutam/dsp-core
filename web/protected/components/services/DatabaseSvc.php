@@ -42,13 +42,11 @@ class DatabaseSvc extends CommonService implements iRestHandler
     {
         parent::__construct($config);
         $type = Utilities::getArrayValue('storage_type', $config, '');
-        $credentials = Utilities::getArrayValue('credentials', $config, '{}');
-        $credentials = json_decode($credentials, true);
+        $credentials = Utilities::getArrayValue('credentials', $config, array());
         $dsn = Utilities::getArrayValue('dsn', $credentials, '');
         $user = Utilities::getArrayValue('user', $credentials, '');
         $pwd = Utilities::getArrayValue('pwd', $credentials, '');
-        $attributes = Utilities::getArrayValue('parameters', $config, '{}');
-        $attributes = json_decode($attributes, true);
+        $attributes = Utilities::getArrayValue('parameters', $config, array());
         if (!empty($dsn)) {
             $this->_isNative = false;
             $this->sqlDb = new PdoSqlDbSvc('', $dsn, $user, $pwd, $attributes);

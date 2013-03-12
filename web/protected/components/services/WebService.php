@@ -16,14 +16,19 @@ class WebService extends CommonService implements iRestHandler
     protected $_baseUrl;
 
     /**
-     * @var string|array
+     * @var array
      */
-    protected $_parameters;
+    protected $_credentials;
 
     /**
-     * @var string|array
+     * @var array
      */
     protected $_headers;
+
+    /**
+     * @var array
+     */
+    protected $_parameters;
 
     /**
      * Creates a new WebService instance
@@ -41,8 +46,9 @@ class WebService extends CommonService implements iRestHandler
         if (empty($this->_baseUrl)) {
             throw new \InvalidArgumentException('Web Service base url can not be empty.');
         }
-        $this->_parameters = Utilities::getArrayValue('parameters', $config, '');
-        $this->_headers = Utilities::getArrayValue('headers', $config, '');
+        $this->_credentials = Utilities::getArrayValue('credentials', $config, null);
+        $this->_headers = Utilities::getArrayValue('headers', $config, null);
+        $this->_parameters = Utilities::getArrayValue('parameters', $config, null);
     }
 
     /**
@@ -133,17 +139,16 @@ class WebService extends CommonService implements iRestHandler
         $co = $this->addHeaders(Curl::Get, $co);
 
         Utilities::markTimeStart('WS_TIME');
-        $result = Curl::get($url, array(), $co);
-        Utilities::markTimeStop('WS_TIME');
-        if (isset($result)) {
-            error_log(print_r($result, true));
+        if (false === Curl::get($url, array(), $co)) {
+            $err = Curl::getError();
+            throw new Exception(Utilities::getArrayValue('message', $err),
+                                Utilities::getArrayValue('code', $err, 500));
         }
-
+        Utilities::markTimeStop('WS_TIME');
         Utilities::markTimeStop('API_TIME');
 //      Utilities::logTimers();
 
         exit; // bail to avoid header error, unless we are reformatting the data
-//        return $result;
     }
 
     public function actionPost()
@@ -162,17 +167,17 @@ class WebService extends CommonService implements iRestHandler
         $co = $this->addHeaders(Curl::Post, $co);
 
         Utilities::markTimeStart('WS_TIME');
-        $result = Curl::post($url, array(), $co);
-        Utilities::markTimeStop('WS_TIME');
-        if (isset($result)) {
-            error_log(print_r($result, true));
+        if (false === Curl::post($url, array(), $co)) {
+            $err = Curl::getError();
+            throw new Exception(Utilities::getArrayValue('message', $err),
+                                Utilities::getArrayValue('code', $err, 500));
         }
+        Utilities::markTimeStop('WS_TIME');
 
         Utilities::markTimeStop('API_TIME');
 //      Utilities::logTimers();
 
         exit; // bail to avoid header error, unless we are reformatting the data
-//        return $result;
     }
 
     public function actionPut()
@@ -191,17 +196,16 @@ class WebService extends CommonService implements iRestHandler
         $co = $this->addHeaders(Curl::Put, $co);
 
         Utilities::markTimeStart('WS_TIME');
-        $result = Curl::put($url, array(), $co);
-        Utilities::markTimeStop('WS_TIME');
-        if (isset($result)) {
-            error_log(print_r($result, true));
+        if (false === Curl::put($url, array(), $co)) {
+            $err = Curl::getError();
+            throw new Exception(Utilities::getArrayValue('message', $err),
+                                Utilities::getArrayValue('code', $err, 500));
         }
-
+        Utilities::markTimeStop('WS_TIME');
         Utilities::markTimeStop('API_TIME');
 //      Utilities::logTimers();
 
         exit; // bail to avoid header error, unless we are reformatting the data
-//        return $result;
     }
 
     public function actionMerge()
@@ -220,17 +224,16 @@ class WebService extends CommonService implements iRestHandler
         $co = $this->addHeaders(Curl::Merge, $co);
 
         Utilities::markTimeStart('WS_TIME');
-        $result = Curl::merge($url, array(), $co);
-        Utilities::markTimeStop('WS_TIME');
-        if (isset($result)) {
-            error_log(print_r($result, true));
+        if (false === Curl::merge($url, array(), $co)) {
+            $err = Curl::getError();
+            throw new Exception(Utilities::getArrayValue('message', $err),
+                                Utilities::getArrayValue('code', $err, 500));
         }
-
+        Utilities::markTimeStop('WS_TIME');
         Utilities::markTimeStop('API_TIME');
 //      Utilities::logTimers();
 
         exit; // bail to avoid header error, unless we are reformatting the data
-//        return $result;
     }
 
     public function actionDelete()
@@ -249,17 +252,16 @@ class WebService extends CommonService implements iRestHandler
         $co = $this->addHeaders(Curl::Delete, $co);
 
         Utilities::markTimeStart('WS_TIME');
-        $result = Curl::delete($url, array(), $co);
-        Utilities::markTimeStop('WS_TIME');
-        if (isset($result)) {
-            error_log(print_r($result, true));
+        if (false === Curl::delete($url, array(), $co)) {
+            $err = Curl::getError();
+            throw new Exception(Utilities::getArrayValue('message', $err),
+                                Utilities::getArrayValue('code', $err, 500));
         }
-
+        Utilities::markTimeStop('WS_TIME');
         Utilities::markTimeStop('API_TIME');
 //      Utilities::logTimers();
 
         exit; // bail to avoid header error, unless we are reformatting the data
-//        return $result;
     }
 
 }

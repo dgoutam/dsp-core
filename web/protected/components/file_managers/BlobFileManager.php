@@ -32,7 +32,6 @@ class BlobFileManager extends CommonFileManager
         try {
             $type = isset($config['storage_type']) ? $config['storage_type'] : '';
             $credentials = isset($config['credentials']) ? $config['credentials'] : '';
-            $credentials = json_decode($credentials, true);
             switch (strtolower($type)) {
             case 'azure blob':
                 $local_dev = isset($credentials['local_dev']) ? Utilities::boolval($credentials['local_dev']) : false;

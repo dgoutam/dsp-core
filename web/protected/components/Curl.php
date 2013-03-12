@@ -318,69 +318,70 @@ class Curl implements \HttpMethod
 			//	Worked, but no data...
 			$_result = null;
 		}
+        else {
+            // Split up the body and headers if requested
+            if ( $_curlOptions[CURLOPT_HEADER] )
+            {
+                static::$_lastResponseHeaders = array();
 
-		//      Split up the body and headers if requested
-		if ( $_curlOptions[CURLOPT_HEADER] )
-		{
-			static::$_lastResponseHeaders = array();
+                if ( false === strpos( $_result, "\r\n\r\n" ) )
+                {
+                    $_headers = $_result;
+                    $_body = null;
+                }
+                else
+                {
+                    list( $_headers, $_body ) = explode( "\r\n\r\n", $_result, 2 );
+                }
 
-			if ( false === strpos( $_result, "\r\n\r\n" ) )
-			{
-				$_headers = $_result;
-				$_body = null;
-			}
-			else
-			{
-				list( $_headers, $_body ) = explode( "\r\n\r\n", $_result, 2 );
-			}
+                if ( $_headers )
+                {
+                    $_raw = explode( "\r\n", $_headers );
 
-			if ( $_headers )
-			{
-				$_raw = explode( "\r\n", $_headers );
+                    if ( !empty( $_raw ) )
+                    {
+                        $_first = true;
 
-				if ( !empty( $_raw ) )
-				{
-					$_first = true;
+                        foreach ( $_raw as $_line )
+                        {
+                            //	Skip the first line (HTTP/1.x response)
+                            if ( $_first )
+                            {
+                                $_first = false;
+                                continue;
+                            }
 
-					foreach ( $_raw as $_line )
-					{
-						//	Skip the first line (HTTP/1.x response)
-						if ( $_first )
-						{
-							$_first = false;
-							continue;
-						}
+                            $_parts = explode( ':', $_line, 2 );
 
-						$_parts = explode( ':', $_line, 2 );
+                            if ( !empty( $_parts ) )
+                            {
+                                static::$_lastResponseHeaders[trim( $_parts[0] )] = count( $_parts ) > 1 ? trim( $_parts[1] ) : null;
+                            }
+                        }
+                    }
+                }
 
-						if ( !empty( $_parts ) )
-						{
-							static::$_lastResponseHeaders[trim( $_parts[0] )] = count( $_parts ) > 1 ? trim( $_parts[1] ) : null;
-						}
-					}
-				}
-			}
+                $_result = $_body;
+            }
 
-			$_result = $_body;
-		}
+            //	Attempt to auto-decode inbound JSON
+            $_contentType = isset( self::$_info['content_type'] ) ? self::$_info['content_type'] : null;
 
-		//	Attempt to auto-decode inbound JSON
-		$_contentType = isset( self::$_info['content_type'] ) ? self::$_info['content_type'] : null;
-
-		if ( !empty( $_result ) && 'application/json' == $_contentType )
-		{
-			try
-			{
-				if ( false !== ( $_json = @json_decode( $_result, self::$_decodeToArray ) ) )
-				{
-					$_result = $_json;
-				}
-			}
-			catch ( \Exception $_ex )
-			{
-				//	Ignored
-			}
-		}
+            if ( !empty( $_result ) && 'application/json' == $_contentType )
+            {
+                try
+                {
+                    if ( false !== ( $_json = @json_decode( $_result, self::$_decodeToArray ) ) )
+                    {
+                        $_result = $_json;
+                    }
+                }
+                catch ( \Exception $_ex )
+                {
+                    //	Ignored
+                }
+            }
+        }
 
 		@curl_close( $_curl );
 
