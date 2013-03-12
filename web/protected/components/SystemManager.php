@@ -868,7 +868,6 @@ class SystemManager implements iRestHandler
         if (empty($record)) {
             throw new Exception('There are no fields in the record to create.', ErrorCodes::BAD_REQUEST);
         }
-        $model = static::getResourceModel($table);
         try {
             // create DB record
             $obj = static::getNewResource($table);
@@ -892,40 +891,47 @@ class SystemManager implements iRestHandler
             // after record create
             $obj->setRelated($record, $id);
 
-            // get returnables
-            $return_fields = $obj->getRetrievableAttributes($return_fields);
-            $data = $obj->getAttributes($return_fields);
-            if (!empty($extras)) {
-                $relations = $obj->relations();
-                $relatedData = array();
-                foreach ($extras as $extra) {
-                    $extraName = $extra['name'];
-                    if (!isset($relations[$extraName])) {
-                        throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
-                    }
-                    $extraFields = $extra['fields'];
-                    $relatedRecords = $obj->getRelated($extraName, true);
-                    if (is_array($relatedRecords)) {
-                        // an array of records
-                        $tempData = array();
-                        if (!empty($relatedRecords)) {
-                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
-                            foreach ($relatedRecords as $relative) {
-                                $tempData[] = $relative->getAttributes($relatedFields);
+            $primaryKey = $obj->tableSchema->primaryKey;
+            if (empty($return_fields) && empty($extras)) {
+                $data = array($primaryKey => $id);
+            }
+            else {
+                // get returnables
+                $obj->refresh();
+                $return_fields = $obj->getRetrievableAttributes($return_fields);
+                $data = $obj->getAttributes($return_fields);
+                if (!empty($extras)) {
+                    $relations = $obj->relations();
+                    $relatedData = array();
+                    foreach ($extras as $extra) {
+                        $extraName = $extra['name'];
+                        if (!isset($relations[$extraName])) {
+                            throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
+                        }
+                        $extraFields = $extra['fields'];
+                        $relatedRecords = $obj->getRelated($extraName, true);
+                        if (is_array($relatedRecords)) {
+                            // an array of records
+                            $tempData = array();
+                            if (!empty($relatedRecords)) {
+                                $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                                foreach ($relatedRecords as $relative) {
+                                    $tempData[] = $relative->getAttributes($relatedFields);
+                                }
                             }
                         }
-                    }
-                    else {
-                        $tempData = null;
-                        if (isset($relatedRecords)) {
-                            $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
-                            $tempData = $relatedRecords->getAttributes($relatedFields);
+                        else {
+                            $tempData = null;
+                            if (isset($relatedRecords)) {
+                                $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                                $tempData = $relatedRecords->getAttributes($relatedFields);
+                            }
                         }
+                        $relatedData[$extraName] = $tempData;
                     }
-                    $relatedData[$extraName] = $tempData;
-                }
-                if (!empty($relatedData)) {
-                    $data = array_merge($data, $relatedData);
+                    if (!empty($relatedData)) {
+                        $data = array_merge($data, $relatedData);
+                    }
                 }
             }
 
@@ -1019,7 +1025,8 @@ class SystemManager implements iRestHandler
             throw new Exception("Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND);
         }
         try {
-            $record = Utilities::removeOneFromArray('id', $record);
+            $primaryKey = $obj->tableSchema->primaryKey;
+            $record = Utilities::removeOneFromArray($primaryKey, $record);
             $sessionAction = '';
             switch (strtolower($table)) {
             case 'user':
@@ -1089,40 +1096,46 @@ class SystemManager implements iRestHandler
                 break;
             }
 
-            // get returnables
-            $return_fields = $model->getRetrievableAttributes($return_fields);
-            $data = $obj->getAttributes($return_fields);
-            if (!empty($extras)) {
-                $relations = $obj->relations();
-                $relatedData = array();
-                foreach ($extras as $extra) {
-                    $extraName = $extra['name'];
-                    if (!isset($relations[$extraName])) {
-                        throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
-                    }
-                    $extraFields = $extra['fields'];
-                    $relatedRecords = $obj->getRelated($extraName, true);
-                    if (is_array($relatedRecords)) {
-                        // an array of records
-                        $tempData = array();
-                        if (!empty($relatedRecords)) {
-                            $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
-                            foreach ($relatedRecords as $relative) {
-                                $tempData[] = $relative->getAttributes($relatedFields);
+            if (empty($return_fields) && empty($extras)) {
+                $data = array($primaryKey => $id);
+            }
+            else {
+                // get returnables
+                $obj->refresh();
+                $return_fields = $model->getRetrievableAttributes($return_fields);
+                $data = $obj->getAttributes($return_fields);
+                if (!empty($extras)) {
+                    $relations = $obj->relations();
+                    $relatedData = array();
+                    foreach ($extras as $extra) {
+                        $extraName = $extra['name'];
+                        if (!isset($relations[$extraName])) {
+                            throw new Exception("Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST);
+                        }
+                        $extraFields = $extra['fields'];
+                        $relatedRecords = $obj->getRelated($extraName, true);
+                        if (is_array($relatedRecords)) {
+                            // an array of records
+                            $tempData = array();
+                            if (!empty($relatedRecords)) {
+                                $relatedFields = $relatedRecords[0]->getRetrievableAttributes($extraFields);
+                                foreach ($relatedRecords as $relative) {
+                                    $tempData[] = $relative->getAttributes($relatedFields);
+                                }
                             }
                         }
-                    }
-                    else {
-                        $tempData = null;
-                        if (isset($relatedRecords)) {
-                            $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
-                            $tempData = $relatedRecords->getAttributes($relatedFields);
+                        else {
+                            $tempData = null;
+                            if (isset($relatedRecords)) {
+                                $relatedFields = $relatedRecords->getRetrievableAttributes($extraFields);
+                                $tempData = $relatedRecords->getAttributes($relatedFields);
+                            }
                         }
+                        $relatedData[$extraName] = $tempData;
                     }
-                    $relatedData[$extraName] = $tempData;
-                }
-                if (!empty($relatedData)) {
-                    $data = array_merge($data, $relatedData);
+                    if (!empty($relatedData)) {
+                        $data = array_merge($data, $relatedData);
+                    }
                 }
             }
 

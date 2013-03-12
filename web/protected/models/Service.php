@@ -270,8 +270,6 @@ class Service extends BaseSystemModel
      */
     public function afterFind()
     {
-        parent::afterFind();
-
         // correct data type
         $this->is_active = intval($this->is_active);
         // add fake field for client
@@ -294,6 +292,9 @@ class Service extends BaseSystemModel
         if (isset($this->credentials)) {
             $this->credentials = json_decode($this->credentials, true);
         }
+        else {
+            $this->credentials = array();
+        }
         if (isset($this->parameters)) {
             $this->parameters = json_decode($this->parameters, true);
         }
@@ -306,6 +307,8 @@ class Service extends BaseSystemModel
         else {
             $this->headers = array();
         }
+
+        parent::afterFind();
     }
 
     /**
