@@ -16,12 +16,12 @@ class WebService extends CommonService implements iRestHandler
     protected $_baseUrl;
 
     /**
-     * @var string
+     * @var string|array
      */
     protected $_parameters;
 
     /**
-     * @var string
+     * @var string|array
      */
     protected $_headers;
 
@@ -53,6 +53,68 @@ class WebService extends CommonService implements iRestHandler
         parent::__destruct();
     }
 
+    protected function buildParameterString($action)
+    {
+        $param_str = '';
+        foreach ($_REQUEST as $key => $value) {
+            switch (strtolower($key)) {
+            case '_': // timestamp added by jquery
+            case 'app_name': // app_name required by our api
+            case 'method': // method option for our api
+            case 'format':
+                break;
+            default:
+                $param_str .= (!empty($param_str)) ? '&' : '';
+                $param_str .= urlencode($key);
+                $param_str .= (empty($value)) ? '' : '=' . urlencode($value);
+                break;
+            }
+        }
+        if (!empty($this->_parameters)) {
+            foreach ($this->_parameters as $param) {
+                $paramAction = Utilities::getArrayValue('action', $param);
+                if (!empty($paramAction) && (0 !== strcasecmp('all', $paramAction))) {
+                    if (0 !== strcasecmp($action, $paramAction)) {
+                        continue;
+                    }
+                }
+                $key = Utilities::getArrayValue('name', $param);
+                $value = Utilities::getArrayValue('value', $param);
+                $param_str .= (!empty($param_str)) ? '&' : '';
+                $param_str .= urlencode($key);
+                $param_str .= (empty($value)) ? '' : '=' . urlencode($value);
+            }
+        }
+
+        return $param_str;
+    }
+
+    protected function addHeaders($action, $options = array())
+    {
+        if (!empty($this->_headers)) {
+            foreach ($this->_headers as $header) {
+                $headerAction = Utilities::getArrayValue('action', $header);
+                if (!empty($headerAction) && (0 !== strcasecmp('all', $headerAction))) {
+                    if (0 !== strcasecmp($action, $headerAction)) {
+                        continue;
+                    }
+                }
+                $key = Utilities::getArrayValue('name', $header);
+                $value = Utilities::getArrayValue('value', $header);
+                if ( !isset( $options[CURLOPT_HTTPHEADER] ) )
+                {
+                    $options[CURLOPT_HTTPHEADER] = array( $key .': ' . $value );
+                }
+                else
+                {
+                    $options[CURLOPT_HTTPHEADER][] = $key .': ' . $value;
+                }
+            }
+        }
+
+        return $options;
+    }
+
     // Controller based methods
 
     public function actionGet()
@@ -60,39 +122,26 @@ class WebService extends CommonService implements iRestHandler
         $this->checkPermission('read');
 
         $path = Utilities::getArrayValue('resource', $_GET, '');
-        $param_str = '';
-        foreach ($_REQUEST as $key => $value) {
-            if (0 == strcmp('_', $key)) continue; // timestamp added by jquery
-            $param_str .= (!empty($param_str)) ? '&' : '';
-            $param_str .= $key;
-            $param_str .= (empty($value)) ? '' : '=' . urlencode($value);
-        }
-        if (!empty($this->_parameters)) {
-            if (!empty($param_str)) $param_str .= '&';
-            $param_str .= $this->_parameters;
-        }
-
+        $param_str = $this->buildParameterString(Curl::Get);
         $url = $this->_baseUrl . $path . '?' . $param_str;
-        $ch = curl_init($url);
+
         $co = array();
-//        $co[CURLOPT_RETURNTRANSFER] = true; // return results as string, otherwise it will go directly to browser
+        $co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
+        $co[CURLOPT_HEADER] = false; // don't include headers in payload
 
-        $co[CURLOPT_HTTPGET] = true; // default but set it just in case
+        // set additional headers
+        $co = $this->addHeaders(Curl::Get, $co);
 
-        curl_setopt_array($ch, $co);
         Utilities::markTimeStart('WS_TIME');
-        $result = curl_exec($ch);
+        $result = Curl::get($url, array(), $co);
         Utilities::markTimeStop('WS_TIME');
-        if (!$result) {
-            error_log(curl_error($ch));
+        if (isset($result)) {
+            error_log(print_r($result, true));
         }
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-//        error_log($httpCode);
-        curl_close($ch);
 
         Utilities::markTimeStop('API_TIME');
-
 //      Utilities::logTimers();
+
         exit; // bail to avoid header error, unless we are reformatting the data
 //        return $result;
     }
@@ -102,122 +151,84 @@ class WebService extends CommonService implements iRestHandler
         $this->checkPermission('create');
 
         $path = Utilities::getArrayValue('resource', $_GET, '');
-        $param_str = '';
-        foreach ($_REQUEST as $key => $value) {
-            if (0 == strcmp('_', $key)) continue; // timestamp added by jquery
-            $param_str .= (!empty($param_str)) ? '&' : '';
-            $param_str .= $key;
-            $param_str .= (empty($value)) ? '' : '=' . urlencode($value);
-        }
-        if (!empty($this->_parameters)) {
-            if (!empty($param_str)) $param_str .= '&';
-            $param_str .= $this->_parameters;
-        }
-
+        $param_str = $this->buildParameterString('POST');
         $url = $this->_baseUrl . $path . '?' . $param_str;
-        $ch = curl_init($url);
+
         $co = array();
-//        $co[CURLOPT_RETURNTRANSFER] = true; // return results as string, otherwise it will go directly to browser
-        $co[CURLOPT_POST] = true;
-        curl_setopt_array($ch, $co);
+        $co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
+        $co[CURLOPT_HEADER] = false; // don't include headers in payload
+
+        // set additional headers
+        $co = $this->addHeaders(Curl::Post, $co);
 
         Utilities::markTimeStart('WS_TIME');
-        $result = curl_exec($ch);
+        $result = Curl::post($url, array(), $co);
         Utilities::markTimeStop('WS_TIME');
-        if (!$result) {
-            error_log(curl_error($ch));
+        if (isset($result)) {
+            error_log(print_r($result, true));
         }
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-//        error_log($httpCode);
-        curl_close($ch);
 
         Utilities::markTimeStop('API_TIME');
-
 //      Utilities::logTimers();
+
         exit; // bail to avoid header error, unless we are reformatting the data
 //        return $result;
     }
 
     public function actionPut()
     {
-        $request = 'update';
-        $this->checkPermission($request);
+        $this->checkPermission('update');
 
         $path = Utilities::getArrayValue('resource', $_GET, '');
-        $param_str = '';
-        foreach ($_REQUEST as $key => $value) {
-            if (0 == strcmp('_', $key)) continue; // timestamp added by jquery
-            $param_str .= (!empty($param_str)) ? '&' : '';
-            $param_str .= $key;
-            $param_str .= (empty($value)) ? '' : '=' . urlencode($value);
-        }
-        if (!empty($this->_parameters)) {
-            if (!empty($param_str)) $param_str .= '&';
-            $param_str .= $this->_parameters;
-        }
-
+        $param_str = $this->buildParameterString('PUT');
         $url = $this->_baseUrl . $path . '?' . $param_str;
-        $ch = curl_init($url);
-        $co = array();
-//        $co[CURLOPT_RETURNTRANSFER] = true; // return results as string, otherwise it will go directly to browser
-        $co[CURLOPT_PUT] = true;
 
-        curl_setopt_array($ch, $co);
+        $co = array();
+        $co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
+        $co[CURLOPT_HEADER] = false; // don't include headers in payload
+
+        // set additional headers
+        $co = $this->addHeaders(Curl::Put, $co);
+
         Utilities::markTimeStart('WS_TIME');
-        $result = curl_exec($ch);
+        $result = Curl::put($url, array(), $co);
         Utilities::markTimeStop('WS_TIME');
-        if (!$result) {
-            error_log(curl_error($ch));
+        if (isset($result)) {
+            error_log(print_r($result, true));
         }
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-//        error_log($httpCode);
-        curl_close($ch);
 
         Utilities::markTimeStop('API_TIME');
-
 //      Utilities::logTimers();
+
         exit; // bail to avoid header error, unless we are reformatting the data
 //        return $result;
     }
 
     public function actionMerge()
     {
-        $request = 'update';
-        $this->checkPermission($request);
+        $this->checkPermission('update');
 
         $path = Utilities::getArrayValue('resource', $_GET, '');
-        $param_str = '';
-        foreach ($_REQUEST as $key => $value) {
-            if (0 == strcmp('_', $key)) continue; // timestamp added by jquery
-            $param_str .= (!empty($param_str)) ? '&' : '';
-            $param_str .= $key;
-            $param_str .= (empty($value)) ? '' : '=' . urlencode($value);
-        }
-        if (!empty($this->_parameters)) {
-            if (!empty($param_str)) $param_str .= '&';
-            $param_str .= $this->_parameters;
-        }
-
+        $param_str = $this->buildParameterString('PATCH');
         $url = $this->_baseUrl . $path . '?' . $param_str;
-        $ch = curl_init($url);
-        $co = array();
-//        $co[CURLOPT_RETURNTRANSFER] = true; // return results as string, otherwise it will go directly to browser
-        $co[CURLOPT_PUT] = true;
 
-        curl_setopt_array($ch, $co);
+        $co = array();
+        $co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
+        $co[CURLOPT_HEADER] = false; // don't include headers in payload
+
+        // set additional headers
+        $co = $this->addHeaders(Curl::Merge, $co);
+
         Utilities::markTimeStart('WS_TIME');
-        $result = curl_exec($ch);
+        $result = Curl::merge($url, array(), $co);
         Utilities::markTimeStop('WS_TIME');
-        if (!$result) {
-            error_log(curl_error($ch));
+        if (isset($result)) {
+            error_log(print_r($result, true));
         }
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-//        error_log($httpCode);
-        curl_close($ch);
 
         Utilities::markTimeStop('API_TIME');
-
 //      Utilities::logTimers();
+
         exit; // bail to avoid header error, unless we are reformatting the data
 //        return $result;
     }
@@ -226,8 +237,29 @@ class WebService extends CommonService implements iRestHandler
     {
         $this->checkPermission('delete');
 
-        // unsupported HTTP verb
-        throw new \Exception("HTTP Request type 'DELETE' is not currently supported by this WebService API.");
+        $path = Utilities::getArrayValue('resource', $_GET, '');
+        $param_str = $this->buildParameterString('DELETE');
+        $url = $this->_baseUrl . $path . '?' . $param_str;
+
+        $co = array();
+        $co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
+        $co[CURLOPT_HEADER] = false; // don't include headers in payload
+
+        // set additional headers
+        $co = $this->addHeaders(Curl::Delete, $co);
+
+        Utilities::markTimeStart('WS_TIME');
+        $result = Curl::delete($url, array(), $co);
+        Utilities::markTimeStop('WS_TIME');
+        if (isset($result)) {
+            error_log(print_r($result, true));
+        }
+
+        Utilities::markTimeStop('API_TIME');
+//      Utilities::logTimers();
+
+        exit; // bail to avoid header error, unless we are reformatting the data
+//        return $result;
     }
 
 }

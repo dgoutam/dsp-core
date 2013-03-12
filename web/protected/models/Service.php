@@ -224,6 +224,16 @@ class Service extends BaseSystemModel
     protected function beforeSave()
     {
 
+        if (is_array($this->credentials)) {
+            $this->credentials = json_encode($this->credentials);
+        }
+        if (is_array($this->parameters)) {
+            $this->parameters = json_encode($this->parameters);
+        }
+        if (is_array($this->headers)) {
+            $this->headers = json_encode($this->headers);
+        }
+
         return parent::beforeSave();
     }
 
@@ -280,6 +290,15 @@ class Service extends BaseSystemModel
                 break;
             }
             break;
+        }
+        if (isset($this->credentials)) {
+            $this->credentials = json_decode($this->credentials, true);
+        }
+        if (isset($this->parameters)) {
+            $this->parameters = json_decode($this->parameters, true);
+        }
+        if (isset($this->headers)) {
+            $this->headers = json_decode($this->headers, true);
         }
     }
 

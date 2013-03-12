@@ -44,6 +44,10 @@ interface HttpMethod
 	 * @var string
 	 */
 	const Patch = 'PATCH';
+    /**
+     * @var string
+     */
+    const Merge = 'MERGE';
 	/**
 	 * @var string
 	 */
