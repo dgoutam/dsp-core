@@ -297,8 +297,14 @@ class Service extends BaseSystemModel
         if (isset($this->parameters)) {
             $this->parameters = json_decode($this->parameters, true);
         }
+        else {
+            $this->parameters = array();
+        }
         if (isset($this->headers)) {
             $this->headers = json_decode($this->headers, true);
+        }
+        else {
+            $this->headers = array();
         }
     }
 
