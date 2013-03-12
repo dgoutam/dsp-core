@@ -2,7 +2,7 @@
 /**
  * web.php
  *
- * This file is part of the DreamFactory Document Service Platform (DSP)
+ * This file is part of the DreamFactory Services Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * This source file and all is subject to the MIT license that is bundled
@@ -20,10 +20,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *
- * This is the main configuration file for the Document Services Platform server application.
+ * This is the main configuration file for the DreamFactory Services Platform server application.
  */
 $_dbName = null;
-$_appName = 'DreamFactory Document Services Platform';
+$_appName = 'DreamFactory Services Platform';
 
 //	Read in the database configuration
 $_dbConfig = require( __DIR__ . '/database.config.php' );
@@ -78,9 +78,10 @@ return array(
 		),
 		// uncomment the following to enable URLs in path-format
 		'urlManager'   => array(
-			'caseSensitive' => false,
-			'urlFormat'     => 'path',
-			'rules'         => array(
+			'caseSensitive'  => false,
+			'urlFormat'      => 'path',
+            'showScriptName' => false,
+			'rules'          => array(
 				// REST patterns
 				array( 'app/stream', 'pattern' => 'app/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 				array( 'lib/stream', 'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),

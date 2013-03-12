@@ -2,7 +2,7 @@
 /**
  * SiteController.php
  *
- * This file is part of the DreamFactory Document Service Platform (DSP)
+ * This file is part of the DreamFactory Services Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * This source file and all is subject to the MIT license that is bundled
@@ -115,15 +115,8 @@ class SiteController extends Controller
 			switch ( $state )
 			{
 				case 'ready':
-					$svc = ServiceHandler::getInstance();
-					$app = $svc->getServiceObject( 'app' );
-					// check if loaded in storage as app
-					if ( $app && $app->appExists( 'LaunchPad' ) )
-					{
-						$this->redirect( './app/LaunchPad/index.html' );
-					}
-					// otherwise try local copy
-					elseif ( is_file( './public/launchpad/index.html' ) )
+					// try local launchpad
+					if ( is_file( './public/launchpad/index.html' ) )
 					{
 						$this->redirect( './public/launchpad/index.html' );
 					}
