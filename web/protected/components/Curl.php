@@ -156,7 +156,19 @@ class Curl implements \HttpMethod
 		return self::_httpRequest( self::Patch, $url, $payload, $curlOptions );
 	}
 
-	/**
+    /**
+     * @param string          $url
+     * @param array|\stdClass $payload
+     * @param array           $curlOptions
+     *
+     * @return bool|mixed|\stdClass
+     */
+    public static function merge( $url, $payload = array(), $curlOptions = array() )
+    {
+        return self::_httpRequest( self::Merge, $url, $payload, $curlOptions );
+    }
+
+    /**
 	 * @param string          $method
 	 * @param string          $url
 	 * @param array|\stdClass $payload
@@ -233,7 +245,12 @@ class Curl implements \HttpMethod
 				//	Do nothing, like the goggles...
 				break;
 
-			case self::Put:
+            case self::Post:
+                $_curlOptions[CURLOPT_POST] = true;
+                $_curlOptions[CURLOPT_POSTFIELDS] = $payload;
+                break;
+
+            case self::Put:
 				$_payload = json_encode( !empty( $payload ) ? $payload : array() );
 
 				$_tmpFile = tmpfile();
@@ -245,22 +262,26 @@ class Curl implements \HttpMethod
 				$_curlOptions[CURLOPT_INFILESIZE] = mb_strlen( $_payload );
 				break;
 
-			case self::Post:
-				$_curlOptions[CURLOPT_POST] = true;
-				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
-				break;
-
-			case self::Head:
-				$_curlOptions[CURLOPT_NOBODY] = true;
-				break;
-
 			case self::Patch:
 				$_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Patch;
 				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
 				break;
 
-			case self::Delete:
-			case self::Options:
+            case self::Merge:
+                $_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Merge;
+                $_curlOptions[CURLOPT_POSTFIELDS] = $payload;
+                break;
+
+            case self::Delete:
+                $_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Merge;
+                $_curlOptions[CURLOPT_POSTFIELDS] = $payload;
+                break;
+
+            case self::Head:
+                $_curlOptions[CURLOPT_NOBODY] = true;
+                break;
+
+            case self::Options:
 			case self::Copy:
 				$_curlOptions[CURLOPT_CUSTOMREQUEST] = $method;
 				break;

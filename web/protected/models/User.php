@@ -212,7 +212,6 @@ class User extends BaseSystemModel
         parent::setAttributes($values, $safeOnly);
     }
 
-
     /**
      * @param array $values
      */

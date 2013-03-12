@@ -247,8 +247,8 @@ class ApplicationSvc extends CommonFileSvc
                 $tables = Utilities::getArrayValue('table', $data, array());
                 $db = ServiceHandler::getInstance()->getServiceObject('schema');
                 $result = $db->createTables($tables);
-                if (isset($result['table'][0]['error'])) {
-                    $msg = $result['table'][0]['error']['message'];
+                if (isset($result[0]['error'])) {
+                    $msg = $result[0]['error']['message'];
                     throw new Exception("Could not create the database tables for this application.\n$msg");
                 }
                 $zip->deleteName('schema.json');
