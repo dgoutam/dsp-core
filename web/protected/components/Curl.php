@@ -3,7 +3,24 @@
  * Curl
  * A kick-ass cURL wrapper
  *
- * @author Jerry Ablan <jerryablan@dreamfactory.com>
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class Curl implements \HttpMethod
 {
@@ -156,19 +173,19 @@ class Curl implements \HttpMethod
 		return self::_httpRequest( self::Patch, $url, $payload, $curlOptions );
 	}
 
-    /**
-     * @param string          $url
-     * @param array|\stdClass $payload
-     * @param array           $curlOptions
-     *
-     * @return bool|mixed|\stdClass
-     */
-    public static function merge( $url, $payload = array(), $curlOptions = array() )
-    {
-        return self::_httpRequest( self::Merge, $url, $payload, $curlOptions );
-    }
+	/**
+	 * @param string          $url
+	 * @param array|\stdClass $payload
+	 * @param array           $curlOptions
+	 *
+	 * @return bool|mixed|\stdClass
+	 */
+	public static function merge( $url, $payload = array(), $curlOptions = array() )
+	{
+		return self::_httpRequest( self::Merge, $url, $payload, $curlOptions );
+	}
 
-    /**
+	/**
 	 * @param string          $method
 	 * @param string          $url
 	 * @param array|\stdClass $payload
@@ -245,12 +262,12 @@ class Curl implements \HttpMethod
 				//	Do nothing, like the goggles...
 				break;
 
-            case self::Post:
-                $_curlOptions[CURLOPT_POST] = true;
-                $_curlOptions[CURLOPT_POSTFIELDS] = $payload;
-                break;
+			case self::Post:
+				$_curlOptions[CURLOPT_POST] = true;
+				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
+				break;
 
-            case self::Put:
+			case self::Put:
 				$_payload = json_encode( !empty( $payload ) ? $payload : array() );
 
 				$_tmpFile = tmpfile();
@@ -267,21 +284,21 @@ class Curl implements \HttpMethod
 				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
 				break;
 
-            case self::Merge:
-                $_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Merge;
-                $_curlOptions[CURLOPT_POSTFIELDS] = $payload;
-                break;
+			case self::Merge:
+				$_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Merge;
+				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
+				break;
 
-            case self::Delete:
-                $_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Merge;
-                $_curlOptions[CURLOPT_POSTFIELDS] = $payload;
-                break;
+			case self::Delete:
+				$_curlOptions[CURLOPT_CUSTOMREQUEST] = self::Merge;
+				$_curlOptions[CURLOPT_POSTFIELDS] = $payload;
+				break;
 
-            case self::Head:
-                $_curlOptions[CURLOPT_NOBODY] = true;
-                break;
+			case self::Head:
+				$_curlOptions[CURLOPT_NOBODY] = true;
+				break;
 
-            case self::Options:
+			case self::Options:
 			case self::Copy:
 				$_curlOptions[CURLOPT_CUSTOMREQUEST] = $method;
 				break;
@@ -318,70 +335,71 @@ class Curl implements \HttpMethod
 			//	Worked, but no data...
 			$_result = null;
 		}
-        else {
-            // Split up the body and headers if requested
-            if ( $_curlOptions[CURLOPT_HEADER] )
-            {
-                static::$_lastResponseHeaders = array();
+		else
+		{
+			// Split up the body and headers if requested
+			if ( $_curlOptions[CURLOPT_HEADER] )
+			{
+				static::$_lastResponseHeaders = array();
 
-                if ( false === strpos( $_result, "\r\n\r\n" ) )
-                {
-                    $_headers = $_result;
-                    $_body = null;
-                }
-                else
-                {
-                    list( $_headers, $_body ) = explode( "\r\n\r\n", $_result, 2 );
-                }
+				if ( false === strpos( $_result, "\r\n\r\n" ) )
+				{
+					$_headers = $_result;
+					$_body = null;
+				}
+				else
+				{
+					list( $_headers, $_body ) = explode( "\r\n\r\n", $_result, 2 );
+				}
 
-                if ( $_headers )
-                {
-                    $_raw = explode( "\r\n", $_headers );
+				if ( $_headers )
+				{
+					$_raw = explode( "\r\n", $_headers );
 
-                    if ( !empty( $_raw ) )
-                    {
-                        $_first = true;
+					if ( !empty( $_raw ) )
+					{
+						$_first = true;
 
-                        foreach ( $_raw as $_line )
-                        {
-                            //	Skip the first line (HTTP/1.x response)
-                            if ( $_first )
-                            {
-                                $_first = false;
-                                continue;
-                            }
+						foreach ( $_raw as $_line )
+						{
+							//	Skip the first line (HTTP/1.x response)
+							if ( $_first )
+							{
+								$_first = false;
+								continue;
+							}
 
-                            $_parts = explode( ':', $_line, 2 );
+							$_parts = explode( ':', $_line, 2 );
 
-                            if ( !empty( $_parts ) )
-                            {
-                                static::$_lastResponseHeaders[trim( $_parts[0] )] = count( $_parts ) > 1 ? trim( $_parts[1] ) : null;
-                            }
-                        }
-                    }
-                }
+							if ( !empty( $_parts ) )
+							{
+								static::$_lastResponseHeaders[trim( $_parts[0] )] = count( $_parts ) > 1 ? trim( $_parts[1] ) : null;
+							}
+						}
+					}
+				}
 
-                $_result = $_body;
-            }
+				$_result = $_body;
+			}
 
-            //	Attempt to auto-decode inbound JSON
-            $_contentType = isset( self::$_info['content_type'] ) ? self::$_info['content_type'] : null;
+			//	Attempt to auto-decode inbound JSON
+			$_contentType = isset( self::$_info['content_type'] ) ? self::$_info['content_type'] : null;
 
-            if ( !empty( $_result ) && 'application/json' == $_contentType )
-            {
-                try
-                {
-                    if ( false !== ( $_json = @json_decode( $_result, self::$_decodeToArray ) ) )
-                    {
-                        $_result = $_json;
-                    }
-                }
-                catch ( \Exception $_ex )
-                {
-                    //	Ignored
-                }
-            }
-        }
+			if ( !empty( $_result ) && 'application/json' == $_contentType )
+			{
+				try
+				{
+					if ( false !== ( $_json = @json_decode( $_result, self::$_decodeToArray ) ) )
+					{
+						$_result = $_json;
+					}
+				}
+				catch ( \Exception $_ex )
+				{
+					//	Ignored
+				}
+			}
+		}
 
 		@curl_close( $_curl );
 

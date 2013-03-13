@@ -1,7 +1,6 @@
 <?php
 /**
- * common.config.php
- * Parameters common to SAPI and CLI apps
+ * GraylogLevels
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -22,15 +21,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-global $_dbName, $_blobConfig;
+class GraylogLevels extends \Kisma\Core\Enums\SeedEnum implements Graylog
+{
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
 
-return array(
-	'storage_base_path'     => '/data/storage',
-	'private_path'          => '/data/storage/' . $_dbName . '/.private',
-	'storage_path'          => '/data/storage/' . $_dbName . '/blob',
-	'dsp_name'              => $_dbName,
-	'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
-	'adminEmail'            => 'developer-support@dreamfactory.com',
-	'companyLabel'          => 'DreamFactory DSP',
-	'allowOpenRegistration' => 'true',
-);
+	/**
+	 * @var int
+	 */
+	const Emergency = 0;
+	/**
+	 * @var int
+	 */
+	const Alert = 1;
+	/**
+	 * @var int
+	 */
+	const Critical = 2;
+	/**
+	 * @var int
+	 */
+	const Error = 3;
+	/**
+	 * @var int
+	 */
+	const Warning = 4;
+	/**
+	 * @var int
+	 */
+	const Notice = 5;
+	/**
+	 * @var int
+	 */
+	const Info = 6;
+	/**
+	 * @var int
+	 */
+	const Debug = 7;
+
+}

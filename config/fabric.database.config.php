@@ -1,99 +1,156 @@
 <?php
 /**
  * fabric.database.config.php
+ * The database configuration file for shared DSPs
  *
- * This file is part of the DreamFactory Document Service Platform (DSP)
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This source file and all is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- *
- * The database configuration file for shared DSPs
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-global $_dbName;
-static $_privatePath;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 
-const AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials';
+global $_dbName, $_dspName;
 
 require_once dirname( __DIR__ ) . '/web/protected/components/HttpMethod.php';
 require_once dirname( __DIR__ ) . '/web/protected/components/Curl.php';
+require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
 
-$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
+//*************************************************************************
+//* Constants
+//*************************************************************************
+
+/**
+ * @var string
+ */
+const AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials';
+/**
+ * @var string
+ */
+const DSP_HOST = '___DSP_HOST___';
+/**
+ * @var string
+ */
+const DSP_CREDENTIALS = '___DSP_CREDENTIALS___';
+/**
+ * @var string
+ */
+const DSP_DB_CONFIG_FILE_NAME = '/database.config.php';
+/**
+ * @var string
+ */
+const DSP_DB_CONFIG = '___DSP_DB_CONFIG___';
+/**
+ * @var string
+ */
+const STORAGE_KEY = '___DSP_STORAGE_KEY___';
+
+//*************************************************************************
+//* Initialize
+//*************************************************************************
+
+//	Make sure the session has started...
+if ( !isset( $_SESSION ) )
+{
+	Log::debug( 'Starting session...' );
+	session_start();
+}
+
+//	If this isn't a cloud request, bail
+$_host = Option::get( $_SESSION, '__DSP_HOST__', isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname() );
 
 if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 {
 	throw new \CHttpException( 401, 'You are not authorized to access this system (' . $_host . ').' );
 }
 
-if ( !empty( $_privatePath ) )
-{
-	//	Non-existent DSP, redirect
-	if ( false === ( $_config = @require( $_privatePath . '/database.config.php' ) ) )
-	{
-		header( 'Location: http://cumulus.cloud.dreamfactory.com/future-dreamer.php' );
-		die();
-	}
+//*************************************************************************
+//* Load Configuration
+//*************************************************************************
 
-	return $_config;
+//	If there is a prior config, we'll use it for this session.
+if ( null !== ( $_config = Option::get( $_SESSION, DSP_DB_CONFIG ) ) && file_exists( $_config ) )
+{
+	/** @noinspection PhpIncludeInspection */
+	return require_once $_config;
 }
 
+//	Otherwise we need to build it.
 $_parts = explode( '.', $_host );
 $_dbName = $_dspName = $_parts[0];
 
-if ( empty( $_config ) || !is_array( $_config ) )
+//	Otherwise, get the credentials from the auth server...
+$_response = \Curl::get( AUTH_ENDPOINT . '/' . $_dspName . '/database' );
+
+if ( isset( $_response->details, $_response->details->code ) && 404 == $_response->details->code )
 {
-	//	Otherwise, get the credentials from the auth server...
-	$_response = \Curl::get( AUTH_ENDPOINT . '/' . $_dspName . '/database' );
+	Log::error( 'Instance "' . $_dspName . '" not found.' );
+	throw new CHttpException( 404, 'Instance not valid.' );
+}
 
-	if ( !$_response || !is_object( $_response ) || false == $_response->success )
-	{
-		throw new RuntimeException( 'Cannot connect to authentication service:' . print_r( $_response, true ) );
-	}
+if ( !$_response || !is_object( $_response ) || false == $_response->success )
+{
+	Log::error( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
+	throw new RuntimeException( 'Cannot connect to authentication service' );
+}
 
-	$_dbCredentialsCache = $_response->details;
+$_cache = $_response->details;
 
-	$_date = date( 'c' );
-	$_dbUser = $_dbCredentialsCache->db_user;
-	$_dbPassword = $_dbCredentialsCache->db_password;
-	$_storageKey = $_dbCredentialsCache->storage_key;
-	$_privatePath = '/data/storage/' . $_storageKey . '/.private';
+$_date = date( 'c' );
+$_privatePath = $_cache->private_path;
 
-	$_config = array(
-		'connectionString' => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
-		'username'         => $_dbUser,
-		'password'         => $_dbPassword,
-		'emulatePrepare'   => true,
-		'charset'          => 'utf8',
-	);
+//	Save for later
+Option::set( $_SESSION, STORAGE_KEY, $_cache->storage_key );
+Option::set( $_SESSION, DSP_HOST, $_host );
+Option::set( $_SESSION, DSP_DB_CONFIG, $_privatePath . DSP_DB_CONFIG_FILE_NAME );
+
+if ( file_exists( $_privatePath . DSP_DB_CONFIG_FILE_NAME ) )
+{
+	/** @noinspection PhpIncludeInspection */
+	return require_once $_privatePath . DSP_DB_CONFIG_FILE_NAME;
+}
+
+$_config = array(
+	'connectionString' => 'mysql:host=localhost;port=3306;dbname=' . $_cache->db_name,
+	'username'         => $_cache->db_user,
+	'password'         => $_cache->db_password,
+	'emulatePrepare'   => true,
+	'charset'          => 'utf8',
+);
 
 //	Also create a config file for next time...
-	file_put_contents(
-		$_privatePath . '/database.config.php',
-		<<<PHP
-	<?php
-/** generated by DSP @ {$_date} */
+file_put_contents(
+	$_privatePath . DSP_DB_CONFIG_FILE_NAME,
+	<<<PHP
+<?php
+/**
+* DO NOT MODIFY THIS FILE. ANY CHANGES WILL BE OVERWRITTEN
+* @(#)\$Id: database.config.php,v 0.0.1 {$_date} \$
+*/
 return array(
-	'connectionString' => 'mysql:host=localhost;port=3306;dbname={$_dbName}',
-	'username'         => '{$_dbUser}',
-	'password'         => '{$_dbPassword}',
+	'connectionString' => 'mysql:host=localhost;port=3306;dbname={$_cache->db_name}',
+	'username'         => '{$_cache->db_user}',
+	'password'         => '{$_cache->db_password}',
 	'emulatePrepare'   => true,
 	'charset'          => 'utf8',
 );
 PHP
-	);
-}
+);
 
-//	Return the configuration
+//	Return the config
 return $_config;
