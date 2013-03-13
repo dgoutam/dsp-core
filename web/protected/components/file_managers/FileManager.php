@@ -132,7 +132,8 @@ class FileManager extends CommonFileManager
 			}
 			else
 			{
-				throw new Exception( "Storage container does not exist in storage.", ErrorCodes::NOT_FOUND );
+                // doesn't really exist until first write creates it
+//				throw new Exception( "Storage container does not exist in storage.", ErrorCodes::NOT_FOUND );
 			}
 
 			return array( "folder" => $folders, "file" => $files );

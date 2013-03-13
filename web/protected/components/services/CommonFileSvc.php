@@ -286,7 +286,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                 }
             }
             catch (Exception $ex) {
-                throw new Exception("Failed to retrieve folder content for '$path''.\n{$ex->getMessage()}");
+                throw new Exception("Failed to retrieve folder content for '$path'.\n{$ex->getMessage()}", $ex->getCode());
             }
         }
         else {
