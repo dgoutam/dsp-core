@@ -84,9 +84,9 @@ class PdoSqlDbSvc
                 $this->_sqlConn->setAttribute('charset', 'utf8');
                 break;
             case DbUtilities::DRV_SQLSRV:
-                $this->_sqlConn->setAttribute(constant('PDO::SQLSRV_ATTR_DIRECT_QUERY'), true);
-                $this->_sqlConn->setAttribute("MultipleActiveResultSets", false);
-                $this->_sqlConn->setAttribute("ReturnDatesAsStrings", true);
+//                $this->_sqlConn->setAttribute(constant('PDO::SQLSRV_ATTR_DIRECT_QUERY'), true);
+//                $this->_sqlConn->setAttribute("MultipleActiveResultSets", false);
+//                $this->_sqlConn->setAttribute("ReturnDatesAsStrings", true);
                 $this->_sqlConn->setAttribute("CharacterSet", "UTF-8");
                 break;
             }

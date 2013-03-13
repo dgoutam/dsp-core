@@ -102,7 +102,7 @@ class AmazonWebServicesS3 extends CommonBlob
     {
         if (empty($container)) return $name;
         $container = self::fixContainerName($container);
-        return substr($name, strlen($container) + 1);
+        return substr($name, strlen($container));
     }
 
     /**
@@ -350,11 +350,38 @@ class AmazonWebServicesS3 extends CommonBlob
     public function listBlobs($container = '', $prefix = '', $delimiter = '')
     {
         try {
-            //if (!empty($delimiter)) $options['delimiter'] = $delimiter;
             $search = $container . '/';
-            if (!empty($prefix)) $search .= $prefix;
-            $options = array('prefix' => $search/*, 'delimiter' => $delimiter*/);
-            $objects = $this->_blobConn->get_object_list($this->_bucket, $options);
+            if (!empty($prefix))
+                $search .= $prefix;
+            $options = array('prefix' => $search);
+            if (!empty($delimiter))
+                $options['delimiter'] = $delimiter;
+            // No max-keys specified. Get everything.
+            $objects = array();
+            do
+            {
+                $list = $this->_blobConn->list_objects($this->_bucket, $options);
+                $keys = $list->body->query('descendant-or-self::Key')->map_string(null);
+                if ($keys)
+                {
+                    $objects = array_merge($objects, $keys);
+                }
+                $prefixes = $list->body->query('descendant-or-self::Prefix')->map_string(null);
+                if ($prefixes)
+                {
+                    $objects = array_merge($objects, $prefixes);
+                }
+                $objects = array_unique($objects);
+
+                $body = (array) $list->body;
+                $options = array_merge($options, array(
+                                              'marker' => (isset($body['Contents']) && is_array($body['Contents'])) ?
+                                                  ((string) end($body['Contents'])->Key) :
+                                                  ((string) $list->body->Contents->Key)
+                                         ));
+            }
+            while ((string) $list->body->IsTruncated === 'true');
+
             $out = array();
             foreach ($objects as $object) {
                 $meta = $this->_blobConn->get_object_metadata($this->_bucket, $object);
@@ -367,8 +394,10 @@ class AmazonWebServicesS3 extends CommonBlob
                     'lastModified' => $meta['Headers']['last-modified']
                 );
             }
+
             return $out;
-        } catch (Exception $ex) {
+        }
+        catch (Exception $ex) {
             throw $ex;
         }
     }
