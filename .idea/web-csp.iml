@@ -1,34 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="WEB_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$">
-      <excludeFolder url="file://$MODULE_DIR$/vendor/amazonwebservices/aws-sdk-for-php" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/bin/swagger" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/composer" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/doctrine/annotations" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/doctrine/cache" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/doctrine/collections" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/doctrine/common" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/doctrine/inflector" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/doctrine/lexer" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/app-admin" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/app-launchpad" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/web-core" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/kisma/kisma" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/lucifurious/yii" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/microsoft/windowsazure" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/Archive_Tar" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/Console_Getopt" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/HTTP_Request2" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/Mail_Mime" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/Mail_mimeDecode" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/Net_URL2" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/PEAR" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/Structures_Graph" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/pear-pear.php.net/XML_Util" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/yiisoft/yii" />
-      <excludeFolder url="file://$MODULE_DIR$/vendor/zircote/swagger-php" />
-    </content>
+    <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

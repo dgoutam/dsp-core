@@ -1,5 +1,7 @@
 <?php
 /**
+ * index.php
+ *
  * This file is part of the DreamFactory Document Service Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
@@ -21,14 +23,12 @@
  * This script is the main entry point for the DSP.
  */
 require_once dirname( __DIR__ ) . '/vendor/yiisoft/yii/framework/yii.php';
-require_once dirname( __DIR__ ) . '/vendor/autoload.php';
-
-//	Main DSP web configuration
-$_config = dirname( __DIR__ ) . '/config/web.php';
+require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
+$_autoloader = require_once( dirname( __DIR__ ) . '/vendor/autoload.php' );
 
 //	Comment out the following lines in production
-defined('YII_DEBUG') or define('YII_DEBUG',true);
-//	Specify how many levels of call stack should be shown in each log message
-defined('YII_TRACE_LEVEL') or define('YII_TRACE_LEVEL',3);
+defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
+defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
-Yii::createWebApplication( $_config )->run();
+//	And we're off!
+\Pii::run( __DIR__, $_autoloader );
