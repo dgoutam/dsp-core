@@ -23,6 +23,7 @@
  * The database configuration file for shared DSPs
  */
 global $_dbName;
+static $_privatePath;
 
 const AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials';
 
@@ -36,22 +37,24 @@ if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 	throw new \CHttpException( 401, 'You are not authorized to access this system (' . $_host . ').' );
 }
 
+if ( !empty( $_privatePath ) )
+{
+	//	Non-existent DSP, redirect
+	if ( false === ( $_config = @require( $_privatePath . '/database.config.php' ) ) )
+	{
+		header( 'Location: http://cumulus.cloud.dreamfactory.com/future-dreamer.php' );
+		die();
+	}
+
+	return $_config;
+}
+
 $_parts = explode( '.', $_host );
 $_dbName = $_dspName = $_parts[0];
 
-//	Check for db config from provisioning...
-$_privatePath = '/data/storage/' . $_dspName . '/.private';
-
-//	Non-existent DSP, redirect
-if ( false === ( $_config = @require( $_privatePath . '/database.config.php' ) ) )
-{
-	header( 'Location: http://cumulus.cloud.dreamfactory.com/future-dreamer.php' );
-	die();
-}
-
 if ( empty( $_config ) || !is_array( $_config ) )
 {
-//	Otherwise, get the credentials from the auth server...
+	//	Otherwise, get the credentials from the auth server...
 	$_response = \Curl::get( AUTH_ENDPOINT . '/' . $_dspName . '/database' );
 
 	if ( !$_response || !is_object( $_response ) || false == $_response->success )
@@ -64,6 +67,8 @@ if ( empty( $_config ) || !is_array( $_config ) )
 	$_date = date( 'c' );
 	$_dbUser = $_dbCredentialsCache->db_user;
 	$_dbPassword = $_dbCredentialsCache->db_password;
+	$_storageKey = $_dbCredentialsCache->storage_key;
+	$_privatePath = '/data/storage/' . $_storageKey . '/.private';
 
 	$_config = array(
 		'connectionString' => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
