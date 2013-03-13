@@ -292,9 +292,6 @@ class Service extends BaseSystemModel
         if (isset($this->credentials)) {
             $this->credentials = json_decode($this->credentials, true);
         }
-        else {
-            $this->credentials = array();
-        }
         if (isset($this->parameters)) {
             $this->parameters = json_decode($this->parameters, true);
         }
