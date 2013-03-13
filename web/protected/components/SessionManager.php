@@ -401,15 +401,25 @@ class SessionManager
             session_start();
         }
 
-        if (!isset($_SESSION['public']) || empty($_SESSION['public'])) {
-            throw new Exception("There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED);
+        if (isset($_SESSION['public']) && !empty($_SESSION['public'])) {
+            $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : null;
+            if (isset($userId) && !empty($userId)) {
+                return intval($userId);
+            }
         }
 
-        $userId = (isset($_SESSION['public']['id'])) ? $_SESSION['public']['id'] : null;
-        if (!isset($userId)) {
-            throw new Exception("There is no valid user data in the current session.", ErrorCodes::UNAUTHORIZED);
+        // special case for possible guest user
+        $theUser = User::model()->with('role.role_service_accesses',
+                                       'role.apps',
+                                       'role.services')->find('username=:un', array(':un'=>'guest'));
+        if (isset($theUser)) {
+            $result = static::generateSessionData(null, $theUser);
+            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());
+
+            return intval($theUser->primaryKey);
         }
-        return (isset($userId) ? intval($userId) : $userId);
+
+        throw new Exception("There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED);
     }
 
     /**
