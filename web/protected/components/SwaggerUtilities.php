@@ -56,8 +56,6 @@ class SwaggerUtilities
                                    "description"=>"Name of the table to perform operations on.",
                                    "dataType"=>"String",
                                    "required"=>true,
-//                                   "allowableValues"=>array('valueType'=>'LIST',
-//                                                            'values'=>array('account','contact','Events')),
                                    "allowMultiple"=>false
                 );
                 break;
@@ -160,6 +158,78 @@ class SwaggerUtilities
                                    "allowMultiple"=>true
                 );
                 break;
+            case 'folder':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the folder to operate on.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'file':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the file to operate on.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'properties':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Return properties of the folder or file.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'content':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Return the content as base64 of the file, only applies when 'properties' is true.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'download':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Prompt the user to download the file from the browser.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'folders_only':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Only include folders in the folder listing.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'files_only':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Only include files in the folder listing.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'full_tree':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"List the contents of sub-folders as well.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
             }
         }
 
@@ -195,6 +265,7 @@ class SwaggerUtilities
                             "nickname"=> "get".ucfirst($plural),
                             "parameters"=> static::swaggerParameters(array('app_name','ids','filter',
                                                                            'limit','offset','order',
+                                                                           'include_count','include_schema',
                                                                            'fields','related')),
                             "errorResponses"=> array()
                       ),

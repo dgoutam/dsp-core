@@ -53,26 +53,28 @@ class RestController extends Controller
     public function actionIndex()
     {
         try {
+            $criteria = new CDbCriteria(array('select' => 'api_name,name,description',
+                                              'order' => 'api_name'));
+            $result = Service::model()->findAll($criteria);
             if ($this->swagger) {
-                $managers = array(array('path' => '/system', 'description' => 'System Configuration'),
-                                  array('path' => '/user', 'description' => 'User Login'));
-                $criteria = new CDbCriteria(array('select' => 'api_name,name,description'));
-                $result = Service::model()->findAll($criteria);
-                $services = array();
+                $services = array(array('path' => '/user', 'description' => 'User Login'),
+                                  array('path' => '/system', 'description' => 'System Configuration'));
                 foreach ($result as $service) {
                     $services[] = array('path' => '/'.$service->api_name, 'description' => $service->name);
                 }
-                $services = array_merge($managers, $services);
                 $result = SwaggerUtilities::swaggerBaseInfo();
                 $result['apis'] = $services;
-                $this->handleResults($result);
             }
-            // add non-service managers
-            $managers = array(array('name' => 'system', 'label' => 'System Configuration'),
-                              array('name' => 'user', 'label' => 'User Login'));
-            $services = ServiceHandler::getInstance()->getServiceListing();
-            $result = array_merge($managers, $services);
-            $this->handleResults(array('resources'=>$result));
+            else {
+                // add non-service managers
+                $services = array(array('name' => 'user', 'label' => 'User Login'),
+                                  array('name' => 'system', 'label' => 'System Configuration'));
+                foreach ($result as $service) {
+                    $services[] = array('api_name' => $service->api_name, 'name' => $service->name);
+                }
+                $result = array('resources'=>$services);
+            }
+            $this->handleResults($result);
         }
         catch (Exception $ex) {
             $this->handleErrors($ex);
