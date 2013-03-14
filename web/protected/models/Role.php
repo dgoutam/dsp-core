@@ -291,6 +291,7 @@ class Role extends BaseSystemModel
                 foreach ($accesses as $access) {
                     $newAccess = new RoleServiceAccess;
                     if ($newAccess) {
+                        $newAccess->setAttribute('role_id', $role_id);
                         $newAccess->setAttributes($access);
                         $newAccess->save();
                     }
