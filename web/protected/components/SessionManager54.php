@@ -29,7 +29,7 @@ ini_set( 'session.gc_maxlifetime', 600 );
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class SessionManager
+class SessionManager extends SessionHandler
 {
 	/**
 	 * @var SessionManager
@@ -64,17 +64,14 @@ class SessionManager
 		$this->_sqlConn = Yii::app()->db;
 		$this->_driverType = DbUtilities::getDbDriverType( $this->_sqlConn );
 
-        if (!session_set_save_handler(array($this, 'open'),
-                                      array($this, 'close'),
-                                      array($this, 'read'),
-                                      array($this, 'write'),
-                                      array($this, 'destroy'),
-                                      array($this, 'gc'))) {
-            error_log("Failed to set session handler.");
+		/** @noinspection PhpParamsInspection */
+		if ( !session_set_save_handler( $this, true ) )
+		{
+			Log::error( "Failed to set session handler." );
 		}
 
 		// make sure we close out the session
-        register_shutdown_function('session_write_close');
+		\register_shutdown_function( '\\session_write_close' );
 	}
 
 	/**
@@ -82,7 +79,7 @@ class SessionManager
 	 */
 	public function __destruct()
 	{
-        session_write_close(); // IMPORTANT!
+		\session_write_close(); // IMPORTANT!
 	}
 
 	/**
@@ -92,17 +89,29 @@ class SessionManager
 	 */
 	public static function getInstance()
 	{
-        if (!isset(self::$_instance)) {
-            self::$_instance = new SessionManager();
+		if ( !isset( self::$_instance ) )
+		{
+			self::$_instance = new self();
 		}
 
 		return self::$_instance;
 	}
 
 	/**
-     * @return bool
+	 * PHP >= 5.4.0<br/>
+	 * Initialize session
+	 *
+	 * @link http://php.net/manual/en/sessionhandler.open.php
+	 *
+	 * @param string $save_path  The path where to store/retrieve the session.
+	 * @param string $session_id The session id.
+	 *
+	 * @return bool <p>
+	 *       The return value (usually TRUE on success, FALSE on failure).
+	 *       Note this value is returned internally to PHP for processing.
+	 * </p>
 	 */
-    public function open()
+	public function open( $save_path, $session_id )
 	{
 		return true;
 	}
@@ -142,8 +151,9 @@ class SessionManager
 				}
 			}
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 
 		return '';
@@ -185,8 +195,9 @@ class SessionManager
 
 			return true;
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 
 		return false;
@@ -210,8 +221,9 @@ class SessionManager
 
 			return true;
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 
 		return false;
@@ -236,8 +248,9 @@ class SessionManager
 
 			return true;
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 
 		return false;
@@ -266,13 +279,16 @@ class SessionManager
 				$command->delete( 'df_sys_session', 'user_id=:id', array( ':id' => $user_ids ) );
 			}
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 	}
 
 	/**
-     * @param $user_ids
+	 * @param $role_ids
+	 *
+	 * @internal param $user_ids
 	 */
 	public function deleteSessionsByRole( $role_ids )
 	{
@@ -292,8 +308,9 @@ class SessionManager
 				$command->delete( 'df_sys_session', 'role_id=:id', array( ':id' => $role_ids ) );
 			}
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 	}
 
@@ -329,13 +346,14 @@ class SessionManager
 				}
 			}
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 	}
 
 	/**
-     * @param $user_id
+	 * @param $role_id
 	 */
 	public function updateSessionByRole( $role_id )
 	{
@@ -373,8 +391,9 @@ class SessionManager
 				}
 			}
 		}
-        catch (Exception $ex) {
-            error_log($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			Log::error( $ex->getMessage() );
 		}
 	}
 
@@ -713,7 +732,10 @@ class SessionManager
 	 */
 	public static function getCurrentUserId()
 	{
-        if (isset(static::$_userId)) return static::$_userId;
+		if ( isset( static::$_userId ) )
+		{
+			return static::$_userId;
+		}
 
 		try
 		{
@@ -732,7 +754,10 @@ class SessionManager
 	 */
 	public static function getCurrentRoleId()
 	{
-        if (isset(static::$_roleId)) return static::$_roleId;
+		if ( isset( static::$_roleId ) )
+		{
+			return static::$_roleId;
+		}
 
 		try
 		{
@@ -755,5 +780,4 @@ class SessionManager
 	{
 		return ( isset( $GLOBALS['app_name'] ) ) ? $GLOBALS['app_name'] : '';
 	}
-
 }
