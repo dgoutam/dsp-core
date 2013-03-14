@@ -64,10 +64,12 @@ class Pii extends \CHtml
 	 *
 	 * @param string                         $docRoot The document root of the web site
 	 * @param \Composer\Autoload\ClassLoader $autoloader
+	 * @param bool                           $createApp
+	 * @param bool                           $runApp
 	 *
 	 * @return void
 	 */
-	public static function run( $docRoot, $autoloader = null )
+	public static function run( $docRoot, $autoloader = null, $createApp = true, $runApp = true )
 	{
 		if ( null === $autoloader )
 		{
@@ -79,7 +81,7 @@ class Pii extends \CHtml
 
 		$_basePath = dirname( $docRoot );
 		$_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' );
-		$_class = ( 'cli' == PHP_SAPI ? '\\CConsoleApplication' : '\\CWebApplication' );
+		$_class = ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' );
 		$_configPath = $_basePath . '/config';
 		$_configFile = $_configPath . '/' . $_appMode . '.php';
 		$_logPath = $_basePath . '/log';
@@ -91,7 +93,6 @@ class Pii extends \CHtml
 
 		//	Create an alias for our configuration directory
 		static::alias( 'application.config', $_configPath );
-		static::alias( 'application.log', $_logPath );
 
 		\Kisma::set( 'app.app_path', $_basePath . '/web' );
 		\Kisma::set( 'app.config_path', $_configPath );
@@ -106,12 +107,16 @@ class Pii extends \CHtml
 		//	And our log
 		Log::setDefaultLog( $_logFile );
 
-		//	Comment out the below lines to turn off DEBUG mode
-		defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-		defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
-
 		//	Create the application and run!
-		static::app( \Yii::createApplication( $_class, $_configFile ) )->run();
+		if ( $createApp )
+		{
+			$_app = \Yii::createApplication( $_class, $_configFile );
+
+			if ( $runApp )
+			{
+				static::app( $_app )->run();
+			}
+		}
 	}
 
 	/**

@@ -43,6 +43,9 @@ $_basePath = dirname( __DIR__ );
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';
 
+require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
+\Pii::run( __DIR__, true, false, false );
+
 //.........................................................................
 //. The configuration himself (like Raab)
 //.........................................................................

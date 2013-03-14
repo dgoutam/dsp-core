@@ -9,7 +9,7 @@
 	],
 	"require":           {
 		"php":                               ">=5.3.8",
-		"yiisoft/yii":                       "dev-master",
+		"dreamfactory/yii":                  "dev-master",
 		"microsoft/windowsazure":            "*",
 		"amazonwebservices/aws-sdk-for-php": "1.5.*",
 		"dreamfactory/app-launchpad":        "dev-master",

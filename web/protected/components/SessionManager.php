@@ -1,6 +1,4 @@
 <?php
-use Kisma\Core\Utility\Log;
-
 // 1/10 api calls will cleanup sessions
 ini_set( 'session.gc_divisor', 10 );
 // 10 minutes for debug
@@ -64,17 +62,21 @@ class SessionManager
 		$this->_sqlConn = Yii::app()->db;
 		$this->_driverType = DbUtilities::getDbDriverType( $this->_sqlConn );
 
-        if (!session_set_save_handler(array($this, 'open'),
-                                      array($this, 'close'),
-                                      array($this, 'read'),
-                                      array($this, 'write'),
-                                      array($this, 'destroy'),
-                                      array($this, 'gc'))) {
-            Log::error("Failed to set session handler.");
+		if ( !session_set_save_handler(
+			array( $this, 'open' ),
+			array( $this, 'close' ),
+			array( $this, 'read' ),
+			array( $this, 'write' ),
+			array( $this, 'destroy' ),
+			array( $this, 'gc' )
+		)
+		)
+		{
+			error_log( "Failed to set session handler." );
 		}
 
 		// make sure we close out the session
-        register_shutdown_function('session_write_close');
+		register_shutdown_function( 'session_write_close' );
 	}
 
 	/**
@@ -82,7 +84,7 @@ class SessionManager
 	 */
 	public function __destruct()
 	{
-        session_write_close(); // IMPORTANT!
+		session_write_close(); // IMPORTANT!
 	}
 
 	/**
@@ -92,17 +94,18 @@ class SessionManager
 	 */
 	public static function getInstance()
 	{
-        if (!isset(self::$_instance)) {
-            self::$_instance = new SessionManager();
+		if ( !isset( self::$_instance ) )
+		{
+			self::$_instance = new SessionManager();
 		}
 
 		return self::$_instance;
 	}
 
 	/**
-     * @return bool
+	 * @return bool
 	 */
-    public function open()
+	public function open()
 	{
 		return true;
 	}
@@ -142,8 +145,9 @@ class SessionManager
 				}
 			}
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 
 		return '';
@@ -185,8 +189,9 @@ class SessionManager
 
 			return true;
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 
 		return false;
@@ -210,8 +215,9 @@ class SessionManager
 
 			return true;
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 
 		return false;
@@ -236,8 +242,9 @@ class SessionManager
 
 			return true;
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 
 		return false;
@@ -266,13 +273,14 @@ class SessionManager
 				$command->delete( 'df_sys_session', 'user_id=:id', array( ':id' => $user_ids ) );
 			}
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 	}
 
 	/**
-     * @param $user_ids
+	 * @param $user_ids
 	 */
 	public function deleteSessionsByRole( $role_ids )
 	{
@@ -292,8 +300,9 @@ class SessionManager
 				$command->delete( 'df_sys_session', 'role_id=:id', array( ':id' => $role_ids ) );
 			}
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 	}
 
@@ -329,13 +338,14 @@ class SessionManager
 				}
 			}
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 	}
 
 	/**
-     * @param $user_id
+	 * @param $user_id
 	 */
 	public function updateSessionByRole( $role_id )
 	{
@@ -373,8 +383,9 @@ class SessionManager
 				}
 			}
 		}
-        catch (Exception $ex) {
-            Log::error($ex->getMessage());
+		catch ( Exception $ex )
+		{
+			error_log( $ex->getMessage() );
 		}
 	}
 
@@ -490,9 +501,11 @@ class SessionManager
 		}
 
 		// special case for possible guest user
-		$theUser = User::model()->with( 'role.role_service_accesses',
+		$theUser = User::model()->with(
+			'role.role_service_accesses',
 			'role.apps',
-			'role.services' )->find( 'username=:un', array( ':un' => 'guest' ) );
+			'role.services'
+		)->find( 'username=:un', array( ':un' => 'guest' ) );
 		if ( isset( $theUser ) )
 		{
 			$result = static::generateSessionData( null, $theUser );
@@ -713,7 +726,10 @@ class SessionManager
 	 */
 	public static function getCurrentUserId()
 	{
-        if (isset(static::$_userId)) return static::$_userId;
+		if ( isset( static::$_userId ) )
+		{
+			return static::$_userId;
+		}
 
 		try
 		{
@@ -732,7 +748,10 @@ class SessionManager
 	 */
 	public static function getCurrentRoleId()
 	{
-        if (isset(static::$_roleId)) return static::$_roleId;
+		if ( isset( static::$_roleId ) )
+		{
+			return static::$_roleId;
+		}
 
 		try
 		{
