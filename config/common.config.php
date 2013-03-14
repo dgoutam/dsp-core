@@ -22,15 +22,39 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-global $_dbName, $_blobConfig;
+global $_dbName, $_blobConfig, $_instance;
 
-return array(
-	'storage_base_path'     => '/data/storage',
-	'private_path'          => '/data/storage/' . $_dbName . '/.private',
-	'storage_path'          => '/data/storage/' . $_dbName . '/blob',
-	'dsp_name'              => $_dbName,
-	'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
-	'adminEmail'            => 'developer-support@dreamfactory.com',
-	'companyLabel'          => 'DreamFactory DSP',
-	'allowOpenRegistration' => 'true',
+//*************************************************************************
+//* Set fabric-hosted storage paths here...
+//*************************************************************************
+
+if ( \Kisma::get( 'app.fabric_hosted' ) && !empty( $_instance ) )
+{
+	$_instanceSettings = array(
+		'storage_base_path' => $_instance->storage_path,
+		'private_path'      => $_instance->private_path,
+		'storage_path'      => $_instance->blob_storage_path,
+		'snapshot_path'     => $_instance->snapshot_path,
+		'dsp_name'          => $_instance->db_name,
+	);
+}
+else
+{
+	$_instanceSettings = array(
+		'storage_base_path' => dirname( __DIR__ ) . '/storage',
+		'private_path'      => dirname( __DIR__ ) . '/storage/.private',
+		'storage_path'      => dirname( __DIR__ ) . '/storage/blob',
+		'snapshot_path'     => dirname( __DIR__ ) . '/storage/.private/snapshots',
+		'dsp_name'          => $_dbName,
+	);
+}
+
+return array_merge(
+	$_instanceSettings,
+	array(
+		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
+		 'adminEmail'            => 'developer-support@dreamfactory.com',
+		 'companyLabel'          => 'DreamFactory Service Platform(tm)',
+		 'allowOpenRegistration' => 'true',
+	)
 );

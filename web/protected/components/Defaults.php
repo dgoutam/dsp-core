@@ -34,27 +34,14 @@ class Defaults
 	 */
 	public static function getStoragePath( $append = null )
 	{
-		if ( file_exists( '/var/www/.fabric_hosted' ) )
-		{
-			return Yii::app()->params['storage_path'] . ( $append ? DIRECTORY_SEPARATOR . $append : null );
-		}
-
-		$_base = Yii::app()->params['base_storage_path'];
-		$_dspName = Yii::app()->params['dsp_name'];
-
-		if ( empty( $_base ) || empty( $_dspName ) )
-		{
-			return dirname( $_SERVER['DOCUMENT_ROOT'] ) . DIRECTORY_SEPARATOR . 'storage' . ( $append ? DIRECTORY_SEPARATOR . $append : null );
-		}
-
-		$_base .= $_dspName;
+		$_base = \Pii::getParam( 'storage_path' );
 
 		if ( !file_exists( $_base ) )
 		{
 			@mkdir( $_base, 0777, true );
 		}
 
-		return $_base . ( $append ? DIRECTORY_SEPARATOR . $append : null );
+		return $_base . ( $append ? '/' . $append : null );
 	}
 
 	/**

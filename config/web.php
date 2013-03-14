@@ -31,8 +31,8 @@ $_dbName = null;
 $_appName = 'DreamFactory Services Platform';
 
 //	Read in the database configuration
-$_dbConfig = require( __DIR__ . '/database.config.php' );
-$_commonConfig = __DIR__ . '/common.config.php';
+$_dbConfig = require_once( __DIR__ . '/database.config.php' );
+$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require_once( __DIR__ . '/common.config.php' ) : array();
 
 //	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
 $_blobConfig = __DIR__ . '/blob.config.php';
@@ -136,5 +136,5 @@ return array(
 	//. Global application parameters
 	//.........................................................................
 
-	'params'      => file_exists( $_commonConfig ) ? require( $_commonConfig ) : array(),
+	'params'      => $_commonConfig,
 );

@@ -24,7 +24,9 @@
  */
 if ( file_exists( '/var/www/.fabric_hosted' ) )
 {
-	return require( __DIR__ . '/fabric.database.config.php' );
+	require_once dirname( __DIR__ ) . '/web/protected/components/Fabric.php';
+
+	return Fabric::initialize();
 }
 
 $_dbName = 'dreamfactory';

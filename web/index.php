@@ -24,11 +24,6 @@
  */
 require_once dirname( __DIR__ ) . '/vendor/yiisoft/yii/framework/yii.php';
 require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
-$_autoloader = require_once( dirname( __DIR__ ) . '/vendor/autoload.php' );
-
-//	Comment out the following lines in production
-defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
 //	And we're off!
-\Pii::run( __DIR__, $_autoloader );
+\Pii::run( __DIR__ );

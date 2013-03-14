@@ -3,25 +3,26 @@ use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
 /**
- * This file is part of the DreamFactory Document Service Platform (DSP)
+ * Pii.php
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This source file and all is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- *
- * This is a generic Yii utility class
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class Pii extends \CHtml
 {
@@ -68,6 +69,12 @@ class Pii extends \CHtml
 	 */
 	public static function run( $docRoot, $autoloader = null )
 	{
+		if ( null === $autoloader )
+		{
+			/** @noinspection PhpIncludeInspection */
+			$autoloader = require_once( dirname( $docRoot ) . '/vendor/autoload.php' );
+		}
+
 		$_dspName = null;
 
 		$_basePath = dirname( $docRoot );
@@ -103,27 +110,8 @@ class Pii extends \CHtml
 		defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 		defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
-		//	Create the application
-		static::app( \Yii::createApplication( $_class, $_configFile ) );
-
-		//	Set the storage paths...
-		if ( $_isFabric )
-		{
-			\Kisma::set( 'dsp.name', $_dspName );
-
-			\Kisma::set(
-				'dsp.storage_path',
-				Pii::getParam( 'storage_path', static::getParam( 'storage_base_path', '/data/storage' ) . '/' . $_dspName . '/blob' )
-			);
-
-			\Kisma::set(
-				'dsp.private_path',
-				static::getParam( 'private_path', static::getParam( 'storage_base_path', '/data/storage' ) . $_dspName . '/.private' )
-			);
-		}
-
-		//	Launch
-		static::app()->run();
+		//	Create the application and run!
+		static::app( \Yii::createApplication( $_class, $_configFile ) )->run();
 	}
 
 	/**
@@ -974,5 +962,4 @@ class Pii extends \CHtml
 
 		return $_dspName;
 	}
-
 }
