@@ -70,7 +70,7 @@ class SessionManager
                                       array($this, 'write'),
                                       array($this, 'destroy'),
                                       array($this, 'gc'))) {
-            error_log("Failed to set session handler.");
+            Log::error("Failed to set session handler.");
 		}
 
 		// make sure we close out the session
@@ -143,7 +143,7 @@ class SessionManager
 			}
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 
 		return '';
@@ -186,7 +186,7 @@ class SessionManager
 			return true;
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 
 		return false;
@@ -211,7 +211,7 @@ class SessionManager
 			return true;
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 
 		return false;
@@ -237,7 +237,7 @@ class SessionManager
 			return true;
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 
 		return false;
@@ -267,7 +267,7 @@ class SessionManager
 			}
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 	}
 
@@ -293,7 +293,7 @@ class SessionManager
 			}
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 	}
 
@@ -330,7 +330,7 @@ class SessionManager
 			}
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 	}
 
@@ -374,7 +374,7 @@ class SessionManager
 			}
 		}
         catch (Exception $ex) {
-            error_log($ex->getMessage());
+            Log::error($ex->getMessage());
 		}
 	}
 
