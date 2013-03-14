@@ -26,9 +26,14 @@
 //.........................................................................
 //. Default Values
 //.........................................................................
+global $_autoloader;
 
 $_dbName = null;
 $_appName = 'DreamFactory Services Platform';
+
+//	Get the globals set...
+require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
+\Pii::run( __DIR__, $_autoloader );
 
 //	Read in the database configuration
 $_dbConfig = require_once( __DIR__ . '/database.config.php' );
@@ -42,9 +47,6 @@ $_basePath = dirname( __DIR__ );
 
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';
-
-require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
-\Pii::run( __DIR__, true, false, false );
 
 //.........................................................................
 //. The configuration himself (like Raab)
@@ -60,6 +62,7 @@ return array(
 	'runtimePath' => $_logFilePath,
 	'preload'     => array( 'log' ),
 	'import'      => array(
+		'system.utils.*',
 		'application.models.*',
 		'application.models.forms.*',
 		'application.components.*',

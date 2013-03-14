@@ -64,12 +64,10 @@ class Pii extends \CHtml
 	 *
 	 * @param string                         $docRoot The document root of the web site
 	 * @param \Composer\Autoload\ClassLoader $autoloader
-	 * @param bool                           $createApp
-	 * @param bool                           $runApp
 	 *
 	 * @return void
 	 */
-	public static function run( $docRoot, $autoloader = null, $createApp = true, $runApp = true )
+	public static function run( $docRoot, $autoloader = null )
 	{
 		if ( null === $autoloader )
 		{
@@ -91,6 +89,9 @@ class Pii extends \CHtml
 		$_logName = $_appMode . '.' . $_dspName . '.log';
 		$_logFile = $_logPath . '/' . $_logName;
 
+		//	And our log
+		Log::setDefaultLog( $_logFile );
+
 		//	Create an alias for our configuration directory
 		static::alias( 'application.config', $_configPath );
 
@@ -104,19 +105,8 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.dsp_name', $_dspName );
 		\Kisma::set( 'app.fabric_hosted', $_isFabric = file_exists( '/var/www/.fabric_hosted' ) );
 
-		//	And our log
-		Log::setDefaultLog( $_logFile );
-
-		//	Create the application and run!
-		if ( $createApp )
-		{
-			$_app = \Yii::createApplication( $_class, $_configFile );
-
-			if ( $runApp )
-			{
-				static::app( $_app )->run();
-			}
-		}
+		//	Just return the app if there is one...
+		return static::app();
 	}
 
 	/**

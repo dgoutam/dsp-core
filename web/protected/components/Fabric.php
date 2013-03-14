@@ -90,6 +90,7 @@ class Fabric extends SeedUtility
 
 		if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 		{
+			Log::error( 'Invalid host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
 		}
 
@@ -97,16 +98,13 @@ class Fabric extends SeedUtility
 		if ( null === ( $_key = FilterInput::cookie( static::FigNewton ) ) )
 		{
 			//	If there is a configuration file available, we'll use it for this session.
-			$_key = Option::get( $_SESSION, static::FigNewton );
-		}
-
-		if ( !isset( $_SESSION, $_SESSION[static::FigNewton] ) )
-		{
-			$_SESSION[static::FigNewton] = $_key;
+			$_key = isset( $_SESSION ) ? Option::get( $_SESSION, static::FigNewton ) : null;
 		}
 
 		if ( !empty( $_key ) )
 		{
+			Log::debug( 'User Key: ' . $_key );
+
 			$_config = static::BaseStorage . '/' . $_key . '/.private' . static::DSP_DB_CONFIG_FILE_NAME;
 
 			if ( file_exists( $_config . static::DSP_DB_CONFIG_FILE_NAME ) )
@@ -148,6 +146,7 @@ class Fabric extends SeedUtility
 			return require_once $_privatePath . static::DSP_DB_CONFIG_FILE_NAME;
 		}
 
+		Log::error( 'Unable to find private path or database config: ' . $_privatePath );
 		throw new \CHttpException( HttpResponse::BadRequest );
 	}
 }
