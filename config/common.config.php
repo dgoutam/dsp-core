@@ -43,7 +43,7 @@ else
 	$_instanceSettings = array(
 		'storage_base_path' => dirname( __DIR__ ) . '/storage',
 		'private_path'      => dirname( __DIR__ ) . '/storage/.private',
-		'storage_path'      => dirname( __DIR__ ) . '/storage/blob',
+		'storage_path'      => dirname( __DIR__ ) . '/storage',
 		'snapshot_path'     => dirname( __DIR__ ) . '/storage/.private/snapshots',
 		'dsp_name'          => $_dbName,
 	);

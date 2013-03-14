@@ -34,7 +34,7 @@ class Defaults
 	 */
 	public static function getStoragePath( $append = null )
 	{
-		$_base = \Pii::getParam( 'storage_path' );
+		$_base = Yii::app()->params[ 'storage_path' ];
 
 		if ( !file_exists( $_base ) )
 		{
