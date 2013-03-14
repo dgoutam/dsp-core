@@ -132,8 +132,10 @@ class FileManager extends CommonFileManager
 			}
 			else
 			{
-                // doesn't really exist until first write creates it
-//				throw new Exception( "Storage container does not exist in storage.", ErrorCodes::NOT_FOUND );
+                if (!empty($path)) {
+                    throw new Exception("Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND);
+                }
+                // container root doesn't really exist until first write creates it
 			}
 
 			return array( "folder" => $folders, "file" => $files );
@@ -181,7 +183,7 @@ class FileManager extends CommonFileManager
 	{
 		if ( empty( $path ) )
 		{
-			throw new Exception( "Invalid empty path." );
+			throw new Exception( "Invalid empty path.", ErrorCodes::BAD_REQUEST );
 		}
 		$parent = FileUtilities::getParentFolder( $path );
 		$path = FileUtilities::fixFolderPath( $path );
@@ -191,7 +193,7 @@ class FileManager extends CommonFileManager
 		{
 			if ( $check_exist )
 			{
-				throw new Exception( "Folder '$path' already exists." );
+				throw new Exception( "Folder '$path' already exists.", ErrorCodes::BAD_REQUEST );
 			}
 
 			return;
@@ -201,7 +203,7 @@ class FileManager extends CommonFileManager
 		{
 			if ( $check_exist )
 			{
-				throw new Exception( "Folder '$parent' does not exist." );
+				throw new Exception( "Folder '$parent' does not exist.", ErrorCodes::NOT_FOUND );
 			}
 			$this->createFolder( $parent, $is_public, $properties, false );
 		}
@@ -240,20 +242,20 @@ class FileManager extends CommonFileManager
 		// does this file already exist?
 		if ( !$this->folderExists( $src_path ) )
 		{
-			throw new Exception( "Folder '$src_path' does not exist." );
+			throw new Exception( "Folder '$src_path' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		if ( $this->folderExists( $dest_path ) )
 		{
 			if ( ( $check_exist ) )
 			{
-				throw new Exception( "Folder '$dest_path' already exists." );
+				throw new Exception( "Folder '$dest_path' already exists.", ErrorCodes::BAD_REQUEST );
 			}
 		}
 		// does this file's parent folder exist?
 		$parent = FileUtilities::getParentFolder( $dest_path );
 		if ( !empty( $parent ) && ( !$this->folderExists( $parent ) ) )
 		{
-			throw new Exception( "Folder '$parent' does not exist." );
+			throw new Exception( "Folder '$parent' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		try
 		{
@@ -283,7 +285,7 @@ class FileManager extends CommonFileManager
 		// does this folder exist?
 		if ( !$this->folderExists( $path ) )
 		{
-			throw new Exception( "Folder '$path' does not exist." );
+			throw new Exception( "Folder '$path' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		try
 		{
@@ -406,7 +408,7 @@ class FileManager extends CommonFileManager
 			$key = static::addContainerToName( $this->storageContainer, $path );
 			if ( !is_file( $key ) )
 			{
-				throw new Exception( "File '$path' does not exist in storage." );
+				throw new Exception( "File '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
 			}
 			$data = file_get_contents( $key );
 			if ( false === $data )
@@ -455,7 +457,7 @@ class FileManager extends CommonFileManager
 		{
 			if ( !$this->fileExists( $path ) )
 			{
-				throw new Exception( "File '$path' does not exist in storage." );
+				throw new Exception( "File '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
 			}
 			$key = self::addContainerToName( $this->storageContainer, $path );
 			$shortName = FileUtilities::getNameFromPath( $path );
@@ -586,7 +588,7 @@ class FileManager extends CommonFileManager
 		$parent = FileUtilities::getParentFolder( $path );
 		if ( !empty( $parent ) && ( !$this->folderExists( $parent ) ) )
 		{
-			throw new Exception( "Folder '$parent' does not exist." );
+			throw new Exception( "Folder '$parent' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		try
 		{
@@ -622,21 +624,21 @@ class FileManager extends CommonFileManager
 		// does local file exist?
 		if ( !file_exists( $local_path ) )
 		{
-			throw new Exception( "File '$local_path' does not exist." );
+			throw new Exception( "File '$local_path' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		// does this file already exist?
 		if ( $this->fileExists( $path ) )
 		{
 			if ( ( $check_exist ) )
 			{
-				throw new Exception( "File '$path' already exists." );
+				throw new Exception( "File '$path' already exists.", ErrorCodes::BAD_REQUEST );
 			}
 		}
 		// does this file's parent folder exist?
 		$parent = FileUtilities::getParentFolder( $path );
 		if ( !empty( $parent ) && ( !$this->folderExists( $parent ) ) )
 		{
-			throw new Exception( "Folder '$parent' does not exist." );
+			throw new Exception( "Folder '$parent' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		try
 		{
@@ -667,20 +669,20 @@ class FileManager extends CommonFileManager
 		// does this file already exist?
 		if ( !$this->fileExists( $src_path ) )
 		{
-			throw new Exception( "File '$src_path' does not exist." );
+			throw new Exception( "File '$src_path' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		if ( $this->fileExists( $dest_path ) )
 		{
 			if ( ( $check_exist ) )
 			{
-				throw new Exception( "File '$dest_path' already exists." );
+				throw new Exception( "File '$dest_path' already exists.", ErrorCodes::BAD_REQUEST );
 			}
 		}
 		// does this file's parent folder exist?
 		$parent = FileUtilities::getParentFolder( $dest_path );
 		if ( !empty( $parent ) && ( !$this->folderExists( $parent ) ) )
 		{
-			throw new Exception( "Folder '$parent' does not exist." );
+			throw new Exception( "Folder '$parent' does not exist.", ErrorCodes::NOT_FOUND );
 		}
 		try
 		{
