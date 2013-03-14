@@ -1,56 +1,27 @@
 <?php
 /* @var $this SiteController */
-/* @var $model LoginForm */
-/* @var $form CActiveForm  */
+use Kisma\Core\Utility\Bootstrap;
 
-$this->pageTitle=Yii::app()->name . ' - Login';
-$this->breadcrumbs=array(
-	'Login',
-);
+/* @var $model LoginForm */
+/* @var $form CActiveForm */
 ?>
 
-<h1>Login</h1>
+<h2 class="headline">Activate Your New DSP!</h2>
 
-<p>Please login using your DreamFactory.com account credentials:</p>
+<p>In order to activate this DSP, you must enter your <strong>DreamFactory.com</strong> site credentials.<p><p>Please enter the email address and
+	password you used to register on the DreamFactory.com web site. If you have not yet registered, you may <a href="//dfnew.piuid.com/user/register"
+																											   target="_blank">click here</a> to do so
+	now.</p>
 
-<div class="form">
-<?php $form=$this->beginWidget('CActiveForm', array(
-	'id'=>'login-form',
-	'enableClientValidation'=>true,
-	'clientOptions'=>array(
-		'validateOnSubmit'=>true,
-	),
-)); ?>
+<form id="login-form" method="POST">
+	<?php
+	echo Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'Email Address' );
+	echo Bootstrap::text( array( 'id' => 'LoginForm_username', 'name' => 'LoginForm[username]' ) );
+	echo Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'Password' );
+	echo Bootstrap::text( array( 'id' => 'LoginForm_password', 'name' => 'LoginForm[password]' ) );
+	?>
 
-	<p class="note">Fields with <span class="required">*</span> are required.</p>
-
-	<div class="row">
-		<?php echo $form->labelEx($model,'username'); ?>
-		<?php echo $form->textField($model,'username'); ?>
-		<?php echo $form->error($model,'username'); ?>
-        <p class="hint">
-            Hint: This is your email address from your <b>www.dreamfactory.com</b> account.
-        </p>
+	<div class="form-actions">
+		<button type="submit" class="btn btn-success btn-primary">Activate!</button>
 	</div>
-
-	<div class="row">
-		<?php echo $form->labelEx($model,'password'); ?>
-		<?php echo $form->passwordField($model,'password'); ?>
-		<?php echo $form->error($model,'password'); ?>
-		<p class="hint">
-			Hint: This is your password from your <b>www.dreamfactory.com</b> account.
-		</p>
-	</div>
-
-	<div class="row rememberMe">
-		<?php echo $form->checkBox($model,'rememberMe'); ?>
-		<?php echo $form->label($model,'rememberMe'); ?>
-		<?php echo $form->error($model,'rememberMe'); ?>
-	</div>
-
-	<div class="row buttons">
-		<?php echo CHtml::submitButton('Login'); ?>
-	</div>
-
-<?php $this->endWidget(); ?>
-</div><!-- form -->
+</form>

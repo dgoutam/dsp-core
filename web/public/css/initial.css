@@ -1,0 +1,11 @@
+img#logo-img {
+	margin-top:   5px;
+	margin-right: 15px;
+	float:        left;
+	height:       32px;
+}
+
+h2.headline {
+	border-bottom: 1px solid #ddd;
+	margin-bottom: 25px;
+}
