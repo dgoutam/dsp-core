@@ -1,112 +1,78 @@
 <?php
-/* @var $this SiteController */
-/* @var $model InitAdminForm */
-/* @var $form CActiveForm */
+/**
+ * @var $this  SiteController
+ * @var $model InitAdminForm
+ */
+use Kisma\Core\Utility\Bootstrap;
 
-$this->pageTitle = Yii::app()->name . ' - Initialization';
-$this->breadcrumbs = array(
-	'Initialization',
+Validate::register(
+	'form#init-form',
+	array(
+		 'ignoreTitle'    => true,
+		 'errorClass'     => 'error',
+		 'errorPlacement' => 'function(error,element){error.appendTo(element.parent("div"));error.css("margin","-10px 0 0");}',
+		 'rules'          => array(
+			 'InitAdminForm[username]'       => array(
+				 'required'  => true,
+				 'minlength' => 6,
+			 ),
+			 'InitAdminForm[displayName]' => array(
+				 'required'  => true,
+				 'minlength' => 6,
+			 ),
+			 'InitAdminForm[password]'       => array(
+				 'required'  => true,
+				 'minlength' => 6,
+			 ),
+			 'InitAdminForm[passwordRepeat]' => array(
+				 'required'  => true,
+				 'minlength' => 6,
+				 'equalTo'   => '#InitAdminForm_password',
+			 ),
+		 ),
+	)
 );
 ?>
+<h2 class="headline">Now Let's Get Your Mojo Working!</h2>
 
-	<h1>Initialization</h1>
+<p>One last step... Your DreamFactory Services Platform(tm) needs a system administrator.</p>
+<p>This user is a separate account that exists only inside your DSP. It cannot be used elsewhere, like on the
+	<strong>DreamFactory.com</strong> site for instance.</p>
+<p>More administrative and regular users can be easily added using the DSP's built-in 'Admin' application.</p>
+<div class="spacer"></div>
 
-<?php if ( Yii::app()->user->hasFlash( 'init' ) ): ?>
+<form id="init-form" method="POST">
+	<?php
+	echo'<legend>Login Credentials</legend>';
 
-	<div class="flash-success">
-		<?php echo Yii::app()->user->getFlash( 'init' ); ?>
+	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_username' ), 'User Name' ) . '<div class="controls">' .
+		Bootstrap::text( array( 'id' => 'InitAdminForm_username', 'name' => 'InitAdminForm[username]', 'class' => 'required' ) ) . '</div></div>';
+
+	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_password' ), 'Password' ) . '<div class="controls">' .
+		Bootstrap::password( array( 'id' => 'InitAdminForm_password', 'name' => 'InitAdminForm[password]', 'class' => 'password required' ) ) .
+		'</div></div>';
+
+	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_passwordRepeat' ), 'Password Again' ) . '<div class="controls">' .
+		Bootstrap::password( array( 'id' => 'InitAdminForm_passwordRepeat', 'name' => 'InitAdminForm[passwordRepeat]', 'class' => 'password required' ) ) .
+		'</div></div>';
+
+	echo'<legend>User Details</legend>';
+
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_email' ), 'Email Address' ) . '<div class="controls">' .
+		 Bootstrap::text( array( 'id' => 'InitAdminForm_email', 'name' => 'InitAdminForm[email]', 'class' => 'email required' ) ) . '</div></div>';
+
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_firstName' ), 'First Name' ) . '<div class="controls">' .
+		 Bootstrap::text( array( 'id' => 'InitAdminForm_firstName', 'name' => 'InitAdminForm[firstName]', 'class' => 'required' ) ) . '</div></div>';
+
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_lastName' ), 'Last Name' ) . '<div class="controls">' .
+		 Bootstrap::text( array( 'id' => 'InitAdminForm_lastName', 'name' => 'InitAdminForm[lastName]', 'class' => 'required' ) ) . '</div></div>';
+
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_displayName' ), 'Display Name' ) . '<div class="controls">' .
+		 Bootstrap::text( array( 'id' => 'InitAdminForm_displayName', 'name' => 'InitAdminForm[displayName]', 'class' => 'required' ) ) . '</div></div>';
+
+	?>
+
+	<div class="form-actions">
+		<button type="submit" class="btn btn-success btn-primary">Gimme My Mojo!</button>
 	</div>
-
-<?php else: ?>
-
-	<p>
-		Your Document Services Platform needs a system administrator.<br />
-		This admin will be a separate admin account just for this site, not your www.dreamfactory.com account.<br />
-		More administrators and users can be added using the 'System Admin' application once this admin account is created.<br />
-		<br />
-		Click the 'Submit' button below to proceed.
-	</p>
-
-	<div class="form">
-
-		<?php
-		$form = $this->beginWidget(
-			'CActiveForm',
-			array(
-				 'id'                     => 'init-form',
-				 'enableClientValidation' => true,
-				 'clientOptions'          => array(
-					 'validateOnSubmit' => true,
-				 ),
-				 'focus'                  => array( $model, 'username' ),
-			)
-		);
-		?>
-
-		<p class="note">Fields with <span class="required">*</span> are required.</p>
-
-		<?php echo $form->errorSummary( $model ); ?>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'username' ); ?>
-			<?php echo $form->textField( $model, 'username' ); ?>
-			<?php echo $form->error( $model, 'username' ); ?>
-		</div>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'password' ); ?>
-			<?php echo $form->passwordField( $model, 'password' ); ?>
-			<?php echo $form->error( $model, 'password' ); ?>
-		</div>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'passwordRepeat' ); ?>
-			<?php echo $form->passwordField( $model, 'passwordRepeat' ); ?>
-			<?php
-			echo $form->error(
-				$model,
-				'passwordRepeat',
-				array(
-					 'afterValidateAttribute' =>
-					 'js:function(form, attribute, data, hasError){
-					  	var _settings = $.fn.yiiactiveform.getSettings(form);
-					  	$.fn.yiiactiveform.updateInput(_settings.attributes[1], data, form);
-					  }'
-				)
-			);
-			?>
-		</div>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'email' ); ?>
-			<?php echo $form->textField( $model, 'email' ); ?>
-			<?php echo $form->error( $model, 'email' ); ?>
-		</div>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'firstName' ); ?>
-			<?php echo $form->textField( $model, 'firstName' ); ?>
-			<?php echo $form->error( $model, 'firstName' ); ?>
-		</div>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'lastName' ); ?>
-			<?php echo $form->textField( $model, 'lastName' ); ?>
-			<?php echo $form->error( $model, 'lastName' ); ?>
-		</div>
-
-		<div class="row">
-			<?php echo $form->labelEx( $model, 'displayName' ); ?>
-			<?php echo $form->textField( $model, 'displayName' ); ?>
-			<?php echo $form->error( $model, 'displayName' ); ?>
-		</div>
-
-		<div class="row buttons">
-			<?php echo CHtml::submitButton( 'Submit' ); ?>
-		</div>
-
-		<?php $this->endWidget(); ?>
-
-	</div><!-- form -->
-
-<?php endif; ?>
+</form>

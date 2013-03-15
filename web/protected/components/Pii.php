@@ -322,6 +322,11 @@ class Pii extends \CHtml
 	 */
 	public static function clientScript()
 	{
+		if ( null === static::$_clientScript )
+		{
+			static::$_clientScript = static::app()->getClientScript();
+		}
+
 		return static::$_clientScript;
 	}
 
@@ -380,13 +385,13 @@ class Pii extends \CHtml
 		//	Need external library?
 		foreach ( Option::clean( $urlList ) as $_url )
 		{
-			if ( !static::$_clientScript->isScriptFileRegistered( $_url ) )
+			if ( !static::clientScript()->isScriptFileRegistered( $_url ) )
 			{
-				static::$_clientScript->registerScriptFile( $_url, $pagePosition );
+				static::clientScript()->registerScriptFile( $_url, $pagePosition );
 			}
 		}
 
-		return static::$_clientScript;
+		return static::clientScript();
 	}
 
 	/**
@@ -401,13 +406,13 @@ class Pii extends \CHtml
 	{
 		foreach ( Option::clean( $urlList ) as $_url )
 		{
-			if ( !static::$_clientScript->isCssFileRegistered( $_url ) )
+			if ( !static::clientScript()->isCssFileRegistered( $_url ) )
 			{
-				static::$_clientScript->registerCssFile( $_url, $media );
+				static::clientScript()->registerCssFile( $_url, $media );
 			}
 		}
 
-		return static::$_clientScript;
+		return static::clientScript();
 	}
 
 	/**
@@ -423,12 +428,12 @@ class Pii extends \CHtml
 	 */
 	public static function css( $id, $css, $media = null )
 	{
-		if ( !static::$_clientScript->isCssRegistered( $id ) )
+		if ( !static::clientScript()->isCssRegistered( $id ) )
 		{
-			static::$_clientScript->registerCss( $id, $css, $media );
+			static::clientScript()->registerCss( $id, $css, $media );
 		}
 
-		return static::$_clientScript;
+		return static::clientScript();
 	}
 
 	/**
@@ -451,16 +456,16 @@ class Pii extends \CHtml
 	 */
 	public static function script( $id, $script, $position = \CClientScript::POS_READY )
 	{
-		if ( !static::$_clientScript->isScriptRegistered( $id ) )
+		if ( !static::clientScript()->isScriptRegistered( $id ) )
 		{
-			static::$_clientScript->registerScript(
+			static::clientScript()->registerScript(
 				$id,
 				$script,
 				$position
 			);
 		}
 
-		return static::$_clientScript;
+		return static::clientScript();
 	}
 
 	/**
@@ -477,9 +482,9 @@ class Pii extends \CHtml
 	 */
 	public static function metaTag( $content, $name = null, $httpEquivalent = null, $attributes = array() )
 	{
-		static::$_clientScript->registerMetaTag( $content, $name, $httpEquivalent, $attributes );
+		static::clientScript()->registerMetaTag( $content, $name, $httpEquivalent, $attributes );
 
-		return static::$_clientScript;
+		return static::clientScript();
 	}
 
 	/**
