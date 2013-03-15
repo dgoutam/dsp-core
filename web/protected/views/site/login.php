@@ -12,6 +12,7 @@ use Kisma\Core\Utility\Bootstrap;
 	password you used to register on the DreamFactory.com web site. If you have not yet registered, you may <a href="//dfnew.piuid.com/user/register"
 																											   target="_blank">click here</a> to do so
 	now.</p>
+<div class="spacer"></div>
 
 <form id="login-form" method="POST">
 	<?php

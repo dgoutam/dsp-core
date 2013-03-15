@@ -4,11 +4,11 @@
  * @var AppController $this
  */
 $_route = $this->route;
-$_step = 'Launchpad';
+$_step = 'DreamFactory Powers';
 
 if ( $_route == 'site/login' )
 {
-	$_step .= ' -- DSP Activation';
+	$_step .= ' Activate!';
 }
 ?><!DOCTYPE html>
 <html lang="en">
@@ -45,7 +45,7 @@ if ( $_route == 'site/login' )
 		</div>
 	</div>
 </div>
-<div class="container">
+<div class="container main-content">
 	<?php
 	echo $content;
 	?>
