@@ -20,6 +20,8 @@ WEB_USER=www-data
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
 LOCAL_USER=dfadmin
 
+echo "DreamFactory Services Platform(tm) System Updater v1.0.0"
+
 ## No wrapper, unset
 if [ ! -f ${WRAPPER} ] ; then
 	WRAPPER=
@@ -30,10 +32,10 @@ fi
 ## User supplied local user name?
 if [ "x" != "x$1" ] ; then
 	LOCAL_USER=$1
+	echo "Running for local user: ${LOCAL_USER}"
 fi
 
-echo "DreamFactory Services Platform(tm) System Updater v1.0.0"
-echo
+echo ""
 
 ##
 ## Shutdown non-essential services
@@ -85,10 +87,10 @@ git pull --quiet origin master
 
 if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	echo "Installing package manager"
-	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} --quiet
+	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} --quiet --no-interaction
 else
 	echo "Checking for package manager updates"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet self-update
+	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction self-update
 fi
 
 ##
@@ -99,10 +101,10 @@ pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 	echo "Installing packages"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet install
+	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction install
 else
 	echo "Updating packages"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet update
+	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction update
 fi
 
 ##
