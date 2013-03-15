@@ -14,7 +14,13 @@ h2.headline {
 .main-content {
 	height:     640px;
 	font-size:  18px !important;
-	background: url(../images/bg-initial.png) top left no-repeat;
+	background: url(../images/bg-initial.png) 25% 0 no-repeat;
+}
+
+.main-content.step2 {
+	height:     640px;
+	font-size:  18px !important;
+	background: url(../images/bg-initial.png) 100% 50% no-repeat;
 }
 
 .main-content p {
@@ -32,10 +38,18 @@ h2.headline {
 	font-size: 16px;
 }
 
-.main-content .form-actions {
+.main-content.step1 .form-actions {
 	margin-top: 160px;
 }
 
 .main-content footer p {
 	width: 960px;
+}
+
+label.error {
+	color:       darkred;
+	padding-top: 0;
+	margin-top:  -10px;
+	font-size:   10pt;
+	display:     block;
 }

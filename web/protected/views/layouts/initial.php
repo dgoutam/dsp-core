@@ -6,10 +6,17 @@
 $_route = $this->route;
 $_step = 'DreamFactory Powers';
 
-if ( $_route == 'site/login' )
+if ( $_route != 'site/login' )
 {
-	$_step .= ' Activate!';
+	$_headline = 'DreamFactory Powers Activated!';
+	$_step = 'step2';
 }
+else
+{
+	$_headline = 'DreamFactory Powers Activate!';
+	$_step = 'step1';
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,7 +44,7 @@ if ( $_route == 'site/login' )
 
 			<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span> <span
 					class="icon-bar"></span> <span class="icon-bar"></span> </a> <img id="logo-img" src="/public/images/logo-48x48.png"><a
-				class="brand" href="#"><?php echo $_step; ?></a>
+				class="brand" href="#"><?php echo $_headline; ?></a>
 
 			<div class="nav-collapse collapse">
 				<ul class="nav"></ul>
@@ -45,7 +52,7 @@ if ( $_route == 'site/login' )
 		</div>
 	</div>
 </div>
-<div class="container main-content">
+<div class="container main-content <?php echo $_step; ?>">
 	<?php
 	echo $content;
 	?>
