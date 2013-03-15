@@ -29,7 +29,7 @@ ini_set( 'session.gc_maxlifetime', 600 );
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class SessionManager extends SessionHandler
+class SessionManager54 extends SessionHandler
 {
 	/**
 	 * @var SessionManager

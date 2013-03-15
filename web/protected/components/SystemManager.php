@@ -269,13 +269,17 @@ class SystemManager implements iRestHandler
                 throw new Exception("Failed to create a new user.\n$msg", ErrorCodes::BAD_REQUEST);
             }
             $userId = $user->getPrimaryKey();
-            SessionManager::setCurrentUserId($userId);
-            $result = SessionManager::generateSessionData(null, $user);
-
-            if (!isset($_SESSION)) {
-                session_start();
+            // set session for first user
+            $result = SessionManager::generateSessionData($userId);
+            $_SESSION = array('public' => Utilities::getArrayValue('public', $result, array()));
+            $data = session_encode();
+            $sess_name = session_name();
+            if ( isset( $_COOKIE[$sess_name] )) {
+                SessionManager::getInstance()->write($_COOKIE[$sess_name], $data);
             }
-            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());
+            else {
+                error_log('Failed to create first admin session in db.');
+            }
         }
         catch (\Exception $ex) {
             throw $ex;

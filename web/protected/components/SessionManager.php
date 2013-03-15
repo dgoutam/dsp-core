@@ -62,15 +62,12 @@ class SessionManager
 		$this->_sqlConn = Yii::app()->db;
 		$this->_driverType = DbUtilities::getDbDriverType( $this->_sqlConn );
 
-		if ( !session_set_save_handler(
-			array( $this, 'open' ),
-			array( $this, 'close' ),
-			array( $this, 'read' ),
-			array( $this, 'write' ),
-			array( $this, 'destroy' ),
-			array( $this, 'gc' )
-		)
-		)
+		if ( !session_set_save_handler(array( $this, 'open' ),
+                                       array( $this, 'close' ),
+                                       array( $this, 'read' ),
+                                       array( $this, 'write' ),
+                                       array( $this, 'destroy' ),
+                                       array( $this, 'gc' )))
 		{
 			error_log( "Failed to set session handler." );
 		}
@@ -136,13 +133,7 @@ class SessionManager
 			$result = $command->queryRow();
 			if ( !empty( $result ) )
 			{
-				$data = ( isset( $result['data'] ) ) ? $result['data'] : '';
-				if ( !empty( $data ) )
-				{
-					$data = unserialize( base64_decode( $data ) );
-
-					return $data;
-				}
+				return ( isset( $result['data'] ) ) ? $result['data'] : '';
 			}
 		}
 		catch ( Exception $ex )
@@ -163,10 +154,12 @@ class SessionManager
 	{
 		try
 		{
-			$data = base64_encode( serialize( $data ) );
-			$startTime = time();
-			$userId = static::getCurrentUserId();
-			$roleId = static::getCurrentRoleId();
+            // get extra stuff used for disabling users
+            $userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
+            $userId = ( isset( $userId ) && !empty( $userId ) ) ? intval($userId) : null;
+            $roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
+            $roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
+            $startTime = time();
 			$params = array( $id, $userId, $roleId, $startTime, $data );
 			switch ( $this->_driverType )
 			{
@@ -327,7 +320,11 @@ class SessionManager
 					$data = static::generateSessionData( $user_id );
 					$data = array( 'public' => $data['public'] );
 					$command->reset();
-					$data = base64_encode( serialize( $data ) );
+                    // wacky, but making sure session encoding is the same as it went in
+                    $temp = $_SESSION;
+                    $_SESSION = $data;
+					$data = session_encode();
+                    $_SESSION = $temp;
 					$command->update( 'df_sys_session', array( 'data' => $data ), 'user_id=:id', array( ':id' => $user_id ) );
 				}
 				catch ( Exception $ex )
@@ -369,7 +366,10 @@ class SessionManager
 						{
 							$data = static::generateSessionData( $user_id );
 							$data = array( 'public' => $data['public'] );
-							$data = base64_encode( serialize( $data ) );
+                            $temp = $_SESSION;
+                            $_SESSION = $data;
+                            $data = session_encode();
+                            $_SESSION = $temp;
 							$command->reset();
 							$command->update( 'df_sys_session', array( 'data' => $data ), 'user_id=:id', array( ':id' => $user_id ) );
 						}
