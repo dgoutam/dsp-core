@@ -119,7 +119,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the table names in available schema operations.",
                             "responseClass"=> "array",
                             "nickname"=> "getTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array()),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "POST",
@@ -127,7 +127,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be a single table definition or an array of table definitions",
                             "responseClass"=> "array",
                             "nickname"=> "createTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array()),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -135,7 +135,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be a single table definition or an array of table definitions",
                             "responseClass"=> "array",
                             "nickname"=> "updateTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array()),
                             "errorResponses"=> array()
                       ),
                   )
@@ -148,7 +148,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "This describes the table, its fields and relations to other tables.",
                             "responseClass"=> "array",
                             "nickname"=> "describeTable",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "POST",
@@ -156,7 +156,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of field properties for a single record or an array of fields",
                             "responseClass"=> "array",
                             "nickname"=> "createFields",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -164,7 +164,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of field properties for a single record or an array of fields",
                             "responseClass"=> "array",
                             "nickname"=> "updateFields",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -172,7 +172,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Careful, this drops the database table and all of its contents.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteTable",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -185,7 +185,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "This describes the field and its properties.",
                             "responseClass"=> "array",
                             "nickname"=> "describeField",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','field_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','field_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -193,7 +193,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of field properties for the given field",
                             "responseClass"=> "array",
                             "nickname"=> "updateField",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','field_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','field_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -201,7 +201,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Careful, this drops the database table field/column and all of its contents.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteField",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','field_name')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','field_name')),
                             "errorResponses"=> array()
                       ),
                   )

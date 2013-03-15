@@ -64,11 +64,22 @@ class SystemManager implements iRestHandler
     }
 
     /**
+     * For compatibility with CommonServices
+     *
+     * @return string
+     */
+    public static function getType()
+    {
+        return 'System';
+    }
+
+    /**
      * @param $old
      * @param $new
      *
      * @return bool
-     */public static function doesDbVersionRequireUpgrade($old, $new)
+     */
+    public static function doesDbVersionRequireUpgrade($old, $new)
     {
         // todo need to be fancier here
         return (0 !== strcasecmp($old, $new));
@@ -381,7 +392,7 @@ class SystemManager implements iRestHandler
                                 "notes"=> "Use these resources for system administration.",
                                 "responseClass"=> "array",
                                 "nickname"=> "getResources",
-                                "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                                "parameters"=> array(),
                                 "errorResponses"=> array()
                           ),
                       )

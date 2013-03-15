@@ -105,6 +105,16 @@ class UserManager implements iRestHandler
         return self::$_instance;
     }
 
+    /**
+     * For compatibility with CommonServices
+     *
+     * @return string
+     */
+    public static function getType()
+    {
+        return 'User';
+    }
+
     // Controller based methods
 
     /**

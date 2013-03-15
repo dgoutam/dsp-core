@@ -135,8 +135,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the available parameters to limit information returned.",
                             "responseClass"=> "array",
                             "nickname"=> "getRoot",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name',
-                                                                                     'folders_only','files_only',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folders_only','files_only',
                                                                                      'full_tree')),
                             "errorResponses"=> array()
                       ),
@@ -150,7 +149,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
                             "responseClass"=> "array",
                             "nickname"=> "getFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder',
                                                                                      'folders_only','files_only',
                                                                                      'full_tree')),
                             "errorResponses"=> array()
@@ -160,7 +159,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data as an array of folders and/or files.",
                             "responseClass"=> "array",
                             "nickname"=> "createFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -168,7 +167,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data as an array of folders and/or files.",
                             "responseClass"=> "array",
                             "nickname"=> "updateFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -176,7 +175,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -189,7 +188,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'properties' parameter (optionally add 'content' for base64 content) to list properties of the file.",
                             "responseClass"=> "array",
                             "nickname"=> "getFile",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder','file',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder','file',
                                                                                      'properties','content',
                                                                                      'download')),
                             "errorResponses"=> array()
@@ -199,7 +198,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record",
                             "responseClass"=> "array",
                             "nickname"=> "updateFile",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder','file')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder','file')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -207,7 +206,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Delete the given file from the storage.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteFile",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','folder','file')),
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder','file')),
                             "errorResponses"=> array()
                       ),
                   )

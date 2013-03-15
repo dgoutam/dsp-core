@@ -41,15 +41,6 @@ class SwaggerUtilities
         $swagger = array();
         foreach ($parameters as $param) {
             switch ($param) {
-            case 'app_name':
-                $swagger[] = array("paramType"=>"query",
-                                   "name"=>$param,
-                                   "description"=>"Application name that makes the API call.",
-                                   "dataType"=>"String",
-                                   "required"=>true,
-                                   "allowMultiple"=>false
-                );
-                break;
             case 'table_name':
                 $swagger[] = array("paramType"=>"path",
                                    "name"=>$param,
@@ -263,7 +254,7 @@ class SwaggerUtilities
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
                             "responseClass"=> "array",
                             "nickname"=> "get".ucfirst($plural),
-                            "parameters"=> static::swaggerParameters(array('app_name','ids','filter',
+                            "parameters"=> static::swaggerParameters(array('ids','filter',
                                                                            'limit','offset','order',
                                                                            'include_count','include_schema',
                                                                            'fields','related')),
@@ -274,7 +265,7 @@ class SwaggerUtilities
                             "notes"=> "Post data should be an array of fields for a single $resource or a record array of $plural",
                             "responseClass"=> "array",
                             "nickname"=> "create".ucfirst($plural),
-                            "parameters"=> static::swaggerParameters(array('app_name','fields','related')),
+                            "parameters"=> static::swaggerParameters(array('fields','related')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -282,7 +273,7 @@ class SwaggerUtilities
                             "notes"=> "Post data should be an array of fields for a single $resource or a record array of $plural",
                             "responseClass"=> "array",
                             "nickname"=> "update".ucfirst($plural),
-                            "parameters"=> static::swaggerParameters(array('app_name','fields','related')),
+                            "parameters"=> static::swaggerParameters(array('fields','related')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -290,7 +281,7 @@ class SwaggerUtilities
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "delete".ucfirst($plural),
-                            "parameters"=> static::swaggerParameters(array('app_name','fields','related')),
+                            "parameters"=> static::swaggerParameters(array('fields','related')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -303,7 +294,7 @@ class SwaggerUtilities
                             "notes"=> "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
                             "responseClass"=> "array",
                             "nickname"=> "get".ucfirst($label),
-                            "parameters"=> static::swaggerParameters(array('app_name','id','fields','related')),
+                            "parameters"=> static::swaggerParameters(array('id','fields','related')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -311,7 +302,7 @@ class SwaggerUtilities
                             "notes"=> "Post data should be an array of fields for a single $resource",
                             "responseClass"=> "array",
                             "nickname"=> "update".ucfirst($label),
-                            "parameters"=> static::swaggerParameters(array('app_name','id','fields','related')),
+                            "parameters"=> static::swaggerParameters(array('id','fields','related')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -319,7 +310,7 @@ class SwaggerUtilities
                             "notes"=> "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "delete".ucfirst($label),
-                            "parameters"=> static::swaggerParameters(array('app_name','id','fields','related')),
+                            "parameters"=> static::swaggerParameters(array('id','fields','related')),
                             "errorResponses"=> array()
                       ),
                   )

@@ -89,37 +89,27 @@ class RestController extends Controller
         try {
             switch (strtolower($service)) {
             case 'system':
-                if ($this->swagger) {
-                    $result = SystemManager::getInstance()->actionSwagger();
-                }
-                else {
-                    $result = SystemManager::getInstance()->actionGet();
-                }
+                $svcObj = SystemManager::getInstance();
                 break;
             case 'user':
-                if ($this->swagger) {
-                    $result = UserManager::getInstance()->actionSwagger();
-                }
-                else {
-                    $result = UserManager::getInstance()->actionGet();
-                }
+                $svcObj = UserManager::getInstance();
                 break;
             default:
                 $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
-                if ($this->swagger) {
-                    $result = $svcObj->actionSwagger();
-                }
-                else {
-                    $result = $svcObj->actionGet();
-                    $type = $svcObj->getType();
-                    if (0 === strcasecmp($type, 'Remote Web Service')) {
-                        $nativeFormat = $svcObj->getNativeFormat();
-                        if (0 !== strcasecmp($nativeFormat, $this->format)) {
-                            // reformat the code here
-                        }
+                break;
+            }
+            if ($this->swagger) {
+                $result = $svcObj->actionSwagger();
+            }
+            else {
+                $result = $svcObj->actionGet();
+                $type = $svcObj->getType();
+                if (0 === strcasecmp($type, 'Remote Web Service')) {
+                    $nativeFormat = $svcObj->getNativeFormat();
+                    if (0 !== strcasecmp($nativeFormat, $this->format)) {
+                        // reformat the code here
                     }
                 }
-                break;
             }
             $this->handleResults($result);
         }
@@ -311,8 +301,9 @@ class RestController extends Controller
             $appName = Utilities::getArrayValue('app_name', $_REQUEST, '');
         }
         if (empty($appName)) {
-            $apiKey = Utilities::getArrayValue('api_key', $_REQUEST, '');
-            if (0 === strcasecmp('swagger', $apiKey)) {
+            // check for swagger documentation request
+            $appName = Utilities::getArrayValue('swagger_app_name', $_REQUEST, '');
+            if (!empty($appName)) {
                 $this->swagger = true;
             }
             else {

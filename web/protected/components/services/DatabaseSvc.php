@@ -82,7 +82,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the table names in available record operations.",
                             "responseClass"=> "array",
                             "nickname"=> "getTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name')),
+                            "parameters"=> array(),
                             "errorResponses"=> array()
                       ),
                   )
@@ -95,7 +95,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit records that are returned.",
                             "responseClass"=> "array",
                             "nickname"=> "getRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','ids',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','ids',
                                                                                      'filter','limit','offset','order',
                                                                                      'include_count','include_schema',
                                                                                      'fields','related')),
@@ -106,7 +106,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record or an array of records",
                             "responseClass"=> "array",
                             "nickname"=> "createRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name',
                                                                                      'fields','related',
                                                                                      'record')),
                             "errorResponses"=> array()
@@ -116,7 +116,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record or an array of records",
                             "responseClass"=> "array",
                             "nickname"=> "updateRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name',
                                                                                      'fields','related',
                                                                                      'record')),
                             "errorResponses"=> array()
@@ -126,7 +126,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name',
                                                                                      'ids','filter',
                                                                                      'fields','related')),
                             "errorResponses"=> array()
@@ -141,7 +141,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
                             "responseClass"=> "array",
                             "nickname"=> "getRecord",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','id',
                                                                                      'fields','related')),
                             "errorResponses"=> array()
                       ),
@@ -150,7 +150,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record",
                             "responseClass"=> "array",
                             "nickname"=> "updateRecord",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','id',
                                                                                      'fields','related',
                                                                                      'record')),
                             "errorResponses"=> array()
@@ -160,7 +160,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteRecord",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('app_name','table_name','id',
+                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','id',
                                                                                      'fields','related')),
                             "errorResponses"=> array()
                       ),
