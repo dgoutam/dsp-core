@@ -103,8 +103,6 @@ class Fabric extends SeedUtility
 
 		if ( !empty( $_key ) )
 		{
-			Log::debug( 'User Key: ' . $_key );
-
 			$_config = static::BaseStorage . '/' . $_key . '/.private' . static::DSP_DB_CONFIG_FILE_NAME;
 
 			if ( file_exists( $_config . static::DSP_DB_CONFIG_FILE_NAME ) )

@@ -16,9 +16,9 @@ INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
 VERBOSE=1
-# change www-data to _www on Mac, see 'cat /etc/apache2/httpd.conf'
-WEB_USER="www-data"
+WEB_USER=www-data
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
+LOCAL_USER=dfadmin
 
 ## No wrapper, unset
 if [ ! -f ${WRAPPER} ] ; then
@@ -27,34 +27,24 @@ else
 	WRAPPER="GIT_SSH=${WRAPPER}"
 fi
 
-##
-## Check if composer is installed
-## If not, install. If it is, make sure it's current
-##
-
-if [ ! -d "${INSTALL_DIR}/${COMPOSER}" ] ; then
-	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR}
+## User supplied local user name?
+if [ "x" != "x$1" ] ; then
+	LOCAL_USER=$1
 fi
 
-if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
-	echo "Installing Composer"
-	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR}
-else
-#	echo "Checking for Composer updates"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} -q self-update
-fi
+echo "DreamFactory Services Platform(tm) System Updater v1.0.0"
+echo
 
 ##
 ## Shutdown non-essential services
 ##
 
-service apache2 stop
-service mysql stop
+service apache2 stop >/dev/null 2>&1
+service mysql stop >/dev/null 2>&1
 
 ##
 ## Construct the various paths
 ##
-
 BASE_PATH="`dirname "${0}" | xargs dirname`"
 
 ##	Get the REAL path of install
@@ -62,25 +52,43 @@ pushd "${BASE_PATH}" >/dev/null
 BASE_PATH=`pwd`
 popd >/dev/null
 
-LOG_DIR="${BASE_PATH}/log/"
-STORAGE_DIR="${BASE_PATH}/storage/"
-VENDOR_DIR="${BASE_PATH}/vendor"
-WEB_DIR="${BASE_PATH}/web"
-PUBLIC_DIR="${WEB_DIR}/public"
-ASSETS_DIR="${PUBLIC_DIR}/assets"
+LOG_DIR=${BASE_PATH}/log/
+STORAGE_DIR=${BASE_PATH}/storage/
+VENDOR_DIR=${BASE_PATH}/vendor
+WEB_DIR=${BASE_PATH}/web
+PUBLIC_DIR=${WEB_DIR}/public
+ASSETS_DIR=${PUBLIC_DIR}/assets
 
-#if [ 1 -eq ${VERBOSE} ] ; then
-#	echo "
-#Base    :	${BASE_PATH}
-#Log     :	${LOG_DIR}
-#Storage :	${STORAGE_DIR}
-#Vendor  :	${VENDOR_DIR}
-#Web     :	${WEB_DIR}
-#Public  :	${PUBLIC_DIR}
-#Assets  :	${ASSETS_DIR}
-#
-#";
-#fi
+##
+## Check directory permissions...
+##
+
+echo "Spot-checking file system"
+chown -R ${LOCAL_USER}:${WEB_USER} *
+find ./ -type d -exec chmod 2775 {} \;
+find ./ -type f -exec chmod 0664 {} \;
+find ./ -name '*.sh' -exec chmod 0770 {} \;
+rm -rf ~${LOCAL_USER}/.composer/
+[ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
+
+##
+## Do a pull for good measure
+##
+echo "Checking for core updates"
+git pull --quiet origin master
+
+##
+## Check if composer is installed
+## If not, install. If it is, make sure it's current
+##
+
+if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
+	echo "Installing package manager"
+	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} --quiet
+else
+	echo "Checking for package manager updates"
+	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet self-update
+fi
 
 ##
 ##	Install composer dependencies
@@ -89,11 +97,11 @@ ASSETS_DIR="${PUBLIC_DIR}/assets"
 pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
-#	echo "Installing dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} install
+	echo "Installing packages"
+	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet install
 else
-#	echo "Updating dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} update
+	echo "Updating packages"
+#	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet update
 fi
 
 ##
@@ -124,18 +132,19 @@ if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
     ln -s "${VENDOR_DIR}/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
 fi
 
-# make writable by web-server
-chgrp -R ${WEB_USER} "${LOG_DIR}" "${STORAGE_DIR}" "${PUBLIC_DIR}"
-chmod -R 2755 "${PUBLIC_DIR}"
-chmod -R 2775 "${ASSETS_DIR}"
-chmod -R 2775 "${LOG_DIR}"
-chmod -R 2775 "${STORAGE_DIR}"
+##
+## make owned by user
+##
+chown -R ${LOCAL_USER}:${WEB_USER} *
 
 ##
 ## Restart non-essential services
 ##
 
-service mysql start
-service apache2 start
+service mysql start >/dev/null 2>&1
+service apache2 start >/dev/null 2>&1
+
+echo
+echo "Complete. Enjoy the rest of your day!"
 
 exit 0
