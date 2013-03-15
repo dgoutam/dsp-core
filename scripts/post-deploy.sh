@@ -74,7 +74,8 @@ rm -rf ~${LOCAL_USER}/.composer/
 ##
 ## Do a pull for good measure
 ##
-echo "Checking for core updates"
+echo "Checking for core updates {$WRAPPER}"
+git reset --hard --quiet HEAD
 git pull --quiet origin master
 
 ##
@@ -101,7 +102,7 @@ if [ ! -d "${VENDOR_DIR}" ] ; then
 	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet install
 else
 	echo "Updating packages"
-#	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet update
+	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet update
 fi
 
 ##
