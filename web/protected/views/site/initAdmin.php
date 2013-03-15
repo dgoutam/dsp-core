@@ -14,19 +14,19 @@ Validate::register(
 		 'rules'          => array(
 			 'InitAdminForm[username]'       => array(
 				 'required'  => true,
-				 'minlength' => 6,
+				 'minlength' => 5,
 			 ),
 			 'InitAdminForm[displayName]' => array(
 				 'required'  => true,
-				 'minlength' => 6,
+				 'minlength' => 5,
 			 ),
 			 'InitAdminForm[password]'       => array(
 				 'required'  => true,
-				 'minlength' => 6,
+				 'minlength' => 5,
 			 ),
 			 'InitAdminForm[passwordRepeat]' => array(
 				 'required'  => true,
-				 'minlength' => 6,
+				 'minlength' => 5,
 				 'equalTo'   => '#InitAdminForm_password',
 			 ),
 		 ),
