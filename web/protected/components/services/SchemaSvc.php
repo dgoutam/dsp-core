@@ -104,6 +104,132 @@ class SchemaSvc extends CommonService implements iRestHandler
     }
 
     /**
+     * Swagger output for common api parameters
+     *
+     * @param $parameters
+     * @param string $method
+     * @return array
+     */
+    public static function swaggerParameters($parameters, $method = '')
+    {
+        $swagger = array();
+        foreach ($parameters as $param) {
+            switch ($param) {
+            case 'table_name':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the table to perform operations on.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'field_name':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the table field/column to perform operations on.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'id':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Identifier of the resource to retrieve.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'ids':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Comma-delimited list of the identifiers of the resources to retrieve.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'filter':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"SQL-like filter to limit the resources to retrieve.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'order':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"SQL-like order containing field and direction for filter results.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'limit':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Set to limit the filter results.",
+                                   "dataType"=>"int",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'include_count':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Include the total number of filter results.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'include_schema':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Include the schema of the table queried.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'fields':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Comma-delimited list of field names to retrieve for each record.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'related':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Comma-delimited list of related names to retrieve for each record.",
+                                   "dataType"=>"string",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'table':
+                $swagger[] = array("paramType"=>"body",
+                                   "name"=>$param,
+                                   "description"=>"Array of table properties.",
+                                   "dataType"=>"array",
+                                   "required"=>true,
+                                   "allowMultiple"=>true
+                );
+                break;
+            }
+        }
+
+        return $swagger;
+    }
+
+    /**
      * @param string $service
      * @param string $description
      * @return array
@@ -119,7 +245,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the table names in available schema operations.",
                             "responseClass"=> "array",
                             "nickname"=> "getTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array()),
+                            "parameters"=> static::swaggerParameters(array()),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "POST",
@@ -127,7 +253,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be a single table definition or an array of table definitions",
                             "responseClass"=> "array",
                             "nickname"=> "createTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array()),
+                            "parameters"=> static::swaggerParameters(array()),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -135,7 +261,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be a single table definition or an array of table definitions",
                             "responseClass"=> "array",
                             "nickname"=> "updateTables",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array()),
+                            "parameters"=> static::swaggerParameters(array()),
                             "errorResponses"=> array()
                       ),
                   )
@@ -148,7 +274,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "This describes the table, its fields and relations to other tables.",
                             "responseClass"=> "array",
                             "nickname"=> "describeTable",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "POST",
@@ -156,7 +282,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of field properties for a single record or an array of fields",
                             "responseClass"=> "array",
                             "nickname"=> "createFields",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -164,7 +290,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of field properties for a single record or an array of fields",
                             "responseClass"=> "array",
                             "nickname"=> "updateFields",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -172,7 +298,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Careful, this drops the database table and all of its contents.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteTable",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -185,7 +311,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "This describes the field and its properties.",
                             "responseClass"=> "array",
                             "nickname"=> "describeField",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','field_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name','field_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -193,7 +319,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of field properties for the given field",
                             "responseClass"=> "array",
                             "nickname"=> "updateField",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','field_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name','field_name')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -201,7 +327,7 @@ class SchemaSvc extends CommonService implements iRestHandler
                             "notes"=> "Careful, this drops the database table field/column and all of its contents.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteField",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','field_name')),
+                            "parameters"=> static::swaggerParameters(array('table_name','field_name')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -222,7 +348,7 @@ class SchemaSvc extends CommonService implements iRestHandler
         try {
             $this->detectCommonParams();
 
-            $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
+            $result = parent::actionSwagger();
             $resources = static::swaggerPerSchema($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;

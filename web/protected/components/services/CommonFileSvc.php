@@ -120,6 +120,168 @@ class CommonFileSvc extends CommonService implements iRestHandler
     }
 
     /**
+     * Swagger output for common api parameters
+     *
+     * @param $parameters
+     * @param string $method
+     * @return array
+     */
+    public static function swaggerParameters($parameters, $method = '')
+    {
+        $swagger = array();
+        foreach ($parameters as $param) {
+            switch ($param) {
+            case 'order':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"SQL-like order containing field and direction for filter results.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'limit':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Set to limit the filter results.",
+                                   "dataType"=>"int",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'include_count':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Include the total number of filter results.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'folder':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the folder to operate on.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'file':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the file to operate on.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'properties':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Return properties of the folder or file.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'content':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Return the content as base64 of the file, only applies when 'properties' is true.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'download':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Prompt the user to download the file from the browser.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'folders_only':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Only include folders in the folder listing.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'files_only':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Only include files in the folder listing.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'full_tree':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"List the contents of sub-folders as well.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'zip':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Return the zipped content of the folder.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'url':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"URL path of the file to upload.",
+                                   "dataType"=>"string",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'extract':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Extract an uploaded zip file into the folder.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'clean':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Option when 'extract' is true, clean the current folder before extracting files and folders.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'check_exist':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Check if the file or folder exists before attempting to create or update.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            }
+        }
+
+        return $swagger;
+    }
+
+    /**
      * @param string $service
      * @param string $description
      * @return array
@@ -135,8 +297,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the available parameters to limit information returned.",
                             "responseClass"=> "array",
                             "nickname"=> "getRoot",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folders_only','files_only',
-                                                                                     'full_tree')),
+                            "parameters"=> static::swaggerParameters(array('folders_only','files_only',
+                                                                           'full_tree','zip')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -149,9 +311,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
                             "responseClass"=> "array",
                             "nickname"=> "getFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder',
-                                                                                     'folders_only','files_only',
-                                                                                     'full_tree')),
+                            "parameters"=> static::swaggerParameters(array('folder','folders_only','files_only',
+                                                                           'full_tree','zip')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "POST",
@@ -159,7 +320,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data as an array of folders and/or files.",
                             "responseClass"=> "array",
                             "nickname"=> "createFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder')),
+                            "parameters"=> static::swaggerParameters(array('folder','url','extract','clean',
+                                                                           'check_exist')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -167,7 +329,8 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data as an array of folders and/or files.",
                             "responseClass"=> "array",
                             "nickname"=> "updateFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder')),
+                            "parameters"=> static::swaggerParameters(array('folder','url','extract','clean',
+                                                                           'check_exist')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -175,7 +338,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteFoldersAndFiles",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder')),
+                            "parameters"=> static::swaggerParameters(array('folder')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -188,9 +351,9 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'properties' parameter (optionally add 'content' for base64 content) to list properties of the file.",
                             "responseClass"=> "array",
                             "nickname"=> "getFile",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder','file',
-                                                                                     'properties','content',
-                                                                                     'download')),
+                            "parameters"=> static::swaggerParameters(array('folder','file',
+                                                                           'properties','content',
+                                                                           'download')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -198,7 +361,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record",
                             "responseClass"=> "array",
                             "nickname"=> "updateFile",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder','file')),
+                            "parameters"=> static::swaggerParameters(array('folder','file')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -206,7 +369,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
                             "notes"=> "Delete the given file from the storage.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteFile",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('folder','file')),
+                            "parameters"=> static::swaggerParameters(array('folder','file')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -225,7 +388,7 @@ class CommonFileSvc extends CommonService implements iRestHandler
     public function actionSwagger()
     {
         try {
-            $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
+            $result = parent::actionSwagger();
             $resources = static::swaggerForFiles($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;

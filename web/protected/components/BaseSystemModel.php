@@ -174,6 +174,12 @@ abstract class BaseSystemModel extends CActiveRecord
 
         // correct data type
         $this->id = intval($this->id);
+        if (isset($this->created_by_id)) {
+            $this->created_by_id = intval($this->created_by_id);
+        }
+        if (isset($this->last_modified_by_id)) {
+            $this->last_modified_by_id = intval($this->last_modified_by_id);
+        }
     }
 
     /**

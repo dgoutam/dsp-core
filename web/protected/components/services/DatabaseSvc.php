@@ -67,6 +67,132 @@ class DatabaseSvc extends CommonService implements iRestHandler
     }
 
     /**
+     * Swagger output for common api parameters
+     *
+     * @param $parameters
+     * @param string $method
+     * @return array
+     */
+    public static function swaggerParameters($parameters, $method = '')
+    {
+        $swagger = array();
+        foreach ($parameters as $param) {
+            switch ($param) {
+            case 'table_name':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the table to perform operations on.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'field_name':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Name of the table field/column to perform operations on.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'id':
+                $swagger[] = array("paramType"=>"path",
+                                   "name"=>$param,
+                                   "description"=>"Identifier of the resource to retrieve.",
+                                   "dataType"=>"String",
+                                   "required"=>true,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'ids':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Comma-delimited list of the identifiers of the resources to retrieve.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'filter':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"SQL-like filter to limit the resources to retrieve.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'order':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"SQL-like order containing field and direction for filter results.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'limit':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Set to limit the filter results.",
+                                   "dataType"=>"int",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'include_count':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Include the total number of filter results.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'include_schema':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Include the schema of the table queried.",
+                                   "dataType"=>"boolean",
+                                   "required"=>false,
+                                   "allowMultiple"=>false
+                );
+                break;
+            case 'fields':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Comma-delimited list of field names to retrieve for each record.",
+                                   "dataType"=>"String",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'related':
+                $swagger[] = array("paramType"=>"query",
+                                   "name"=>$param,
+                                   "description"=>"Comma-delimited list of related names to retrieve for each record.",
+                                   "dataType"=>"string",
+                                   "required"=>false,
+                                   "allowMultiple"=>true
+                );
+                break;
+            case 'record':
+                $swagger[] = array("paramType"=>"body",
+                                   "name"=>$param,
+                                   "description"=>"Array of record properties.",
+                                   "dataType"=>"array",
+                                   "required"=>true,
+                                   "allowMultiple"=>true
+                );
+                break;
+            }
+        }
+
+        return $swagger;
+    }
+
+    /**
      * @param string $service
      * @param string $description
      * @return array
@@ -95,10 +221,10 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit records that are returned.",
                             "responseClass"=> "array",
                             "nickname"=> "getRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','ids',
-                                                                                     'filter','limit','offset','order',
-                                                                                     'include_count','include_schema',
-                                                                                     'fields','related')),
+                            "parameters"=> static::swaggerParameters(array('table_name','ids',
+                                                                           'filter','limit','offset','order',
+                                                                           'include_count','include_schema',
+                                                                           'fields','related')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "POST",
@@ -106,9 +232,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record or an array of records",
                             "responseClass"=> "array",
                             "nickname"=> "createRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name',
-                                                                                     'fields','related',
-                                                                                     'record')),
+                            "parameters"=> static::swaggerParameters(array('table_name','fields','related',
+                                                                           'record')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -116,9 +241,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record or an array of records",
                             "responseClass"=> "array",
                             "nickname"=> "updateRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name',
-                                                                                     'fields','related',
-                                                                                     'record')),
+                            "parameters"=> static::swaggerParameters(array('table_name','fields','related',
+                                                                           'record')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -126,9 +250,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteRecords",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name',
-                                                                                     'ids','filter',
-                                                                                     'fields','related')),
+                            "parameters"=> static::swaggerParameters(array('table_name','ids','filter',
+                                                                           'fields','related')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -141,8 +264,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
                             "responseClass"=> "array",
                             "nickname"=> "getRecord",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','id',
-                                                                                     'fields','related')),
+                            "parameters"=> static::swaggerParameters(array('table_name','id','fields','related')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "PUT",
@@ -150,9 +272,8 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Post data should be an array of fields for a single record",
                             "responseClass"=> "array",
                             "nickname"=> "updateRecord",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','id',
-                                                                                     'fields','related',
-                                                                                     'record')),
+                            "parameters"=> static::swaggerParameters(array('table_name','id','fields','related',
+                                                                           'record')),
                             "errorResponses"=> array()
                       ),
                       array("httpMethod"=> "DELETE",
@@ -160,8 +281,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
                             "notes"=> "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
                             "responseClass"=> "array",
                             "nickname"=> "deleteRecord",
-                            "parameters"=> SwaggerUtilities::swaggerParameters(array('table_name','id',
-                                                                                     'fields','related')),
+                            "parameters"=> static::swaggerParameters(array('table_name','id','fields','related')),
                             "errorResponses"=> array()
                       ),
                   )
@@ -182,7 +302,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
         try {
             $this->detectCommonParams();
 
-            $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
+            $result = parent::actionSwagger();
             $resources = static::swaggerPerDb($this->_api_name, $this->_description);
             $result['apis'] = $resources;
             return $result;

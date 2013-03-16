@@ -134,7 +134,7 @@ abstract class CommonService
      */
     public function actionSwagger()
     {
-        $result = SwaggerUtilities::swaggerBaseInfo($this->_name);
+        $result = SwaggerUtilities::swaggerBaseInfo($this->_api_name);
         return $result;
     }
 }
