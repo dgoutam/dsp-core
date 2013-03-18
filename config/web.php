@@ -54,13 +54,13 @@ $_logFilePath = $_basePath . '/log';
 /**
  * Database Caching
  */
-$_dbCache = static::ENABLE_DB_CACHE ? array(
+$_dbCache = ENABLE_DB_CACHE ? array(
 	/**
 	 * The database cache object
 	 */
 	'cache' => array(
 		'class'                => 'CDbCache',
-		'connectionID'         => 'db.cache',
+		'connectionID'         => 'db',
 		'cacheTableName'       => 'df_sys_cache',
 		'autoCreateCacheTable' => true,
 	),
