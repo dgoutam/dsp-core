@@ -26,6 +26,9 @@
 //.........................................................................
 //. Default Values
 //.........................................................................
+
+const ENABLE_DB_CACHE = true;
+
 global $_autoloader;
 
 $_dbName = null;
@@ -47,6 +50,21 @@ $_basePath = dirname( __DIR__ );
 
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';
+
+/**
+ * Database Caching
+ */
+$_dbCache = static::ENABLE_DB_CACHE ? array(
+	/**
+	 * The database cache object
+	 */
+	'cache' => array(
+		'class'                => 'CDbCache',
+		'connectionID'         => 'db.cache',
+		'cacheTableName'       => 'df_sys_cache',
+		'autoCreateCacheTable' => true,
+	),
+) : null;
 
 //.........................................................................
 //. The configuration himself (like Raab)
@@ -137,6 +155,8 @@ return array(
 				),
 			),
 		),
+		//	Database Cache
+		$_dbCache
 	),
 	//.........................................................................
 	//. Global application parameters
