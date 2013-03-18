@@ -255,8 +255,16 @@ class User extends BaseSystemModel
 		{
 			$this->is_sys_admin = intval( $this->is_sys_admin );
 		}
+        if ( is_string( $this->role_id ) )
+        {
+            $this->role_id = intval( $this->role_id );
+        }
+        if ( is_string( $this->default_app_id ) )
+        {
+            $this->default_app_id = intval( $this->default_app_id );
+        }
 
-		return parent::beforeValidate();
+        return parent::beforeValidate();
 	}
 
 	/**
@@ -304,6 +312,12 @@ class User extends BaseSystemModel
 		// correct data type
         $this->is_active = intval( $this->is_active );
 		$this->is_sys_admin = intval( $this->is_sys_admin );
+        if (isset($this->role_id)) {
+            $this->role_id = intval($this->role_id);
+        }
+        if (isset($this->default_app_id)) {
+            $this->default_app_id = intval($this->default_app_id);
+        }
 	}
 
     /**
