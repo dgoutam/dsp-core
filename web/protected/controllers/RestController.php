@@ -53,9 +53,9 @@ class RestController extends Controller
     public function actionIndex()
     {
         try {
-            $criteria = new CDbCriteria(array('select' => 'api_name,name,description',
+            $_criteria = new CDbCriteria(array('select' => 'api_name,name,description',
                                               'order' => 'api_name'));
-            $result = Service::model()->findAll($criteria);
+            $result = Service::model()->findAll($_criteria);
             if ($this->swagger) {
                 $services = array(array('path' => '/user', 'description' => 'User Login'),
                                   array('path' => '/system', 'description' => 'System Configuration'));

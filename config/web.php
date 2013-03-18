@@ -81,6 +81,7 @@ return array(
 	'preload'     => array( 'log' ),
 	'import'      => array(
 		'system.utils.*',
+		'application.behaviors.*',
 		'application.models.*',
 		'application.models.forms.*',
 		'application.components.*',
