@@ -783,6 +783,7 @@ class UserManager implements iRestHandler
                 session_start();
             }
             $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());
+            $GLOBALS['write_session'] = true;
 
             // additional stuff for session - launchpad mainly
             return static::addSessionExtras($result, $isSysAdmin, true);
@@ -835,7 +836,8 @@ class UserManager implements iRestHandler
             if (!isset($_SESSION)) {
                 session_start();
             }
-            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());;
+            $_SESSION['public'] = Utilities::getArrayValue('public', $result, array());
+            $GLOBALS['write_session'] = true;
 
             // additional stuff for session - launchpad mainly
             return static::addSessionExtras($result, $isSysAdmin, true);

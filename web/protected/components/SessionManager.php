@@ -154,31 +154,33 @@ class SessionManager
 	{
 		try
 		{
-            // get extra stuff used for disabling users
-            $userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-            $userId = ( isset( $userId ) && !empty( $userId ) ) ? intval($userId) : null;
-            $roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-            $roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
-            $startTime = time();
-			$params = array( $id, $userId, $roleId, $startTime, $data );
-			switch ( $this->_driverType )
-			{
-				case DbUtilities::DRV_SQLSRV:
-					$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
-					break;
-				case DbUtilities::DRV_MYSQL:
-					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-					break;
-				default:
-					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-					break;
-			}
-			if ( !$this->_sqlConn->active )
-			{
-				$this->_sqlConn->active = true;
-			}
-			$command = $this->_sqlConn->createCommand( $sql );
-			$result = $command->execute( $params );
+            if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] ) {
+                // get extra stuff used for disabling users
+                $userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
+                $userId = ( isset( $userId ) && !empty( $userId ) ) ? intval($userId) : null;
+                $roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
+                $roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
+                $startTime = time();
+                $params = array( $id, $userId, $roleId, $startTime, $data );
+                switch ( $this->_driverType )
+                {
+                    case DbUtilities::DRV_SQLSRV:
+                        $sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
+                        break;
+                    case DbUtilities::DRV_MYSQL:
+                        $sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+                        break;
+                    default:
+                        $sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+                        break;
+                }
+                if ( !$this->_sqlConn->active )
+                {
+                    $this->_sqlConn->active = true;
+                }
+                $command = $this->_sqlConn->createCommand( $sql );
+                $result = $command->execute( $params );
+            }
 
 			return true;
 		}
@@ -510,6 +512,7 @@ class SessionManager
 		{
 			$result = static::generateSessionData( null, $theUser );
 			$_SESSION['public'] = Utilities::getArrayValue( 'public', $result, array() );
+            $GLOBALS['write_session'] = true;
 
 			return intval( $theUser->primaryKey );
 		}

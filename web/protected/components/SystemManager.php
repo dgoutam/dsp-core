@@ -35,6 +35,11 @@ class SystemManager implements iRestHandler
     protected $modelId;
 
     /**
+     * @var
+     */
+    protected $relatedModelName;
+
+    /**
      * Creates a new SystemManager instance
      *
      */
@@ -283,6 +288,7 @@ class SystemManager implements iRestHandler
             // set session for first user
             $result = SessionManager::generateSessionData($userId);
             $_SESSION = array('public' => Utilities::getArrayValue('public', $result, array()));
+            $GLOBALS['write_session'] = true;
             $data = session_encode();
             $sess_name = session_name();
             if ( isset( $_COOKIE[$sess_name] )) {
