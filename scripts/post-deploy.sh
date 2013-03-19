@@ -70,7 +70,6 @@ LIB_DIR=${BASE_PATH}/lib
 ##
 ## Check directory permissions...
 ##
-
 echo "Spot-checking file system"
 chown -R ${LOCAL_USER}:${WEB_USER} *
 find ./ -type d -exec chmod 2775 {} \;
