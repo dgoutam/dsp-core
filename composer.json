@@ -4,7 +4,6 @@
 	"keywords":          [
 		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library"
 	],
-	"homepage":          "https://github.com/dreamfactorysoftware/dsp-core",
 	"type":              "library",
 	"license":           "MIT",
 	"authors":           [
