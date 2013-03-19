@@ -104,7 +104,7 @@ echo "  * Checking for DSP updates"
 git stash --quiet
 git reset --hard --quiet HEAD
 git pull --quiet --force origin master
-git submodule --quiet update --init
+git submodule update --init
 
 ##
 ## Check if composer is installed
