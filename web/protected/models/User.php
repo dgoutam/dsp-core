@@ -235,11 +235,6 @@ class User extends BaseDspSystemModel
 				}
 			}
 		}
-<<<<<<< HEAD
-
-		$this->is_active = intval( $this->is_active );
-		$this->is_sys_admin = intval( $this->is_sys_admin );
-=======
 		if ( is_bool( $this->is_active ) )
 		{
 			$this->is_active = intval( $this->is_active );
@@ -258,18 +253,6 @@ class User extends BaseDspSystemModel
         }
 
         return parent::beforeValidate();
-	}
-
-	/**
-     * {@InheritDoc}
-	 *
-	 * @return bool
-	 */
-	protected function beforeSave()
-	{
->>>>>>> 13b0a8900343ee73bd50a68cffd547b5fe0e67b5
-
-		return parent::beforeValidate();
 	}
 
 	/** {@InheritDoc} */
