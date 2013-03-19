@@ -84,7 +84,7 @@ rm -rf ~${LOCAL_USER}/.composer/
 ##
 echo "Checking for core updates {$WRAPPER}"
 git reset --hard --quiet HEAD
-git pull --quiet origin master
+git pull --quiet --squash origin master
 git submodule --quiet update --init
 
 ##
