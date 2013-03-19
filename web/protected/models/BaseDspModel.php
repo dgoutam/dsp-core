@@ -279,22 +279,15 @@ class BaseDspModel extends \CActiveRecord
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
-	 * @param bool $returnCriteria
-	 *
 	 * @return bool the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search( $returnCriteria = false )
+	public function search()
 	{
 		$_criteria = new \CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'created_date', $this->created_date, true );
 		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-
-		if ( $returnCriteria )
-		{
-			return $_criteria;
-		}
 
 		return new \CActiveDataProvider(
 			$this,
@@ -474,8 +467,8 @@ class BaseDspModel extends \CActiveRecord
 	 * Executes the SQL statement and returns all rows. (static version)
 	 *
 	 * @param mixed   $_criteria         The criteria for the query
-	 * @param boolean $fetchAssociative Whether each row should be returned as an associated array with column names as the keys or the array keys are column indexes (0-based).
-	 * @param array   $parameters       input parameters (name=>value) for the SQL execution. This is an alternative to {@link bindParam} and {@link bindValue}. If you have multiple input parameters, passing them in this way can improve the performance. Note that you pass parameters in this way, you cannot bind parameters or values using {@link bindParam} or {@link bindValue}, and vice versa. binding methods and  the input parameters this way can improve the performance. This parameter has been available since version 1.0.10.
+	 * @param boolean $fetchAssociative  Whether each row should be returned as an associated array with column names as the keys or the array keys are column indexes (0-based).
+	 * @param array   $parameters        input parameters (name=>value) for the SQL execution. This is an alternative to {@link bindParam} and {@link bindValue}. If you have multiple input parameters, passing them in this way can improve the performance. Note that you pass parameters in this way, you cannot bind parameters or values using {@link bindParam} or {@link bindValue}, and vice versa. binding methods and  the input parameters this way can improve the performance. This parameter has been available since version 1.0.10.
 	 *
 	 * @return array All rows of the query result. Each array element is an array representing a row. An empty array is returned if the query results in nothing.
 	 * @throws \CException execution failed

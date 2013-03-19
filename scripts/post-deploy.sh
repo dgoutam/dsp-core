@@ -12,7 +12,8 @@ fi
 ##	Initial settings
 ##
 
-VERSION=1.0.5
+VERSION=1.0.6
+SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
@@ -33,9 +34,27 @@ fi
 ## User supplied local user name?
 if [ "x" != "x$1" ] ; then
 	LOCAL_USER=$1
-	echo "Running for local user: ${LOCAL_USER}"
 fi
 
+_result=`id -u ${LOCAL_USER} >/dev/null 2>&1`
+
+if [ $? != 0 ] ; then
+	echo "  * ERROR: The user \"dfadmin\" does not exist, and no user specified."
+	echo "  * usage: $0 [username]"
+	echo ""
+	exit 1
+fi
+
+if [ "Darwin" = "${SYSTEM_TYPE}" ] ; then
+	WEB_USER=_www
+	echo "  * Standard OSX installation"
+elif [ "Linux" != "${SYSTEM_TYPE}" ] ; then
+	echo "  * Non-standard/unsupported installation. Your mileage may vary."
+else
+	echo "  * Standard Linux installation"
+fi
+
+echo "  * Local user is: ${LOCAL_USER}"
 echo ""
 
 ##
@@ -71,7 +90,7 @@ LIB_DIR=${BASE_PATH}/lib
 ##
 ## Check directory permissions...
 ##
-echo "Spot-checking file system"
+echo "  * Checking file system"
 chown -R ${LOCAL_USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
@@ -82,7 +101,7 @@ rm -rf ~${LOCAL_USER}/.composer/
 ##
 ## Do a pull for good measure
 ##
-echo "Checking for core updates {$WRAPPER}"
+echo "  * Checking for DSP updates"
 git reset --hard --quiet HEAD
 git pull --quiet --squash origin master
 git submodule --quiet update --init
@@ -93,10 +112,10 @@ git submodule --quiet update --init
 ##
 
 if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
-	echo "Installing package manager"
+	echo "  * Installing package manager"
 	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} --quiet --no-interaction
 else
-	echo "Checking for package manager updates"
+	echo "  * Checking for package manager updates"
 	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction self-update
 fi
 
@@ -107,10 +126,10 @@ fi
 pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
-	echo "Installing packages"
+	echo "  * Installing dependencies"
 	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction install
 else
-	echo "Updating packages"
+	echo "  * Updating dependencies"
 	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction update
 fi
 
