@@ -103,6 +103,7 @@ rm -rf ~${LOCAL_USER}/.composer/
 ##
 echo "  * Checking for DSP updates"
 git reset --hard --quiet HEAD
+git stash --quiet
 git pull --quiet --squash origin master
 git submodule --quiet update --init
 
