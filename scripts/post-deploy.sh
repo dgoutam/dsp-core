@@ -131,15 +131,15 @@ if [ ! -d "${ASSETS_DIR}" ] ; then
 fi
 
 if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -s "${APPS_DIR}/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
+    ln -s "../../apps/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
 fi
 
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -s "${APPS_DIR}/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
+    ln -s "../../apps/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
 fi
 
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
-    ln -s "${APPS_DIR}/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
+    ln -s "../../lib/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
 fi
 
 ##

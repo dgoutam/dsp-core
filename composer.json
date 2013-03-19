@@ -5,35 +5,25 @@
 		{
 			"name":  "Lee Hicks",
 			"email": "leehicks@dreamfactory.com"
+		},
+		{
+			"name":  "Jason Sykes",
+			"email": "jasonsykes@dreamfactory.com"
+		},
+		{
+			"name":  "Todd Appleton",
+			"email": "toddappleton@dreamfactory.com"
+		},
+		{
+			"name":  "Jerry Ablan",
+			"email": "jerryablan@dreamfactory.com"
 		}
 	],
 	"require":           {
 		"php":                               ">=5.3.8",
 		"dreamfactory/yii":                  "dev-master",
-		"microsoft/windowsazure":            "*",
 		"amazonwebservices/aws-sdk-for-php": "1.5.*",
-		"dreamfactory/app-launchpad":        "dev-master",
-		"dreamfactory/app-admin":            "dev-master",
-		"dreamfactory/web-core":             "dev-master",
 		"kisma/kisma":                       "dev-master"
 	},
-	"repositories":      [
-		{
-			"type": "vcs",
-			"url":  "http://bitbucket.org/dreamfactory/app-launchpad.git"
-		},
-		{
-			"type": "vcs",
-			"url":  "http://bitbucket.org/dreamfactory/app-admin.git"
-		},
-		{
-			"type": "vcs",
-			"url":  "http://bitbucket.org/dreamfactory/web-core.git"
-		},
-		{
-			"type": "pear",
-			"url":  "http://pear.php.net"
-		}
-	],
 	"minimum-stability": "dev"
 }
