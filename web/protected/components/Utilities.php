@@ -578,6 +578,8 @@ class Utilities
         else {
             ob_end_flush();
         }
+        // IE 9 requires hoop for session cookies in iframes
+        header('P3P:CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"');
     }
 
     public static function sendXmlResponse($data)

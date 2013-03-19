@@ -15,6 +15,18 @@ class RestController extends Controller
     private $format = 'json';
 
     /**
+     * service to direct call to
+     * @var string
+     */
+    private $service = '';
+
+    /**
+     * resource to be handled by service
+     * @var string
+     */
+    private $resource = '';
+
+    /**
      * Swagger controlled get
      * @var bool
      */
@@ -84,10 +96,10 @@ class RestController extends Controller
     /**
      *
      */
-    public function actionGet($service='')
+    public function actionGet()
     {
         try {
-            switch (strtolower($service)) {
+            switch (strtolower($this->service)) {
             case 'system':
                 $svcObj = SystemManager::getInstance();
                 break;
@@ -95,7 +107,7 @@ class RestController extends Controller
                 $svcObj = UserManager::getInstance();
                 break;
             default:
-                $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
                 break;
             }
             if ($this->swagger) {
@@ -121,7 +133,7 @@ class RestController extends Controller
     /**
      *
      */
-    public function actionPost($service='')
+    public function actionPost()
     {
         try {
             // check for verb tunneling
@@ -132,19 +144,19 @@ class RestController extends Controller
             if (!empty($tunnel_method)) {
                 switch (strtolower($tunnel_method)) {
                 case 'get': // complex retrieves, non-standard
-                    $this->actionGet($service);
+                    $this->actionGet();
                     break;
                 case 'post': // in case they use it in the header as well
                     break;
                 case 'put':
-                    $this->actionPut($service);
+                    $this->actionPut();
                     break;
                 case 'merge':
                 case 'patch':
-                    $this->actionMerge($service);
+                    $this->actionMerge();
                     break;
                 case 'delete':
-                    $this->actionDelete($service);
+                    $this->actionDelete();
                     break;
                 default:
                     if (!empty($tunnel_method)) {
@@ -154,7 +166,7 @@ class RestController extends Controller
                 }
             }
             $code = ErrorCodes::OK;
-            switch (strtolower($service)) {
+            switch (strtolower($this->service)) {
                 case 'system':
                     $result = SystemManager::getInstance()->actionPost();
                     $code = ErrorCodes::CREATED;
@@ -163,7 +175,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionPost();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
                     $result = $svcObj->actionPost();
 
                     $type = $svcObj->getType();
@@ -185,10 +197,10 @@ class RestController extends Controller
     /**
      *
      */
-    public function actionMerge($service='')
+    public function actionMerge()
     {
         try {
-            switch (strtolower($service)) {
+            switch (strtolower($this->service)) {
                 case 'system':
                     $result = SystemManager::getInstance()->actionMerge();
                     break;
@@ -196,7 +208,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionMerge();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
                     $result = $svcObj->actionMerge();
 
                     $type = $svcObj->getType();
@@ -218,10 +230,10 @@ class RestController extends Controller
     /**
      *
      */
-    public function actionPut($service='')
+    public function actionPut()
     {
         try {
-            switch (strtolower($service)) {
+            switch (strtolower($this->service)) {
                 case 'system':
                     $result = SystemManager::getInstance()->actionPut();
                     break;
@@ -229,7 +241,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionPut();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
                     $result = $svcObj->actionPut();
 
                     $type = $svcObj->getType();
@@ -251,10 +263,10 @@ class RestController extends Controller
     /**
      *
      */
-    public function actionDelete($service='')
+    public function actionDelete()
     {
         try {
-            switch (strtolower($service)) {
+            switch (strtolower($this->service)) {
                 case 'system':
                     $result = SystemManager::getInstance()->actionDelete();
                     break;
@@ -262,7 +274,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionDelete();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($service);
+                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
                     $result = $svcObj->actionDelete();
 
                     $type = $svcObj->getType();
@@ -313,17 +325,27 @@ class RestController extends Controller
         }
         $GLOBALS['app_name'] = $appName;
 
-        // fix removal of trailing slashes from resource
-        $resource = Utilities::getArrayValue('resource', $_GET, '');
-        if (!empty($resource)) {
-            $requestUri = yii::app()->request->requestUri;
-            if ((false === strpos($requestUri, '?') &&
-                 '/' === substr($requestUri, strlen($requestUri) - 1, 1)) ||
-                ('/' === substr($requestUri, strpos($requestUri, '?') - 1, 1))) {
-                $resource .= '/';
-            }
-            $_GET['resource'] = $resource;
+//        'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>'
+        $path = Utilities::getArrayValue('path', $_GET, '');
+        $slashIndex = strpos($path, '/');
+        if (false === $slashIndex) {
+            $this->service = $path;
         }
+        else {
+            $this->service = substr($path, 0, $slashIndex);
+            $this->resource = substr($path, $slashIndex+1);
+            // fix removal of trailing slashes from resource
+            if (!empty($this->resource)) {
+                $requestUri = yii::app()->request->requestUri;
+                if ((false === strpos($requestUri, '?') &&
+                    '/' === substr($requestUri, strlen($requestUri) - 1, 1)) ||
+                    ('/' === substr($requestUri, strpos($requestUri, '?') - 1, 1))) {
+                    $this->resource .= '/';
+                }
+            }
+        }
+
+        $_GET['resource'] = $this->resource;
 
         return parent::beforeAction($action);
     }

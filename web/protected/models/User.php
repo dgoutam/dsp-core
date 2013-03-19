@@ -235,9 +235,39 @@ class User extends BaseDspSystemModel
 				}
 			}
 		}
+<<<<<<< HEAD
 
 		$this->is_active = intval( $this->is_active );
 		$this->is_sys_admin = intval( $this->is_sys_admin );
+=======
+		if ( is_bool( $this->is_active ) )
+		{
+			$this->is_active = intval( $this->is_active );
+		}
+		if ( is_bool( $this->is_sys_admin ) )
+		{
+			$this->is_sys_admin = intval( $this->is_sys_admin );
+		}
+        if ( is_string( $this->role_id ) )
+        {
+            $this->role_id = intval( $this->role_id );
+        }
+        if ( is_string( $this->default_app_id ) )
+        {
+            $this->default_app_id = intval( $this->default_app_id );
+        }
+
+        return parent::beforeValidate();
+	}
+
+	/**
+     * {@InheritDoc}
+	 *
+	 * @return bool
+	 */
+	protected function beforeSave()
+	{
+>>>>>>> 13b0a8900343ee73bd50a68cffd547b5fe0e67b5
 
 		return parent::beforeValidate();
 	}
@@ -272,6 +302,12 @@ class User extends BaseDspSystemModel
 		//	Correct data type
 		$this->is_active = intval( $this->is_active );
 		$this->is_sys_admin = intval( $this->is_sys_admin );
+        if (isset($this->role_id)) {
+            $this->role_id = intval($this->role_id);
+        }
+        if (isset($this->default_app_id)) {
+            $this->default_app_id = intval($this->default_app_id);
+        }
 	}
 
 	/**

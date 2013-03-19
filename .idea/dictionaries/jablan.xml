@@ -1,15 +1,22 @@
 <component name="ProjectDictionaryState">
   <dictionary name="jablan">
     <words>
+<<<<<<< HEAD
       <w>bogusness</w>
+=======
+      <w>angularjs</w>
+      <w>bootstrapcdn</w>
+>>>>>>> 13b0a8900343ee73bd50a68cffd547b5fe0e67b5
       <w>dflib</w>
       <w>finfo</w>
       <w>gots</w>
       <w>multibyte</w>
+      <w>netdna</w>
       <w>picklist</w>
       <w>pocketses</w>
       <w>problema</w>
       <w>ripemd</w>
+      <w>subpath</w>
       <w>tenemos</w>
       <w>unassign</w>
       <w>unserialization</w>

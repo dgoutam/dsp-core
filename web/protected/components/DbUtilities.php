@@ -348,8 +348,6 @@ class DbUtilities
             $validation = Utilities::getArrayValue('validation', $label_info, '');
             $picklist = Utilities::getArrayValue('picklist', $label_info, '');
             $picklist = (!empty($picklist)) ? explode("/n", $picklist) : array();
-            $timestampOnUpdate = Utilities::getArrayValue('timestamp_on_update', $label_info, null);
-            $userIdOnUpdate = Utilities::getArrayValue('user_id_on_update', $label_info, null);
             $refTable = '';
             $refFields = '';
             if (1 == $column->isForeignKey) {
@@ -359,7 +357,7 @@ class DbUtilities
             }
             return array('name' => $column->name,
                          'label'=> $label,
-                         'type' => static::determineDfType($column, $timestampOnUpdate, $userIdOnUpdate),
+                         'type' => static::determineDfType($column, $label_info),
                          'db_type' => $column->dbType,
                          'length' => intval($column->size),
                          'precision' => intval($column->precision),
@@ -436,19 +434,23 @@ class DbUtilities
 
     /**
      * @param $column
-     * @param null|boolean $timestamp_on_update
-     * @param null|boolean $user_on_update
+     * @param null|array $label_info
      * @return string
      */
-    protected static function determineDfType($column, $timestamp_on_update = null, $user_on_update = null)
+    protected static function determineDfType($column, $label_info = null)
     {
         switch ($column->type) {
         case 'integer':
             if ($column->isPrimaryKey && $column->autoIncrement) {
                 return 'id';
             }
-            if (isset($user_on_update)) {
-                return (Utilities::boolval($user_on_update)) ? 'user_id_on_update': 'user_id_on_create';
+            $userIdOnUpdate = Utilities::getArrayValue('user_id_on_update', $label_info, null);
+            if (isset($userIdOnUpdate)) {
+                return (Utilities::boolval($userIdOnUpdate)) ? 'user_id_on_update': 'user_id_on_create';
+            }
+            $userId = Utilities::getArrayValue('user_id', $label_info, null);
+            if (isset($userId)) {
+                return 'user_id';
             }
             if ($column->isForeignKey) {
                 return 'reference';
@@ -460,8 +462,9 @@ class DbUtilities
         }
         if ((0 === strcasecmp($column->dbType, 'datetimeoffset')) ||
             (0 === strcasecmp($column->dbType, 'timestamp'))) {
-            if (isset($timestamp_on_update)) {
-                return (Utilities::boolval($timestamp_on_update)) ? 'timestamp_on_update': 'timestamp_on_create';
+            $timestampOnUpdate = Utilities::getArrayValue('timestamp_on_update', $label_info, null);
+            if (isset($timestampOnUpdate)) {
+                return (Utilities::boolval($timestampOnUpdate)) ? 'timestamp_on_update': 'timestamp_on_create';
             }
         }
         return $column->type;
@@ -643,10 +646,8 @@ class DbUtilities
                 $default = 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'; // override
                 $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
                 break;
+            case "user_id":
             case "user_id_on_create":
-                $definition = 'int';
-                $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
-                break;
             case "user_id_on_update":
                 $definition = 'int';
                 $allowNull = (isset($field['allow_null'])) ? $allowNull : false;
@@ -994,6 +995,20 @@ class DbUtilities
                                               'update' => 'CASCADE');
                     }
                 }
+                elseif ((0 === strcasecmp('user_id', $type))) { // && static::is_local_db()
+                    // special case for references because the table referenced may not be created yet
+                    $temp['user_id'] = true;
+                    $keyName = 'fk_' . $table_name . '_' . $name;
+                    if (!$isAlter || !$colSchema->isForeignKey) {
+                        $references[] = array('name' => $keyName,
+                                              'table' => $table_name,
+                                              'column' => $name,
+                                              'ref_table' => 'df_sys_user',
+                                              'ref_fields' => 'id',
+                                              'delete' => null,
+                                              'update' => 'CASCADE');
+                    }
+                }
                 elseif ((0 === strcasecmp('timestamp_on_create', $type))) {
                     $temp['timestamp_on_update'] = false;
                 }
@@ -1086,15 +1101,23 @@ class DbUtilities
                         Yii::log($ex->getMessage());
                     }
                 }
-                $rows = $command->addForeignKey($name,
-                                                $table,
-                                                $reference['column'],
-                                                $reference['ref_table'],
-                                                $reference['ref_fields'],
-                                                $reference['delete'],
-                                                $reference['update']
-                );
-
+                // add new reference
+                $refTable = Utilities::getArrayValue('ref_table', $reference, null);
+                if (!empty($refTable)) {
+                    if ((0 === strcasecmp('df_sys_user', $refTable)) &&
+                        ($db !== Yii::app()->db)) {
+                        // using user id references from a remote db
+                        continue;
+                    }
+                    $rows = $command->addForeignKey($name,
+                                                    $table,
+                                                    $reference['column'],
+                                                    $refTable,
+                                                    $reference['ref_fields'],
+                                                    $reference['delete'],
+                                                    $reference['update']
+                    );
+                }
             }
         }
         $indexes = Utilities::getArrayValue('indexes', $extras, array());
