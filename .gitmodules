@@ -1,9 +1,3 @@
-[submodule "apps/app-admin"]
-	path = apps/app-admin
-	url = git@bitbucket.org:dreamfactory/app-admin.git
-[submodule "apps/app-launchpad"]
-	path = apps/app-launchpad
-	url = git@bitbucket.org:dreamfactory/app-launchpad.git
 [submodule "lib/azure-sdk-for-php"]
 	path = lib/azure-sdk-for-php
 	url = https://github.com/dreamfactorysoftware/azure-sdk-for-php.git
