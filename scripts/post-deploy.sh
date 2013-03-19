@@ -130,20 +130,26 @@ if [ ! -d "${ASSETS_DIR}" ] ; then
 	mkdir "${ASSETS_DIR}" >/dev/null 2>&1 && echo "  * Created ${ASSETS_DIR}"
 fi
 
+# Into public dir
+cd ${PUBLIC_DIR}
+
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
-    ln -s "../../lib/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
+    ln -sf ../../lib/dreamfactory/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -s "../../apps/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
+    ln -sf ../../apps/dreamfactory/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -s "../../apps/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
+    ln -sf ../../apps/dreamfactory/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
+
+# Back
+cd -
 
 ##
 ## make owned by user
