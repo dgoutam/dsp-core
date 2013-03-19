@@ -79,6 +79,7 @@ rm -rf ~${LOCAL_USER}/.composer/
 echo "Checking for core updates {$WRAPPER}"
 git reset --hard --quiet HEAD
 git pull --quiet origin master
+git submodule --quiet update --init
 
 ##
 ## Check if composer is installed
