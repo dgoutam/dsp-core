@@ -30,9 +30,5 @@
 		"amazonwebservices/aws-sdk-for-php": "1.5.*",
 		"kisma/kisma":                       "dev-master"
 	},
-	"scripts":           {
-		"post-update-cmd":  "sudo /bin/bash ../scripts/post-deploy.sh",
-		"post-install-cmd": "sudo /bin/bash ../scripts/post-deploy.sh"
-	},
 	"minimum-stability": "dev"
 }
