@@ -97,8 +97,8 @@ class ServiceHandler
     public function getServiceListing()
     {
         try {
-            $criteria = new CDbCriteria(array('select' => 'api_name,name'));
-            $result = Service::model()->findAll($criteria);
+            $_criteria = new CDbCriteria(array('select' => 'api_name,name'));
+            $result = Service::model()->findAll($_criteria);
             $out = array();
             foreach ($result as $service) {
                 $out[] = array('api_name' => $service->api_name, 'name' => $service->name);

@@ -1,5 +1,5 @@
 {
-    "version": "0.5.0",
+    "version": "0.5.1",
     "table": [
         {
             "name": "df_sys_config",
@@ -13,6 +13,40 @@
                     "type": "string",
                     "length": 32,
                     "allow_null": false
+                },
+                {
+                    "name": "allow_open_registration",
+                    "type": "boolean",
+                    "default": false,
+                    "allow_null": false
+                },
+                {
+                    "name": "allow_user_profile_editing",
+                    "type": "boolean",
+                    "default": true,
+                    "allow_null": false
+                },
+                {
+                    "name": "created_date",
+                    "type": "timestamp_on_create",
+                    "validation": "api_read_only"
+                },
+                {
+                    "name": "last_modified_date",
+                    "type": "timestamp_on_update",
+                    "validation": "api_read_only"
+                },
+                {
+                    "name": "created_by_id",
+                    "type": "user_id_on_create",
+                    "allow_null": true,
+                    "validation": "api_read_only"
+                },
+                {
+                    "name": "last_modified_by_id",
+                    "type": "user_id_on_update",
+                    "allow_null": true,
+                    "validation": "api_read_only"
                 }
             ]
         },
@@ -711,6 +745,12 @@
                     "name": "validation",
                     "type": "string",
                     "length": 255,
+                    "allow_null": true
+                },
+                {
+                    "name": "user_id",
+                    "type": "boolean",
+                    "default": null,
                     "allow_null": true
                 },
                 {

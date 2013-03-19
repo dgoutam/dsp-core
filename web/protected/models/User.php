@@ -1,7 +1,7 @@
 <?php
-
 /**
  * User.php
+ * The system user model for the DSP
  *
  * This file is part of the DreamFactory Document Service Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -21,11 +21,8 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *
- * The system user model for the DSP
- */
-
-/**
- * This is the model for table "user".
+ *
+ * Columns
  *
  * @property integer    $id
  * @property string     $username
@@ -43,12 +40,9 @@
  * @property string     $security_question
  * @property string     $security_answer
  * @property string     $last_login_date
- * @property string     $created_date
- * @property string     $last_modified_date
- * @property integer    $created_by_id
- * @property integer    $last_modified_by_id
  *
- * The followings are the available model relations:
+ * Relations
+ *
  * @property App[]      $apps_created
  * @property App[]      $apps_modified
  * @property AppGroup[] $app_groups_created
@@ -59,12 +53,10 @@
  * @property Service[]  $services_modified
  * @property User[]     $users_created
  * @property User[]     $users_modified
- * @property User       $created_by
- * @property User       $last_modified_by
  * @property App        $default_app
  * @property Role       $role
  */
-class User extends BaseSystemModel
+class User extends BaseDspSystemModel
 {
 	/**
 	 * Returns the static model of the specified AR class.
@@ -91,7 +83,7 @@ class User extends BaseSystemModel
 	 */
 	public function rules()
 	{
-		$rules =  array(
+		$_rules = array(
 			array( 'username, first_name, display_name, email', 'required' ),
 			array( 'username, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 			array( 'email', 'email' ),
@@ -101,13 +93,13 @@ class User extends BaseSystemModel
 			array( 'phone', 'length', 'max' => 32 ),
 			array( 'confirm_code, display_name, security_question', 'length', 'max' => 128 ),
 			array(
-				'id, username, first_name, last_name, display_name, email, phone, is_active, is_sys_admin, confirm_code, default_app_id, role_id, last_login_data, created_date, last_modified_date, created_by_id, last_modified_by_id',
+				'id, username, first_name, last_name, display_name, email, phone, is_active, is_sys_admin, confirm_code, default_app_id, role_id, last_login_data',
 				'safe',
 				'on' => 'search'
 			),
 		);
 
-        return array_merge(parent::rules(), $rules);
+		return array_merge( parent::rules(), $_rules );
 	}
 
 	/**
@@ -115,7 +107,7 @@ class User extends BaseSystemModel
 	 */
 	public function relations()
 	{
-		$relations = array(
+		$_relations = array(
 			'apps_created'        => array( self::HAS_MANY, 'App', 'created_by_id' ),
 			'apps_modified'       => array( self::HAS_MANY, 'App', 'last_modified_by_id' ),
 			'app_groups_created'  => array( self::HAS_MANY, 'AppGroup', 'created_by_id' ),
@@ -130,7 +122,7 @@ class User extends BaseSystemModel
 			'role'                => array( self::BELONGS_TO, 'Role', 'role_id' ),
 		);
 
-        return array_merge(parent::relations(), $relations);
+		return array_merge( parent::relations(), $_relations );
 	}
 
 	/**
@@ -138,24 +130,24 @@ class User extends BaseSystemModel
 	 */
 	public function attributeLabels()
 	{
-		$labels = array(
-			'username'            => 'Username',
-			'password'            => 'Password',
-			'first_name'          => 'First Name',
-			'last_name'           => 'Last Name',
-			'display_name'        => 'Display Name',
-			'email'               => 'Email',
-			'phone'               => 'Phone',
-            'is_active'           => 'Is Active',
-            'is_sys_admin'        => 'Is System Admin',
-			'confirm_code'        => 'Confirmation Code',
-			'default_app_id'      => 'Default App',
-			'role_id'             => 'Role',
-			'security_question'   => 'Security Question',
-			'security_answer'     => 'Security Answer',
+		$_labels = array(
+			'username'          => 'Username',
+			'password'          => 'Password',
+			'first_name'        => 'First Name',
+			'last_name'         => 'Last Name',
+			'display_name'      => 'Display Name',
+			'email'             => 'Email',
+			'phone'             => 'Phone',
+			'is_active'         => 'Is Active',
+			'is_sys_admin'      => 'Is System Admin',
+			'confirm_code'      => 'Confirmation Code',
+			'default_app_id'    => 'Default App',
+			'role_id'           => 'Role',
+			'security_question' => 'Security Question',
+			'security_answer'   => 'Security Answer',
 		);
 
-        return array_merge(parent::attributeLabels(), $labels);
+		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/**
@@ -165,67 +157,60 @@ class User extends BaseSystemModel
 	 */
 	public function search()
 	{
-		// Warning: Please modify the following code to remove attributes that
-		// should not be searched.
+		$_criteria = new CDbCriteria();
 
-		$criteria = new CDbCriteria;
+		$_criteria->compare( 'id', $this->id );
+		$_criteria->compare( 'username', $this->username, true );
+		$_criteria->compare( 'first_name', $this->first_name, true );
+		$_criteria->compare( 'last_name', $this->last_name, true );
+		$_criteria->compare( 'display_name', $this->display_name, true );
+		$_criteria->compare( 'email', $this->email, true );
+		$_criteria->compare( 'phone', $this->phone, true );
+		$_criteria->compare( 'is_active', $this->is_active );
+		$_criteria->compare( 'is_sys_admin', $this->is_sys_admin );
+		$_criteria->compare( 'confirm_code', $this->confirm_code, true );
+		$_criteria->compare( 'default_app_id', $this->default_app_id );
+		$_criteria->compare( 'role_id', $this->role_id );
+		$_criteria->compare( 'last_login_date', $this->created_date, true );
+		$_criteria->compare( 'created_date', $this->created_date, true );
+		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
+		$_criteria->compare( 'created_by_id', $this->created_by_id );
+		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		$criteria->compare( 'id', $this->id );
-		$criteria->compare( 'username', $this->username, true );
-		$criteria->compare( 'first_name', $this->first_name, true );
-		$criteria->compare( 'last_name', $this->last_name, true );
-		$criteria->compare( 'display_name', $this->display_name, true );
-		$criteria->compare( 'email', $this->email, true );
-		$criteria->compare( 'phone', $this->phone, true );
-		$criteria->compare( 'is_active', $this->is_active );
-		$criteria->compare( 'is_sys_admin', $this->is_sys_admin );
-		$criteria->compare( 'confirm_code', $this->confirm_code, true );
-		$criteria->compare( 'default_app_id', $this->default_app_id );
-		$criteria->compare( 'role_id', $this->role_id );
-		$criteria->compare( 'last_login_date', $this->created_date, true );
-		$criteria->compare( 'created_date', $this->created_date, true );
-		$criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-		$criteria->compare( 'created_by_id', $this->created_by_id );
-		$criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
-
-		return new CActiveDataProvider( $this, array( 'criteria' => $criteria, ) );
+		return new CActiveDataProvider(
+			$this,
+			array(
+				 'criteria' => $_criteria,
+			)
+		);
 	}
 
-    /**
-     * {@InheritDoc}
-     */
-    public function setAttributes($values, $safeOnly=true)
-    {
-        if (isset($values['password'])) {
-            if (!empty($values['password'])) {
-                $this->setAttribute('password', CPasswordHelper::hashPassword($values['password']));
-            }
-            unset($values['password']);
-        }
-        if (isset($values['security_answer'])) {
-            if (!empty($values['security_answer'])) {
-                $this->setAttribute('security_answer', CPasswordHelper::hashPassword($values['security_answer']));
-            }
-            unset($values['security_answer']);
-        }
+	/** {@InheritDoc} */
+	public function setAttributes( $values, $safeOnly = true )
+	{
+		if ( isset( $values['password'] ) )
+		{
+			if ( !empty( $values['password'] ) )
+			{
+				$this->setAttribute( 'password', CPasswordHelper::hashPassword( $values['password'] ) );
+			}
 
-        parent::setAttributes($values, $safeOnly);
-    }
+			unset( $values['password'] );
+		}
 
-    /**
-     * @param array $values
-     */
-    public function setRelated($values, $id)
-    {
-        // default app id
-        // role id
-    }
+		if ( isset( $values['security_answer'] ) )
+		{
+			if ( !empty( $values['security_answer'] ) )
+			{
+				$this->setAttribute( 'security_answer', CPasswordHelper::hashPassword( $values['security_answer'] ) );
+			}
+			unset( $values['security_answer'] );
+		}
 
-    /**
-     * {@InheritDoc}
-	 *
-	 * @return bool
-	 */
+		parent::setAttributes( $values, $safeOnly );
+	}
+
+	/** {@InheritDoc} */
 	protected function beforeValidate()
 	{
 		if ( $this->isNewRecord )
@@ -234,19 +219,27 @@ class User extends BaseSystemModel
 			{
 				$this->confirm_code = 'y';
 			}
+
 			if ( empty( $this->first_name ) )
 			{
 				$this->first_name = $this->username;
 			}
+
 			if ( empty( $this->display_name ) )
 			{
 				$this->display_name = $this->first_name;
+
 				if ( !empty( $this->last_name ) )
 				{
 					$this->display_name .= ' ' . $this->last_name;
 				}
 			}
 		}
+<<<<<<< HEAD
+
+		$this->is_active = intval( $this->is_active );
+		$this->is_sys_admin = intval( $this->is_sys_admin );
+=======
 		if ( is_bool( $this->is_active ) )
 		{
 			$this->is_active = intval( $this->is_active );
@@ -255,8 +248,16 @@ class User extends BaseSystemModel
 		{
 			$this->is_sys_admin = intval( $this->is_sys_admin );
 		}
+        if ( is_string( $this->role_id ) )
+        {
+            $this->role_id = intval( $this->role_id );
+        }
+        if ( is_string( $this->default_app_id ) )
+        {
+            $this->default_app_id = intval( $this->default_app_id );
+        }
 
-		return parent::beforeValidate();
+        return parent::beforeValidate();
 	}
 
 	/**
@@ -266,29 +267,26 @@ class User extends BaseSystemModel
 	 */
 	protected function beforeSave()
 	{
+>>>>>>> 13b0a8900343ee73bd50a68cffd547b5fe0e67b5
 
-		return parent::beforeSave();
+		return parent::beforeValidate();
 	}
 
-	/**
-     * {@InheritDoc}
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
+	/** {@InheritDoc} */
 	protected function beforeDelete()
 	{
-		$currUser = SessionManager::getCurrentUserId();
+		$_id = $this->getPrimaryKey();
+
 		// make sure you don't delete yourself
-		if ( $currUser === $this->getPrimaryKey() )
+		if ( $_id != SessionManager::getCurrentUserId() )
 		{
-			throw new Exception( "The current logged in user can not be deleted." );
+			throw new \Kisma\Core\Exceptions\StorageException( 'The currently logged in user may not be deleted.' );
 		}
-		// check and make sure this is not the last admin user
-		$count = static::model()->count( 'is_sys_admin=:is and id != :id', array( ':is' => 1, ':id' => $this->getPrimaryKey() ) );
-		if ( 0 >= $count )
+
+		//	Check and make sure this is not the last admin user
+		if ( !static::model()->count( 'is_sys_admin = :is_sys_admin AND id <> :id', array( ':is_sys_admin' => 1, ':id' => $_id ) ) )
 		{
-			throw new Exception( "The last user set to administrator can not be deleted." );
+			throw new StorageException( 'There must be at least one administrative account. This one may not be deleted.' );
 		}
 
 		return parent::beforeDelete();
@@ -301,53 +299,40 @@ class User extends BaseSystemModel
 	{
 		parent::afterFind();
 
-		// correct data type
-        $this->is_active = intval( $this->is_active );
+		//	Correct data type
+		$this->is_active = intval( $this->is_active );
 		$this->is_sys_admin = intval( $this->is_sys_admin );
+        if (isset($this->role_id)) {
+            $this->role_id = intval($this->role_id);
+        }
+        if (isset($this->default_app_id)) {
+            $this->default_app_id = intval($this->default_app_id);
+        }
 	}
 
-    /**
-     * @param string $requested
-     *
-     * @return array
-     */
-    public function getRetrievableAttributes( $requested )
-    {
-        if ( empty( $requested ) )
-        {
-            // primary keys only
-            return array( 'id' );
-        }
-        elseif ( '*' == $requested )
-        {
-            return array(
-                'id',
-                'display_name',
-                'first_name',
-                'last_name',
-                'username',
-                'email',
-                'phone',
-                'is_active',
-                'is_sys_admin',
-                'role_id',
-                'default_app_id',
-                'created_date',
-                'created_by_id',
-                'last_modified_date',
-                'last_modified_by_id'
-            );
-        }
-        else
-        {
-            // remove any undesired retrievable fields
-            $requested = Utilities::removeOneFromList( $requested, 'password', ',' );
-            $requested = Utilities::removeOneFromList( $requested, 'security_question', ',' );
-            $requested = Utilities::removeOneFromList( $requested, 'security_answer', ',' );
-            $requested = Utilities::removeOneFromList( $requested, 'confirm_code', ',' );
+	/**
+	 * @param string $requested
+	 *
+	 * @return array
+	 */
+	public function getRetrievableAttributes( $requested )
+	{
+		return parent::getRetrievableAttributes(
+			$requested,
+			array(
+				 'display_name',
+				 'first_name',
+				 'last_name',
+				 'username',
+				 'email',
+				 'phone',
+				 'is_active',
+				 'is_sys_admin',
+				 'role_id',
+				 'default_app_id',
+			)
 
-            return explode( ',', $requested );
-        }
-    }
+		);
+	}
 
 }

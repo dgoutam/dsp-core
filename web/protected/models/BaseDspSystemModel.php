@@ -1,7 +1,9 @@
 <?php
+use Kisma\Core\Exceptions\StorageException;
+
 /**
- * BaseDspModel.php
- * A base class for DSP models
+ * BaseDspSystemModel.php
+ * A base class for DSP system models
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -19,7 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The following columns are available:
+ * Base Columns:
  *
  * @property integer $id
  * @property string  $created_date
@@ -27,11 +29,12 @@
  * @property integer $created_by_id
  * @property integer $last_modified_by_id
  *
- * The followings are the available model relations:
+ * Base Relations:
+ *
  * @property User    $created_by
  * @property User    $last_modified_by
  */
-abstract class BaseSystemModel extends CActiveRecord
+abstract class BaseDspSystemModel extends BaseDspModel
 {
 	/**
 	 * @return string the system database table name prefix
@@ -46,8 +49,6 @@ abstract class BaseSystemModel extends CActiveRecord
 	 */
 	public function rules()
 	{
-		// NOTE: you should only define rules for those attributes that
-		// will receive user inputs.
 		return array(
 			array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
 		);
@@ -58,25 +59,9 @@ abstract class BaseSystemModel extends CActiveRecord
 	 */
 	public function relations()
 	{
-		// NOTE: you may need to adjust the relation name and the related
-		// class name for the relations automatically generated below.
 		return array(
 			'created_by'       => array( self::BELONGS_TO, 'User', 'created_by_id' ),
 			'last_modified_by' => array( self::BELONGS_TO, 'User', 'last_modified_by_id' ),
-		);
-	}
-
-	/**
-	 * @return array customized attribute labels (name=>label)
-	 */
-	public function attributeLabels()
-	{
-		return array(
-			'id'                  => 'Id',
-			'created_date'        => 'Created Date',
-			'last_modified_date'  => 'Last Modified Date',
-			'created_by_id'       => 'Created By',
-			'last_modified_by_id' => 'Last Modified By',
 		);
 	}
 
@@ -87,9 +72,6 @@ abstract class BaseSystemModel extends CActiveRecord
 	 */
 	public function search()
 	{
-		// Warning: Please modify the following code to remove attributes that
-		// should not be searched.
-
 		$_criteria = new CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
@@ -98,94 +80,42 @@ abstract class BaseSystemModel extends CActiveRecord
 		$_criteria->compare( 'created_by_id', $this->created_by_id );
 		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider( $this, array( 'criteria' => $_criteria, ) );
+		return new CActiveDataProvider(
+			$this,
+			array(
+				 'criteria' => $_criteria,
+			)
+		);
 	}
 
-	/**
-	 * {@InheritDoc}
-	 */
-	protected function beforeValidate()
-	{
-
-		return parent::beforeValidate();
-	}
-
-	/**
-	 * {@InheritDoc}
-	 */
-	protected function beforeSave()
-	{
-		// until db's get their timestamp act together
-		switch ( DbUtilities::getDbDriverType( $this->dbConnection ) )
-		{
-			case DbUtilities::DRV_SQLSRV:
-				$dateTime = new CDbExpression( 'SYSDATETIMEOFFSET()' );
-				break;
-			case DbUtilities::DRV_MYSQL:
-			default:
-				$dateTime = new CDbExpression( 'NOW()' );
-				break;
-		}
-		if ( $this->isNewRecord )
-		{
-			$this->created_date = $dateTime;
-		}
-		$this->last_modified_date = $dateTime;
-
-		// set user tracking
-		$userId = SessionManager::getCurrentUserId();
-		if ( $this->isNewRecord )
-		{
-			$this->created_by_id = $userId;
-		}
-		$this->last_modified_by_id = $userId;
-
-		return parent::beforeSave();
-	}
-
-	/**
-	 * {@InheritDoc}
-	 */
-	protected function afterSave()
-	{
-
-		parent::afterSave();
-	}
-
-	/**
-	 * {@InheritDoc}
-	 */
-	protected function beforeDelete()
-	{
-
-		return parent::beforeDelete();
-	}
-
-	/**
-	 * {@InheritDoc}
-	 */
-	public function afterFind()
-	{
-		parent::afterFind();
-
-		// correct data type
-		$this->id = intval( $this->id );
-		if ( isset( $this->created_by_id ) )
-		{
-			$this->created_by_id = intval( $this->created_by_id );
-		}
-		if ( isset( $this->last_modified_by_id ) )
-		{
-			$this->last_modified_by_id = intval( $this->last_modified_by_id );
-		}
-	}
+//	/**
+//	 * {@InheritDoc}
+//	 */
+//	public function afterFind()
+//	{
+//		parent::afterFind();
+//
+//		//	Correct data type
+//		$this->id = intval( $this->id );
+//
+//		if ( isset( $this->created_by_id ) )
+//		{
+//			$this->created_by_id = intval( $this->created_by_id );
+//		}
+//		if ( isset( $this->last_modified_by_id ) )
+//		{
+//			$this->last_modified_by_id = intval( $this->last_modified_by_id );
+//		}
+//	}
 
 	/**
 	 * @param string $requested
 	 *
+	 * @param array  $columns Additional columns to add
+	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array() )
 	{
 		if ( empty( $requested ) )
 		{
@@ -193,11 +123,37 @@ abstract class BaseSystemModel extends CActiveRecord
 			return array( 'id' );
 		}
 
-		return explode( ',', $requested );
+		if ( static::ALL_ATTRIBUTES == $requested )
+		{
+			return array_merge(
+				array(
+					 'id',
+					 'created_date',
+					 'created_by_id',
+					 'last_modified_date',
+					 'last_modified_by_id'
+				),
+				$columns
+			);
+		}
+
+		//	Remove the bogusness
+		$_columns = explode( ',', $requested );
+
+		foreach ( $_columns as $_index => $_column )
+		{
+			if ( false !== stripos( $_column, 'password' ) || false !== stripos( $_column, 'security' ) || false !== stripos( $_column, 'confirm_' ) )
+			{
+				unset( $_columns[$_index] );
+			}
+		}
+
+		return $_columns;
 	}
 
 	/**
 	 * @param array $values
+	 * @param int   $id
 	 */
 	public function setRelated( $values, $id )
 	{
@@ -216,7 +172,6 @@ abstract class BaseSystemModel extends CActiveRecord
 			}
 		}
 		*/
-
 	}
 
 	// generic assignments
@@ -227,56 +182,73 @@ abstract class BaseSystemModel extends CActiveRecord
 	 * @param string $many_field
 	 * @param array  $many_records
 	 *
+	 * @throws Kisma\Core\Exceptions\StorageException
 	 * @throws Exception
 	 * @return void
 	 */
 	protected function assignManyToOne( $one_id, $many_table, $many_field, $many_records = array() )
 	{
-		$manyModel = SystemManager::getResourceModel( $many_table );
 		if ( empty( $one_id ) )
 		{
 			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
+
+		$_entity = SystemManager::getNewResource( $many_table );
+		$_entityPk = $_entity->getTableSchema()->primaryKey;
+		$_entityTable = $_entity->tableName();
+		$_lmodId = SessionManager::getCurrentUserId();
+
+		//	Unassign existing rows
 		try
 		{
-			$manyObj = SystemManager::getNewResource( $many_table );
-			$pkField = $manyObj->tableSchema->primaryKey;
-			$oldMany = $manyModel->findAll( $many_field . ' = :oid', array( ':oid' => $one_id ) );
-			foreach ( $oldMany as $old )
+			$_sql
+				= <<<SQL
+UPDATE {$_entityTable} SET
+	{$many_field} = null,
+	last_modified_date = now(),
+	last_modified_by_id = :last_modified_by_id
+WHERE
+	{$many_field} = :old_id
+SQL;
+
+			if ( false === static::execute( $_sql, array( ':old_id' => $one_id, ':last_modified_by_id' => $_lmodId ) ) )
 			{
-				$oldId = $old->primaryKey;
-				$found = false;
-				foreach ( $many_records as $key => $item )
-				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
-					if ( $id == $oldId )
-					{
-						// found it, keeping it, so remove it from the list, as this becomes adds
-						unset( $many_records[$key] );
-						$found = true;
-						continue;
-					}
-				}
-				if ( !$found )
-				{
-					$old->setAttribute( $many_field, null );
-					$old->save();
-					continue;
-				}
+				throw new StorageException( 'Error clearing relationship assignments.' );
 			}
-			if ( !empty( $many_records ) )
+
+			if ( empty( $many_records ) )
 			{
-				// add what is leftover
-				foreach ( $many_records as $item )
-				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
-					$assigned = $manyModel->findByPk( $id );
-					if ( $assigned )
-					{
-						$assigned->setAttribute( $many_field, $one_id );
-						$assigned->save();
-					}
-				}
+				return;
+			}
+		}
+		catch ( Exception $_ex )
+		{
+			throw new StorageException( 'Exception clearing relationship assignments: ' . $_ex->getMessage() );
+		}
+
+		//	Assign requested rows
+		$_idList = array();
+
+		foreach ( $many_records as $_row )
+		{
+			$_idList[] = $_row->{$_entityPk};
+		}
+
+		try
+		{
+			$_sql
+				= <<<SQL
+UPDATE {$_entityTable} SET
+	{$many_field} = :new_id
+	last_modified_date = now(),
+	last_modified_by_id = :last_modified_by_id
+WHERE
+	{$_entityPk} in (:id_list)
+SQL;
+
+			if ( false === static::execute( $_sql, array( ':new_id' => $one_id, ':last_modified_by_id' => $_lmodId, ':id_list' => implode( ',', $_idList ) ) ) )
+			{
+				throw new StorageException( 'Error setting relationship assignments.' );
 			}
 		}
 		catch ( Exception $ex )

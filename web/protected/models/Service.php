@@ -1,7 +1,9 @@
 <?php
+use Kisma\Core\Exceptions\StorageException;
 
 /**
  * Service.php
+ * The system service model for the DSP
  *
  * This file is part of the DreamFactory Document Service Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -21,314 +23,332 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *
- * The system service model for the DSP
- */
-
-/**
- * This is the model class for table "service".
+ * Columns:
  *
- * The followings are the available columns in table 'service':
  * @property integer $id
- * @property string $name
- * @property string $api_name
- * @property string $description
+ * @property string  $name
+ * @property string  $api_name
+ * @property string  $description
  * @property integer $is_active
- * @property string $type
- * @property string $storage_name
- * @property string $storage_type
- * @property string $credentials
- * @property string $native_format
- * @property string $base_url
- * @property string $parameters
- * @property string $headers
- * @property string $created_date
- * @property string $last_modified_date
- * @property integer $created_by_id
- * @property integer $last_modified_by_id
- *
- * The followings are the available model relations:
- * @property RoleServiceAccess[] $roleServiceAccesses
- * @property User $created_by
- * @property User $last_modified_by
+ * @property string  $type
+ * @property string  $storage_name
+ * @property string  $storage_type
+ * @property string  $credentials
+ * @property string  $native_format
+ * @property string  $base_url
+ * @property string  $parameters
+ * @property string  $headers
  */
-class Service extends BaseSystemModel
+class Service extends BaseDspSystemModel
 {
+	//*************************************************************************
+	//* Members
+	//*************************************************************************
 
-    /**
-     * Is this service a system service that should not be deleted
-     * or modified in certain ways, i.e. api name and type.
-     * @var bool
-     */
-    protected $is_system = false;
+	/**
+	 * @var bool Is this service a system service that should not be deleted or modified in certain ways, i.e. api name and type.
+	 */
+	protected $_systemService = false;
 
-    /**
-     * Returns the static model of the specified AR class.
-     * @param string $className active record class name.
-     * @return Service the static model class
-     */
-    public static function model($className = __CLASS__)
-    {
-        return parent::model($className);
-    }
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
 
-    /**
-     * @return string the associated database table name
-     */
-    public function tableName()
-    {
-        return static::tableNamePrefix() . 'service';
-    }
+	/**
+	 * Returns the static model of the specified AR class.
+	 *
+	 * @param string $className active record class name.
+	 *
+	 * @return Service the static model class
+	 */
+	public static function model( $className = __CLASS__ )
+	{
+		return parent::model( $className );
+	}
 
-    /**
-     * @return array validation rules for model attributes.
-     */
-    public function rules()
-    {
-        // NOTE: you should only define rules for those attributes that
-        // will receive user inputs.
-        $rules =  array(
-            array('name, api_name, type', 'required'),
-            array('name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
-            array('is_active', 'numerical', 'integerOnly' => true),
-            array('name, api_name, type, storage_type, native_format', 'length', 'max' => 64),
-            array('storage_name', 'length', 'max' => 80),
-            array('base_url', 'length', 'max' => 255),
-            array('description, credentials, parameters, headers', 'safe'),
-            // The following rule is used by search().
-            // Please remove those attributes that should not be searched.
-            array('id, name, api_name, is_active, type, storage_name, storage_type, created_date, last_modified_date, created_by_id, last_modified_by_id', 'safe', 'on' => 'search'),
-        );
+	/**
+	 * @return string the associated database table name
+	 */
+	public function tableName()
+	{
+		return static::tableNamePrefix() . 'service';
+	}
 
-        return array_merge(parent::rules(), $rules);
-    }
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		$_rules = array(
+			array( 'name, api_name, type', 'required' ),
+			array( 'name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
+			array( 'is_active', 'numerical', 'integerOnly' => true ),
+			array( 'name, api_name, type, storage_type, native_format', 'length', 'max' => 64 ),
+			array( 'storage_name', 'length', 'max' => 80 ),
+			array( 'base_url', 'length', 'max' => 255 ),
+			array( 'description, credentials, parameters, headers', 'safe' ),
+			array(
+				'id, name, api_name, is_active, type, storage_name, storage_type',
+				'safe',
+				'on' => 'search'
+			),
+		);
 
-    /**
-     * @return array relational rules.
-     */
-    public function relations()
-    {
-        // NOTE: you may need to adjust the relation name and the related
-        // class name for the relations automatically generated below.
-        $relations = array(
-            'role_service_accesses' => array(self::HAS_MANY, 'RoleServiceAccess', 'service_id'),
-            'apps' => array(self::MANY_MANY, 'App', 'df_sys_app_to_service(app_id, service_id)'),
-            'roles' => array(self::MANY_MANY, 'Role', 'df_sys_role_service_access(service_id, role_id)'),
-        );
+		return array_merge( parent::rules(), $_rules );
+	}
 
-        return array_merge(parent::relations(), $relations);
-    }
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		$_relations = array(
+			'role_service_accesses' => array( self::HAS_MANY, 'RoleServiceAccess', 'service_id' ),
+			'apps'                  => array( self::MANY_MANY, 'App', 'df_sys_app_to_service(app_id, service_id)' ),
+			'roles'                 => array( self::MANY_MANY, 'Role', 'df_sys_role_service_access(service_id, role_id)' ),
+		);
 
-    /**
-     * @return array customized attribute labels (name=>label)
-     */
-    public function attributeLabels()
-    {
-        $labels = array(
-            'name' => 'Name',
-            'api_name' => 'API Name',
-            'description' => 'Description',
-            'is_active' => 'Is Active',
-            'type' => 'Type',
-            'storage_name' => 'Storage Name',
-            'storage_type' => 'Storage Type',
-            'credentials' => 'Credentials',
-            'native_format' => 'Native Format',
-            'base_url' => 'Base Url',
-            'parameters' => 'Parameters',
-            'headers' => 'Headers',
-        );
+		return array_merge( parent::relations(), $_relations );
+	}
 
-        return array_merge(parent::attributeLabels(), $labels);
-    }
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels()
+	{
+		$_labels = array(
+			'name'          => 'Name',
+			'api_name'      => 'API Name',
+			'description'   => 'Description',
+			'is_active'     => 'Is Active',
+			'type'          => 'Type',
+			'storage_name'  => 'Storage Name',
+			'storage_type'  => 'Storage Type',
+			'credentials'   => 'Credentials',
+			'native_format' => 'Native Format',
+			'base_url'      => 'Base Url',
+			'parameters'    => 'Parameters',
+			'headers'       => 'Headers',
+		);
 
-    /**
-     * Retrieves a list of models based on the current search/filter conditions.
-     * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
-     */
-    public function search()
-    {
-        // Warning: Please modify the following code to remove attributes that
-        // should not be searched.
+		return array_merge( parent::attributeLabels(), $_labels );
+	}
 
-        $criteria = new CDbCriteria;
+	/**
+	 * Retrieves a list of models based on the current search/filter conditions.
+	 *
+	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
+	 */
+	public function search()
+	{
+		$_criteria = new CDbCriteria();
 
-        $criteria->compare('id', $this->id);
-        $criteria->compare('name', $this->name, true);
-        $criteria->compare('api_name', $this->api_name, true);
-        $criteria->compare('is_active', $this->is_active);
-        $criteria->compare('type', $this->type, true);
-        $criteria->compare('storage_name', $this->storage_name, true);
-        $criteria->compare('storage_type', $this->storage_type, true);
-        $criteria->compare('created_date', $this->created_date, true);
-        $criteria->compare('last_modified_date', $this->last_modified_date, true);
-        $criteria->compare('created_by_id', $this->created_by_id);
-        $criteria->compare('last_modified_by_id', $this->last_modified_by_id);
+		$_criteria->compare( 'id', $this->id );
+		$_criteria->compare( 'name', $this->name, true );
+		$_criteria->compare( 'api_name', $this->api_name, true );
+		$_criteria->compare( 'is_active', $this->is_active );
+		$_criteria->compare( 'type', $this->type, true );
+		$_criteria->compare( 'storage_name', $this->storage_name, true );
+		$_criteria->compare( 'storage_type', $this->storage_type, true );
+		$_criteria->compare( 'created_date', $this->created_date, true );
+		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
+		$_criteria->compare( 'created_by_id', $this->created_by_id );
+		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-        return new CActiveDataProvider($this, array(
-                                                   'criteria' => $criteria,
-                                              ));
-    }
+		return new CActiveDataProvider(
+			$this,
+			array(
+				 'criteria' => $_criteria,
+			)
+		);
+	}
 
-    /**
-     * {@InheritDoc}
-     */
-    public function setAttributes($values, $safeOnly=true)
-    {
-        if (!$this->isNewRecord) {
-            if (isset($values['type'])) {
-                if (0 !== strcasecmp($this->type, $values['type'])) {
-                    throw new Exception('Service type currently can not be modified after creation.', ErrorCodes::BAD_REQUEST);
-                }
-            }
-            if ((0 === strcasecmp('app', $this->api_name)) || (0 === strcasecmp('lib', $this->api_name))) {
-                if (isset($values['api_name'])) {
-                    if (0 !== strcasecmp($this->api_name, $values['api_name'])) {
-                        throw new Exception('Service API name currently can not be modified after creation.', ErrorCodes::BAD_REQUEST);
-                    }
-                }
-            }
-        }
+	/**
+	 * {@InheritDoc}
+	 */
+	public function setAttributes( $values, $safeOnly = true )
+	{
+		if ( !$this->isNewRecord )
+		{
+			if ( isset( $values['type'] ) && 0 !== strcasecmp( $this->type, $values['type'] ) )
+			{
+				throw new StorageException( 'Service type currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
+			}
 
-        parent::setAttributes($values, $safeOnly);
-    }
+			if ( ( 0 === strcasecmp( 'app', $this->api_name ) || 0 === strcasecmp( 'lib', $this->api_name ) ) && isset( $values['api_name'] ) )
+			{
+				if ( 0 !== strcasecmp( $this->api_name, $values['api_name'] ) )
+				{
+					throw new StorageException( 'Service API name currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
+				}
+			}
+		}
 
-    /**
-     * @param array $values
-     * @param       $id
-     */
-    public function setRelated($values, $id)
-    {
-        if (isset($values['apps'])) {
-            $this->assignManyToOneByMap($id, 'app', 'app_to_service', 'service_id', 'app_id', $values['apps']);
-        }
-        if (isset($values['roles'])) {
-            $this->assignManyToOneByMap($id, 'role', 'role_service_access', 'service_id', 'role_id', $values['roles']);
-        }
-    }
+		parent::setAttributes( $values, $safeOnly );
+	}
 
-    /**
-     * {@InheritDoc}
-     */
-    protected function beforeValidate()
-    {
-        // correct data type
-        if (is_bool($this->is_active))
-            $this->is_active = intval($this->is_active);
+	/**
+	 * @param array $values
+	 * @param       $id
+	 */
+	public function setRelated( $values, $id )
+	{
+		if ( isset( $values['apps'] ) )
+		{
+			$this->assignManyToOneByMap( $id, 'app', 'app_to_service', 'service_id', 'app_id', $values['apps'] );
+		}
 
-        return parent::beforeValidate();
-    }
+		if ( isset( $values['roles'] ) )
+		{
+			$this->assignManyToOneByMap( $id, 'role', 'role_service_access', 'service_id', 'role_id', $values['roles'] );
+		}
+	}
 
-    /**
-     * {@InheritDoc}
-     */
-    protected function beforeSave()
-    {
+	/**
+	 * {@InheritDoc}
+	 */
+	protected function beforeValidate()
+	{
+		// correct data type
+		$this->is_active = intval( $this->is_active );
 
-        if (is_array($this->credentials)) {
-            $this->credentials = json_encode($this->credentials);
-        }
-        if (is_array($this->parameters)) {
-            $this->parameters = json_encode($this->parameters);
-        }
-        if (is_array($this->headers)) {
-            $this->headers = json_encode($this->headers);
-        }
+		return parent::beforeValidate();
+	}
 
-        return parent::beforeSave();
-    }
+	/**
+	 * {@InheritDoc}
+	 */
+	protected function beforeSave()
+	{
+		if ( is_array( $this->credentials ) )
+		{
+			$this->credentials = json_encode( $this->credentials );
+		}
 
-    /**
-     * {@InheritDoc}
-     */
-    protected function beforeDelete()
-    {
-        // add fake field for client
-        $this->is_system = false;
-        switch ($this->type) {
-        case 'Local SQL DB':
-        case 'Local SQL DB Schema':
-            throw new Exception('System generated database services can not be deleted.', ErrorCodes::BAD_REQUEST);
-            break;
-        case 'Local Email Service':
-            throw new Exception('System generated email service can not be deleted.', ErrorCodes::BAD_REQUEST);
-            break;
-        case 'Local File Storage':
-            switch ($this->api_name) {
-            case 'app':
-            case 'lib':
-                throw new Exception('System generated storage service can not be deleted.', ErrorCodes::BAD_REQUEST);
-                break;
-            }
-            break;
-        }
+		if ( is_array( $this->parameters ) )
+		{
+			$this->parameters = json_encode( $this->parameters );
+		}
 
-        return parent::beforeDelete();
-    }
+		if ( is_array( $this->headers ) )
+		{
+			$this->headers = json_encode( $this->headers );
+		}
 
-    /**
-     * {@InheritDoc}
-     */
-    public function afterFind()
-    {
-        // correct data type
-        $this->is_active = intval($this->is_active);
-        // add fake field for client
-        $this->is_system = false;
-        switch ($this->type) {
-        case 'Local SQL DB':
-        case 'Local SQL DB Schema':
-        case 'Local Email Service':
-            $this->is_system = true;
-            break;
-        case 'Local File Storage':
-            switch ($this->api_name) {
-            case 'app':
-            case 'lib':
-                $this->is_system = true;
-                break;
-            }
-            break;
-        }
-        if (isset($this->credentials)) {
-            $this->credentials = json_decode($this->credentials, true);
-        }
-        if (isset($this->parameters)) {
-            $this->parameters = json_decode($this->parameters, true);
-        }
-        else {
-            $this->parameters = array();
-        }
-        if (isset($this->headers)) {
-            $this->headers = json_decode($this->headers, true);
-        }
-        else {
-            $this->headers = array();
-        }
+		return parent::beforeSave();
+	}
 
-        parent::afterFind();
-    }
+	/**
+	 * {@InheritDoc}
+	 */
+	protected function beforeDelete()
+	{
+		//	Add fake field for client
+		$this->_systemService = false;
 
-    /**
-     * @param string $requested
-     * @return array
-     */
-    public function getRetrievableAttributes($requested)
-    {
-        if (empty($requested)) {
-            // primary keys only
-            return array('id');
-        }
-        elseif ('*' == $requested) {
-            return array('id','name','api_name','description','is_active','type','is_system',
-                         'storage_name','storage_type','credentials','native_format',
-                         'base_url','parameters','headers',
-                         'created_date','created_by_id','last_modified_date','last_modified_by_id');
-        }
-        else {
-            // remove any undesired retrievable fields
-//            $requested = Utilities::removeOneFromList($requested, 'password', ',');
-            return explode(',', $requested);
-        }
-    }
+		switch ( $this->type )
+		{
+			case 'Local SQL DB':
+			case 'Local SQL DB Schema':
+				throw new StorageException( 'System generated database services can not be deleted.', ErrorCodes::BAD_REQUEST );
+
+			case 'Local Email Service':
+				throw new StorageException( 'System generated email service can not be deleted.', ErrorCodes::BAD_REQUEST );
+
+			case 'Local File Storage':
+				switch ( $this->api_name )
+				{
+					case 'app':
+					case 'lib':
+						throw new StorageException( 'System generated storage service can not be deleted.', ErrorCodes::BAD_REQUEST );
+				}
+				break;
+		}
+
+		return parent::beforeDelete();
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
+	public function afterFind()
+	{
+		//	Correct data type
+		$this->is_active = intval( $this->is_active );
+
+		//	Add fake field for client
+		$this->_systemService = false;
+
+		switch ( $this->type )
+		{
+			case 'Local SQL DB':
+			case 'Local SQL DB Schema':
+			case 'Local Email Service':
+				$this->_systemService = true;
+				break;
+
+			case 'Local File Storage':
+				switch ( $this->api_name )
+				{
+					case 'app':
+					case 'lib':
+						$this->_systemService = true;
+						break;
+				}
+				break;
+		}
+
+		if ( isset( $this->credentials ) )
+		{
+			$this->credentials = json_decode( $this->credentials, true );
+		}
+
+		if ( isset( $this->parameters ) )
+		{
+			$this->parameters = json_decode( $this->parameters, true );
+		}
+		else
+		{
+			$this->parameters = array();
+		}
+
+		if ( isset( $this->headers ) )
+		{
+			$this->headers = json_decode( $this->headers, true );
+		}
+		else
+		{
+			$this->headers = array();
+		}
+
+		parent::afterFind();
+	}
+
+	/**
+	 * @param string $requested
+	 *
+	 * @return array
+	 */
+	public function getRetrievableAttributes( $requested )
+	{
+		return parent::getRetrievableAttributes(
+			$requested,
+			array(
+				 'name',
+				 'api_name',
+				 'description',
+				 'is_active',
+				 'type',
+				 'is_system',
+				 'storage_name',
+				 'storage_type',
+				 'credentials',
+				 'native_format',
+				 'base_url',
+				 'parameters',
+				 'headers',
+			)
+		);
+	}
 
 }

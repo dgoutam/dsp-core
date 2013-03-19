@@ -15,101 +15,126 @@
  *
  * @author Pavle Predic <https://github.com/pavlepredic>
  */
-class DynamicActiveRecord extends CActiveRecord
+class DynamicActiveRecord extends BaseDspModel
 {
-    /**
-     * Name of the DB table
-     * @var string
-     */
-    protected $_tableName;
+	//*************************************************************************
+	//* Members
+	//*************************************************************************
 
-    /**
-     * Table meta-data.
-     * Must re-declare, as parent::_md is private
-     * @var CActiveRecordMetaData
-     */
-    protected $_md;
+	/**
+	 * @var string Name of the DB table
+	 */
+	protected $_tableName;
 
-    /**
-     * Constructor
-     * @param string $scenario (defaults to 'insert')
-     * @param string $tableName
-     */
-    public function __construct($scenario = 'insert', $tableName = null)
-    {
-        $this->_tableName = $tableName;
-        parent::__construct($scenario);
-    }
+	/**
+	 * @var CActiveRecordMetaData Table meta-data. Must re-declare, as parent::_md is private
+	 */
+	protected $_md;
 
-    /**
-     * Overrides default instantiation logic.
-     * Instantiates AR class by providing table name
-     * @see CActiveRecord::instantiate()
-     * @param array $attributes
-     * @return DynamicActiveRecord
-     */
-    protected function instantiate($attributes)
-    {
-        return new DynamicActiveRecord(null, $this->tableName());
-    }
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
 
-    /**
-     * Returns meta-data for this DB table
-     * @see CActiveRecord::getMetaData()
-     * @return CActiveRecordMetaData
-     */
-    public function getMetaData()
-    {
-        if ($this->_md !== null)
-            return $this->_md;
-        else
-            return $this->_md = new CActiveRecordMetaData($this);
-    }
+	/**
+	 * Constructor
+	 *
+	 * @param string $scenario (defaults to 'insert')
+	 * @param string $tableName
+	 */
+	public function __construct( $scenario = 'insert', $tableName = null )
+	{
+		$this->_tableName = $tableName;
+		parent::__construct( $scenario );
+	}
 
-    /**
-     * Returns table name
-     * @see CActiveRecord::tableName()
-     * @return string
-     */
-    public function tableName()
-    {
-        if (!$this->_tableName)
-            $this->_tableName = parent::tableName();
-        return $this->_tableName;
-    }
+	/**
+	 * Overrides default instantiation logic.
+	 * Instantiates AR class by providing table name
+	 *
+	 * @see CActiveRecord::instantiate()
+	 *
+	 * @param array $attributes
+	 *
+	 * @return DynamicActiveRecord
+	 */
+	protected function instantiate( $attributes )
+	{
+		return new self( null, $this->tableName() );
+	}
 
-    /**
-     * Returns an instance of DynamicActiveRecord for the provided DB table.
-     * This is a helper method that may be used instead of constructor.
-     * @param string $tableName
-     * @param string $scenario
-     * @return DynamicActiveRecord
-     */
-    public static function forTable($tableName, $scenario = 'insert')
-    {
-        return new DynamicActiveRecord($scenario, $tableName);
-    }
+	/**
+	 * Returns meta-data for this DB table
+	 *
+	 * @see CActiveRecord::getMetaData()
+	 * @return CActiveRecordMetaData
+	 */
+	public function getMetaData()
+	{
+		if ( $this->_md !== null )
+		{
+			return $this->_md;
+		}
 
-    /**
-     * @param array $attributes
-     * @param bool $callAfterFind
-     * @return CActiveRecord|null
-     */
-    public function populateRecord($attributes, $callAfterFind = true)
-    {
-        if ($this->useTypeCasting() and is_array($attributes))
-            foreach ($attributes as $name => &$value)
-                if ($this->hasAttribute($name) and $value !== null)
-                    settype($value, $this->getMetaData()->columns[$name]->type);
+		return $this->_md = new CActiveRecordMetaData( $this );
+	}
 
-        return parent::populateRecord($attributes, $callAfterFind);
-    }
+	/**
+	 * Returns table name
+	 *
+	 * @see CActiveRecord::tableName()
+	 * @return string
+	 */
+	public function tableName()
+	{
+		if ( !$this->_tableName )
+		{
+			$this->_tableName = parent::tableName();
+		}
 
-    /**
-     * @return bool
-     */
-    public function useTypeCasting()
-    {
-        return false;
-    }
+		return $this->_tableName;
+	}
+
+	/**
+	 * Returns an instance of DynamicActiveRecord for the provided DB table.
+	 * This is a helper method that may be used instead of constructor.
+	 *
+	 * @param string $tableName
+	 * @param string $scenario
+	 *
+	 * @return DynamicActiveRecord
+	 */
+	public static function forTable( $tableName, $scenario = 'insert' )
+	{
+		return new DynamicActiveRecord( $scenario, $tableName );
+	}
+
+	/**
+	 * @param array $attributes
+	 * @param bool  $callAfterFind
+	 *
+	 * @return CActiveRecord|null
+	 */
+	public function populateRecord( $attributes, $callAfterFind = true )
+	{
+		if ( $this->useTypeCasting() and is_array( $attributes ) )
+		{
+			foreach ( $attributes as $name => &$value )
+			{
+				if ( $this->hasAttribute( $name ) and $value !== null )
+				{
+					settype( $value, $this->getMetaData()->columns[$name]->type );
+				}
+			}
+		}
+
+		return parent::populateRecord( $attributes, $callAfterFind );
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function useTypeCasting()
+	{
+		return false;
+	}
 }
