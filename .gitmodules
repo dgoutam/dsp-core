@@ -7,3 +7,6 @@
 [submodule "lib/azure-sdk-for-php"]
 	path = lib/azure-sdk-for-php
 	url = https://github.com/dreamfactorysoftware/azure-sdk-for-php.git
+[submodule "lib/web-core"]
+	path = lib/web-core
+	url = git@bitbucket.org:dreamfactory/web-core.git
