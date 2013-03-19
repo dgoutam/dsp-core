@@ -38,7 +38,7 @@ fi
 
 _result=`id -u ${LOCAL_USER} >/dev/null 2>&1`
 
-if [ $? != 0 ] ; then
+if [ 0 -ne $? ] ; then
 	echo "  * ERROR: The user \"dfadmin\" does not exist, and no user specified."
 	echo "  * usage: $0 [username]"
 	echo ""
