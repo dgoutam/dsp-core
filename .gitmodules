@@ -1,9 +1,6 @@
 [submodule "apps/app-admin"]
 	path = apps/app-admin
 	url = git@bitbucket.org:dreamfactory/app-admin.git
-[submodule "apps/web-core"]
-	path = apps/web-core
-	url = git@bitbucket.org:dreamfactory/web-core.git
 [submodule "apps/app-launchpad"]
 	path = apps/app-launchpad
 	url = git@bitbucket.org:dreamfactory/app-launchpad.git
