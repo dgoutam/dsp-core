@@ -1,6 +1,12 @@
 {
 	"name":              "dreamfactory/web-csp",
-	"description":       "DreamFactory Cloud Services Platform Web Site",
+	"description":       "DreamFactory Services Platform(tm)",
+	"keywords":          [
+		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library"
+	],
+	"homepage":          "https://github.com/dreamfactorysoftware/dsp-core",
+	"type":              "library",
+	"license":           "MIT",
 	"authors":           [
 		{
 			"name":  "Lee Hicks",
@@ -24,6 +30,10 @@
 		"dreamfactory/yii":                  "dev-master",
 		"amazonwebservices/aws-sdk-for-php": "1.5.*",
 		"kisma/kisma":                       "dev-master"
+	},
+	"scripts":           {
+		"post-update-cmd":  "sudo /bin/bash ../scripts/post-deploy.sh",
+		"post-install-cmd": "sudo /bin/bash ../scripts/post-deploy.sh"
 	},
 	"minimum-stability": "dev"
 }
