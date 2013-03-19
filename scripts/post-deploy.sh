@@ -65,8 +65,8 @@ APPS_DIR=${BASE_PATH}/apps
 LIB_DIR=${BASE_PATH}/lib
 
 # Make sure these are there...
-[ ! -d "${APPS_DIR}" ] && mkdir "${APPS_DIR}" >/dev/null 2>&1
-[ ! -d "${LOG_DIR}" ] && mkdir "${LOG_DIR}" >/dev/null 2>&1
+[ ! -d "${APPS_DIR}" ] && mkdir "${APPS_DIR}" >/dev/null 2>&1 && echo "  * Created ${APPS_DIR}"
+[ ! -d "${LIB_DIR}" ] && mkdir "${LIB_DIR}" >/dev/null 2>&1  && echo "  * Created ${LIB_DIR}"
 
 ##
 ## Check directory permissions...
@@ -119,33 +119,36 @@ fi
 ##
 
 if [ ! -d "${LOG_DIR}" ] ; then
-	mkdir "${LOG_DIR}" >/dev/null 2>&1
+	mkdir "${LOG_DIR}" >/dev/null 2>&1 && echo "  * Created ${LOG_DIR}"
 fi
 
 if [ ! -d "${STORAGE_DIR}" ] ; then
-	mkdir "${STORAGE_DIR}" >/dev/null 2>&1
+	mkdir "${STORAGE_DIR}" >/dev/null 2>&1 && echo "  * Created ${STORAGE_DIR}"
 fi
 
 if [ ! -d "${ASSETS_DIR}" ] ; then
-	mkdir "${ASSETS_DIR}" >/dev/null 2>&1
-fi
-
-if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -s "../../apps/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
-fi
-
-if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -s "../../apps/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
+	mkdir "${ASSETS_DIR}" >/dev/null 2>&1 && echo "  * Created ${ASSETS_DIR}"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
     ln -s "../../lib/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
+    echo "  * Web Core linked"
+fi
+
+if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
+    ln -s "../../apps/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
+    echo "  * Launchpad linked"
+fi
+
+if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
+    ln -s "../../apps/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
+    echo "  * Admin linked"
 fi
 
 ##
 ## make owned by user
 ##
-chown -R ${LOCAL_USER}:${WEB_USER} *
+chown -R ${LOCAL_USER}:${WEB_USER} * .git*
 
 ##
 ## Restart non-essential services
