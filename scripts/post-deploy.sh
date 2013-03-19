@@ -60,6 +60,12 @@ VENDOR_DIR=${BASE_PATH}/vendor
 WEB_DIR=${BASE_PATH}/web
 PUBLIC_DIR=${WEB_DIR}/public
 ASSETS_DIR=${PUBLIC_DIR}/assets
+APPS_DIR=${BASE_PATH}/apps
+LIB_DIR=${BASE_PATH}/lib
+
+# Make sure these are there...
+[ ! -d "${APPS_DIR}" ] && mkdir "${APPS_DIR}" >/dev/null 2>&1
+[ ! -d "${LOG_DIR}" ] && mkdir "${LOG_DIR}" >/dev/null 2>&1
 
 ##
 ## Check directory permissions...
@@ -125,15 +131,15 @@ if [ ! -d "${ASSETS_DIR}" ] ; then
 fi
 
 if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -s "${VENDOR_DIR}/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
+    ln -s "${APPS_DIR}/dreamfactory/app-launchpad/" "${PUBLIC_DIR}/launchpad" >/dev/null 2>&1
 fi
 
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -s "${VENDOR_DIR}/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
+    ln -s "${APPS_DIR}/dreamfactory/app-admin/" "${PUBLIC_DIR}/admin" >/dev/null 2>&1
 fi
 
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
-    ln -s "${VENDOR_DIR}/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
+    ln -s "${APPS_DIR}/dreamfactory/web-core/" "${PUBLIC_DIR}/web-core" >/dev/null 2>&1
 fi
 
 ##
