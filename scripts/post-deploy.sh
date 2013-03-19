@@ -1,6 +1,6 @@
 #!/bin/bash
-# DSP Post-deployment tasks
-# Copyright (C) 2012 DreamFactory Software, Inc. All Rights Reserved
+# DSP Post-deployment/update tasks
+# Copyright (C) 2012-2013 DreamFactory Software, Inc. All Rights Reserved
 #
 
 if [ ${UID} != 0 ] ; then
@@ -12,6 +12,7 @@ fi
 ##	Initial settings
 ##
 
+VERSION=1.0.5
 INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
@@ -20,7 +21,7 @@ WEB_USER=www-data
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
 LOCAL_USER=dfadmin
 
-echo "DreamFactory Services Platform(tm) System Updater v1.0.0"
+echo "DreamFactory Services Platform(tm) System Updater v${VERSION}"
 
 ## No wrapper, unset
 if [ ! -f ${WRAPPER} ] ; then
@@ -71,7 +72,7 @@ LIB_DIR=${BASE_PATH}/lib
 ## Check directory permissions...
 ##
 echo "Spot-checking file system"
-chown -R ${LOCAL_USER}:${WEB_USER} *
+chown -R ${LOCAL_USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
 find ./ -name '*.sh' -exec chmod 0770 {} \;
