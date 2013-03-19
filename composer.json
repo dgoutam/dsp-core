@@ -9,19 +9,23 @@
 	"authors":           [
 		{
 			"name":  "Lee Hicks",
-			"email": "leehicks@dreamfactory.com"
+			"email": "leehicks@dreamfactory.com",
+			"role":  "Lead Developer, server-side"
 		},
 		{
 			"name":  "Jason Sykes",
-			"email": "jasonsykes@dreamfactory.com"
+			"email": "jasonsykes@dreamfactory.com",
+			"role":  "Lead Developer, client-side"
 		},
 		{
 			"name":  "Todd Appleton",
-			"email": "toddappleton@dreamfactory.com"
+			"email": "toddappleton@dreamfactory.com",
+			"role":  "Lead Developer and QA, client-side"
 		},
 		{
 			"name":  "Jerry Ablan",
-			"email": "jerryablan@dreamfactory.com"
+			"email": "jerryablan@dreamfactory.com",
+			"role":  "Black Ops"
 		}
 	],
 	"require":           {
