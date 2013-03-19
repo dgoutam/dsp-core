@@ -1,6 +1,7 @@
-.idea/
+.idea/workspace.xml
+.idea/tasks.xml
 vendor
-!web/public/vendor
+!web/public/vendor/bootstrap
 log
 storage
 composer.lock
