@@ -1,0 +1,12 @@
+[submodule "lib/dreamfactory/web-core"]
+	path = lib/dreamfactory/web-core
+	url = git@bitbucket.org:dreamfactory/web-core.git
+[submodule "apps/dreamfactory/app-launchpad"]
+	path = apps/dreamfactory/app-launchpad
+	url = git@bitbucket.org:dreamfactory/app-launchpad.git
+[submodule "apps/dreamfactory/app-admin"]
+	path = apps/dreamfactory/app-admin
+	url = git@bitbucket.org:dreamfactory/app-admin.git
+[submodule "lib/dreamfactory/azure-sdk-for-php"]
+	path = lib/dreamfactory/azure-sdk-for-php
+	url = https://github.com/dreamfactorysoftware/azure-sdk-for-php.git
