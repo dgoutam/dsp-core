@@ -55,7 +55,6 @@ else
 fi
 
 echo "  * Local user is: ${LOCAL_USER}"
-echo ""
 
 ##
 ## Shutdown non-essential services
@@ -102,9 +101,9 @@ rm -rf ~${LOCAL_USER}/.composer/
 ## Do a pull for good measure
 ##
 echo "  * Checking for DSP updates"
-git reset --hard --quiet HEAD
 git stash --quiet
-git pull --quiet --force --squash origin master
+git reset --hard --quiet HEAD
+git pull --quiet --force origin master
 git submodule --quiet update --init
 
 ##
