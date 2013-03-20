@@ -99,7 +99,7 @@ class SystemManager implements iRestHandler
             // refresh the schema that we just added
             Yii::app()->db->schema->refresh();
             $tables = Yii::app()->db->schema->getTableNames();
-            if (empty($tables)) {
+            if (empty($tables) || ('df_sys_cache' == Utilities::getArrayValue(0, $tables))) {
                 return 'init required';
             }
 
