@@ -9,6 +9,5 @@ KEY_NAME=id_deploy
 if [ -f /var/www/.fabric_hosted ] ; then
 	KEY_PATH=/etc/fabric/keys
 fi
-echo "wrapper"
-/usr/bin/env ssh -2 -C -o "StrictHostKeyChecking=no" -i "${KEY_PATH}/${KEY_NAME}" $1 $2
 
+/usr/bin/env ssh -2 -C -o "StrictHostKeyChecking=no" -i "${KEY_PATH}/${KEY_NAME}" $1 $2

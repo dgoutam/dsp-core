@@ -20,9 +20,12 @@ PHP=/usr/bin/php
 VERBOSE=1
 WEB_USER=www-data
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
-LOCAL_USER=dfadmin
+LOCAL_USER=${1:dfadmin}
+SSH_KEY=${2:id_deploy}
+B1=`tput bold`
+B2=`tput sgr0`
 
-echo "DreamFactory Services Platform(tm) System Updater v${VERSION}"
+echo "${B1}DreamFactory Services Platform(tm)${B2} System Updater v${VERSION}"
 
 ## No wrapper, unset
 if [ ! -f ${WRAPPER} ] ; then
@@ -31,28 +34,31 @@ else
 	WRAPPER="GIT_SSH=${WRAPPER}"
 fi
 
-## User supplied local user name?
-if [ "x" != "x$1" ] ; then
-	LOCAL_USER=$1
+## User supplied deploy key?
+if [ ! -z "${2}" ] ; then
+	ssh-add ${SSH_KEY}
+	echo "  * Using ${B1}\"${SSH_KEY}\"${B2} for deployment"
 fi
 
+echo "  * Install user is set to ${B1}\"${LOCAL_USER}\"${B2}"
+
 if [ "`id -u ${LOCAL_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
-	echo "  * ERROR: The user \"dfadmin\" does not exist, and no user specified."
-	echo "  * usage: $0 [username]"
+	echo "  * ${B1}ERROR${B2}: The user \"dfadmin\" does not exist, and no user specified."
+	echo "  * usage: $0 [username] [ssh key]"
 	echo ""
 	exit 1
 fi
 
 if [ "Darwin" = "${SYSTEM_TYPE}" ] ; then
 	WEB_USER=_www
-	echo "  * Standard OSX installation"
+	echo "  * OS X installation"
 elif [ "Linux" != "${SYSTEM_TYPE}" ] ; then
-	echo "  * Non-standard/unsupported installation. Your mileage may vary."
+	echo "  * Windows/other installation. ${B1}Not fully tested so your mileage may vary${B2}."
 else
-	echo "  * Standard Linux installation"
+	echo "  * Linux installation"
 fi
 
-echo "  * Local user is: ${LOCAL_USER}"
+if [ ! -z "${2}" ] ; then
 
 ##
 ## Shutdown non-essential services
@@ -101,8 +107,9 @@ rm -rf ~${LOCAL_USER}/.composer/
 echo "  * Checking for DSP updates"
 git reset --hard --quiet HEAD
 git stash --quiet
-git pull --quiet --recurse-submodules --force origin master
-git submodule update --init
+git pull --quiet --recurse --force origin master && git submodule update -- init && git submodule status
+#git pull --quiet --recurse-submodules --force origin master
+#git submodule update --init
 
 ##
 ## Check if composer is installed
