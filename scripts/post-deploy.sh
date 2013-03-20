@@ -2,6 +2,14 @@
 # DSP Post-deployment/update tasks
 # Copyright (C) 2012-2013 DreamFactory Software, Inc. All Rights Reserved
 #
+# CHANGELOG:
+#
+# v1.0.7
+#   Added auto-checking of OS type and set web user accordingly
+#   Streamlined status output
+#   Hopefully! fixed submodule shit so it pulls head properly upon update
+#	Added better support for checking if a user name was passed in as an argument
+#
 
 if [ ${UID} != 0 ] ; then
 	echo "This script must be run as root"
@@ -12,7 +20,7 @@ fi
 ##	Initial settings
 ##
 
-VERSION=1.0.6
+VERSION=1.0.7
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
@@ -20,8 +28,8 @@ PHP=/usr/bin/php
 VERBOSE=1
 WEB_USER=www-data
 WRAPPER=/var/www/launchpad/git-ssh-wrapper
-LOCAL_USER=${1:dfadmin}
-SSH_KEY=${2:id_deploy}
+LOCAL_USER=${1:-dfadmin}
+SSH_KEY=${2:-id_deploy}
 B1=`tput bold`
 B2=`tput sgr0`
 
@@ -57,8 +65,6 @@ elif [ "Linux" != "${SYSTEM_TYPE}" ] ; then
 else
 	echo "  * Linux installation"
 fi
-
-if [ ! -z "${2}" ] ; then
 
 ##
 ## Shutdown non-essential services
@@ -171,7 +177,7 @@ if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
 fi
 
 # Back
-cd -
+cd - >/dev/null 2>&1
 
 ##
 ## make owned by user
