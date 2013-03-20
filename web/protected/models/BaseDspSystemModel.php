@@ -88,34 +88,16 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		);
 	}
 
-//	/**
-//	 * {@InheritDoc}
-//	 */
-//	public function afterFind()
-//	{
-//		parent::afterFind();
-//
-//		//	Correct data type
-//		$this->id = intval( $this->id );
-//
-//		if ( isset( $this->created_by_id ) )
-//		{
-//			$this->created_by_id = intval( $this->created_by_id );
-//		}
-//		if ( isset( $this->last_modified_by_id ) )
-//		{
-//			$this->last_modified_by_id = intval( $this->last_modified_by_id );
-//		}
-//	}
-
 	/**
-	 * @param string $requested
+	 * @param string $requested Comma-delimited list of requested fields
 	 *
 	 * @param array  $columns Additional columns to add
 	 *
+	 * @param array  $hidden  Columns to hide from requested
+	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested, $columns = array() )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		if ( empty( $requested ) )
 		{
@@ -137,14 +119,19 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			);
 		}
 
-		//	Remove the bogusness
+		//	Remove the hidden fields
 		$_columns = explode( ',', $requested );
-
-		foreach ( $_columns as $_index => $_column )
+		if (!empty($hidden))
 		{
-			if ( false !== stripos( $_column, 'password' ) || false !== stripos( $_column, 'security' ) || false !== stripos( $_column, 'confirm_' ) )
+			foreach ( $_columns as $_index => $_column )
 			{
-				unset( $_columns[$_index] );
+				foreach ( $hidden as $_hide )
+				{
+					if ( 0 === strcasecmp($_column, $_hide) )
+					{
+						unset( $_columns[$_index] );
+					}
+				}
 			}
 		}
 
@@ -192,63 +179,47 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		{
 			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-
-		$_entity = SystemManager::getNewResource( $many_table );
-		$_entityPk = $_entity->getTableSchema()->primaryKey;
-		$_entityTable = $_entity->tableName();
-		$_lmodId = SessionManager::getCurrentUserId();
-
-		//	Unassign existing rows
 		try
 		{
-			$_sql
-				= <<<SQL
-UPDATE {$_entityTable} SET
-	{$many_field} = null,
-	last_modified_date = now(),
-	last_modified_by_id = :last_modified_by_id
-WHERE
-	{$many_field} = :old_id
-SQL;
-
-			if ( false === static::execute( $_sql, array( ':old_id' => $one_id, ':last_modified_by_id' => $_lmodId ) ) )
+			$manyModel = SystemManager::getResourceModel( $many_table );
+			$manyObj = SystemManager::getNewResource( $many_table );
+			$pkField = $manyObj->tableSchema->primaryKey;
+			$oldMany = $manyModel->findAll( $many_field . ' = :oid', array( ':oid' => $one_id ) );
+			foreach ( $oldMany as $old )
 			{
-				throw new StorageException( 'Error clearing relationship assignments.' );
+				$oldId = $old->primaryKey;
+				$found = false;
+				foreach ( $many_records as $key => $item )
+				{
+					$id = Utilities::getArrayValue( $pkField, $item, '' );
+					if ( $id == $oldId )
+					{
+						// found it, keeping it, so remove it from the list, as this becomes adds
+						unset( $many_records[$key] );
+						$found = true;
+						continue;
+					}
+				}
+				if ( !$found )
+				{
+					$old->setAttribute( $many_field, null );
+					$old->save();
+					continue;
+				}
 			}
-
-			if ( empty( $many_records ) )
+			if ( !empty( $many_records ) )
 			{
-				return;
-			}
-		}
-		catch ( Exception $_ex )
-		{
-			throw new StorageException( 'Exception clearing relationship assignments: ' . $_ex->getMessage() );
-		}
-
-		//	Assign requested rows
-		$_idList = array();
-
-		foreach ( $many_records as $_row )
-		{
-			$_idList[] = $_row->{$_entityPk};
-		}
-
-		try
-		{
-			$_sql
-				= <<<SQL
-UPDATE {$_entityTable} SET
-	{$many_field} = :new_id
-	last_modified_date = now(),
-	last_modified_by_id = :last_modified_by_id
-WHERE
-	{$_entityPk} in (:id_list)
-SQL;
-
-			if ( false === static::execute( $_sql, array( ':new_id' => $one_id, ':last_modified_by_id' => $_lmodId, ':id_list' => implode( ',', $_idList ) ) ) )
-			{
-				throw new StorageException( 'Error setting relationship assignments.' );
+				// add what is leftover
+				foreach ( $many_records as $item )
+				{
+					$id = Utilities::getArrayValue( $pkField, $item, '' );
+					$assigned = $manyModel->findByPk( $id );
+					if ( $assigned )
+					{
+						$assigned->setAttribute( $many_field, $one_id );
+						$assigned->save();
+					}
+				}
 			}
 		}
 		catch ( Exception $ex )

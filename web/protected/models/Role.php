@@ -240,7 +240,7 @@ class Role extends BaseDspSystemModel
 					$access2 = $accesses[$key2];
 					$serviceId2 = Utilities::getArrayValue( 'service_id', $access2, null );
 					$component2 = Utilities::getArrayValue( 'component', $access2, '' );
-					if ( ( $serviceId === $serviceId2 ) && ( $component === $component2 ) )
+					if ( ( $serviceId == $serviceId2 ) && ( $component == $component2 ) )
 					{
 						throw new Exception( "Duplicated service and component combination '$serviceId $component' in role service access.", ErrorCodes::BAD_REQUEST );
 					}
@@ -254,8 +254,8 @@ class Role extends BaseDspSystemModel
 				{
 					$newServiceId = Utilities::getArrayValue( 'service_id', $access, null );
 					$newComponent = Utilities::getArrayValue( 'component', $access, '' );
-					if ( ( $newServiceId === $oldAccess->service_id ) &&
-						 ( $newComponent === $oldAccess->component )
+					if ( ( $newServiceId == $oldAccess->service_id ) &&
+						 ( $newComponent == $oldAccess->component )
 					)
 					{
 						// found it, make sure nothing needs to be updated

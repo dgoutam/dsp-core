@@ -94,12 +94,12 @@ class ApplicationSvc extends CommonFileSvc
     /**
      * @param string $app_root
      * @param bool $include_files
-     * @param bool $include_schema
+     * @param bool $include_services
      * @param bool $include_data
      * @throws Exception
      * @return void
      */
-    public function exportAppAsPackage($app_root, $include_files=true, $include_schema=true, $include_data=false)
+    public function exportAppAsPackage($app_root, $include_files=true, $include_services=false, $include_data=false)
     {
         if (empty($app_root)) {
             throw new Exception("Application root name can not be empty.");
@@ -128,7 +128,7 @@ class ApplicationSvc extends CommonFileSvc
                 throw new Exception("Can not include description file in package file.");
             }
             $tables = Utilities::getArrayValue('schemas', $record, '');
-            if (!empty($tables) && $include_schema) {
+            if (!empty($tables) && $include_services) {
                 // add related/required database table schemas
                 // todo assuming which service this came from
                 $db = ServiceHandler::getInstance()->getServiceObject('schema');
@@ -342,9 +342,9 @@ class ApplicationSvc extends CommonFileSvc
             $asPkg = Utilities::boolval(Utilities::getArrayValue('pkg', $_REQUEST, false));
             if ($asPkg) {
                 $includeFiles = Utilities::boolval(Utilities::getArrayValue('include_files', $_REQUEST, true));
-                $includeSchema = Utilities::boolval(Utilities::getArrayValue('include_schema', $_REQUEST, true));
-                $includeData = ($includeSchema) ? Utilities::boolval(Utilities::getArrayValue('include_data', $_REQUEST, false)) : false;
-                $this->exportAppAsPackage($app_root, $includeFiles, $includeSchema, $includeData);
+                $includeServices = Utilities::boolval(Utilities::getArrayValue('include_services', $_REQUEST, true));
+                $includeData = ($includeServices) ? Utilities::boolval(Utilities::getArrayValue('include_data', $_REQUEST, false)) : false;
+                $this->exportAppAsPackage($app_root, $includeFiles, $includeServices, $includeData);
                 Yii::app()->end();
             }
         }

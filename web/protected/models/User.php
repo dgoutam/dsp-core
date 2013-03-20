@@ -285,12 +285,6 @@ class User extends BaseDspSystemModel
 		//	Correct data type
 		$this->is_active = intval( $this->is_active );
 		$this->is_sys_admin = intval( $this->is_sys_admin );
-        if (isset($this->role_id)) {
-            $this->role_id = intval($this->role_id);
-        }
-        if (isset($this->default_app_id)) {
-            $this->default_app_id = intval($this->default_app_id);
-        }
 	}
 
 	/**
@@ -313,8 +307,14 @@ class User extends BaseDspSystemModel
 				 'is_sys_admin',
 				 'role_id',
 				 'default_app_id',
+			),
+			// hide these from the general public
+			array(
+				'password',
+				'confirm_code',
+				'security_question',
+				'security_answer'
 			)
-
 		);
 	}
 

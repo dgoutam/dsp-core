@@ -30,6 +30,7 @@ use Kisma\Core\Exceptions\StorageException;
  * @property string  $api_name
  * @property string  $description
  * @property integer $is_active
+ * @property integer $is_system
  * @property string  $type
  * @property string  $storage_name
  * @property string  $storage_type
@@ -48,7 +49,7 @@ class Service extends BaseDspSystemModel
 	/**
 	 * @var bool Is this service a system service that should not be deleted or modified in certain ways, i.e. api name and type.
 	 */
-	protected $_systemService = false;
+    protected $is_system = false;
 
 	//*************************************************************************
 	//* Methods
@@ -121,6 +122,7 @@ class Service extends BaseDspSystemModel
 			'api_name'      => 'API Name',
 			'description'   => 'Description',
 			'is_active'     => 'Is Active',
+			'is_system'     => 'Is System',
 			'type'          => 'Type',
 			'storage_name'  => 'Storage Name',
 			'storage_type'  => 'Storage Type',
@@ -243,9 +245,6 @@ class Service extends BaseDspSystemModel
 	 */
 	protected function beforeDelete()
 	{
-		//	Add fake field for client
-		$this->_systemService = false;
-
 		switch ( $this->type )
 		{
 			case 'Local SQL DB':
@@ -277,14 +276,14 @@ class Service extends BaseDspSystemModel
 		$this->is_active = intval( $this->is_active );
 
 		//	Add fake field for client
-		$this->_systemService = false;
+		$this->is_system = false;
 
 		switch ( $this->type )
 		{
 			case 'Local SQL DB':
 			case 'Local SQL DB Schema':
 			case 'Local Email Service':
-				$this->_systemService = true;
+				$this->is_system = true;
 				break;
 
 			case 'Local File Storage':
@@ -292,7 +291,7 @@ class Service extends BaseDspSystemModel
 				{
 					case 'app':
 					case 'lib':
-						$this->_systemService = true;
+						$this->is_system = true;
 						break;
 				}
 				break;

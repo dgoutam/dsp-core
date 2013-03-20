@@ -1,7 +1,8 @@
 <?php
+
 /**
- * RoleServiceAccess.php
- * The system access model for the DSP
+ * AppServiceRelation.php
+ * The system application to service relationship model for the DSP
  *
  * This file is part of the DreamFactory Service Platform (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -24,24 +25,23 @@
  * Columns:
  *
  * @property integer $id
- * @property integer $role_id
+ * @property integer $app_id
  * @property integer $service_id
  * @property string  $component
- * @property string  $access
  *
  * Relations:
  *
- * @property Role    $role
+ * @property App     $app
  * @property Service $service
  */
-class RoleServiceAccess extends BaseDspSystemModel
+class AppServiceRelation extends BaseDspSystemModel
 {
 	/**
 	 * Returns the static model of the specified AR class.
 	 *
 	 * @param string $className active record class name.
 	 *
-	 * @return RoleServiceAccess the static model class
+	 * @return AppServiceRelation the static model class
 	 */
 	public static function model( $className = __CLASS__ )
 	{
@@ -53,7 +53,7 @@ class RoleServiceAccess extends BaseDspSystemModel
 	 */
 	public function tableName()
 	{
-		return static::tableNamePrefix() . 'role_service_access';
+		return 'df_sys_app_to_service';
 	}
 
 	/**
@@ -62,11 +62,12 @@ class RoleServiceAccess extends BaseDspSystemModel
 	public function rules()
 	{
 		return array(
-			array( 'role_id', 'required' ),
-			array( 'role_id, service_id', 'numerical', 'integerOnly' => true ),
-			array( 'access', 'length', 'max' => 64 ),
+			array( 'app_id', 'required' ),
+			array( 'app_id, service_id', 'numerical', 'integerOnly' => true ),
 			array( 'component', 'length', 'max' => 128 ),
-			array( 'id, role_id, service_id, component, access', 'safe', 'on' => 'search' ),
+			// The following rule is used by search().
+			// Please remove those attributes that should not be searched.
+			array( 'id, app_id, service_id, component', 'safe', 'on' => 'search' ),
 		);
 	}
 
@@ -76,7 +77,7 @@ class RoleServiceAccess extends BaseDspSystemModel
 	public function relations()
 	{
 		return array(
-			'role'    => array( self::BELONGS_TO, 'Role', 'role_id' ),
+			'app'     => array( self::BELONGS_TO, 'App', 'app_id' ),
 			'service' => array( self::BELONGS_TO, 'Service', 'service_id' ),
 		);
 	}
@@ -88,10 +89,9 @@ class RoleServiceAccess extends BaseDspSystemModel
 	{
 		return array(
 			'id'         => 'Id',
-			'role_id'    => 'Role',
+			'app_id'     => 'App',
 			'service_id' => 'Service',
 			'component'  => 'Component',
-			'access'     => 'Access',
 		);
 	}
 
@@ -102,19 +102,16 @@ class RoleServiceAccess extends BaseDspSystemModel
 	 */
 	public function search()
 	{
-		$_criteria = new CDbCriteria();
+		$criteria = new CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
-		$_criteria->compare( 'role_id', $this->role_id );
-		$_criteria->compare( 'service_id', $this->service_id );
-		$_criteria->compare( 'component', $this->component );
-		$_criteria->compare( 'access', $this->access );
+		$criteria->compare( 'id', $this->id );
+		$criteria->compare( 'app_id', $this->app_id );
+		$criteria->compare( 'service_id', $this->service_id );
+		$criteria->compare( 'component', $this->component );
 
 		return new CActiveDataProvider(
 			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
+			array( 'criteria' => $criteria, )
 		);
 	}
 
@@ -135,10 +132,9 @@ class RoleServiceAccess extends BaseDspSystemModel
 		{
 			return array(
 				'id',
-				'role_id',
+				'app_id',
 				'service_id',
-				'component',
-				'access'
+				'component'
 			);
 		}
 

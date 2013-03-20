@@ -1,5 +1,5 @@
 {
-    "version": "0.5.1",
+    "version": "0.5.2",
     "table": [
         {
             "name": "df_sys_config",
@@ -446,30 +446,7 @@
                     "allow_null": false
                 },
                 {
-                    "name": "schemas",
-                    "type": "text",
-                    "allow_null": true
-                },
-                {
-                    "name": "filter_by_device",
-                    "type": "boolean",
-                    "default": false,
-                    "allow_null": false
-                },
-                {
-                    "name": "filter_phone",
-                    "type": "boolean",
-                    "default": false,
-                    "allow_null": false
-                },
-                {
-                    "name": "filter_tablet",
-                    "type": "boolean",
-                    "default": false,
-                    "allow_null": false
-                },
-                {
-                    "name": "filter_desktop",
+                    "name": "requires_fullscreen",
                     "type": "boolean",
                     "default": false,
                     "allow_null": false
