@@ -29,7 +29,6 @@ VERBOSE=1
 WEB_USER=www-data
 BASE=`pwd`
 WRAPPER="${BASE}/git-ssh-wrapper"
-LOCAL_USER=`whoami`
 SSH_KEY=${1:-id_deploy}
 B1=`tput bold`
 B2=`tput sgr0`
@@ -49,9 +48,9 @@ if [ ! -z "${1}" ] ; then
 	echo "  * Using ${B1}\"${SSH_KEY}\"${B2} for deployment"
 fi
 
-echo "  * Install is ${B1}\"${LOCAL_USER}\"${B2}"
+echo "  * Install is ${B1}\"${USER}\"${B2}"
 
-#if [ "`id -u ${LOCAL_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
+#if [ "`id -u ${USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
 #	echo "  * ${B1}ERROR${B2}: The user \"dfadmin\" does not exist, and no user specified."
 #	echo "  * usage: $0 [username] [ssh key]"
 #	echo ""
@@ -90,7 +89,7 @@ VENDOR_DIR=${BASE_PATH}/vendor
 WEB_DIR=${BASE_PATH}/web
 PUBLIC_DIR=${WEB_DIR}/public
 ASSETS_DIR=${PUBLIC_DIR}/assets
-APPS_DIR=${BASE_PATH}/vendor
+APPS_DIR=${BASE_PATH}/apps
 LIB_DIR=${BASE_PATH}/lib
 
 # Make sure these are there...
@@ -101,11 +100,11 @@ LIB_DIR=${BASE_PATH}/lib
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${LOCAL_USER}:${WEB_USER} * .git*
+chown -R ${USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
 find ./ -name '*.sh' -exec chmod 0770 {} \;
-rm -rf ~${LOCAL_USER}/.composer/
+rm -rf ~${USER}/.composer/
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
@@ -184,7 +183,7 @@ cd - >/dev/null 2>&1
 ##
 ## make owned by user
 ##
-chown -R ${LOCAL_USER}:${WEB_USER} * .git*
+chown -R ${USER}:${WEB_USER} * .git*
 
 ##
 ## Restart non-essential services
