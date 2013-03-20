@@ -27,9 +27,9 @@ COMPOSER=composer.phar
 PHP=/usr/bin/php
 VERBOSE=1
 WEB_USER=www-data
-WRAPPER=/var/www/launchpad/git-ssh-wrapper
-LOCAL_USER=${1:-dfadmin}
-SSH_KEY=${2:-id_deploy}
+BASE=`pwd`
+WRAPPER="${BASE}/git-ssh-wrapper"
+SSH_KEY=${1:-id_deploy}
 B1=`tput bold`
 B2=`tput sgr0`
 
@@ -43,19 +43,19 @@ else
 fi
 
 ## User supplied deploy key?
-if [ ! -z "${2}" ] ; then
+if [ ! -z "${1}" ] ; then
 	ssh-add ${SSH_KEY}
 	echo "  * Using ${B1}\"${SSH_KEY}\"${B2} for deployment"
 fi
 
-echo "  * Install user is set to ${B1}\"${LOCAL_USER}\"${B2}"
+echo "  * Install user is ${B1}\"${SUDO_USER}\"${B2}"
 
-if [ "`id -u ${LOCAL_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
-	echo "  * ${B1}ERROR${B2}: The user \"dfadmin\" does not exist, and no user specified."
-	echo "  * usage: $0 [username] [ssh key]"
-	echo ""
-	exit 1
-fi
+#if [ "`id -u ${SUDO_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
+#	echo "  * ${B1}ERROR${B2}: The user \"dfadmin\" does not exist, and no user specified."
+#	echo "  * usage: $0 [username] [ssh key]"
+#	echo ""
+#	exit 1
+#fi
 
 if [ "Darwin" = "${SYSTEM_TYPE}" ] ; then
 	WEB_USER=_www
@@ -93,18 +93,18 @@ APPS_DIR=${BASE_PATH}/apps
 LIB_DIR=${BASE_PATH}/lib
 
 # Make sure these are there...
-[ ! -d "${APPS_DIR}" ] && mkdir "${APPS_DIR}" >/dev/null 2>&1 && echo "  * Created ${APPS_DIR}"
+[ -d "${APPS_DIR}" ] && rm -rf "${APPS_DIR}" >/dev/null 2>&1  && echo "  * Removed bogus apps directory \"${APPS_DIR}\""
 [ ! -d "${LIB_DIR}" ] && mkdir "${LIB_DIR}" >/dev/null 2>&1  && echo "  * Created ${LIB_DIR}"
 
 ##
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${LOCAL_USER}:${WEB_USER} * .git*
+chown -R ${SUDO_USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
 find ./ -name '*.sh' -exec chmod 0770 {} \;
-rm -rf ~${LOCAL_USER}/.composer/
+rm -rf ~${SUDO_USER}/.composer/
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
@@ -163,17 +163,17 @@ fi
 cd ${PUBLIC_DIR}
 
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
-    ln -sf ../../lib/dreamfactory/web-core/ web-core >/dev/null 2>&1
+    ln -sf ${VENDOR_DIR}/dreamfactory/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -sf ../../apps/dreamfactory/app-launchpad/ launchpad >/dev/null 2>&1
+    ln -sf ${VENDOR_DIR}/dreamfactory/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -sf ../../apps/dreamfactory/app-admin/ admin >/dev/null 2>&1
+    ln -sf ${VENDOR_DIR}/dreamfactory/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
 
@@ -183,7 +183,7 @@ cd - >/dev/null 2>&1
 ##
 ## make owned by user
 ##
-chown -R ${LOCAL_USER}:${WEB_USER} * .git*
+chown -R ${SUDO_USER}:${WEB_USER} * .git*
 
 ##
 ## Restart non-essential services

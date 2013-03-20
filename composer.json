@@ -30,9 +30,18 @@
 	],
 	"require":           {
 		"php":                               ">=5.3.8",
+		"kisma/kisma":                       "dev-master",
 		"dreamfactory/yii":                  "dev-master",
-		"amazonwebservices/aws-sdk-for-php": "1.5.*",
-		"kisma/kisma":                       "dev-master"
+		"dreamfactory/app-admin":            "dev-master",
+		"dreamfactory/app-launchpad":        "dev-master",
+		"dreamfactory/web-core":             "dev-master",
+		"amazonwebservices/aws-sdk-for-php": "1.5.*"
 	},
-	"minimum-stability": "dev"
+	"minimum-stability": "dev",
+	"autoload":          {
+		"psr-0": {
+			"WindowsAzure\\": "../web/lib/microsoft/azure-sdk-for-php"
+		}
+	}
+
 }
