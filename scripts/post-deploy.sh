@@ -36,9 +36,7 @@ if [ "x" != "x$1" ] ; then
 	LOCAL_USER=$1
 fi
 
-_result=`id -u ${LOCAL_USER} >/dev/null 2>&1`
-
-if [ 0 -ne $? ] ; then
+if [ "`id -u ${LOCAL_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
 	echo "  * ERROR: The user \"dfadmin\" does not exist, and no user specified."
 	echo "  * usage: $0 [username]"
 	echo ""
@@ -101,9 +99,9 @@ rm -rf ~${LOCAL_USER}/.composer/
 ## Do a pull for good measure
 ##
 echo "  * Checking for DSP updates"
-git stash --quiet
 git reset --hard --quiet HEAD
-git pull --quiet --force origin master
+git stash --quiet
+git pull --quiet --recurse-submodules --force origin master
 git submodule update --init
 
 ##
