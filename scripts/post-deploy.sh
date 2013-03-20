@@ -89,8 +89,8 @@ VENDOR_DIR=${BASE_PATH}/vendor
 WEB_DIR=${BASE_PATH}/web
 PUBLIC_DIR=${WEB_DIR}/public
 ASSETS_DIR=${PUBLIC_DIR}/assets
-APPS_DIR=${BASE_PATH}/apps
-LIB_DIR=${BASE_PATH}/lib
+APPS_DIR=${BASE_PATH}/vendor
+LIB_DIR=${BASE_PATH}/vendor
 
 # Make sure these are there...
 [ ! -d "${APPS_DIR}" ] && mkdir "${APPS_DIR}" >/dev/null 2>&1 && echo "  * Created ${APPS_DIR}"
@@ -163,17 +163,17 @@ fi
 cd ${PUBLIC_DIR}
 
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
-    ln -sf ../../lib/dreamfactory/web-core/ web-core >/dev/null 2>&1
+    ln -sf ../../vendor/dreamfactory/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -sf ../../apps/dreamfactory/app-launchpad/ launchpad >/dev/null 2>&1
+    ln -sf ../../vendor/dreamfactory/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -sf ../../apps/dreamfactory/app-admin/ admin >/dev/null 2>&1
+    ln -sf ../../vendor/dreamfactory/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
 
