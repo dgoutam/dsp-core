@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-#
 # Deploy SSH Wrapper
-# App:
-#
-KEY_PATH=/var/www/launchpad/
+
+KEY_PATH=`pwd`
 KEY_NAME=id_deploy
 
 if [ -f /var/www/.fabric_hosted ] ; then
-	KEY_PATH=/etc/fabric/keys
+    if [ -f "/etc/fabric/keys/${KEY_NAME}" ] ; then
+    	KEY_PATH=/etc/fabric/keys
+    fi
 fi
 
 /usr/bin/env ssh -2 -C -o "StrictHostKeyChecking=no" -i "${KEY_PATH}/${KEY_NAME}" $1 $2
