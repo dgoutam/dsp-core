@@ -48,9 +48,9 @@ if [ ! -z "${1}" ] ; then
 	echo "  * Using ${B1}\"${SSH_KEY}\"${B2} for deployment"
 fi
 
-echo "  * Install is ${B1}\"${USER}\"${B2}"
+echo "  * Install user is ${B1}\"${SUDO_USER}\"${B2}"
 
-#if [ "`id -u ${USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
+#if [ "`id -u ${SUDO_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
 #	echo "  * ${B1}ERROR${B2}: The user \"dfadmin\" does not exist, and no user specified."
 #	echo "  * usage: $0 [username] [ssh key]"
 #	echo ""
@@ -100,11 +100,11 @@ LIB_DIR=${BASE_PATH}/lib
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${USER}:${WEB_USER} * .git*
+chown -R ${SUDO_USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
 find ./ -name '*.sh' -exec chmod 0770 {} \;
-rm -rf ~${USER}/.composer/
+rm -rf ~${SUDO_USER}/.composer/
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
@@ -183,7 +183,7 @@ cd - >/dev/null 2>&1
 ##
 ## make owned by user
 ##
-chown -R ${USER}:${WEB_USER} * .git*
+chown -R ${SUDO_USER}:${WEB_USER} * .git*
 
 ##
 ## Restart non-essential services
