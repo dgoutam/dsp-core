@@ -105,11 +105,9 @@ rm -rf ~${LOCAL_USER}/.composer/
 ## Do a pull for good measure
 ##
 echo "  * Checking for DSP updates"
-git reset --hard --quiet HEAD
-git stash --quiet
-git pull --quiet --recurse --force origin master && git submodule update -- init && git submodule status
-#git pull --quiet --recurse-submodules --force origin master
-#git submodule update --init
+git reset --hard --quiet HEAD && git stash --quiet
+git pull --quiet --recurse-submodules --force origin master
+git submodule --quiet foreach git pull --quiet --recurse-submodules origin master
 
 ##
 ## Check if composer is installed
