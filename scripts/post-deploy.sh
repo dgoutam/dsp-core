@@ -4,6 +4,10 @@
 #
 # CHANGELOG:
 #
+# v1.1.0
+#	Added -v verbose mode option
+#	Removed lingering git junk
+#
 # v1.0.8
 #   Installation location aware now
 #  	Shared directory aware as well
@@ -15,59 +19,58 @@
 #	Added better support for checking if a user name was passed in as an argument
 #
 
-if [ ${UID} != 0 ] ; then
-	echo "This script must be run as root"
-	exit 1
-fi
+#if [ ${UID} != 0 ] ; then
+#	echo "This script must be run as root"
+#	exit 1
+#fi
 
 ##
 ##	Initial settings
 ##
 
-if [ "-v" == "${1}" ] ; then
-	VERBOSE="--verbose"
-	QUIET=
-else
-	VERBOSE=
-	QUIET="--quiet"
-fi
-
-VERSION=1.0.8
+VERSION=1.1.0
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
 WEB_USER=www-data
 BASE=`pwd`
-WRAPPER="${BASE}/git-ssh-wrapper"
-SSH_KEY=${1:-id_deploy}
 B1=`tput bold`
 B2=`tput sgr0`
 FABRIC=0
 FABRIC_MARKER=/var/www/.fabric_hosted
-TAG=" ${B1}Local Install Mode${B2}"
+TAG="${B1}Mode: Local Install${B2}"
 
 if [ -f "${FABRIC_MARKER}" ] ; then
 	FABRIC=1
-	TAG=" ${B1}Fabric Install Mode${B2}"
+	TAG="${B1}Mode: Fabrin Install${B2}"
 fi
 
 echo "${B1}DreamFactory Services Platform(tm)${B2} System Updater [${TAG} v${VERSION}]"
 
-## No wrapper, unset
-if [ ! -f ${WRAPPER} ] ; then
-	WRAPPER=
+if [ "-v" == "${1}" ] ; then
+	VERBOSE="--verbose"
+	QUIET=
+	echo "  * Verbose mode enabled"
 else
-	WRAPPER="GIT_SSH=${WRAPPER}"
+	VERBOSE=
+	QUIET="--quiet"
 fi
 
-## User supplied deploy key?
-if [ ! -z "${1}" ] ; then
-	ssh-add ${SSH_KEY}
-	echo "  * Using ${B1}\"${SSH_KEY}\"${B2} for deployment"
-fi
+### No wrapper, unset
+#if [ ! -f ${WRAPPER} ] ; then
+#	WRAPPER=
+#else
+#	WRAPPER="GIT_SSH=${WRAPPER}"
+#fi
 
-echo "  * Install user is ${B1}\"${SUDO_USER}\"${B2}"
+### User supplied deploy key?
+#if [ ! -z "${1}" ] ; then
+#	ssh-add ${SSH_KEY}
+#	echo "  * Using ${B1}\"${SSH_KEY}\"${B2} for deployment"
+#fi
+
+echo "  * Install user is ${B1}\"${USER}\"${B2}"
 
 if [ "Darwin" = "${SYSTEM_TYPE}" ] ; then
 	WEB_USER=_www
@@ -120,11 +123,12 @@ fi
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${SUDO_USER}:${WEB_USER} * .git*
+chown -R ${USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
 find ./ -name '*.sh' -exec chmod 0770 {} \;
-rm -rf ~${SUDO_USER}/.composer/
+rm -rf ~${USER}/.composer/
+chmod +x ${BASE_PATH}/scripts/*.sh
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
@@ -194,7 +198,7 @@ cd - >/dev/null 2>&1
 ##
 ## make owned by user
 ##
-chown -R ${SUDO_USER}:${WEB_USER} * .git*
+chown -R ${USER}:${WEB_USER} * .git*
 
 ##
 ## Restart non-essential services
