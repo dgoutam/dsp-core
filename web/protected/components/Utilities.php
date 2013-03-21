@@ -704,45 +704,33 @@ class Utilities
 	 */
 	public static function sendResponse()
 	{
-		$accepted = ( !empty( $_SERVER["HTTP_ACCEPT_ENCODING"] ) ) ? $_SERVER["HTTP_ACCEPT_ENCODING"] : '';
-
-		if ( headers_sent() )
-		{
-			$encoding = false;
-		}
-		elseif ( strpos( $accepted, 'gzip' ) !== false )
-		{
-			$encoding = true;
-		}
-		else
-		{
-			$encoding = false;
-		}
+//		$accepted = ( !empty( $_SERVER["HTTP_ACCEPT_ENCODING"] ) ) ? $_SERVER["HTTP_ACCEPT_ENCODING"] : '';
+//
+//		if ( headers_sent() )
+//		{
+//			$encoding = false;
+//		}
+//		elseif ( strpos( $accepted, 'gzip' ) !== false )
+//		{
+//			$encoding = true;
+//		}
+//		else
+//		{
+//			$encoding = false;
+//		}
 
 		//	IE 9 requires hoop for session cookies in iframes
-		header( 'P3P:CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"' );
+		if ( !headers_sent() )
+		{
+			header( 'P3P:CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"' );
+		}
 
-		if ( $encoding )
-		{
-			$contents = ob_get_clean();
-			$_temp1 = strlen( $contents );
-			if ( $_temp1 < 2048 )
-			{ // no need to waste resources in compressing very little data
-				print( $contents );
-			}
-			else
-			{
-				header( 'Content-Encoding: gzip' );
-				$contents = gzencode( $contents, 9 );
-				print( $contents );
-			}
-		}
-		else
-		{
-			ob_end_flush();
-		}
+		ob_end_flush();
 	}
 
+	/**
+	 * @param $data
+	 */
 	public static function sendXmlResponse( $data )
 	{
 		/* gzip handling output if necessary */
@@ -754,6 +742,9 @@ class Utilities
 		self::sendResponse();
 	}
 
+	/**
+	 * @param $data
+	 */
 	public static function sendJsonResponse( $data )
 	{
 		/* gzip handling output if necessary */
@@ -765,6 +756,10 @@ class Utilities
 		self::sendResponse();
 	}
 
+	/**
+	 * @return array|mixed|null
+	 * @throws Exception
+	 */
 	public static function getPostDataAsArray()
 	{
 		$postdata = static::getPostData();
