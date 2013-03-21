@@ -4,6 +4,10 @@
 #
 # CHANGELOG:
 #
+# v1.0.8
+#   Installation location aware now
+#  	Shared directory aware as well
+#
 # v1.0.7
 #   Added auto-checking of OS type and set web user accordingly
 #   Streamlined status output
@@ -20,7 +24,7 @@ fi
 ##	Initial settings
 ##
 
-VERSION=1.0.7
+VERSION=1.0.8
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
@@ -32,8 +36,16 @@ WRAPPER="${BASE}/git-ssh-wrapper"
 SSH_KEY=${1:-id_deploy}
 B1=`tput bold`
 B2=`tput sgr0`
+FABRIC=0
+FABRIC_MARKER=/var/www/.fabric_hosted
+TAG=" ${B1}Local Install Mode${B2}"
 
-echo "${B1}DreamFactory Services Platform(tm)${B2} System Updater v${VERSION}"
+if [ -f "${FABRIC_MARKER}" ] ; then
+	FABRIC=1
+	TAG=" ${B1}Fabric Install Mode${B2}"
+fi
+
+echo "${B1}DreamFactory Services Platform(tm)${B2} System Updater [${TAG} v${VERSION}]"
 
 ## No wrapper, unset
 if [ ! -f ${WRAPPER} ] ; then
@@ -49,13 +61,6 @@ if [ ! -z "${1}" ] ; then
 fi
 
 echo "  * Install user is ${B1}\"${SUDO_USER}\"${B2}"
-
-#if [ "`id -u ${SUDO_USER} >/dev/null 2>&1; echo $?`" != "0" ] ; then
-#	echo "  * ${B1}ERROR${B2}: The user \"dfadmin\" does not exist, and no user specified."
-#	echo "  * usage: $0 [username] [ssh key]"
-#	echo ""
-#	exit 1
-#fi
 
 if [ "Darwin" = "${SYSTEM_TYPE}" ] ; then
 	WEB_USER=_www
@@ -92,9 +97,17 @@ ASSETS_DIR=${PUBLIC_DIR}/assets
 APPS_DIR=${BASE_PATH}/apps
 LIB_DIR=${BASE_PATH}/lib
 
+# Determine share location
+if [ -f "${FABRIC_MARKER}" ] ; then
+	SHARE_DIR=/var/www/dsp-share
+else
+	SHARE_DIR=${BASE_PATH}/shared
+fi
+
 # Make sure these are there...
 [ -d "${APPS_DIR}" ] && rm -rf "${APPS_DIR}" >/dev/null 2>&1  && echo "  * Removed bogus apps directory \"${APPS_DIR}\""
 [ ! -d "${LIB_DIR}" ] && mkdir "${LIB_DIR}" >/dev/null 2>&1  && echo "  * Created ${LIB_DIR}"
+[ ! -d "${SHARE_DIR}" ] && mkdir "${SHARE_DIR}" >/dev/null 2>&1  && echo "  * Created ${SHARE_DIR}"
 
 ##
 ## Check directory permissions...
@@ -112,9 +125,7 @@ rm -rf ~${SUDO_USER}/.composer/
 ##
 echo "  * Checking for DSP updates"
 git reset --hard --quiet HEAD && git stash --quiet
-git pull --quiet --recurse-submodules --force origin master
-git submodule --quiet update --init
-git submodule --quiet foreach git pull --quiet --recurse-submodules origin master
+git pull --quiet --force origin master
 
 ##
 ## Check if composer is installed
@@ -159,21 +170,21 @@ if [ ! -d "${ASSETS_DIR}" ] ; then
 	mkdir "${ASSETS_DIR}" >/dev/null 2>&1 && echo "  * Created ${ASSETS_DIR}"
 fi
 
-# Into public dir
+# Into public dir, link shared apps and junk
 cd ${PUBLIC_DIR}
 
 if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
-    ln -sf ${VENDOR_DIR}/dreamfactory/web-core/ web-core >/dev/null 2>&1
+    ln -sf ${SHARE_DIR}/dreamfactory/web/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -sf ${VENDOR_DIR}/dreamfactory/app-launchpad/ launchpad >/dev/null 2>&1
+    ln -sf ${SHARE_DIR}/dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
-    ln -sf ${VENDOR_DIR}/dreamfactory/app-admin/ admin >/dev/null 2>&1
+    ln -sf ${SHARE_DIR}/dreamfactory/app/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
 

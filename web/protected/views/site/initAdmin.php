@@ -16,7 +16,7 @@ Validate::register(
 				 'required'  => true,
 				 'minlength' => 5,
 			 ),
-			 'InitAdminForm[displayName]' => array(
+			 'InitAdminForm[displayName]'    => array(
 				 'required'  => true,
 				 'minlength' => 5,
 			 ),
@@ -32,13 +32,11 @@ Validate::register(
 		 ),
 	)
 );
-?>
-<h2 class="headline">Now Let's Get Your Mojo Working!</h2>
+?><h2 class="headline">Now Let's Get Your Mojo Working!</h2>
 
-<p>One last step... Your DreamFactory Services Platform(tm) needs a system administrator.</p>
-<p>This user is a separate account that exists only inside your DSP. It cannot be used elsewhere, like on the
-	<strong>DreamFactory.com</strong> site for instance.</p>
-<p>More administrative and regular users can be easily added using the DSP's built-in 'Admin' application.</p>
+<p>One last step... Your DreamFactory Services Platform(tm) needs a system administrator.</p><p>This user is a separate account that exists only
+	inside your DSP. It cannot be used elsewhere, like on the <strong>DreamFactory.com</strong> site for instance.</p><p>More administrative and
+	regular users can be easily added using the DSP's built-in 'Admin' application.</p>
 <div class="spacer"></div>
 
 <form id="init-form" method="POST">
@@ -46,29 +44,63 @@ Validate::register(
 	echo'<legend>Login Credentials</legend>';
 
 	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_username' ), 'User Name' ) . '<div class="controls">' .
-		Bootstrap::text( array( 'id' => 'InitAdminForm_username', 'name' => 'InitAdminForm[username]', 'class' => 'required' ) ) . '</div></div>';
+		Bootstrap::text( array(
+							  'id'    => 'InitAdminForm_username',
+							  'name'  => 'InitAdminForm[username]',
+							  'class' => 'required',
+							  'value' => $model->username
+						 ) ) . '</div></div>';
 
 	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_password' ), 'Password' ) . '<div class="controls">' .
-		Bootstrap::password( array( 'id' => 'InitAdminForm_password', 'name' => 'InitAdminForm[password]', 'class' => 'password required' ) ) .
+		Bootstrap::password( array(
+								  'id'    => 'InitAdminForm_password',
+								  'name'  => 'InitAdminForm[password]',
+								  'class' => 'password required',
+								  'value' => null
+							 ) ) .
 		'</div></div>';
 
-	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_passwordRepeat' ), 'Password Again' ) . '<div class="controls">' .
-		Bootstrap::password( array( 'id' => 'InitAdminForm_passwordRepeat', 'name' => 'InitAdminForm[passwordRepeat]', 'class' => 'password required' ) ) .
+	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_passwordRepeat' ),
+		'Password Again' ) . '<div class="controls">' .
+		Bootstrap::password( array(
+								  'id'    => 'InitAdminForm_passwordRepeat',
+								  'name'  => 'InitAdminForm[passwordRepeat]',
+								  'class' => 'password required',
+								  'value' => null
+							 ) ) .
 		'</div></div>';
 
 	echo'<legend>User Details</legend>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_email' ), 'Email Address' ) . '<div class="controls">' .
-		 Bootstrap::text( array( 'id' => 'InitAdminForm_email', 'name' => 'InitAdminForm[email]', 'class' => 'email required' ) ) . '</div></div>';
+		Bootstrap::text( array( 'id'  => 'InitAdminForm_email',
+							  'name'  => 'InitAdminForm[email]',
+							  'class' => 'email required',
+							  'value' => $model->email
+						 ) ) . '</div></div>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_firstName' ), 'First Name' ) . '<div class="controls">' .
-		 Bootstrap::text( array( 'id' => 'InitAdminForm_firstName', 'name' => 'InitAdminForm[firstName]', 'class' => 'required' ) ) . '</div></div>';
+		Bootstrap::text( array( 'id'  => 'InitAdminForm_firstName',
+							  'name'  => 'InitAdminForm[firstName]',
+							  'class' => 'required',
+							  'value' => $model->firstName
+						 ) ) . '</div></div>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_lastName' ), 'Last Name' ) . '<div class="controls">' .
-		 Bootstrap::text( array( 'id' => 'InitAdminForm_lastName', 'name' => 'InitAdminForm[lastName]', 'class' => 'required' ) ) . '</div></div>';
+		Bootstrap::text( array( 'id'  => 'InitAdminForm_lastName',
+							  'name'  => 'InitAdminForm[lastName]',
+							  'class' => 'required',
+							  'value' => $model->lastName
+						 ) ) . '</div></div>';
 
-	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_displayName' ), 'Display Name' ) . '<div class="controls">' .
-		 Bootstrap::text( array( 'id' => 'InitAdminForm_displayName', 'name' => 'InitAdminForm[displayName]', 'class' => 'required' ) ) . '</div></div>';
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_displayName' ),
+		'Display Name' ) . '<div class="controls">' .
+		Bootstrap::text( array(
+							  'id'    => 'InitAdminForm_displayName',
+							  'name'  => 'InitAdminForm[displayName]',
+							  'class' => 'required',
+							  'value' => $model->displayName,
+						 ) ) . '</div></div>';
 
 	?>
 
