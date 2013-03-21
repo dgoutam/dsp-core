@@ -121,13 +121,6 @@ rm -rf ~${SUDO_USER}/.composer/
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
-## Do a pull for good measure
-##
-echo "  * Checking for DSP updates"
-git reset --hard --quiet HEAD && git stash --quiet
-git pull --quiet --force origin master
-
-##
 ## Check if composer is installed
 ## If not, install. If it is, make sure it's current
 ##
