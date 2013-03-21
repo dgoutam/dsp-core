@@ -292,11 +292,11 @@ class User extends BaseDspSystemModel
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
+			array_merge(array(
 				 'display_name',
 				 'first_name',
 				 'last_name',
@@ -307,14 +307,14 @@ class User extends BaseDspSystemModel
 				 'is_sys_admin',
 				 'role_id',
 				 'default_app_id',
-			),
+			),$colimns),
 			// hide these from the general public
-			array(
+			array_merge(array(
 				'password',
 				'confirm_code',
 				'security_question',
 				'security_answer'
-			)
+			),$hidden)
 		);
 	}
 
