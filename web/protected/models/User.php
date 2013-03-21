@@ -243,16 +243,16 @@ class User extends BaseDspSystemModel
 		{
 			$this->is_sys_admin = intval( $this->is_sys_admin );
 		}
-        if ( is_string( $this->role_id ) )
-        {
-            $this->role_id = intval( $this->role_id );
-        }
-        if ( is_string( $this->default_app_id ) )
-        {
-            $this->default_app_id = intval( $this->default_app_id );
-        }
+		if ( is_string( $this->role_id ) )
+		{
+			$this->role_id = intval( $this->role_id );
+		}
+		if ( is_string( $this->default_app_id ) )
+		{
+			$this->default_app_id = intval( $this->default_app_id );
+		}
 
-        return parent::beforeValidate();
+		return parent::beforeValidate();
 	}
 
 	/** {@InheritDoc} */

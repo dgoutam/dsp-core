@@ -49,7 +49,7 @@ class Service extends BaseDspSystemModel
 	/**
 	 * @var bool Is this service a system service that should not be deleted or modified in certain ways, i.e. api name and type.
 	 */
-    protected $is_system = false;
+	protected $is_system = false;
 
 	//*************************************************************************
 	//* Methods

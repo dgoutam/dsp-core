@@ -91,9 +91,9 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	/**
 	 * @param string $requested Comma-delimited list of requested fields
 	 *
-	 * @param array  $columns Additional columns to add
+	 * @param array  $columns   Additional columns to add
 	 *
-	 * @param array  $hidden  Columns to hide from requested
+	 * @param array  $hidden    Columns to hide from requested
 	 *
 	 * @return array
 	 */
@@ -121,13 +121,14 @@ abstract class BaseDspSystemModel extends BaseDspModel
 
 		//	Remove the hidden fields
 		$_columns = explode( ',', $requested );
-		if (!empty($hidden))
+
+		if ( !empty( $hidden ) )
 		{
 			foreach ( $_columns as $_index => $_column )
 			{
 				foreach ( $hidden as $_hide )
 				{
-					if ( 0 === strcasecmp($_column, $_hide) )
+					if ( 0 === strcasecmp( $_column, $_hide ) )
 					{
 						unset( $_columns[$_index] );
 					}
@@ -312,5 +313,4 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			throw new Exception( "Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
-
 }
