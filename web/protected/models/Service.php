@@ -325,28 +325,34 @@ class Service extends BaseDspSystemModel
 
 	/**
 	 * @param string $requested
+	 * @param array  $columns
+	 * @param array  $hidden
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'api_name',
-				 'description',
-				 'is_active',
-				 'type',
-				 'is_system',
-				 'storage_name',
-				 'storage_type',
-				 'credentials',
-				 'native_format',
-				 'base_url',
-				 'parameters',
-				 'headers',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'api_name',
+					 'description',
+					 'is_active',
+					 'type',
+					 'is_system',
+					 'storage_name',
+					 'storage_type',
+					 'credentials',
+					 'native_format',
+					 'base_url',
+					 'parameters',
+					 'headers',
+				),
+				$columns
+			),
+			$hidden
 		);
 	}
 

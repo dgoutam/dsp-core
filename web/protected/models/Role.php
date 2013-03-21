@@ -196,19 +196,25 @@ class Role extends BaseDspSystemModel
 
 	/**
 	 * @param string $requested
+	 * @param array  $columns
+	 * @param array  $hidden
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'description',
-				 'is_active',
-				 'default_app_id',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'description',
+					 'is_active',
+					 'default_app_id',
+				),
+				$columns
+			),
+			$hidden
 		);
 	}
 

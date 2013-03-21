@@ -289,31 +289,39 @@ class User extends BaseDspSystemModel
 
 	/**
 	 * @param string $requested
+	 * @param array  $columns
+	 * @param array  $hidden
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'display_name',
-				 'first_name',
-				 'last_name',
-				 'username',
-				 'email',
-				 'phone',
-				 'is_active',
-				 'is_sys_admin',
-				 'role_id',
-				 'default_app_id',
+			array_merge(
+				array(
+					'display_name',
+					 'first_name',
+					 'last_name',
+					 'username',
+					 'email',
+					 'phone',
+					 'is_active',
+					 'is_sys_admin',
+					 'role_id',
+					 'default_app_id',
+				),
+				$columns
 			),
 			// hide these from the general public
-			array(
-				'password',
-				'confirm_code',
-				'security_question',
-				'security_answer'
+			array_merge(
+				array(
+					'password',
+					'confirm_code',
+					'security_question',
+					'security_answer'
+				),
+				$hidden
 			)
 		);
 	}

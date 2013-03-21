@@ -133,17 +133,23 @@ class AppGroup extends BaseDspSystemModel
 
 	/**
 	 * @param string $requested
+	 * @param array  $columns
+	 * @param array  $hidden
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'description',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'description',
+				),
+				$columns
+			),
+			$hidden
 		);
 	}
 

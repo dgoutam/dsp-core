@@ -255,24 +255,30 @@ class App extends BaseDspSystemModel
 
 	/**
 	 * @param string $requested
+	 * @param array  $columns
+	 * @param array  $hidden
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'api_name',
-				 'description',
-				 'is_active',
-				 'url',
-				 'is_url_external',
-				 'import_url',
-				 'requires_fullscreen',
-				 'requires_plugin',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'api_name',
+					 'description',
+					 'is_active',
+					 'url',
+					 'is_url_external',
+					 'import_url',
+					 'requires_fullscreen',
+					 'requires_plugin',
+				),
+				$columns
+			),
+			$hidden
 		);
 	}
 
