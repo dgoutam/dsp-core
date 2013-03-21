@@ -133,12 +133,20 @@ abstract class BaseSystemModel extends CActiveRecord
 		$this->last_modified_date = $dateTime;
 
 		// set user tracking
-		$userId = SessionManager::getCurrentUserId();
-		if ( $this->isNewRecord )
+		try
 		{
-			$this->created_by_id = $userId;
+			$userId = SessionManager::getCurrentUserId();
+
+			if ( $this->isNewRecord )
+			{
+				$this->created_by_id = $userId;
+			}
+
+			$this->last_modified_by_id = $userId;
 		}
-		$this->last_modified_by_id = $userId;
+		catch ( Exception $_ex )
+		{
+		}
 
 		return parent::beforeSave();
 	}
@@ -216,7 +224,6 @@ abstract class BaseSystemModel extends CActiveRecord
 			}
 		}
 		*/
-
 	}
 
 	// generic assignments
@@ -369,5 +376,4 @@ abstract class BaseSystemModel extends CActiveRecord
 			throw new Exception( "Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
-
 }

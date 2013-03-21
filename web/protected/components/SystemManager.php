@@ -8,6 +8,8 @@
  * @license    http://www.dreamfactory.com/license
  */
 
+use Kisma\Core\Utility\Log;
+
 class SystemManager implements iRestHandler
 {
 
@@ -225,12 +227,20 @@ class SystemManager implements iRestHandler
             }
 //            }
             // initialize config table if not already
-            if (!isset($config)) {
-                $config = new Config;
-            }
-            $config->db_version = $version;
-            $config->save();
-            // refresh the schema that we just added
+			try
+			{
+				if ( !isset( $config ) )
+				{
+					$config = new Config;
+				}
+				$config->db_version = $version;
+				$config->save();
+			}
+			catch ( CDbException $_ex )
+			{
+				Log::error( 'Exception saving database version: ' . $_ex->getMessage() );
+			}
+			// refresh the schema that we just added
             Yii::app()->db->schema->refresh();
         }
         catch (\Exception $ex) {

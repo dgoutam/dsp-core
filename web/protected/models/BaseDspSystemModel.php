@@ -49,8 +49,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 */
 	public function rules()
 	{
-		return array(
-			array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
+		return array( //array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
 		);
 	}
 
@@ -128,7 +127,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			{
 				foreach ( $hidden as $_hide )
 				{
-					if ( 0 === strcasecmp( $_column, $_hide ) )
+					if ( 0 == strcasecmp( $_column, $_hide ) )
 					{
 						unset( $_columns[$_index] );
 					}
@@ -312,5 +311,28 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		{
 			throw new Exception( "Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
+	}
+
+	/**
+	 * @return bool
+	 */
+	protected function beforeValidate()
+	{
+		try
+		{
+			$_userId = SessionManager::getCurrentUserId();
+
+			if ( $this->isNewRecord )
+			{
+				$this->created_by_id = $_userId;
+			}
+
+			$this->last_modified_by_id = $_userId;
+		}
+		catch ( Exception $_ex )
+		{
+		}
+
+		return parent::beforeValidate();
 	}
 }

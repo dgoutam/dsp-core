@@ -187,9 +187,9 @@ class BaseDspModel extends \CActiveRecord
 				 'base_model.timestamp_behavior'   => array(
 					 'class'                => 'application.behaviors.TimestampBehavior',
 					 'createdColumn'        => 'created_date',
-					 'createdByColumn'      => 'created_by_id',
+//					 'createdByColumn'      => 'created_by_id',
 					 'lastModifiedColumn'   => 'last_modified_date',
-					 'lastModifiedByColumn' => 'last_modified_by_id',
+//					 'lastModifiedByColumn' => 'last_modified_by_id',
 				 ),
 			)
 		);

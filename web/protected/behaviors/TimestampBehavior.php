@@ -71,6 +71,16 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 */
 	public function beforeValidate( $event )
 	{
+		try
+		{
+			$_id = SessionManager::getCurrentUserId();
+		}
+			//	No session yet, no user...
+		catch ( Exception $_ex )
+		{
+			$_id = null;
+		}
+
 		//	Handle created stamp
 		if ( $event->sender->isNewRecord )
 		{
@@ -87,7 +97,10 @@ class TimestampBehavior extends BaseDspModelBehavior
 			)
 			)
 			{
-				$this->owner->setAttribute( $this->_createdByColumn, SessionManager::getCurrentUserId() );
+				if ( !empty( $_id ) )
+				{
+					$this->owner->setAttribute( $this->_createdByColumn, $_id );
+				}
 			}
 		}
 
@@ -106,7 +119,10 @@ class TimestampBehavior extends BaseDspModelBehavior
 		)
 		)
 		{
-			$this->owner->setAttribute( $this->_lastModifiedByColumn, SessionManager::getCurrentUserId() );
+			if ( !empty( $_id ) )
+			{
+				$this->owner->setAttribute( $this->_lastModifiedByColumn, $_id );
+			}
 		}
 
 		parent::beforeValidate( $event );
@@ -128,7 +144,8 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 */
 	public function touch( $additionalColumns = null )
 	{
-		$_touchValue = ( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' );
+		$_touchValue =
+			( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' );
 		$_updateList = array();
 
 		//	Any other columns to touch?
@@ -273,5 +290,4 @@ class TimestampBehavior extends BaseDspModelBehavior
 	{
 		return $this->_dateTimeFormat;
 	}
-
 }

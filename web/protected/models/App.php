@@ -227,7 +227,7 @@ class App extends BaseDspSystemModel
 	{
 		$currApp = SessionManager::getCurrentAppName();
 		// make sure you don't delete yourself
-		if ( $currApp === $this->api_name )
+		if ( $currApp == $this->api_name )
 		{
 			throw new Exception( "The current application can not be deleted." );
 			//return false;

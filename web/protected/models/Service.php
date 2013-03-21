@@ -177,9 +177,9 @@ class Service extends BaseDspSystemModel
 				throw new StorageException( 'Service type currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
 			}
 
-			if ( ( 0 === strcasecmp( 'app', $this->api_name ) || 0 === strcasecmp( 'lib', $this->api_name ) ) && isset( $values['api_name'] ) )
+			if ( ( 0 == strcasecmp( 'app', $this->api_name ) || 0 == strcasecmp( 'lib', $this->api_name ) ) && isset( $values['api_name'] ) )
 			{
-				if ( 0 !== strcasecmp( $this->api_name, $values['api_name'] ) )
+				if ( 0 != strcasecmp( $this->api_name, $values['api_name'] ) )
 				{
 					throw new StorageException( 'Service API name currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
 				}

@@ -71,7 +71,6 @@
                     "type": "reference",
                     "ref_table": "df_sys_user",
                     "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
                     "ref_on_delete": "CASCADE",
                     "allow_null": true
                 },

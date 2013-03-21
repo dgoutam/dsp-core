@@ -146,12 +146,12 @@ class DbUtilities
             $temp = array();
             foreach ($names as $name) {
                 if (!empty($include_prefix)) {
-                    if (0 !== substr_compare($name, $include_prefix, 0, strlen($include_prefix), true)) {
+                    if (0 != substr_compare($name, $include_prefix, 0, strlen($include_prefix), true)) {
                         continue;
                     }
                 }
                 elseif (!empty($exclude_prefix)) {
-                    if (0 === substr_compare($name, $exclude_prefix, 0, strlen($exclude_prefix), true)) {
+                    if (0 == substr_compare($name, $exclude_prefix, 0, strlen($exclude_prefix), true)) {
                         continue;
                     }
                 }
@@ -166,7 +166,7 @@ class DbUtilities
                 $label = '';
                 $plural = '';
                 foreach ($labels as $each) {
-                    if (0 === strcasecmp($name, $each['table'])) {
+                    if (0 == strcasecmp($name, $each['table'])) {
                         $label = Utilities::getArrayValue('label', $each);
                         $plural = Utilities::getArrayValue('plural', $each);
                         break;
@@ -310,7 +310,7 @@ class DbUtilities
         $field = array();
         try {
             foreach ($table->columns as $column) {
-                if (0 !== strcasecmp($column->name, $field_name)) {
+                if (0 != strcasecmp($column->name, $field_name)) {
                     continue;
                 }
                 $query = $db->quoteColumnName('table') . ' = :tn and ' . $db->quoteColumnName('field') . ' = :fn';
@@ -399,7 +399,7 @@ class DbUtilities
             foreach ($fks as $key => $value) {
                 $refTable = Utilities::getArrayValue(0, $value, '');
                 $refField = Utilities::getArrayValue(1, $value, '');
-                if (0 === strcasecmp($refTable, $parent_table)) {
+                if (0 == strcasecmp($refTable, $parent_table)) {
                     // other, must be has_many or many_many
                     $relationName = Utilities::pluralize($name) .'_by_'. $key;
                     $related[] = array('name' => $relationName, 'type' => 'has_many',
@@ -408,9 +408,9 @@ class DbUtilities
                     foreach ($fks2 as $key2 => $value2) {
                         $tmpTable = Utilities::getArrayValue(0, $value2, '');
                         $tmpField = Utilities::getArrayValue(1, $value2, '');
-                        if ((0 !== strcasecmp($key, $key2)) && // not same key
-                            (0 !== strcasecmp($tmpTable, $name)) && // not self-referencing table
-                            (0 !== strcasecmp($parent_table, $name))) { // not same as parent, i.e. via reference back to self
+                        if ((0 != strcasecmp($key, $key2)) && // not same key
+                            (0 != strcasecmp($tmpTable, $name)) && // not self-referencing table
+                            (0 != strcasecmp($parent_table, $name))) { // not same as parent, i.e. via reference back to self
                             // not the same key
                             $relationName = Utilities::pluralize($tmpTable) .'_by_'. $name;
                             $related[] = array('name' => $relationName, 'type' => 'many_many',
@@ -419,7 +419,7 @@ class DbUtilities
                         }
                     }
                 }
-                if (0 === strcasecmp($name, $parent_table)) {
+                if (0 == strcasecmp($name, $parent_table)) {
                     // self, get belongs to relations
                     $relationName = $refTable .'_by_'. $key;
                     $related[] = array('name' => $relationName, 'type' => 'belongs_to',
@@ -455,13 +455,13 @@ class DbUtilities
             if ($column->isForeignKey) {
                 return 'reference';
             }
-            if ($column->size === 1) {
+            if ($column->size == 1) {
                 return 'boolean';
             }
             break;
         }
-        if ((0 === strcasecmp($column->dbType, 'datetimeoffset')) ||
-            (0 === strcasecmp($column->dbType, 'timestamp'))) {
+        if ((0 == strcasecmp($column->dbType, 'datetimeoffset')) ||
+            (0 == strcasecmp($column->dbType, 'timestamp'))) {
             $timestampOnUpdate = Utilities::getArrayValue('timestamp_on_update', $label_info, null);
             if (isset($timestampOnUpdate)) {
                 return (Utilities::boolval($timestampOnUpdate)) ? 'timestamp_on_update': 'timestamp_on_create';
@@ -618,7 +618,7 @@ class DbUtilities
                 money: money/currency type, will be converted into decimal(19,4) for MySQL.
             */
 
-            if ((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type))) {
+            if ((0 == strcasecmp('id', $type)) || (0 == strcasecmp('pk', $type))) {
                 return 'pk'; // simple primary key
             }
 
@@ -665,9 +665,9 @@ class DbUtilities
             case 'int':
             case 'bigint':
             case 'integer':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type) && ('mediumint' == $type)) ? 'int' : $type;
+                $definition = ((DbUtilities::DRV_SQLSRV == $driver_type) && ('mediumint' == $type)) ? 'int' : $type;
                 if (isset($length)) {
-                    if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length <= 255) && ($length > 0)) {
+                    if ((DbUtilities::DRV_MYSQL == $driver_type) && ($length <= 255) && ($length > 0)) {
                         $definition .= '('.intval($length).')'; // sets the viewable length
                     }
                 }
@@ -684,8 +684,8 @@ class DbUtilities
                 }
                 if (isset($length)) {
                     $length = intval($length);
-                    if (((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65)) ||
-                        ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 38))) {
+                    if (((DbUtilities::DRV_MYSQL == $driver_type) && ($length > 65)) ||
+                        ((DbUtilities::DRV_SQLSRV == $driver_type) && ($length > 38))) {
                         throw new Exception("Decimal precision '$length' is out of valid range.");
                     }
                     $scale = Utilities::getArrayValue('scale', $field, null);
@@ -693,8 +693,8 @@ class DbUtilities
                         $scale = Utilities::getArrayValue('decimals', $field, null); // alias
                     }
                     if (!empty($scale)) {
-                        if (((DbUtilities::DRV_MYSQL === $driver_type) && ($scale > 30)) ||
-                            ((DbUtilities::DRV_SQLSRV === $driver_type) && ($scale > 18)) ||
+                        if (((DbUtilities::DRV_MYSQL == $driver_type) && ($scale > 30)) ||
+                            ((DbUtilities::DRV_SQLSRV == $driver_type) && ($scale > 18)) ||
                             ($scale > $length)) {
                             throw new Exception("Decimal scale '$scale' is out of valid range.");
                         }
@@ -709,22 +709,22 @@ class DbUtilities
                 break;
             case 'float':
             case 'double':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'float' : $type;
+                $definition = ((DbUtilities::DRV_SQLSRV == $driver_type)) ? 'float' : $type;
                 if (!isset($length)) {
                     $length = Utilities::getArrayValue('precision', $field, null); // alias
                 }
                 if (isset($length)) {
                     $length = intval($length);
-                    if (((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 53)) ||
-                        ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 38))) {
+                    if (((DbUtilities::DRV_MYSQL == $driver_type) && ($length > 53)) ||
+                        ((DbUtilities::DRV_SQLSRV == $driver_type) && ($length > 38))) {
                         throw new Exception("Decimal precision '$length' is out of valid range.");
                     }
                     $scale = Utilities::getArrayValue('scale', $field, null);
                     if (empty($scale)) {
                         $scale = Utilities::getArrayValue('decimals', $field, null); // alias
                     }
-                    if (!empty($scale) && !(DbUtilities::DRV_SQLSRV === $driver_type)) {
-                        if (((DbUtilities::DRV_MYSQL === $driver_type) && ($scale > 30)) ||
+                    if (!empty($scale) && !(DbUtilities::DRV_SQLSRV == $driver_type)) {
+                        if (((DbUtilities::DRV_MYSQL == $driver_type) && ($scale > 30)) ||
                             ($scale > $length)) {
                             throw new Exception("Decimal scale '$scale' is out of valid range.");
                         }
@@ -739,7 +739,7 @@ class DbUtilities
                 break;
             case 'money':
             case 'smallmoney':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? $type : 'money'; // let yii handle it
+                $definition = ((DbUtilities::DRV_SQLSRV == $driver_type)) ? $type : 'money'; // let yii handle it
                 // convert to float
                 $default = (isset($default)) ? floatval($default) : $default;
                 break;
@@ -753,7 +753,7 @@ class DbUtilities
             case 'nvarchar':
                 $fixed = Utilities::boolval(Utilities::getArrayValue('fixed_length', $field, false));
                 $national = Utilities::boolval(Utilities::getArrayValue('supports_multibyte', $field, false));
-                if (0 === strcasecmp('string', $type)) {
+                if (0 == strcasecmp('string', $type)) {
                     if ($fixed) {
                         $type = ($national) ? 'nchar' : 'char';
                     }
@@ -764,7 +764,7 @@ class DbUtilities
                         $length = 255;
                     }
                 }
-                elseif (0 === strcasecmp('binary', $type)) {
+                elseif (0 == strcasecmp('binary', $type)) {
                     $type = ($fixed) ? 'binary' : 'varbinary';
                     if (!isset($length)) {
                         $length = 255;
@@ -776,10 +776,10 @@ class DbUtilities
                 case 'varchar':
                     if (isset($length)) {
                         $length = intval($length);
-                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 8000)) {
+                        if ((DbUtilities::DRV_SQLSRV == $driver_type) && ($length > 8000)) {
                             $length = 'max';
                         }
-                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65535)) {
+                        if ((DbUtilities::DRV_MYSQL == $driver_type) && ($length > 65535)) {
                             // max allowed is really dependent number of string columns
                             throw new Exception("String length '$length' is out of valid range.");
                         }
@@ -790,10 +790,10 @@ class DbUtilities
                 case 'char':
                     if (isset($length)) {
                         $length = intval($length);
-                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 8000)) {
+                        if ((DbUtilities::DRV_SQLSRV == $driver_type) && ($length > 8000)) {
                             throw new Exception("String length '$length' is out of valid range.");
                         }
-                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 255)) {
+                        if ((DbUtilities::DRV_MYSQL == $driver_type) && ($length > 255)) {
                             throw new Exception("String length '$length' is out of valid range.");
                         }
                         $definition .= "($length)";
@@ -802,10 +802,10 @@ class DbUtilities
                 case 'nvarchar':
                     if (isset($length)) {
                         $length = intval($length);
-                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
+                        if ((DbUtilities::DRV_SQLSRV == $driver_type) && ($length > 4000)) {
                             $length = 'max';
                         }
-                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 65535)) {
+                        if ((DbUtilities::DRV_MYSQL == $driver_type) && ($length > 65535)) {
                             // max allowed is really dependent number of string columns
                             throw new Exception("String length '$length' is out of valid range.");
                         }
@@ -815,10 +815,10 @@ class DbUtilities
                 case 'nchar':
                     if (isset($length)) {
                         $length = intval($length);
-                        if ((DbUtilities::DRV_SQLSRV === $driver_type) && ($length > 4000)) {
+                        if ((DbUtilities::DRV_SQLSRV == $driver_type) && ($length > 4000)) {
                             throw new Exception("String length '$length' is out of valid range.");
                         }
-                        if ((DbUtilities::DRV_MYSQL === $driver_type) && ($length > 255)) {
+                        if ((DbUtilities::DRV_MYSQL == $driver_type) && ($length > 255)) {
                             throw new Exception("String length '$length' is out of valid range.");
                         }
                         $definition .= "($length)";
@@ -828,15 +828,15 @@ class DbUtilities
                 $quoteDefault = true;
                 break;
             case 'text':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varchar(max)' : 'text'; // microsoft recommended
+                $definition = ((DbUtilities::DRV_SQLSRV == $driver_type)) ? 'varchar(max)' : 'text'; // microsoft recommended
                 $quoteDefault = true;
                 break;
             case 'blob':
-                $definition = ((DbUtilities::DRV_SQLSRV === $driver_type)) ? 'varbinary(max)' : 'blob'; // microsoft recommended
+                $definition = ((DbUtilities::DRV_SQLSRV == $driver_type)) ? 'varbinary(max)' : 'blob'; // microsoft recommended
                 $quoteDefault = true;
                 break;
             case 'datetime':
-                $definition = (DbUtilities::DRV_SQLSRV === $driver_type) ? 'datetime2' : 'datetime'; // microsoft recommends
+                $definition = (DbUtilities::DRV_SQLSRV == $driver_type) ? 'datetime2' : 'datetime'; // microsoft recommends
                 break;
             default:
                 // blind copy of column type
@@ -901,7 +901,7 @@ class DbUtilities
                     if (!$allow_update) {
                         throw new Exception("Field '$name' already exists in table '$table_name'.");
                     }
-                    if (((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type)) ||
+                    if (((0 == strcasecmp('id', $type)) || (0 == strcasecmp('pk', $type)) ||
                          Utilities::boolval(Utilities::getArrayValue('is_primary_key', $field, false))) &&
                         ($colSchema->isPrimaryKey)) {
                         // don't try to alter
@@ -932,19 +932,19 @@ class DbUtilities
                 }
 
                 $temp = array();
-                if ((0 === strcasecmp('id', $type)) || (0 === strcasecmp('pk', $type))) {
-                    if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
+                if ((0 == strcasecmp('id', $type)) || (0 == strcasecmp('pk', $type))) {
+                    if (!empty($primaryKey) && (0 != strcasecmp($primaryKey, $name))) {
                         throw new Exception("Designating more than one column as a primary key is not allowed.");
                     }
                     $primaryKey = $name;
                 }
                 elseif (Utilities::boolval(Utilities::getArrayValue('is_primary_key', $field, false))) {
-                    if (!empty($primaryKey) && (0 !== strcasecmp($primaryKey, $name))) {
+                    if (!empty($primaryKey) && (0 != strcasecmp($primaryKey, $name))) {
                         throw new Exception("Designating more than one column as a primary key is not allowed.");
                     }
                     $primaryKey = $name;
                 }
-                elseif ((0 === strcasecmp('reference', $type)) ||
+                elseif ((0 == strcasecmp('reference', $type)) ||
                     Utilities::boolval(Utilities::getArrayValue('is_foreign_key', $field, false))) {
                     // special case for references because the table referenced may not be created yet
                     $refTable = Utilities::getArrayValue('ref_table', $field, '');
@@ -967,7 +967,7 @@ class DbUtilities
                                               'update' => $refOnUpdate);
                     }
                 }
-                elseif ((0 === strcasecmp('user_id_on_create', $type))) { // && static::is_local_db()
+                elseif ((0 == strcasecmp('user_id_on_create', $type))) { // && static::is_local_db()
                     // special case for references because the table referenced may not be created yet
                     $temp['user_id_on_update'] = false;
                     $keyName = 'fk_' . $table_name . '_' . $name;
@@ -981,7 +981,7 @@ class DbUtilities
                                               'update' => 'CASCADE');
                     }
                 }
-                elseif ((0 === strcasecmp('user_id_on_update', $type))) { // && static::is_local_db()
+                elseif ((0 == strcasecmp('user_id_on_update', $type))) { // && static::is_local_db()
                     // special case for references because the table referenced may not be created yet
                     $temp['user_id_on_update'] = true;
                     $keyName = 'fk_' . $table_name . '_' . $name;
@@ -995,7 +995,7 @@ class DbUtilities
                                               'update' => 'CASCADE');
                     }
                 }
-                elseif ((0 === strcasecmp('user_id', $type))) { // && static::is_local_db()
+                elseif ((0 == strcasecmp('user_id', $type))) { // && static::is_local_db()
                     // special case for references because the table referenced may not be created yet
                     $temp['user_id'] = true;
                     $keyName = 'fk_' . $table_name . '_' . $name;
@@ -1009,10 +1009,10 @@ class DbUtilities
                                               'update' => 'CASCADE');
                     }
                 }
-                elseif ((0 === strcasecmp('timestamp_on_create', $type))) {
+                elseif ((0 == strcasecmp('timestamp_on_create', $type))) {
                     $temp['timestamp_on_update'] = false;
                 }
-                elseif ((0 === strcasecmp('timestamp_on_update', $type))) {
+                elseif ((0 == strcasecmp('timestamp_on_update', $type))) {
                     $temp['timestamp_on_update'] = true;
                 }
                 // regardless of type
@@ -1104,8 +1104,8 @@ class DbUtilities
                 // add new reference
                 $refTable = Utilities::getArrayValue('ref_table', $reference, null);
                 if (!empty($refTable)) {
-                    if ((0 === strcasecmp('df_sys_user', $refTable)) &&
-                        ($db !== Yii::app()->db)) {
+                    if ((0 == strcasecmp('df_sys_user', $refTable)) &&
+                        ($db != Yii::app()->db)) {
                         // using user id references from a remote db
                         continue;
                     }

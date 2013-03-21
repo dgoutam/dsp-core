@@ -1,5 +1,9 @@
 <?php
 // 1/10 api calls will cleanup sessions
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
+
 ini_set( 'session.gc_divisor', 10 );
 // 10 minutes for debug
 ini_set( 'session.gc_maxlifetime', 600 );
@@ -62,12 +66,13 @@ class SessionManager
 		$this->_sqlConn = Yii::app()->db;
 		$this->_driverType = DbUtilities::getDbDriverType( $this->_sqlConn );
 
-		if ( !session_set_save_handler(array( $this, 'open' ),
-                                       array( $this, 'close' ),
-                                       array( $this, 'read' ),
-                                       array( $this, 'write' ),
-                                       array( $this, 'destroy' ),
-                                       array( $this, 'gc' )))
+		if ( !session_set_save_handler( array( $this, 'open' ),
+			array( $this, 'close' ),
+			array( $this, 'read' ),
+			array( $this, 'write' ),
+			array( $this, 'destroy' ),
+			array( $this, 'gc' ) )
+		)
 		{
 			error_log( "Failed to set session handler." );
 		}
@@ -154,33 +159,34 @@ class SessionManager
 	{
 		try
 		{
-            if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] ) {
-                // get extra stuff used for disabling users
-                $userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-                $userId = ( isset( $userId ) && !empty( $userId ) ) ? intval($userId) : null;
-                $roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-                $roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
-                $startTime = time();
-                $params = array( $id, $userId, $roleId, $startTime, $data );
-                switch ( $this->_driverType )
-                {
-                    case DbUtilities::DRV_SQLSRV:
-                        $sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
-                        break;
-                    case DbUtilities::DRV_MYSQL:
-                        $sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-                        break;
-                    default:
-                        $sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-                        break;
-                }
-                if ( !$this->_sqlConn->active )
-                {
-                    $this->_sqlConn->active = true;
-                }
-                $command = $this->_sqlConn->createCommand( $sql );
-                $result = $command->execute( $params );
-            }
+			if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] )
+			{
+				// get extra stuff used for disabling users
+				$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
+//				$userId = ( isset( $userId ) && !empty( $userId ) ) ? intval( $userId ) : null;
+				$roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
+//				$roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
+				$startTime = time();
+				$params = array( $id, $userId, $roleId, $startTime, $data );
+				switch ( $this->_driverType )
+				{
+					case DbUtilities::DRV_SQLSRV:
+						$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
+						break;
+					case DbUtilities::DRV_MYSQL:
+						$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+						break;
+					default:
+						$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+						break;
+				}
+				if ( !$this->_sqlConn->active )
+				{
+					$this->_sqlConn->active = true;
+				}
+				$command = $this->_sqlConn->createCommand( $sql );
+				$result = $command->execute( $params );
+			}
 
 			return true;
 		}
@@ -322,11 +328,11 @@ class SessionManager
 					$data = static::generateSessionData( $user_id );
 					$data = array( 'public' => $data['public'] );
 					$command->reset();
-                    // wacky, but making sure session encoding is the same as it went in
-                    $temp = $_SESSION;
-                    $_SESSION = $data;
+					// wacky, but making sure session encoding is the same as it went in
+					$temp = $_SESSION;
+					$_SESSION = $data;
 					$data = session_encode();
-                    $_SESSION = $temp;
+					$_SESSION = $temp;
 					$command->update( 'df_sys_session', array( 'data' => $data ), 'user_id=:id', array( ':id' => $user_id ) );
 				}
 				catch ( Exception $ex )
@@ -368,10 +374,10 @@ class SessionManager
 						{
 							$data = static::generateSessionData( $user_id );
 							$data = array( 'public' => $data['public'] );
-                            $temp = $_SESSION;
-                            $_SESSION = $data;
-                            $data = session_encode();
-                            $_SESSION = $temp;
+							$temp = $_SESSION;
+							$_SESSION = $data;
+							$data = session_encode();
+							$_SESSION = $temp;
 							$command->reset();
 							$command->update( 'df_sys_session', array( 'data' => $data ), 'user_id=:id', array( ':id' => $user_id ) );
 						}
@@ -463,7 +469,7 @@ class SessionManager
 				$temp = $perm->getAttributes( $permsFields );
 				foreach ( $theServices as $service )
 				{
-					if ( $permServiceId === $service->getAttribute( 'id' ) )
+					if ( $permServiceId == $service->getAttribute( 'id' ) )
 					{
 						$temp['service'] = $service->getAttribute( 'api_name' );
 					}
@@ -495,10 +501,12 @@ class SessionManager
 
 		if ( isset( $_SESSION['public'] ) && !empty( $_SESSION['public'] ) )
 		{
-			$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-			if ( isset( $userId ) && !empty( $userId ) )
+			if ( isset( $_SESSION['public']['id'] ) )
 			{
-				return intval( $userId );
+				$_userId = $_SESSION['public']['id'];
+				//Log::debug( 'Session validate user id: ' . $_userId . ' ' . print_r( $_SESSION['public'], true ) );
+
+				return $_userId;
 			}
 		}
 
@@ -508,16 +516,20 @@ class SessionManager
 			'role.apps',
 			'role.services'
 		)->find( 'username=:un', array( ':un' => 'guest' ) );
-		if ( isset( $theUser ) )
+
+		if ( !empty( $theUser ) )
 		{
 			$result = static::generateSessionData( null, $theUser );
 			$_SESSION['public'] = Utilities::getArrayValue( 'public', $result, array() );
-            $GLOBALS['write_session'] = true;
+			$GLOBALS['write_session'] = true;
+
+//			Log::debug( 'Session validate primary key: ' . $theUser->primaryKey );
 
 			return intval( $theUser->primaryKey );
 		}
 
-		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+		return null;
+//		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 	}
 
 	/**
@@ -558,7 +570,7 @@ class SessionManager
 		foreach ( $apps as $app )
 		{
 			$temp = Utilities::getArrayValue( 'api_name', $app );
-			if ( 0 === strcasecmp( $appName, $temp ) )
+			if ( 0 == strcasecmp( $appName, $temp ) )
 			{
 				$found = true;
 			}
@@ -599,12 +611,12 @@ class SessionManager
 		{
 			$theService = Utilities::getArrayValue( 'service', $svcInfo );
 			$theAccess = Utilities::getArrayValue( 'access', $svcInfo, '' );
-			if ( 0 === strcasecmp( $service, $theService ) )
+			if ( 0 == strcasecmp( $service, $theService ) )
 			{
 				$theComponent = Utilities::getArrayValue( 'component', $svcInfo );
 				if ( !empty( $component ) )
 				{
-					if ( 0 === strcasecmp( $component, $theComponent ) )
+					if ( 0 == strcasecmp( $component, $theComponent ) )
 					{
 						if ( !static::isAllowed( $request, $theAccess ) )
 						{
@@ -729,21 +741,28 @@ class SessionManager
 	 */
 	public static function getCurrentUserId()
 	{
-		if ( isset( static::$_userId ) )
+		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['id'] ) )
 		{
-			return static::$_userId;
+			return $_SESSION['public']['id'];
 		}
 
-		try
-		{
-			static::$_userId = static::validateSession();
+//		if ( isset( static::$_userId ) )
+//		{
+//			return static::$_userId;
+//		}
+//
+//		try
+//		{
+//			static::$_userId = static::validateSession();
+//
+//			return static::$_userId;
+//		}
+//		catch ( Exception $ex )
+//		{
+//			return null;
+//		}
 
-			return static::$_userId;
-		}
-		catch ( Exception $ex )
-		{
-			return null;
-		}
+		return null;
 	}
 
 	/**
@@ -751,23 +770,31 @@ class SessionManager
 	 */
 	public static function getCurrentRoleId()
 	{
-		if ( isset( static::$_roleId ) )
+		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['role'], $_SESSION['public']['role']['id'] ) )
 		{
-			return static::$_roleId;
+			return $_SESSION['public']['role']['id'];
 		}
 
-		try
-		{
-			static::validateSession();
-			$temp = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-			static::$_roleId = ( isset( $temp ) ) ? intval( $temp ) : $temp;
+//
+//		if ( isset( static::$_roleId ) )
+//		{
+//			return static::$_roleId;
+//		}
+//
+//		try
+//		{
+//			static::validateSession();
+//			$temp = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
+//			static::$_roleId = ( isset( $temp ) ) ? intval( $temp ) : $temp;
+//
+//			return static::$_roleId;
+//		}
+//		catch ( Exception $ex )
+//		{
+//			return null;
+//		}
 
-			return static::$_roleId;
-		}
-		catch ( Exception $ex )
-		{
-			return null;
-		}
+		return null;
 	}
 
 	/**
@@ -777,5 +804,4 @@ class SessionManager
 	{
 		return ( isset( $GLOBALS['app_name'] ) ) ? $GLOBALS['app_name'] : '';
 	}
-
 }

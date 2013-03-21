@@ -28,7 +28,7 @@ $_autoloader = require_once( dirname( __DIR__ ) . '/vendor/autoload.php' );
 $_config = dirname( __DIR__ ) . '/config/web.php';
 
 //	Comment out the following lines in production
-defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
+//defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
 Yii::createWebApplication( $_config )->run();
