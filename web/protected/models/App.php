@@ -258,21 +258,24 @@ class App extends BaseDspSystemModel
 	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'api_name',
-				 'description',
-				 'is_active',
-				 'url',
-				 'is_url_external',
-				 'import_url',
-				 'requires_fullscreen',
-				 'requires_plugin',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'api_name',
+					 'description',
+					 'is_active',
+					 'url',
+					 'is_url_external',
+					 'import_url',
+					 'requires_fullscreen',
+					 'requires_plugin',
+				),
+				$columns ),
+			$hidden
 		);
 	}
 
@@ -319,7 +322,7 @@ class App extends BaseDspSystemModel
 					$newServiceId = Utilities::getArrayValue( 'service_id', $access, null );
 					$newComponent = Utilities::getArrayValue( 'component', $access, '' );
 					if ( ( $newServiceId == $oldAccess->service_id ) &&
-						 ( $newComponent == $oldAccess->component )
+						( $newComponent == $oldAccess->component )
 					)
 					{
 						// keeping it, so remove it from the list, as this becomes adds
@@ -354,5 +357,4 @@ class App extends BaseDspSystemModel
 			throw new Exception( "Error updating app to service assignment.\n{$ex->getMessage()}" );
 		}
 	}
-
 }

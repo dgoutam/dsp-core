@@ -121,29 +121,24 @@ class RoleServiceAccess extends BaseDspSystemModel
 	/**
 	 * @param string $requested
 	 *
+	 * @param array  $columns
+	 * @param array  $hidden
+	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
-		if ( empty( $requested ) )
-		{
-			// primary keys only
-			return array( 'id' );
-		}
-
-		if ( static::ALL_ATTRIBUTES == $requested )
-		{
-			return array(
-				'id',
-				'role_id',
-				'service_id',
-				'component',
-				'access'
-			);
-		}
-
-		$_columns = explode( ',', $requested );
-
-		return $_columns;
+		return parent::getRetrievableAttributes(
+			$requested,
+			array_merge(
+				array(
+					 'role_id',
+					 'service_id',
+					 'component',
+					 'access',
+				),
+				$columns ),
+			$hidden
+		);
 	}
 }

@@ -197,18 +197,24 @@ class Role extends BaseDspSystemModel
 	/**
 	 * @param string $requested
 	 *
+	 * @param array  $columns
+	 * @param array  $hidden
+	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'description',
-				 'is_active',
-				 'default_app_id',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'description',
+					 'is_active',
+					 'default_app_id',
+				),
+				$columns ),
+			$hidden
 		);
 	}
 
@@ -255,7 +261,7 @@ class Role extends BaseDspSystemModel
 					$newServiceId = Utilities::getArrayValue( 'service_id', $access, null );
 					$newComponent = Utilities::getArrayValue( 'component', $access, '' );
 					if ( ( $newServiceId == $oldAccess->service_id ) &&
-						 ( $newComponent == $oldAccess->component )
+						( $newComponent == $oldAccess->component )
 					)
 					{
 						// found it, make sure nothing needs to be updated
@@ -297,5 +303,4 @@ class Role extends BaseDspSystemModel
 			throw new Exception( "Error updating accesses to role assignment.\n{$ex->getMessage()}" );
 		}
 	}
-
 }

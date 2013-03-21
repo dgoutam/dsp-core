@@ -243,16 +243,16 @@ class User extends BaseDspSystemModel
 		{
 			$this->is_sys_admin = intval( $this->is_sys_admin );
 		}
-        if ( is_string( $this->role_id ) )
-        {
-            $this->role_id = intval( $this->role_id );
-        }
-        if ( is_string( $this->default_app_id ) )
-        {
-            $this->default_app_id = intval( $this->default_app_id );
-        }
+		if ( is_string( $this->role_id ) )
+		{
+			$this->role_id = intval( $this->role_id );
+		}
+		if ( is_string( $this->default_app_id ) )
+		{
+			$this->default_app_id = intval( $this->default_app_id );
+		}
 
-        return parent::beforeValidate();
+		return parent::beforeValidate();
 	}
 
 	/** {@InheritDoc} */
@@ -296,26 +296,29 @@ class User extends BaseDspSystemModel
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array_merge(array(
-				 'display_name',
-				 'first_name',
-				 'last_name',
-				 'username',
-				 'email',
-				 'phone',
-				 'is_active',
-				 'is_sys_admin',
-				 'role_id',
-				 'default_app_id',
-			),$colimns),
-			// hide these from the general public
-			array_merge(array(
-				'password',
-				'confirm_code',
-				'security_question',
-				'security_answer'
-			),$hidden)
+			array_merge(
+				array(
+					 'display_name',
+					 'first_name',
+					 'last_name',
+					 'username',
+					 'email',
+					 'phone',
+					 'is_active',
+					 'is_sys_admin',
+					 'role_id',
+					 'default_app_id',
+				),
+				$columns ),
+			array_merge(
+				array(
+					 'password',
+					 'confirm_code',
+					 'security_question',
+					 'security_answer'
+				),
+				$hidden
+			)
 		);
 	}
-
 }

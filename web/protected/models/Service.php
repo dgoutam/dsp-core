@@ -49,7 +49,7 @@ class Service extends BaseDspSystemModel
 	/**
 	 * @var bool Is this service a system service that should not be deleted or modified in certain ways, i.e. api name and type.
 	 */
-    protected $is_system = false;
+	protected $is_system = false;
 
 	//*************************************************************************
 	//* Methods
@@ -326,28 +326,33 @@ class Service extends BaseDspSystemModel
 	/**
 	 * @param string $requested
 	 *
+	 * @param array  $columns
+	 * @param array  $hidden
+	 *
 	 * @return array
 	 */
-	public function getRetrievableAttributes( $requested )
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		return parent::getRetrievableAttributes(
 			$requested,
-			array(
-				 'name',
-				 'api_name',
-				 'description',
-				 'is_active',
-				 'type',
-				 'is_system',
-				 'storage_name',
-				 'storage_type',
-				 'credentials',
-				 'native_format',
-				 'base_url',
-				 'parameters',
-				 'headers',
-			)
+			array_merge(
+				array(
+					 'name',
+					 'api_name',
+					 'description',
+					 'is_active',
+					 'type',
+					 'is_system',
+					 'storage_name',
+					 'storage_type',
+					 'credentials',
+					 'native_format',
+					 'base_url',
+					 'parameters',
+					 'headers',
+				),
+				$columns ),
+			$hidden
 		);
 	}
-
 }
