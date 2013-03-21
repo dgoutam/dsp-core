@@ -24,12 +24,19 @@ fi
 ##	Initial settings
 ##
 
+if [ "-v" == "${1}" ] ; then
+	VERBOSE="--verbose"
+	QUIET=
+else
+	VERBOSE=
+	QUIET="--quiet"
+fi
+
 VERSION=1.0.8
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=/usr/local/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
-VERBOSE=1
 WEB_USER=www-data
 BASE=`pwd`
 WRAPPER="${BASE}/git-ssh-wrapper"
@@ -127,10 +134,10 @@ rm -rf ~${SUDO_USER}/.composer/
 
 if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	echo "  * Installing package manager"
-	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} --quiet --no-interaction
+	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} ${QUIET} ${VERBOSE} --no-interaction
 else
 	echo "  * Checking for package manager updates"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction self-update
+	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction self-update
 fi
 
 ##
@@ -141,10 +148,10 @@ pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 	echo "  * Installing dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction install
+	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
 else
 	echo "  * Updating dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} --quiet --no-interaction update
+	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
 fi
 
 ##
