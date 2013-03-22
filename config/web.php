@@ -120,12 +120,12 @@ return array(
 			'showScriptName' => false,
 			'rules'          => array(
 				// REST patterns
-				array( 'app/stream',  'pattern' => 'app/<path:[_0-9a-zA-Z-\/. ]+>',  'verb' => 'GET' ),
-				array( 'lib/stream',  'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>',  'verb' => 'GET' ),
-				array( 'rest/get',    'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
-				array( 'rest/post',   'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
-				array( 'rest/put',    'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
-				array( 'rest/merge',  'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE' ),
+				array( 'app/stream', 'pattern' => 'app/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
+				array( 'lib/stream', 'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
+				array( 'rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
+				array( 'rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
+				array( 'rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
+				array( 'rest/merge', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE' ),
 				array( 'rest/delete', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE' ),
 				// Other controllers
 				'<controller:\w+>/<id:\d+>'              => '<controller>/view',

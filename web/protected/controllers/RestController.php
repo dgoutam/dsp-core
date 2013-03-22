@@ -33,14 +33,6 @@ class RestController extends Controller
     private $swagger = false;
 
     /**
-     * @return array action filters
-     */
-    public function filters()
-    {
-        return array();
-    }
-
-    /**
      * Initializes the controller.
      * This method is called by the application before the controller starts to execute.
      */

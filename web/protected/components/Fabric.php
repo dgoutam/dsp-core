@@ -54,7 +54,11 @@ class Fabric extends SeedUtility
 	/**
 	 * @var string
 	 */
-	const DSP_DB_CONFIG_FILE_NAME = '/database.config.php';
+	const DSP_DB_CONFIG_FILE_NAME_PATTERN = '%%INSTANCE_NAME%%.database.config.php';
+	/**
+	 * @var string
+	 */
+	const DSP_DEFAULT_SUBDOMAIN = '.cloud.dreamfactory.com';
 	/**
 	 * @var string
 	 */
@@ -90,7 +94,7 @@ class Fabric extends SeedUtility
 
 		if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 		{
-			Log::error( 'Invalid host: ' . $_host );
+			Log::error( 'Attempt to access system from non-provisioned host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
 		}
 
@@ -101,14 +105,23 @@ class Fabric extends SeedUtility
 			$_key = isset( $_SESSION ) ? Option::get( $_SESSION, static::FigNewton ) : null;
 		}
 
+		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
+
+		$_dbConfigFileName = str_ireplace(
+			'%%INSTANCE_NAME%%',
+			$_dspName,
+			static::DSP_DB_CONFIG_FILE_NAME_PATTERN
+		);
+
+		//	If an existing database config file is found for this instance
 		if ( !empty( $_key ) )
 		{
-			$_config = static::BaseStorage . '/' . $_key . '/.private' . static::DSP_DB_CONFIG_FILE_NAME;
+			$_config = static::BaseStorage . '/' . $_key . '/.private/' . $_dbConfigFileName;
 
-			if ( file_exists( $_config . static::DSP_DB_CONFIG_FILE_NAME ) )
+			if ( file_exists( $_config ) )
 			{
 				/** @noinspection PhpIncludeInspection */
-				return require_once $_config . static::DSP_DB_CONFIG_FILE_NAME;
+				return require_once $_config;
 			}
 		}
 
@@ -138,13 +151,13 @@ class Fabric extends SeedUtility
 		setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
 
 		//	File should be there from provisioning... If not, tenemos un problema!
-		if ( file_exists( $_privatePath . static::DSP_DB_CONFIG_FILE_NAME ) )
+		if ( file_exists( $_privatePath . '/' . $_dbConfigFileName ) )
 		{
 			/** @noinspection PhpIncludeInspection */
-			return require_once $_privatePath . static::DSP_DB_CONFIG_FILE_NAME;
+			return require_once $_privatePath . '/' . $_dbConfigFileName;
 		}
 
-		Log::error( 'Unable to find private path or database config: ' . $_privatePath );
+		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );
 		throw new \CHttpException( HttpResponse::BadRequest );
 	}
 }

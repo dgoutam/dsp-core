@@ -1,4 +1,8 @@
 <?php
+use Kisma\Core\Utility\FilterInput;
+
+Yii::import( 'application.components.PlatformStates.php' );
+
 /**
  * SiteController.php
  *
@@ -22,39 +26,24 @@
  *
  * This is the default controller for the DSP
  */
-use Kisma\Core\Utility\FilterInput;
-
-/**
- * SiteController.php
- */
-class SiteController extends Controller
+class SiteController extends Controller implements PlatformStates
 {
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
+
 	/**
-	 * Returns the filter configurations.
-	 *
-	 * By overriding this method, child classes can specify filters to be applied to actions.
-	 *
-	 * This method returns an array of filter specifications. Each array element specify a single filter.
-	 *
-	 * For a method-based filter (called inline filter), it is specified as 'FilterName[ +|- Action1, Action2, ...]',
-	 * where the '+' ('-') operators describe which actions should be (should not be) applied with the filter.
-	 *
-	 * For a class-based filter, it is specified as an array like the following:
-	 * <pre>
-	 * array(
-	 *     'FilterClass[ +|- Action1, Action2, ...]',
-	 *     'name1'=>'value1',
-	 *     'name2'=>'value2',
-	 *     ...
-	 * )
-	 * </pre>
-	 * where the name-value pairs will be used to initialize the properties of the filter.
-	 *
-	 * Note, in order to inherit filters defined in the parent class, a child class needs to
-	 * merge the parent filters with child filters using functions like array_merge().
-	 *
-	 * @return array a list of filter configurations.
-	 * @see CFilter
+	 * Set our new layout here
+	 */
+	public function init()
+	{
+		parent::init();
+
+		$this->layout = 'initial';
+	}
+
+	/**
+	 * {@InheritDoc}
 	 */
 	public function filters()
 	{
@@ -64,10 +53,7 @@ class SiteController extends Controller
 	}
 
 	/**
-	 * Returns the access rules for this controller.
-	 * Override this method if you use the {@link filterAccessControl accessControl} filter.
-	 *
-	 * @return array list of access rules. See {@link CAccessControlFilter} for details about rule specification.
+	 * {@InheritDoc}
 	 */
 	public function accessRules()
 	{
@@ -87,65 +73,54 @@ class SiteController extends Controller
 	}
 
 	/**
-	 * Declares class-based actions.
-	 */
-	public function actions()
-	{
-		return array(
-			'captcha' => array(
-				'class'     => 'CCaptchaAction',
-				'backColor' => 0xFFFFFF,
-			),
-			'page'    => array(
-				'class' => 'CViewAction',
-			),
-		);
-	}
-
-	/**
-	 * This is the default 'index' action that is invoked
-	 * when an action is not explicitly requested by users.
+	 * {@InheritDoc}
 	 */
 	public function actionIndex()
 	{
 		try
 		{
-			$state = SystemManager::getInstance()->getSystemState();
+			$_systemState = SystemManager::getInstance()->getSystemState();
 
-			switch ( $state )
+			switch ( $_systemState )
 			{
-				case 'ready':
+				case static::READY:
 					// try local launchpad
 					if ( is_file( './public/launchpad/index.html' ) )
 					{
 						$this->redirect( './public/launchpad/index.html' );
 					}
+
 					// fall back to this app default site
-					else
-					{
-						$this->render( 'index' );
-					}
+					$this->render( 'index' );
 					break;
-				case 'init required':
+
+				case static::INIT_REQUIRED:
 					$this->redirect( array( 'site/initSystem' ) );
 					break;
-				case 'admin required':
+
+				case static::ADMIN_REQUIRED:
 					$this->redirect( array( 'site/initAdmin' ) );
 					break;
-				case 'schema required':
+
+				case static::SCHEMA_REQUIRED:
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
-				case 'upgrade required':
+
+				case static::UPGRADE_REQUIRED:
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
-				case 'data required':
+
+				case static::DATA_REQUIRED:
 					$this->redirect( array( 'site/initData' ) );
 					break;
+
+				default:
+					throw new CHttpException( 400, 'Bad request' );
 			}
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $_ex )
 		{
-			die( $ex->getMessage() );
+			die( $_ex->getMessage() );
 		}
 	}
 
@@ -155,6 +130,7 @@ class SiteController extends Controller
 	public function actionError()
 	{
 		$error = Yii::app()->errorHandler->error;
+
 		if ( $error )
 		{
 			if ( Yii::app()->request->isAjaxRequest )
@@ -169,37 +145,10 @@ class SiteController extends Controller
 	}
 
 	/**
-	 * Displays the contact page
-	 */
-	public function actionContact()
-	{
-		$model = new ContactForm;
-		if ( isset( $_POST['ContactForm'] ) )
-		{
-			$model->attributes = $_POST['ContactForm'];
-			if ( $model->validate() )
-			{
-				$name = '=?UTF-8?B?' . base64_encode( $model->name ) . '?=';
-				$subject = '=?UTF-8?B?' . base64_encode( $model->subject ) . '?=';
-				$headers = "From: $name <{$model->email}>\r\n" .
-						   "Reply-To: {$model->email}\r\n" .
-						   "MIME-Version: 1.0\r\n" .
-						   "Content-type: text/plain; charset=UTF-8";
-
-				mail( Yii::app()->params['adminEmail'], $subject, $model->body, $headers );
-				Yii::app()->user->setFlash( 'contact', 'Thank you for contacting us. We will respond to you as soon as possible.' );
-				$this->refresh();
-			}
-		}
-		$this->render( 'contact', array( 'model' => $model ) );
-	}
-
-	/**
 	 * Displays the login page
 	 */
 	public function actionLogin()
 	{
-		$this->layout = 'initial';
 		$model = new LoginForm;
 
 		// if it is ajax validation request
@@ -249,6 +198,7 @@ class SiteController extends Controller
 				SystemManager::getInstance()->initSchema();
 				$this->redirect( Yii::app()->homeUrl );
 			}
+
 			$this->refresh();
 		}
 		// display the init form
@@ -260,7 +210,6 @@ class SiteController extends Controller
 	 */
 	public function actionInitSystem()
 	{
-		$this->layout = 'initial';
 		$model = new InitAdminForm;
 
 		// collect user input data
