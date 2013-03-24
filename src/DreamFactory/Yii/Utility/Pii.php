@@ -1,10 +1,17 @@
 <?php
-use Kisma\Core\Utility\Log;
+namespace DreamFactory\Yii\Utility;
+
 use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\HtmlMarkup;
+use DreamFactory\Yii\Models\BaseModel;
+use Kisma\Core\Enums\OutputFormat;
+use DreamFactory\Yii\Controllers\BaseDreamController;
+use Kisma\Core\Enums\Levels;
 
 /**
- * Pii.php
- *
+ * Pii
+ * Yii helper junk
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
@@ -92,6 +99,7 @@ class Pii extends \CHtml
 		$_configPath = $_basePath . '/config';
 		$_configFile = $_configPath . '/' . $_appMode . '.php';
 		$_logPath = $_basePath . '/log';
+		$_logFile = $_logPath . '/' . $_appMode . '.' . gethostname() . '.log';
 
 		$_dspName = static::_determineHostName();
 
@@ -103,6 +111,7 @@ class Pii extends \CHtml
 
 		//	Create an alias for our configuration directory
 		static::alias( 'application.config', $_configPath );
+		static::alias( 'application.log', $_logPath );
 
 		\Kisma::set( 'app.app_path', $_basePath . '/web' );
 		\Kisma::set( 'app.config_path', $_configPath );
@@ -962,13 +971,12 @@ class Pii extends \CHtml
 					}
 				}
 			}
-		}
 
-		if ( empty( $_dspName ) )
-		{
-			$_dspName = str_replace( '.dreamfactory.com', null, gethostname() );
-		}
+			if ( empty( $_dspName ) )
+			{
+				$_dspName = str_replace( '.dreamfactory.com', null, gethostname() );
+			}
 
-		return $_dspName;
+			return $_dspName;
+		}
 	}
-}

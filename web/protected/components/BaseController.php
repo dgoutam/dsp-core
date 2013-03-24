@@ -1,4 +1,8 @@
 <?php
+use DreamFactory\Platform\Interfaces\PlatformStates;
+
+Yii::import( 'DreamFactory.Platform.Interfaces.PlatformStates' );
+
 /**
  * BaseController.php
  *
@@ -78,5 +82,48 @@ class BaseController extends CController implements PlatformStates
 		GelfLogger::logMessage( $_logInfo );
 
 		return parent::beforeAction( $action );
+	}
+
+	/**
+	 * Makes a file tree. Used exclusively by the snapshot service at this time.
+	 *
+	 * @param string $instanceName
+	 * @param string $path
+	 *
+	 * @return string
+	 */
+	public function actionFileTree( $instanceName = null, $path = null )
+	{
+		$_data = array();
+		$_storagePath = realpath( Defaults::getStoragePath() );
+
+		if ( !empty( $_storagePath ) )
+		{
+			$_objects = new \RecursiveIteratorIterator(
+				new \RecursiveDirectoryIterator( $_storagePath ),
+				RecursiveIteratorIterator::SELF_FIRST
+			);
+
+			/** @var $_node \SplFileInfo */
+			foreach ( $_objects as $_name => $_node )
+			{
+				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
+				{
+					continue;
+				}
+
+				$_cleanPath = str_ireplace( $_path, null, dirname( $_node->getPathname() ) );
+
+				if ( empty( $_cleanPath ) )
+				{
+					$_cleanPath = '/';
+				}
+
+				$_data[$_cleanPath][] = basename( $_name );
+			}
+		}
+
+		echo json_encode( $_data );
+		die();
 	}
 }

@@ -28,7 +28,7 @@ global $_dbName, $_blobConfig, $_instance;
 //* Set fabric-hosted storage paths here...
 //*************************************************************************
 
-if ( \Kisma::get( 'app.fabric_hosted' ) && !empty( $_instance ) )
+if ( \Kisma::get( 'platform.fabric_hosted' ) && !empty( $_instance ) )
 {
 	$_instanceSettings = array(
 		'storage_base_path' => $_instance->storage_path,
@@ -54,7 +54,7 @@ return array_merge(
 	array(
 		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
 		 'adminEmail'            => 'developer-support@dreamfactory.com',
-		 'companyLabel'          => 'DreamFactory Service Platform(tm)',
+		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
 		 'allowOpenRegistration' => 'true',
 	)
 );

@@ -75,6 +75,10 @@ class Fabric extends SeedUtility
 	 * @var string
 	 */
 	const BaseStorage = '/data/storage';
+	/**
+	 * @var string
+	 */
+	const FABRIC_MARKER = '/var/www/.fabric_hosted';
 
 	//*************************************************************************
 	//* Methods
@@ -113,14 +117,22 @@ class Fabric extends SeedUtility
 			static::DSP_DB_CONFIG_FILE_NAME_PATTERN
 		);
 
+		\Kisma::set( 'platform.dsp_name', $_dspName );
+		\Kisma::set( 'platform.db_config_file_name', $_dbConfigFileName );
+
 		//	If an existing database config file is found for this instance
 		if ( !empty( $_key ) )
 		{
+			\Kisma::set( 'platform.user_key', $_key );
 			$_config = static::BaseStorage . '/' . $_key . '/.private/' . $_dbConfigFileName;
 
 			if ( file_exists( $_config ) )
 			{
+				\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_key . '/.private' );
+				\Kisma::set( 'platform.db_config_file', $_config );
+
 				/** @noinspection PhpIncludeInspection */
+
 				return require_once $_config;
 			}
 		}
@@ -147,13 +159,19 @@ class Fabric extends SeedUtility
 		$_instance = $_cache = $_response->details;
 		$_privatePath = $_cache->private_path;
 
+		\Kisma::set( 'dsp.credentials', $_cache );
+
 		//	Save it for later (don't run away and let me down <== extra points if you get the reference)
 		setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
 
 		//	File should be there from provisioning... If not, tenemos un problema!
 		if ( file_exists( $_privatePath . '/' . $_dbConfigFileName ) )
 		{
+			\Kisma::set( 'platform.private_path', $_privatePath );
+			\Kisma::set( 'platform.db_config_file', $_privatePath . '/' . $_dbConfigFileName );
+
 			/** @noinspection PhpIncludeInspection */
+
 			return require_once $_privatePath . '/' . $_dbConfigFileName;
 		}
 

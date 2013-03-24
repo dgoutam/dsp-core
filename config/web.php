@@ -22,17 +22,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+//	Just ignore this...
+global $_autoloader;
 
 //.........................................................................
-//. Default Values
+//. Default Values & Constants
 //.........................................................................
 
 const ENABLE_DB_CACHE = true;
 
-global $_autoloader;
-
 $_dbName = null;
 $_appName = 'DreamFactory Services Platform';
+$_vendorPath = dirname( __DIR__ ) . '/vendor';
 
 //	Get the globals set...
 require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
@@ -67,6 +68,13 @@ $_dbCache = ENABLE_DB_CACHE ? array(
 ) : null;
 
 //.........................................................................
+//. Set some aliases...
+//.........................................................................
+
+Pii::alias( 'DreamFactory', dirname( __DIR__ ) . '/src/DreamFactory' );
+\Yii::setPathOfAlias( 'vendor', $_vendorPath );
+
+//.........................................................................
 //. The configuration himself (like Raab)
 //.........................................................................
 
@@ -88,6 +96,7 @@ return array(
 		'application.components.blobs.*',
 		'application.components.file_managers.*',
 		'application.components.services.*',
+		'DreamFactory.Platform.Interfaces.*',
 	),
 	'modules'     => array(
 		'gii' => array(

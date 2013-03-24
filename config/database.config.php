@@ -22,10 +22,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-if ( file_exists( '/var/www/.fabric_hosted' ) )
+if ( file_exists( Pii::FABRIC_MARKER ) )
 {
-	require_once dirname( __DIR__ ) . '/web/protected/components/Fabric.php';
-
 	return Fabric::initialize();
 }
 

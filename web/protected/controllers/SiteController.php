@@ -1,8 +1,6 @@
 <?php
 use Kisma\Core\Utility\FilterInput;
 
-Yii::import( 'application.components.PlatformStates.php' );
-
 /**
  * SiteController.php
  *
@@ -26,7 +24,7 @@ Yii::import( 'application.components.PlatformStates.php' );
  *
  * This is the default controller for the DSP
  */
-class SiteController extends Controller implements PlatformStates
+class SiteController extends BaseController
 {
 	//*************************************************************************
 	//* Methods
@@ -129,17 +127,17 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionError()
 	{
-		$error = Yii::app()->errorHandler->error;
+		$_error = Pii::error();
 
-		if ( $error )
+		if ( $_error )
 		{
-			if ( Yii::app()->request->isAjaxRequest )
+			if ( Pii::ajaxRequest() )
 			{
-				echo $error['message'];
+				echo $_error['message'];
 			}
 			else
 			{
-				$this->render( 'error', $error );
+				$this->render( 'error', $_error );
 			}
 		}
 	}
@@ -149,27 +147,29 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionLogin()
 	{
-		$model = new LoginForm;
+		$_model = new LoginForm();
 
 		// if it is ajax validation request
-		if ( isset( $_POST['ajax'] ) && $_POST['ajax'] === 'login-form' )
+		if ( isset( $_POST['ajax'] ) && 'login-form' == $_POST['ajax'] )
 		{
-			echo CActiveForm::validate( $model );
-			Yii::app()->end();
+			echo CActiveForm::validate( $_model );
+
+			Pii::end();
 		}
 
 		// collect user input data
-		if ( isset( $_POST['LoginForm'] ) )
+		if ( isset( $_POST, $_POST['LoginForm'] ) )
 		{
-			$model->attributes = $_POST['LoginForm'];
+			$_model->attributes = $_POST['LoginForm'];
+
 			// validate user input and redirect to the previous page if valid
-			if ( $model->validate() && $model->login() )
+			if ( $_model->validate() && $_model->login() )
 			{
-				$this->redirect( Yii::app()->user->returnUrl );
+				$this->redirect( Pii::user()->getReturnUrl() );
 			}
 		}
-		// display the login form
-		$this->render( 'login', array( 'model' => $model ) );
+		//	display the login form
+		$this->render( 'login', array( 'model' => $_model ) );
 	}
 
 	/**
@@ -177,8 +177,9 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionLogout()
 	{
-		Yii::app()->user->logout();
-		$this->redirect( Yii::app()->homeUrl );
+		Pii::user()->logout();
+
+		$this->redirect( Pii::app()->getHomeUrl() );
 	}
 
 	/**
@@ -186,23 +187,24 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionUpgradeSchema()
 	{
-		$model = new InitSchemaForm;
+		$_model = new InitSchemaForm();
 
 		// collect user input data
-		if ( isset( $_POST['InitSchemaForm'] ) )
+		if ( isset( $_POST, $_POST['InitSchemaForm'] ) )
 		{
-			$model->attributes = $_POST['InitSchemaForm'];
+			$_model->attributes = $_POST['InitSchemaForm'];
 			// validate user input, configure the system and redirect to the home page
-			if ( $model->validate() )
+			if ( $_model->validate() )
 			{
 				SystemManager::getInstance()->initSchema();
-				$this->redirect( Yii::app()->homeUrl );
+				$this->redirect( Pii::app()->getHomeUrl() );
 			}
 
 			$this->refresh();
 		}
+
 		// display the init form
-		$this->render( 'initSchema', array( 'model' => $model ) );
+		$this->render( 'initSchema', array( 'model' => $_model ) );
 	}
 
 	/**
@@ -210,27 +212,28 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionInitSystem()
 	{
-		$model = new InitAdminForm;
+		$_model = new InitAdminForm();
 
 		// collect user input data
-		if ( isset( $_POST['InitAdminForm'] ) )
+		if ( isset( $_POST, $_POST['InitAdminForm'] ) )
 		{
-			$model->attributes = $_POST['InitAdminForm'];
+			$_model->attributes = $_POST['InitAdminForm'];
 			// validate user input, configure the system and redirect to the previous page
-			if ( $model->validate() )
+			if ( $_model->validate() )
 			{
-				SystemManager::getInstance()->initSystem( $model->attributes );
-				$this->redirect( Yii::app()->homeUrl );
+				SystemManager::getInstance()->initSystem( $_model->attributes );
+				$this->redirect( Pii::app()->getHomeUrl() );
 			}
-			$this->refresh();
 		}
-		$model->email = Yii::app()->user->getState( 'email' );
-		$model->username = substr( $model->email, 0, strpos( $model->email, '@' ) );
-		$model->firstName = Yii::app()->user->getState( 'first_name' );
-		$model->lastName = Yii::app()->user->getState( 'last_name' );
-		$model->displayName = Yii::app()->user->getState( 'display_name' );
-		// display the init form
-		$this->render( 'initAdmin', array( 'model' => $model ) );
+
+		$_model->email = Pii::user()->getState( 'email' );
+		$_model->username = substr( $_model->email, 0, strpos( $_model->email, '@' ) );
+		$_model->firstName = Pii::user()->getState( 'first_name' );
+		$_model->lastName = Pii::user()->getState( 'last_name' );
+		$_model->displayName = Pii::user()->getState( 'display_name' );
+
+		//	display the init form
+		$this->render( 'initAdmin', array( 'model' => $_model ) );
 	}
 
 	/**
@@ -238,27 +241,29 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionInitAdmin()
 	{
-		$model = new InitAdminForm;
+		$_model = new InitAdminForm();
 
 		// collect user input data
-		if ( isset( $_POST['InitAdminForm'] ) )
+		if ( isset( $_POST, $_POST['InitAdminForm'] ) )
 		{
-			$model->attributes = $_POST['InitAdminForm'];
+			$_model->attributes = $_POST['InitAdminForm'];
+
 			// validate user input, configure the system and redirect to the previous page
-			if ( $model->validate() )
+			if ( $_model->validate() )
 			{
-				SystemManager::getInstance()->initAdmin( $model->attributes );
-				$this->redirect( Yii::app()->homeUrl );
+				SystemManager::getInstance()->initAdmin( $_model->attributes );
+				$this->redirect( Pii::app()->getHomeUrl() );
 			}
-			$this->refresh();
 		}
-		$model->email = Yii::app()->user->getState( 'email' );
-		$model->username = substr( $model->email, 0, strpos( $model->email, '@' ) );
-		$model->firstName = Yii::app()->user->getState( 'first_name' );
-		$model->lastName = Yii::app()->user->getState( 'last_name' );
-		$model->displayName = Yii::app()->user->getState( 'display_name' );
+
+		$_model->email = Pii::user()->getState( 'email' );
+		$_model->username = substr( $_model->email, 0, strpos( $_model->email, '@' ) );
+		$_model->firstName = Pii::user()->getState( 'first_name' );
+		$_model->lastName = Pii::user()->getState( 'last_name' );
+		$_model->displayName = Pii::user()->getState( 'display_name' );
+
 		// display the init form
-		$this->render( 'initAdmin', array( 'model' => $model ) );
+		$this->render( 'initAdmin', array( 'model' => $_model ) );
 	}
 
 	/**
@@ -266,22 +271,23 @@ class SiteController extends Controller implements PlatformStates
 	 */
 	public function actionInitData()
 	{
-		$model = new InitDataForm;
+		$_model = new InitDataForm();
 
 		// collect user input data
-		if ( isset( $_POST['InitDataForm'] ) )
+		if ( isset( $_POST, $_POST['InitDataForm'] ) )
 		{
-			$model->attributes = $_POST['InitDataForm'];
+			$_model->attributes = $_POST['InitDataForm'];
+
 			// validate user input, configure the system and redirect to the previous page
-			if ( $model->validate() )
+			if ( $_model->validate() )
 			{
 				SystemManager::getInstance()->initData();
-				$this->redirect( Yii::app()->homeUrl );
+				$this->redirect( Pii::app()->getHomeUrl() );
 			}
-			$this->refresh();
 		}
+
 		// display the init form
-		$this->render( 'initData', array( 'model' => $model ) );
+		$this->render( 'initData', array( 'model' => $_model ) );
 	}
 
 	/**
@@ -300,58 +306,4 @@ class SiteController extends Controller implements PlatformStates
 		$this->render( 'environment' );
 	}
 
-	/**
-	 * Makes a file tree. Used exclusively by the snapshot service at this time.
-	 *
-	 * @param string $instanceName
-	 * @param string $path
-	 *
-	 * @return string
-	 */
-	public function actionFileTree( $instanceName = null, $path = null )
-	{
-		$instanceName = $instanceName ? : \Kisma::get( 'app.dsp_name', FilterInput::request( 'instanceName' ) );
-		$path = $path ? : FilterInput::request( 'path' );
-
-		$_data = array();
-
-		$_path = realpath(
-			$path
-				? :
-				$instanceName && file_exists( '/var/www/.fabric_hosted' )
-					?
-					'/data/storage/' . $instanceName . '/blob'
-					:
-					dirname( __DIR__ ) . '/storage'
-		);
-
-		if ( !empty( $_path ) )
-		{
-			$_objects = new \RecursiveIteratorIterator(
-				new \RecursiveDirectoryIterator( $_path ),
-				RecursiveIteratorIterator::SELF_FIRST
-			);
-
-			/** @var $_node \SplFileInfo */
-			foreach ( $_objects as $_name => $_node )
-			{
-				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
-				{
-					continue;
-				}
-
-				$_cleanPath = str_ireplace( $_path, null, dirname( $_node->getPathname() ) );
-
-				if ( empty( $_cleanPath ) )
-				{
-					$_cleanPath = '/';
-				}
-
-				$_data[$_cleanPath][] = basename( $_name );
-			}
-		}
-
-		echo json_encode( $_data );
-		die();
-	}
 }
