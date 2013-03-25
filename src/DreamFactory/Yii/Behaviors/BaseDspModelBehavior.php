@@ -1,4 +1,6 @@
 <?php
+namespace DreamFactory\Yii\Behaviors;
+
 use Kisma\Core\Utility\Option;
 
 /**

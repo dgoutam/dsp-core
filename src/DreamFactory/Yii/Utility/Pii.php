@@ -3,8 +3,6 @@ namespace DreamFactory\Yii\Utility;
 
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\HtmlMarkup;
-use DreamFactory\Yii\Models\BaseModel;
 use Kisma\Core\Enums\OutputFormat;
 use DreamFactory\Yii\Controllers\BaseDreamController;
 use Kisma\Core\Enums\Levels;
@@ -95,12 +93,8 @@ class Pii extends \CHtml
 
 		$_basePath = dirname( $docRoot );
 		$_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' );
-		$_class = ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' );
 		$_configPath = $_basePath . '/config';
-		$_configFile = $_configPath . '/' . $_appMode . '.php';
 		$_logPath = $_basePath . '/log';
-		$_logFile = $_logPath . '/' . $_appMode . '.' . gethostname() . '.log';
-
 		$_dspName = static::_determineHostName();
 
 		$_logName = $_appMode . '.' . $_dspName . '.log';
@@ -122,6 +116,8 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.dsp_name', $_dspName );
 		\Kisma::set( 'platform.fabric_hosted', $_isFabric = file_exists( static::FABRIC_MARKER ) );
+		\Kisma::set( 'app.app_class', ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
+		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
 		//	Just return the app if there is one...
 		return static::app();
@@ -537,7 +533,7 @@ class Pii extends \CHtml
 	 */
 	public static function identity()
 	{
-		return self::component( 'user' );
+		return static::component( 'user' );
 	}
 
 	/**
@@ -980,3 +976,4 @@ class Pii extends \CHtml
 			return $_dspName;
 		}
 	}
+}

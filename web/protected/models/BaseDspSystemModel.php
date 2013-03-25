@@ -1,5 +1,6 @@
 <?php
-use Kisma\Core\Exceptions\StorageException;
+use DreamFactory\Platform\Enums\PlatformError;
+use DreamFactory\Yii\Models\BaseModel;
 
 /**
  * BaseDspSystemModel.php
@@ -33,24 +34,49 @@ use Kisma\Core\Exceptions\StorageException;
  *
  * @property User    $created_by
  * @property User    $last_modified_by
+ *
+ *
+ * Behavior Methods
+ * @method TimestampBehavior setCurrentUserId( $currentUserId )
  */
-abstract class BaseDspSystemModel extends BaseDspModel
+abstract class BaseDspSystemModel extends BaseModel
 {
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const ALL_ATTRIBUTES = '*';
+
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
+
+	/**
+	 * Initialize
+	 */
+	public function init()
+	{
+		parent::init();
+
+		try
+		{
+			//	Set the current user id for stamping
+			$this->setCurrentUserId( \SessionManager::getCurrentUserId() );
+		}
+		catch ( \Exception $_ex )
+		{
+		}
+	}
+
 	/**
 	 * @return string the system database table name prefix
 	 */
 	public static function tableNamePrefix()
 	{
 		return 'df_sys_';
-	}
-
-	/**
-	 * @return array validation rules for model attributes.
-	 */
-	public function rules()
-	{
-		return array( //array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
-		);
 	}
 
 	/**
@@ -71,7 +97,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 */
 	public function search()
 	{
-		$_criteria = new CDbCriteria;
+		$_criteria = new \CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'created_date', $this->created_date, true );
@@ -79,7 +105,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		$_criteria->compare( 'created_by_id', $this->created_by_id );
 		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider(
+		return new \CActiveDataProvider(
 			$this,
 			array(
 				 'criteria' => $_criteria,
@@ -169,7 +195,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 * @param string $many_field
 	 * @param array  $many_records
 	 *
-	 * @throws Kisma\Core\Exceptions\StorageException
+	 * @throws InvalidArgumentException
 	 * @throws Exception
 	 * @return void
 	 */
@@ -177,8 +203,9 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	{
 		if ( empty( $one_id ) )
 		{
-			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
+			throw new InvalidArgumentException( 'The id can not be empty.', PlatformError::BadRequest );
 		}
+
 		try
 		{
 			$manyModel = SystemManager::getResourceModel( $many_table );
@@ -313,26 +340,26 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
-	protected function beforeValidate()
-	{
-		try
-		{
-			$_userId = SessionManager::getCurrentUserId();
-
-			if ( $this->isNewRecord )
-			{
-				$this->created_by_id = $_userId;
-			}
-
-			$this->last_modified_by_id = $_userId;
-		}
-		catch ( Exception $_ex )
-		{
-		}
-
-		return parent::beforeValidate();
-	}
+//	/**
+//	 * @return bool
+//	 */
+//	protected function beforeValidate()
+//	{
+//		try
+//		{
+//			$_userId = SessionManager::getCurrentUserId();
+//
+//			if ( $this->isNewRecord )
+//			{
+//				$this->created_by_id = $_userId;
+//			}
+//
+//			$this->last_modified_by_id = $_userId;
+//		}
+//		catch ( Exception $_ex )
+//		{
+//		}
+//
+//		return parent::beforeValidate();
+//	}
 }

@@ -52,8 +52,8 @@ class BaseModel extends \CActiveRecord
 	 */
 	public function init()
 	{
-		$this->_modelClass = get_class( $this );
 		parent::init();
+		$this->_modelClass = get_class( $this );
 	}
 
 	/**
@@ -63,7 +63,7 @@ class BaseModel extends \CActiveRecord
 	 */
 	public function getSchema()
 	{
-		return $this->_schema ? $this->_schema : $this->_schema = $this->getMetaData()->columns;
+		return $this->_schema ? : $this->_schema = $this->getMetaData()->columns;
 	}
 
 	/**
@@ -147,7 +147,6 @@ class BaseModel extends \CActiveRecord
 	 * @return string|array
 	 */
 	public function getErrorsForLogging( $attribute = null, $pattern = '%%#%% "%%column%%": %%error_message%%' )
-
 	{
 		$_result = null;
 		$_i = 1;

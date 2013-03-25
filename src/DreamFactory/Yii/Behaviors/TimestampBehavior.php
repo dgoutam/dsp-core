@@ -1,4 +1,8 @@
 <?php
+namespace DreamFactory\Yii\Behaviors;
+
+use Kisma\Core\Utility\Option;
+
 /**
  * TimestampBehavior.php
  * Allows you to define time stamp fields in models and have them automatically updated.
@@ -59,6 +63,10 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 * @var string The date/time with which function to stamp records
 	 */
 	protected $_dateTimeFunction = null;
+	/**
+	 * @var int
+	 */
+	protected $_currentUserId = null;
 
 	//********************************************************************************
 	//*  Handlers
@@ -71,20 +79,32 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 */
 	public function beforeValidate( $event )
 	{
+		$_id = null;
+		$_model = $event->sender;
+
 		try
 		{
-			$_id = SessionManager::getCurrentUserId();
+			if ( !empty( $this->_currentUserId ) )
+			{
+				/** @noinspection PhpParamsInspection */
+				if ( is_callable( $this->_currentUserId ) )
+				{
+					$_id = call_user_func( $this->_currentUserId );
+				}
+				else
+				{
+					$_id = $this->_currentUserId;
+				}
+			}
 		}
-			//	No session yet, no user...
-		catch ( Exception $_ex )
+		catch ( \Exception $_ex )
 		{
-			$_id = null;
 		}
 
 		//	Handle created stamp
-		if ( $event->sender->isNewRecord )
+		if ( $_model->isNewRecord )
 		{
-			if ( $this->_createdColumn && $event->sender->hasAttribute( $this->_createdColumn ) )
+			if ( $this->_createdColumn && $_model->hasAttribute( $this->_createdColumn ) )
 			{
 				$this->owner->setAttribute(
 					$this->_createdColumn,
@@ -92,20 +112,14 @@ class TimestampBehavior extends BaseDspModelBehavior
 				);
 			}
 
-			if ( $this->_createdByColumn && $event->sender->hasAttribute( $this->_createdByColumn ) && !$event->sender->getAttribute(
-				$this->_createdByColumn
-			)
-			)
+			if ( $_id && $this->_createdByColumn && $_model->hasAttribute( $this->_createdByColumn ) && !$_model->getAttribute( $this->_createdByColumn ) )
 			{
-				if ( !empty( $_id ) )
-				{
-					$this->owner->setAttribute( $this->_createdByColumn, $_id );
-				}
+				$this->owner->setAttribute( $this->_createdByColumn, $_id );
 			}
 		}
 
 		//	Handle lmod stamp
-		if ( $this->_lastModifiedColumn && $event->sender->hasAttribute( $this->_lastModifiedColumn ) )
+		if ( $this->_lastModifiedColumn && $_model->hasAttribute( $this->_lastModifiedColumn ) )
 		{
 			$this->owner->setAttribute(
 				$this->_lastModifiedColumn,
@@ -114,15 +128,11 @@ class TimestampBehavior extends BaseDspModelBehavior
 		}
 
 		//	Handle user id stamp
-		if ( $this->_lastModifiedByColumn && $event->sender->hasAttribute( $this->_lastModifiedByColumn ) && !$event->sender->getAttribute(
-			$this->_lastModifiedByColumn
-		)
+		if ( $_id && $this->_lastModifiedByColumn && $_model->hasAttribute( $this->_lastModifiedByColumn ) &&
+			 !$_model->getAttribute( $this->_lastModifiedByColumn )
 		)
 		{
-			if ( !empty( $_id ) )
-			{
-				$this->owner->setAttribute( $this->_lastModifiedByColumn, $_id );
-			}
+			$this->owner->setAttribute( $this->_lastModifiedByColumn, $_id );
 		}
 
 		parent::beforeValidate( $event );
@@ -144,14 +154,13 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 */
 	public function touch( $additionalColumns = null )
 	{
-		$_touchValue =
-			( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' );
 		$_updateList = array();
+		$_touchValue = ( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' );
 
 		//	Any other columns to touch?
 		if ( null !== $additionalColumns )
 		{
-			foreach ( \Kisma\Core\Utility\Option::clean( $additionalColumns ) as $_attribute )
+			foreach ( Option::clean( $additionalColumns ) as $_attribute )
 			{
 				if ( $this->owner->hasAttribute( $_attribute ) )
 				{
@@ -290,4 +299,25 @@ class TimestampBehavior extends BaseDspModelBehavior
 	{
 		return $this->_dateTimeFormat;
 	}
+
+	/**
+	 * @param int $currentUserId
+	 *
+	 * @return $this
+	 */
+	public function setCurrentUserId( $currentUserId )
+	{
+		$this->_currentUserId = $currentUserId;
+
+		return $this;
+	}
+
+	/**
+	 * @return int|null
+	 */
+	public function getCurrentUserId()
+	{
+		return $this->_currentUserId;
+	}
+
 }

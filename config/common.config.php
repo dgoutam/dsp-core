@@ -56,5 +56,6 @@ return array_merge(
 		 'adminEmail'            => 'developer-support@dreamfactory.com',
 		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
 		 'allowOpenRegistration' => 'true',
+		 'system_table_prefix'   => 'df_sys_',
 	)
 );
