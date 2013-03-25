@@ -180,10 +180,10 @@ class App extends BaseDspSystemModel
 	 */
 	protected function beforeValidate()
 	{
-		$this->is_active = intval( $this->is_active );
-		$this->is_url_external = intval( $this->is_url_external );
-		$this->requires_fullscreen = intval( $this->requires_fullscreen );
-		$this->requires_plugin = intval( $this->requires_plugin );
+		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
+		$this->is_url_external = intval( Utilities::boolval( $this->is_url_external ) );
+		$this->requires_fullscreen = intval( Utilities::boolval( $this->requires_fullscreen ) );
+		$this->requires_plugin = intval( Utilities::boolval( $this->requires_plugin ) );
 
 		return parent::beforeValidate();
 	}

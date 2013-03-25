@@ -1,12 +1,8 @@
 <?php
-// 1/10 api calls will cleanup sessions
+
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-
-ini_set( 'session.gc_divisor', 10 );
-// 10 minutes for debug
-ini_set( 'session.gc_maxlifetime', 600 );
 
 /**
  * SessionManager.php
@@ -163,9 +159,9 @@ class SessionManager
 			{
 				// get extra stuff used for disabling users
 				$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-//				$userId = ( isset( $userId ) && !empty( $userId ) ) ? intval( $userId ) : null;
+				$userId = ( !empty( $userId ) ) ? intval( $userId ) : null;
 				$roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-//				$roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
+				$roleId = ( !empty( $roleId ) ) ? intval( $roleId ) : null;
 				$startTime = time();
 				$params = array( $id, $userId, $roleId, $startTime, $data );
 				switch ( $this->_driverType )
@@ -350,7 +346,7 @@ class SessionManager
 	}
 
 	/**
-	 * @param $user_id
+	 * @param $role_id
 	 */
 	public function updateSessionByRole( $role_id )
 	{
@@ -528,8 +524,7 @@ class SessionManager
 			return intval( $theUser->primaryKey );
 		}
 
-		return null;
-//		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 	}
 
 	/**
@@ -741,28 +736,26 @@ class SessionManager
 	 */
 	public static function getCurrentUserId()
 	{
-		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['id'] ) )
+		if ( isset( static::$_userId ) )
 		{
-			return $_SESSION['public']['id'];
+			return static::$_userId;
 		}
 
-//		if ( isset( static::$_userId ) )
-//		{
-//			return static::$_userId;
-//		}
-//
-//		try
-//		{
-//			static::$_userId = static::validateSession();
-//
-//			return static::$_userId;
-//		}
-//		catch ( Exception $ex )
-//		{
-//			return null;
-//		}
+		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['id'] ) )
+		{
+			return static::$_userId = $_SESSION['public']['id'];
+		}
+
 
 		return null;
+	}
+
+	/**
+	 * @param $roleId
+	 */
+	public static function setCurrentRoleId( $roleId )
+	{
+		static::$_roleId = $roleId;
 	}
 
 	/**
@@ -770,29 +763,15 @@ class SessionManager
 	 */
 	public static function getCurrentRoleId()
 	{
-		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['role'], $_SESSION['public']['role']['id'] ) )
+		if ( isset( static::$_roleId ) )
 		{
-			return $_SESSION['public']['role']['id'];
+			return static::$_roleId;
 		}
 
-//
-//		if ( isset( static::$_roleId ) )
-//		{
-//			return static::$_roleId;
-//		}
-//
-//		try
-//		{
-//			static::validateSession();
-//			$temp = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-//			static::$_roleId = ( isset( $temp ) ) ? intval( $temp ) : $temp;
-//
-//			return static::$_roleId;
-//		}
-//		catch ( Exception $ex )
-//		{
-//			return null;
-//		}
+		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['role'], $_SESSION['public']['role']['id'] ) )
+		{
+			return static::$_roleId = $_SESSION['public']['role']['id'];
+		}
 
 		return null;
 	}
