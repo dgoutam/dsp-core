@@ -128,17 +128,7 @@ class RoleServiceAccess extends BaseDspSystemModel
 	 */
 	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
-		return parent::getRetrievableAttributes(
-			$requested,
-			array_merge(
-				array(
-				'role_id',
-				'service_id',
-				'component',
-					 'access',
-				),
-				$columns ),
-			$hidden
-			);
-		}
+		// don't use base class here as those fields are not supported
+		return array( 'role_id', 'service_id', 'component', 'access' );
+	}
 }
