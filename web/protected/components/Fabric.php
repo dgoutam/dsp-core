@@ -54,7 +54,11 @@ class Fabric extends SeedUtility
 	/**
 	 * @var string
 	 */
-	const DSP_DB_CONFIG_FILE_NAME = '/database.config.php';
+	const DSP_DB_CONFIG_FILE_NAME_PATTERN = '%%INSTANCE_NAME%%.database.config.php';
+	/**
+	 * @var string
+	 */
+	const DSP_DEFAULT_SUBDOMAIN = '.cloud.dreamfactory.com';
 	/**
 	 * @var string
 	 */
@@ -71,6 +75,10 @@ class Fabric extends SeedUtility
 	 * @var string
 	 */
 	const BaseStorage = '/data/storage';
+	/**
+	 * @var string
+	 */
+	const FABRIC_MARKER = '/var/www/.fabric_hosted';
 
 	//*************************************************************************
 	//* Methods
@@ -90,7 +98,7 @@ class Fabric extends SeedUtility
 
 		if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
 		{
-			Log::error( 'Invalid host: ' . $_host );
+			Log::error( 'Attempt to access system from non-provisioned host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
 		}
 
@@ -101,14 +109,31 @@ class Fabric extends SeedUtility
 			$_key = isset( $_SESSION ) ? Option::get( $_SESSION, static::FigNewton ) : null;
 		}
 
+		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
+
+		$_dbConfigFileName = str_ireplace(
+			'%%INSTANCE_NAME%%',
+			$_dspName,
+			static::DSP_DB_CONFIG_FILE_NAME_PATTERN
+		);
+
+		\Kisma::set( 'platform.dsp_name', $_dspName );
+		\Kisma::set( 'platform.db_config_file_name', $_dbConfigFileName );
+
+		//	If an existing database config file is found for this instance
 		if ( !empty( $_key ) )
 		{
-			$_config = static::BaseStorage . '/' . $_key . '/.private' . static::DSP_DB_CONFIG_FILE_NAME;
+			\Kisma::set( 'platform.user_key', $_key );
+			$_config = static::BaseStorage . '/' . $_key . '/.private/' . $_dbConfigFileName;
 
-			if ( file_exists( $_config . static::DSP_DB_CONFIG_FILE_NAME ) )
+			if ( file_exists( $_config ) )
 			{
+				\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_key . '/.private' );
+				\Kisma::set( 'platform.db_config_file', $_config );
+
 				/** @noinspection PhpIncludeInspection */
-				return require_once $_config . static::DSP_DB_CONFIG_FILE_NAME;
+
+				return require_once $_config;
 			}
 		}
 
@@ -134,17 +159,23 @@ class Fabric extends SeedUtility
 		$_instance = $_cache = $_response->details;
 		$_privatePath = $_cache->private_path;
 
+		\Kisma::set( 'dsp.credentials', $_cache );
+
 		//	Save it for later (don't run away and let me down <== extra points if you get the reference)
 		setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
 
 		//	File should be there from provisioning... If not, tenemos un problema!
-		if ( file_exists( $_privatePath . static::DSP_DB_CONFIG_FILE_NAME ) )
+		if ( file_exists( $_privatePath . '/' . $_dbConfigFileName ) )
 		{
+			\Kisma::set( 'platform.private_path', $_privatePath );
+			\Kisma::set( 'platform.db_config_file', $_privatePath . '/' . $_dbConfigFileName );
+
 			/** @noinspection PhpIncludeInspection */
-			return require_once $_privatePath . static::DSP_DB_CONFIG_FILE_NAME;
+
+			return require_once $_privatePath . '/' . $_dbConfigFileName;
 		}
 
-		Log::error( 'Unable to find private path or database config: ' . $_privatePath );
+		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );
 		throw new \CHttpException( HttpResponse::BadRequest );
 	}
 }
