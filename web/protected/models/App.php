@@ -98,12 +98,12 @@ class App extends BaseDspSystemModel
 	public function relations()
 	{
 		$_relations = array(
-			'roles_default_app'    => array( self::HAS_MANY, 'Role', 'default_app_id' ),
-			'users_default_app'    => array( self::HAS_MANY, 'User', 'default_app_id' ),
-			'app_groups'           => array( self::MANY_MANY, 'AppGroup', 'df_sys_app_to_app_group(app_id, app_group_id)' ),
-			'roles'                => array( self::MANY_MANY, 'Role', 'df_sys_app_to_role(app_id, role_id)' ),
-			'app_service_relation' => array( self::HAS_MANY, 'AppServiceRelation', 'app_id' ),
-			'services'             => array( self::MANY_MANY, 'Service', 'df_sys_app_to_service(app_id, service_id)' ),
+			'roles_default_app'     => array( self::HAS_MANY, 'Role', 'default_app_id' ),
+			'users_default_app'     => array( self::HAS_MANY, 'User', 'default_app_id' ),
+			'app_groups'            => array( self::MANY_MANY, 'AppGroup', 'df_sys_app_to_app_group(app_id, app_group_id)' ),
+			'roles'                 => array( self::MANY_MANY, 'Role', 'df_sys_app_to_role(app_id, role_id)' ),
+			'app_service_relations' => array( self::HAS_MANY, 'AppServiceRelation', 'app_id' ),
+			'services'              => array( self::MANY_MANY, 'Service', 'df_sys_app_to_service(app_id, service_id)' ),
 		);
 
 		return array_merge( parent::relations(), $_relations );
