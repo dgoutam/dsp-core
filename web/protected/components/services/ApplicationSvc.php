@@ -568,6 +568,32 @@ class ApplicationSvc extends CommonFileSvc
 		}
 	}
 
+	/**
+	 * @param        $path
+	 * @param null   $zip
+	 * @param string $zipFileName
+	 * @param bool   $overwrite
+	 *
+	 * @return string
+	 */
+	public function getFolderAsZip( $path, $zip = null, $zipFileName = '', $overwrite = false )
+	{
+		return $this->fileRestHandler->getFolderAsZip( $path, $zip, $zipFileName, $overwrite );
+	}
+
+	/**
+	 * @param        $path
+	 * @param        $zip
+	 * @param bool   $clean
+	 * @param string $drop_path
+	 *
+	 * @return array
+	 */
+	public function extractZipFile( $path, $zip, $clean = false, $drop_path = '' )
+	{
+		return $this->fileRestHandler->extractZipFile( $path, $zip, $clean, $drop_path );
+	}
+
 	// Controller based methods
 
 	/**
