@@ -366,7 +366,7 @@ class SchemaSvc extends CommonService implements iRestHandler
         $this->detectCommonParams();
         if (empty($this->tableName)) {
             $result = $this->describeDatabase();
-            $result = array('resource' => $result['table']);
+            $result = array('resource' => $result);
         }
         else {
             if (empty($this->fieldName)) {

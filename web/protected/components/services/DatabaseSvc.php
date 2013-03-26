@@ -328,7 +328,7 @@ class DatabaseSvc extends CommonService implements iRestHandler
             }
             try {
                 $result = DbUtilities::describeDatabase($this->sqlDb->getSqlConn(), '', $exclude);
-                $result = array('resource' => $result['table']);
+                $result = array('resource' => $result);
             }
             catch (Exception $ex) {
                 throw new Exception("Error describing database tables.\n{$ex->getMessage()}");

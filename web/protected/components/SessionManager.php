@@ -155,8 +155,9 @@ class SessionManager
 	{
 		try
 		{
-			if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] )
-			{
+			// would like to not write to db if nothing changed, but need timestamp update to keep session alive
+//			if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] )
+//			{
 				// get extra stuff used for disabling users
 				$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
 				$userId = ( !empty( $userId ) ) ? intval( $userId ) : null;
@@ -182,7 +183,7 @@ class SessionManager
 				}
 				$command = $this->_sqlConn->createCommand( $sql );
 				$result = $command->execute( $params );
-			}
+//			}
 
 			return true;
 		}

@@ -169,9 +169,9 @@ class App extends BaseDspSystemModel
 			$this->assignManyToOneByMap( $id, 'role', 'app_to_role', 'app_id', 'role_id', $values['roles'] );
 		}
 
-		if ( isset( $values['app_service_relation'] ) )
+		if ( isset( $values['app_service_relations'] ) )
 		{
-			$this->assignAppServiceRelations( $id, $values['app_service_relation'] );
+			$this->assignAppServiceRelations( $id, $values['app_service_relations'] );
 		}
 	}
 
