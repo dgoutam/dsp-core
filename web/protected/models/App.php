@@ -304,31 +304,55 @@ class App extends BaseDspSystemModel
 			{
 				$access = $relations[$key1];
 				$serviceId = Utilities::getArrayValue( 'service_id', $access, null );
-				$component = Utilities::getArrayValue( 'component', $access, '' );
 				for ( $key2 = $key1 + 1; $key2 < $count; $key2++ )
 				{
 					$access2 = $relations[$key2];
 					$serviceId2 = Utilities::getArrayValue( 'service_id', $access2, null );
-					$component2 = Utilities::getArrayValue( 'component', $access2, '' );
-					if ( ( $serviceId == $serviceId2 ) && ( $component == $component2 ) )
+					if ( $serviceId == $serviceId2 )
 					{
-						throw new Exception( "Duplicated service and component combination '$serviceId $component' in app service relation.", ErrorCodes::BAD_REQUEST );
+						throw new Exception( "Duplicated service in app service relation.", ErrorCodes::BAD_REQUEST );
 					}
 				}
 			}
-			$oldAccesses = AppServiceRelation::model()->findAll( 'app_id = :aid', array( ':aid' => $app_id ) );
-			foreach ( $oldAccesses as $oldAccess )
+			$map_table = static::tableNamePrefix() . 'app_to_service';
+			$pkMapField = 'id';
+			// use query builder
+			$command = Yii::app()->db->createCommand();
+			$command->select( 'id,service_id,component' );
+			$command->from( $map_table );
+			$command->where( 'app_id = :aid' );
+			$maps = $command->queryAll( true, array( ':aid' => $app_id ) );
+			$toDelete = array();
+			$toUpdate = array();
+			foreach ( $maps as $map )
 			{
+				$manyId = Utilities::getArrayValue( 'service_id', $map, null );
+				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
 				$found = false;
-				foreach ( $relations as $key => $access )
+				foreach ( $relations as $key => $item )
 				{
-					$newServiceId = Utilities::getArrayValue( 'service_id', $access, null );
-					$newComponent = Utilities::getArrayValue( 'component', $access, '' );
-					if ( ( $newServiceId == $oldAccess->service_id ) &&
-						 ( $newComponent == $oldAccess->component )
-					)
+					$assignId = Utilities::getArrayValue( 'service_id', $item, null );
+					if ( $assignId == $manyId )
 					{
-						// keeping it, so remove it from the list, as this becomes adds
+						// found it, keeping it, so remove it from the list, as this becomes adds
+						// update if need be
+						$oldComponent = Utilities::getArrayValue( 'component', $map, null );
+						$newComponent = Utilities::getArrayValue( 'component', $item, null );
+						if ( !empty( $newComponent ) )
+						{
+							$newComponent = serialize( $newComponent );
+						}
+						else
+						{
+							$newComponent = null; // no empty arrays here
+						}
+						// old should be serialized in the db
+						if ( $oldComponent != $newComponent )
+						{
+							$map['component'] = $newComponent;
+							$toUpdate[] = $map;
+						}
+						// otherwise throw it out
 						unset( $relations[$key] );
 						$found = true;
 						continue;
@@ -336,28 +360,62 @@ class App extends BaseDspSystemModel
 				}
 				if ( !$found )
 				{
-					$oldAccess->delete();
+					$toDelete[] = $id;
 					continue;
+				}
+			}
+			if ( !empty( $toDelete ) )
+			{
+				// simple delete request
+				$command->reset();
+				$rows = $command->delete( $map_table, array( 'in', $pkMapField, $toDelete ) );
+			}
+			if ( !empty( $toUpdate ) )
+			{
+				foreach ( $toUpdate as $item )
+				{
+					$itemId = Utilities::getArrayValue( 'id', $item, '' );
+					unset( $item['id'] );
+					// simple update request
+					$command->reset();
+					$rows = $command->update( $map_table, $item, 'id = :id', array( ':id' => $itemId ) );
+					if ( 0 >= $rows )
+					{
+						throw new Exception( "Record update failed." );
+					}
 				}
 			}
 			if ( !empty( $relations ) )
 			{
-				// add what is leftover
-				foreach ( $relations as $access )
+				foreach ( $relations as $item )
 				{
-					$newAccess = new AppServiceRelation;
-					if ( $newAccess )
+					// simple insert request
+					$newComponent = Utilities::getArrayValue( 'component', $item, null );
+					if ( !empty( $newComponent ) )
 					{
-						$newAccess->setAttribute( 'app_id', $app_id );
-						$newAccess->setAttributes( $access );
-						$newAccess->save();
+						$newComponent = serialize( $newComponent );
+					}
+					else
+					{
+						$newComponent = null; // no empty arrays here
+					}
+					$record = array(
+						'app_id' => $app_id,
+						'service_id' => Utilities::getArrayValue( 'service_id', $item, null ),
+						'component' => $newComponent
+					);
+					$command->reset();
+					$rows = $command->insert( $map_table, $record );
+					if ( 0 >= $rows )
+					{
+						throw new Exception( "Record insert failed." );
 					}
 				}
 			}
 		}
 		catch ( Exception $ex )
 		{
-			throw new Exception( "Error updating app to service assignment.\n{$ex->getMessage()}" );
+			throw new Exception( "Error updating app to service assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
 

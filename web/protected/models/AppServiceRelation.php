@@ -116,6 +116,20 @@ class AppServiceRelation extends BaseDspSystemModel
 	}
 
 	/**
+	 * {@InheritDoc}
+	 */
+	public function afterFind()
+	{
+		parent::afterFind();
+
+		// unserialize component data
+		if ( !empty( $this->component ))
+		{
+			$this->component = unserialize( $this->component );
+		}
+	}
+
+	/**
 	 * @param string $requested
 	 *
 	 * @param array  $columns

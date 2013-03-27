@@ -2268,32 +2268,12 @@ class SystemManager implements iRestHandler
 										case 'local sql db schema':
 										case 'remote sql db schema':
 											$db = ServiceHandler::getServiceObject( $serviceName );
-											$describe = $db->describeTable( $component );
-											// add under service name
-											$found = false;
-											foreach ( $schemas as $key => $schema )
-											{
-												if ( 0 == strcasecmp( $serviceName, Utilities::getArrayValue( 'api_name', $schema ) ) )
-												{
-													$found = true;
-													$temp = array();
-													if ( isset( $schema['table'] ) )
-													{
-														$temp = $schema['table'];
-													}
-													$temp[] = $schema;
-													$schemas[$key] = $temp;
-													continue;
-												}
-											}
-											if ( !$found )
-											{
-												$temp = array(
-													'api_name' => $serviceName,
-													'table'    => array( $describe )
-												);
-												$schemas[] = $temp;
-											}
+											$describe = $db->describeTables( implode( ',', $component ) );
+											$temp = array(
+												'api_name' => $serviceName,
+												'table'    => array( $describe )
+											);
+											$schemas[] = $temp;
 											break;
 									}
 								}

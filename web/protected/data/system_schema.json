@@ -1,5 +1,5 @@
 {
-    "version": "0.5.2",
+    "version": "0.5.3",
     "table": [
         {
             "name": "df_sys_config",
@@ -607,9 +607,8 @@
                 },
                 {
                     "name": "component",
-                    "type": "string",
-                    "length": 128,
-                    "allow_null": false
+					"type": "text",
+                    "allow_null": true
                 }
             ]
         },
