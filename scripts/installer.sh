@@ -4,6 +4,9 @@
 #
 # CHANGELOG:
 #
+# v1.1.1
+# 	Added --clean flag for a clean install
+#
 # v1.1.0
 #	Added -v verbose mode option
 #	Removed lingering git junk
@@ -23,9 +26,9 @@
 ##	Initial settings
 ##
 
-VERSION=1.1.0
+VERSION=1.1.1
 SYSTEM_TYPE=`uname -s`
-INSTALL_DIR=/usr/local/bin
+INSTALL_DIR=${USER}/bin
 COMPOSER=composer.phar
 PHP=/usr/bin/php
 WEB_USER=www-data
@@ -35,6 +38,8 @@ B2=`tput sgr0`
 FABRIC=0
 FABRIC_MARKER=/var/www/.fabric_hosted
 TAG="Mode: ${B1}Local${B2}"
+VERBOSE=
+QUIET="--quiet"
 
 if [ -f "${FABRIC_MARKER}" ] ; then
 	FABRIC=1
@@ -43,14 +48,48 @@ fi
 
 echo "${B1}DreamFactory Services Platform(tm)${B2} ${SYSTEM_TYPE} Installer [${TAG} v${VERSION}]"
 
-if [ "-v" == "${1}" ] ; then
-	VERBOSE="--verbose"
-	QUIET=
-	echo "  * Verbose mode enabled"
-else
-	VERBOSE=
-	QUIET="--quiet"
+#	Execute getopt on the arguments passed to this program, identified by the special character $@
+PARSED_OPTIONS=$(getopt -n "$0"  -o hvc --long "help,verbose,clean"  -- "$@")
+
+#	Bad arguments, something has gone wrong with the getopt command.
+if [ $? -ne 0 ] ; then
+	exit 1
 fi
+
+#	A little magic, necessary when using getopt.
+eval set -- "${PARSED_OPTIONS}"
+
+while true ;  do
+	case "$1" in
+		-h|--help)
+			echo "usage: $0 [-v|--verbose] [-c|--clean]"
+			shift
+	    	;;
+
+		-v|--verbose)
+			VERBOSE="--verbose"
+			QUIET=
+			echo "  * Verbose mode enabled"
+			shift
+			;;
+
+		-c|--clean)
+			if [ -f "/usr/local/bin/composer.phar" ] ; then
+				rm /usr/local/bin/composer.phar
+				if [ $? -ne 0 ] ; then
+					echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
+				fi
+			fi
+			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null 2>&1
+			echo "  * Clean install. Dependencies removed."
+			shift
+			;;
+
+		--)
+			shift
+			break;;
+	esac
+done
 
 echo "  * Install user is ${B1}\"${USER}\"${B2}"
 
@@ -115,6 +154,10 @@ chmod +x ${BASE_PATH}/scripts/*.sh
 ## Check if composer is installed
 ## If not, install. If it is, make sure it's current
 ##
+
+if [ ! -d "${INSTALL_DIR}" ] ; then
+	mkdir -p "${INSTALL_DIR}" >/dev/null 2>&1
+fi
 
 if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	echo "  * Installing package manager"

@@ -165,7 +165,18 @@ class Role extends BaseDspSystemModel
 	 */
 	protected function beforeValidate()
 	{
-		$this->is_active = intval( $this->is_active );
+		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
+		if ( is_string( $this->default_app_id ) )
+		{
+			if ( empty( $this->default_app_id ))
+			{
+				$this->default_app_id = null;
+			}
+			else
+			{
+				$this->default_app_id = intval( $this->default_app_id );
+			}
+		}
 
 		return parent::beforeValidate();
 	}

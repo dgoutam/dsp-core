@@ -125,16 +125,7 @@ class AppServiceRelation extends BaseDspSystemModel
 	 */
 	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
-		return parent::getRetrievableAttributes(
-			$requested,
-			array_merge(
-				array(
-				'app_id',
-				'service_id',
-					 'component',
-				),
-				$columns ),
-			$hidden
-			);
-		}
+		// don't use base class here as those fields are not supported
+		return array( 'app_id', 'service_id', 'component' );
+	}
 }

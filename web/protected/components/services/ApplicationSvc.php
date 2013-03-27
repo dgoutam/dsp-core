@@ -132,7 +132,7 @@ class ApplicationSvc extends CommonFileSvc
 			$zipFileName = $tempDir . $app_root . '.dfpkg';
 			if ( true !== $zip->open( $zipFileName, \ZipArchive::CREATE ) )
 			{
-				throw new Exception( "Can not create package file for this application." );
+				throw new Exception( 'Can not create package file for this application.' );
 			}
 
 			$fields = array(
@@ -146,9 +146,12 @@ class ApplicationSvc extends CommonFileSvc
 				'requires_fullscreen',
 				'requires_plugin'
 			);
-			$app = App::model()
-				->with( 'app_service_relations.service' )
-				->find( 't.name = :name', array( ':name' => $app_root ) );
+			$model = App::model();
+			if ( $include_services || $include_schema )
+			{
+				$model->with( 'app_service_relations.service' );
+			}
+			$app = $model->find( 't.name = :name', array( ':name' => $app_root ) );
 			if ( null === $app )
 			{
 				throw new Exception( "No database entry exists for this application '$app_root'." );
@@ -186,27 +189,6 @@ class ApplicationSvc extends CommonFileSvc
 						$service = $relation->getRelated( 'service' );
 						if ( !empty($service) )
 						{
-							if ( $include_schema )
-							{
-								$component = $relation->getAttribute( 'component' );
-								if ( !empty($component) )
-								{
-									// service is probably a db, export table schema if possible
-									$serviceName = $service->getAttribute( 'api_name' );
-									$serviceType = $service->getAttribute( 'type' );
-									switch ( strtolower( $serviceType ) )
-									{
-										case 'local sql db':
-										case 'local sql db schema':
-										case 'remote sql db':
-										case 'remote sql db schema':
-											$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
-											$schema = $db->describeTable( $component );
-											$schemas[] = $schema['table'];
-											break;
-									}
-								}
-							}
 							if ( $include_services )
 							{
 								if ( !Utilities::boolval( $service->getAttribute( 'is_system' ) ) )
@@ -216,13 +198,56 @@ class ApplicationSvc extends CommonFileSvc
 									$services[] = $temp;
 								}
 							}
+							if ( $include_schema )
+							{
+								$component = $relation->getAttribute( 'component' );
+								if ( !empty( $component ) )
+								{
+									// service is probably a db, export table schema if possible
+									$serviceName = $service->getAttribute( 'api_name' );
+									$serviceType = $service->getAttribute( 'type' );
+									switch ( strtolower( $serviceType ) )
+									{
+										case 'local sql db schema':
+										case 'remote sql db schema':
+											$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+											$describe = $db->describeTable( $component );
+											// add under service name
+											$found = false;
+											foreach ($schemas as $key => $schema )
+											{
+												if (0 == strcasecmp( $serviceName, Utilities::getArrayValue( 'api_name', $schema ) ) )
+												{
+													$found = true;
+													$temp = array();
+													if (isset($schema['table']))
+													{
+														$temp = $schema['table'];
+													}
+													$temp[] = $schema;
+													$schemas[$key] = $temp;
+													continue;
+												}
+											}
+											if ( !$found )
+											{
+												$temp = array(
+													'api_name' => $serviceName,
+													'table' => array( $describe )
+												);
+												$schemas[] = $temp;
+											}
+											break;
+									}
+								}
+							}
 						}
 					}
-					if ( !$zip->addFromString( 'services.json', json_encode( $services ) ) )
+					if ( !empty( $services ) && !$zip->addFromString( 'services.json', json_encode( $services ) ) )
 					{
 						throw new Exception( "Can not include services in package file." );
 					}
-					if ( !$zip->addFromString( 'schema.json', json_encode( array( 'table' => $schemas ) ) ) )
+					if ( !empty( $schemas ) && !$zip->addFromString( 'schema.json', json_encode( array( 'service' => $schemas ) ) ) )
 					{
 						throw new Exception( "Can not include database schema in package file." );
 					}
@@ -349,50 +374,149 @@ class ApplicationSvc extends CommonFileSvc
 		$zip->deleteName( 'description.json' );
 		try
 		{
+			$data = $zip->getFromName( 'services.json' );
+			if ( false !== $data )
+			{
+				$data = Utilities::jsonToArray( $data );
+				try
+				{
+					$result = $sys->createRecords( 'service', $data, true );
+				}
+				catch ( Exception $ex )
+				{
+					throw new Exception( "Could not create the services.\n{$ex->getMessage()}" );
+				}
+				$zip->deleteName( 'services.json' );
+			}
 			$data = $zip->getFromName( 'schema.json' );
 			if ( false !== $data )
 			{
 				$data = Utilities::jsonToArray( $data );
-				// todo how to determine which service to send this?
-				$tables = Utilities::getArrayValue( 'table', $data, array() );
-				$db = ServiceHandler::getInstance()->getServiceObject( 'schema' );
-				$result = $db->createTables( $tables );
-				if ( isset( $result[0]['error'] ) )
+				$services = Utilities::getArrayValue( 'service', $data, array() );
+				if ( !empty( $services ) )
 				{
-					$msg = $result[0]['error']['message'];
-					throw new Exception( "Could not create the database tables for this application.\n$msg" );
+					foreach ( $services as $schemas )
+					{
+						$serviceName = Utilities::getArrayValue( 'api_name', $schemas, '' );
+						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$tables = Utilities::getArrayValue( 'table', $schemas, array() );
+						if ( !empty( $tables ) )
+						{
+							$result = $db->createTables( $tables );
+							if ( isset( $result[0]['error'] ) )
+							{
+								$msg = $result[0]['error']['message'];
+								throw new Exception( "Could not create the database tables for this application.\n$msg" );
+							}
+						}
+					}
+				}
+				else
+				{
+					// single or multiple tables for one service
+					$tables = Utilities::getArrayValue( 'table', $data, array() );
+					if ( !empty( $tables ) )
+					{
+						$serviceName = Utilities::getArrayValue( 'api_name', $data, '' );
+						if ( empty( $serviceName ) )
+						{
+							$serviceName = 'schema'; // for older packages
+						}
+						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$result = $db->createTables( $tables );
+						if ( isset( $result[0]['error'] ) )
+						{
+							$msg = $result[0]['error']['message'];
+							throw new Exception( "Could not create the database tables for this application.\n$msg" );
+						}
+					}
+					else
+					{
+						// single table with no wrappers - try default schema service
+						$table = Utilities::getArrayValue( 'name', $data, '' );
+						if ( !empty( $table ) )
+						{
+							$serviceName = 'schema';
+							$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+							$result = $db->createTable( $data );
+							if ( isset( $result['error'] ) )
+							{
+								$msg = $result['error']['message'];
+								throw new Exception( "Could not create the database tables for this application.\n$msg" );
+							}
+						}
+					}
 				}
 				$zip->deleteName( 'schema.json' );
 			}
-			try
+			$data = $zip->getFromName( 'data.json' );
+			if ( false !== $data )
 			{
-				$data = $zip->getFromName( 'data.json' );
-				if ( false !== $data )
+				$data = Utilities::jsonToArray( $data );
+				$services = Utilities::getArrayValue( 'service', $data, array() );
+				if ( !empty( $services ) )
 				{
-					$data = Utilities::jsonToArray( $data );
-					// todo how to determine which service to send this?
-					$db = ServiceHandler::getInstance()->getServiceObject( 'db' );
-					$tables = Utilities::getArrayValue( 'table', $data, array() );
-					foreach ( $tables as $table )
+					foreach ( $services as $service )
 					{
-						$tableName = Utilities::getArrayValue( 'name', $table, '' );
-						$records = Utilities::getArrayValue( 'record', $table, '' );
-						$result = $db->createRecords( $tableName, $records );
-						if ( isset( $result['record'][0]['error'] ) )
+						$serviceName = Utilities::getArrayValue( 'api_name', $service, '' );
+						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$tables = Utilities::getArrayValue( 'table', $data, array() );
+						foreach ( $tables as $table )
 						{
-							$msg = $result['record'][0]['error']['message'];
-							throw new Exception( "Could not insert the database entries for table '$tableName'' for this application.\n$msg" );
+							$tableName = Utilities::getArrayValue( 'name', $table, '' );
+							$records = Utilities::getArrayValue( 'record', $table, array() );
+							$result = $db->createRecords( $tableName, $records );
+							if ( isset( $result['record'][0]['error'] ) )
+							{
+								$msg = $result['record'][0]['error']['message'];
+								throw new Exception( "Could not insert the database entries for table '$tableName'' for this application.\n$msg" );
+							}
 						}
 					}
-					$zip->deleteName( 'data.json' );
 				}
-			}
-			catch ( Exception $ex )
-			{
-				// delete db record
-				// todo anyone else using schema created?
-				$sys->deleteRecordById( 'app', $id );
-				throw $ex;
+				else
+				{
+					// single or multiple tables for one service
+					$tables = Utilities::getArrayValue( 'table', $data, array() );
+					if ( !empty( $tables ) )
+					{
+						$serviceName = Utilities::getArrayValue( 'api_name', $data, '' );
+						if ( empty( $serviceName ) )
+						{
+							$serviceName = 'db'; // for older packages
+						}
+						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						foreach ( $tables as $table )
+						{
+							$tableName = Utilities::getArrayValue( 'name', $table, '' );
+							$records = Utilities::getArrayValue( 'record', $table, array() );
+							$result = $db->createRecords( $tableName, $records );
+							if ( isset( $result['record'][0]['error'] ) )
+							{
+								$msg = $result['record'][0]['error']['message'];
+								throw new Exception( "Could not insert the database entries for table '$tableName'' for this application.\n$msg" );
+							}
+						}
+					}
+					else
+					{
+						// single table with no wrappers - try default database service
+						$tableName = Utilities::getArrayValue( 'name', $data, '' );
+						if ( !empty( $tableName ) )
+						{
+							$serviceName = 'db';
+							$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+							$records = Utilities::getArrayValue( 'record', $data, array() );
+							$result = $db->createRecords( $tableName, $records );
+							if ( isset( $result['record'][0]['error'] ) )
+							{
+								$msg = $result['record'][0]['error']['message'];
+								throw new Exception( "Could not insert the database entries for table '$tableName'' for this application.\n$msg" );
+							}
+						}
+					}
+				}
+				$zip->deleteName( 'data.json' );
 			}
 		}
 		catch ( Exception $ex )
@@ -442,6 +566,32 @@ class ApplicationSvc extends CommonFileSvc
 		{
 			throw new Exception( 'Error opening zip file.' );
 		}
+	}
+
+	/**
+	 * @param        $path
+	 * @param null   $zip
+	 * @param string $zipFileName
+	 * @param bool   $overwrite
+	 *
+	 * @return string
+	 */
+	public function getFolderAsZip( $path, $zip = null, $zipFileName = '', $overwrite = false )
+	{
+		return $this->fileRestHandler->getFolderAsZip( $path, $zip, $zipFileName, $overwrite );
+	}
+
+	/**
+	 * @param        $path
+	 * @param        $zip
+	 * @param bool   $clean
+	 * @param string $drop_path
+	 *
+	 * @return array
+	 */
+	public function extractZipFile( $path, $zip, $clean = false, $drop_path = '' )
+	{
+		return $this->fileRestHandler->extractZipFile( $path, $zip, $clean, $drop_path );
 	}
 
 	// Controller based methods

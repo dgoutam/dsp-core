@@ -212,7 +212,7 @@ class Service extends BaseDspSystemModel
 	protected function beforeValidate()
 	{
 		// correct data type
-		$this->is_active = intval( $this->is_active );
+		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
 
 		return parent::beforeValidate();
 	}

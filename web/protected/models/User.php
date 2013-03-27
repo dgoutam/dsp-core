@@ -198,21 +198,29 @@ class User extends BaseDspSystemModel
 				}
 			}
 		}
-		if ( is_bool( $this->is_active ) )
-		{
-			$this->is_active = intval( $this->is_active );
-		}
-		if ( is_bool( $this->is_sys_admin ) )
-		{
-			$this->is_sys_admin = intval( $this->is_sys_admin );
-		}
+		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
+		$this->is_sys_admin = intval( Utilities::boolval( $this->is_sys_admin ) );
 		if ( is_string( $this->role_id ) )
 		{
-			$this->role_id = intval( $this->role_id );
+			if ( empty( $this->role_id ))
+			{
+				$this->role_id = null;
+			}
+			else
+			{
+				$this->role_id = intval( $this->role_id );
+			}
 		}
 		if ( is_string( $this->default_app_id ) )
 		{
-			$this->default_app_id = intval( $this->default_app_id );
+			if ( empty( $this->default_app_id ))
+			{
+				$this->default_app_id = null;
+			}
+			else
+			{
+				$this->default_app_id = intval( $this->default_app_id );
+			}
 		}
 
 		return parent::beforeValidate();
