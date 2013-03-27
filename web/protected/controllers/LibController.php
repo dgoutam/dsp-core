@@ -47,7 +47,7 @@ class LibController extends Controller
 			}
 			else
 			{
-				$app = ServiceHandler::getInstance()->getServiceObject( 'lib' );
+				$app = ServiceHandler::getServiceObject( 'lib' );
 				$app->streamFile( $path );
 			}
 			Yii::app()->end();

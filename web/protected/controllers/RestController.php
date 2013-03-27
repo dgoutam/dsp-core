@@ -107,7 +107,7 @@ class RestController extends Controller
                 $svcObj = UserManager::getInstance();
                 break;
             default:
-                $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
+                $svcObj = ServiceHandler::getServiceObject($this->service);
                 break;
             }
             if ($this->swagger) {
@@ -175,7 +175,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionPost();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
+                    $svcObj = ServiceHandler::getServiceObject($this->service);
                     $result = $svcObj->actionPost();
 
                     $type = $svcObj->getType();
@@ -208,7 +208,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionMerge();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
+                    $svcObj = ServiceHandler::getServiceObject($this->service);
                     $result = $svcObj->actionMerge();
 
                     $type = $svcObj->getType();
@@ -241,7 +241,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionPut();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
+                    $svcObj = ServiceHandler::getServiceObject($this->service);
                     $result = $svcObj->actionPut();
 
                     $type = $svcObj->getType();
@@ -274,7 +274,7 @@ class RestController extends Controller
                     $result = UserManager::getInstance()->actionDelete();
                     break;
                 default:
-                    $svcObj = ServiceHandler::getInstance()->getServiceObject($this->service);
+                    $svcObj = ServiceHandler::getServiceObject($this->service);
                     $result = $svcObj->actionDelete();
 
                     $type = $svcObj->getType();

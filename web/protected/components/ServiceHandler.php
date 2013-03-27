@@ -38,181 +38,182 @@
  */
 class ServiceHandler
 {
-    /**
-     * @var ServiceHandler
-     */
-    private static $_instance = null;
+	/**
+	 * Services
+	 *
+	 * array of created services
+	 *
+	 * @access private
+	 * @var array
+	 */
+	private static $_services = array();
 
-    /**
-     * Services
-     *
-     * array of created services
-     *
-     * @access private
-     * @var array
-     */
-    private $_services = array();
+	/**
+	 * Creates a new ServiceHandler instance
+	 *
+	 */
+	public function __construct()
+	{
+		// create services as needed, store local pointer in array for speed
+		static::$_services = array();
+	}
 
-    /**
-     * Creates a new ServiceHandler instance
-     *
-     */
-    public function __construct()
-    {
-        // create services as needed, store local pointer in array for speed
-        $this->_services = array();
-    }
+	/**
+	 * Object destructor
+	 */
+	public function __destruct()
+	{
+		if ( !empty( static::$_services ) )
+		{
+			foreach ( static::$_services as $key => $service )
+			{
+				unset( static::$_services[$key] );
+			}
+			static::$_services = null;
+		}
+	}
 
-    /**
-     * Object destructor
-     */
-    public function __destruct()
-    {
-        if (!empty($this->_services)) {
-            foreach ($this->_services as $key => $service) {
-                unset($this->_services[$key]);
-            }
-            $this->_services = null;
-        }
-    }
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public static function getServiceListing()
+	{
+		try
+		{
+			$_criteria = new CDbCriteria( array( 'select' => 'api_name,name' ) );
+			$result = Service::model()->findAll( $_criteria );
+			$out = array();
+			foreach ( $result as $service )
+			{
+				$out[] = array( 'api_name' => $service->api_name, 'name' => $service->name );
+			}
 
-    /**
-     * Gets the static instance of this class.
-     *
-     * @return ServiceHandler
-     */
-    public static function getInstance()
-    {
-        if (!isset(self::$_instance)) {
-            self::$_instance = new ServiceHandler();
-        }
+			return $out;
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
 
-        return self::$_instance;
-    }
+	/**
+	 * Retrieves the record of the particular service
+	 *
+	 * @access private
+	 *
+	 * @param string $api_name
+	 *
+	 * @return array The service record array
+	 * @throws Exception if retrieving of service is not possible
+	 */
+	private static function getService( $api_name )
+	{
+		try
+		{
+			$result = Service::model()->find( 'api_name=:name', array( ':name' => $api_name ) );
+			if ( isset( $result ) )
+			{
+				return $result->attributes;
+			}
 
-    /**
-     * @return array
-     * @throws Exception
-     */
-    public function getServiceListing()
-    {
-        try {
-            $_criteria = new CDbCriteria(array('select' => 'api_name,name'));
-            $result = Service::model()->findAll($_criteria);
-            $out = array();
-            foreach ($result as $service) {
-                $out[] = array('api_name' => $service->api_name, 'name' => $service->name);
-            }
+			return array();
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
 
-            return $out;
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-    }
+	/**
+	 * Retrieves the pointer to the particular service handler
+	 *
+	 * If the service is already created, it just returns the private class
+	 * member that holds the pointer, otherwise it calls the constructor for
+	 * the new service, passing in parameters based on the stored configuration settings.
+	 *
+	 * @access public
+	 *
+	 * @param string  $api_name
+	 * @param boolean $check_active Throws an exception if true and the service is not active.
+	 *
+	 * @return object The new or previously constructed XXXSvc
+	 * @throws Exception if construction of service is not possible
+	 */
+	public static function getServiceObject( $api_name, $check_active = false )
+	{
+		if ( empty( $api_name ) )
+		{
+			throw new Exception( "Failed to launch service, no service name given." );
+		}
 
-    /**
-     * Retrieves the record of the particular service
-     *
-     * @access private
-     * @param string $api_name
-     * @return array The service record array
-     * @throws Exception if retrieving of service is not possible
-     */
-    private function getService($api_name)
-    {
-        try {
-            $result = Service::model()->find('api_name=:name', array(':name' => $api_name));
-            if (isset($result)) {
-                return $result->attributes;
-            }
-            return array();
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
-    }
+		// if it hasn't been created, do so
+		$service = Utilities::getArrayValue( $api_name, static::$_services, null );
+		if ( isset( $service ) && !empty( $service ) )
+		{
+			return $service;
+		}
 
-    /**
-     * Retrieves the pointer to the particular service handler
-     *
-     * If the service is already created, it just returns the private class
-     * member that holds the pointer, otherwise it calls the constructor for
-     * the new service, passing in parameters based on the stored configuration settings.
-     *
-     * @access public
-     * @param string $api_name
-     * @param boolean $check_active Throws an exception if true and the service is not active.
-     * @return object The new or previously constructed XXXSvc
-     * @throws Exception if construction of service is not possible
-     */
-    public function getServiceObject($api_name, $check_active=false)
-    {
-        if (empty($api_name)) {
-            throw new Exception("Failed to launch service, no service name given.");
-        }
+		try
+		{
+			$record = static::getService( $api_name );
+			switch ( strtolower( $api_name ) )
+			{
+				// some special cases first
+				case 'app':
+					$service = new ApplicationSvc( $record );
+					break;
+				case 'lib':
+					$service = new LibrarySvc( $record );
+					break;
+				case 'attachment':
+					$service = new AttachmentSvc( $record );
+					break;
+				case 'doc':
+					$service = new DocumentSvc( $record );
+					break;
+				default:
+					$type = Utilities::getArrayValue( 'type', $record, '' );
+					switch ( $type )
+					{
+						case 'Remote Web Service':
+							$service = new WebService( $record );
+							break;
+						case 'Local File Storage':
+						case 'Remote File Storage':
+							$service = new CommonFileSvc( $record );
+							break;
+						case 'Local SQL DB':
+						case 'Remote SQL DB':
+							$service = new DatabaseSvc( $record );
+							break;
+						case 'Local SQL DB Schema':
+						case 'Remote SQL DB Schema':
+							$service = new SchemaSvc( $record );
+							break;
+						case 'Local Email Service':
+						case 'Remote Email Service':
+							$service = new EmailSvc( $record );
+							break;
+						default:
+							throw new Exception( "Failed to launch service, unknown type value '$type' in service record." );
+							break;
+					}
+					break;
+			}
+			static::$_services[$api_name] = $service;
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to launch service '$api_name'.\n{$ex->getMessage()}" );
+		}
 
-        // if it hasn't been created, do so
-        $service = Utilities::getArrayValue($api_name, $this->_services, null);
-        if (isset($service) && !empty($service)) {
-            return $service;
-        }
+		if ( $check_active && !$service->getIsActive() )
+		{
+			throw new Exception( "Requested service '$api_name' is not active." );
+		}
 
-        try {
-            $record = $this->getService($api_name);
-            switch (strtolower($api_name)) {
-            // some special cases first
-            case 'app':
-                $service = new ApplicationSvc($record);
-                break;
-            case 'lib':
-                $service = new LibrarySvc($record);
-                break;
-            case 'attachment':
-                $service = new AttachmentSvc($record);
-                break;
-            case 'doc':
-                $service = new DocumentSvc($record);
-                break;
-            default:
-                $type = Utilities::getArrayValue('type', $record, '');
-                switch ($type) {
-                case 'Remote Web Service':
-                    $service = new WebService($record);
-                    break;
-                case 'Local File Storage':
-                case 'Remote File Storage':
-                    $service = new CommonFileSvc($record);
-                    break;
-                case 'Local SQL DB':
-                case 'Remote SQL DB':
-                    $service = new DatabaseSvc($record);
-                    break;
-                case 'Local SQL DB Schema':
-                case 'Remote SQL DB Schema':
-                    $service = new SchemaSvc($record);
-                    break;
-                case 'Local Email Service':
-                case 'Remote Email Service':
-                    $service = new EmailSvc($record);
-                    break;
-                default:
-                    throw new Exception("Failed to launch service, unknown type value '$type' in service record.");
-                    break;
-                }
-                break;
-            }
-            $this->_services[$api_name] = $service;
-        }
-        catch (Exception $ex) {
-            throw new Exception("Failed to launch service '$api_name'.\n{$ex->getMessage()}");
-        }
-
-        if ($check_active && !$service->getIsActive()) {
-            throw new Exception("Requested service '$api_name' is not active.");
-        }
-
-        return $service;
-    }
+		return $service;
+	}
 
 }

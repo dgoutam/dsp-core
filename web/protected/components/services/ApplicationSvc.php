@@ -210,7 +210,7 @@ class ApplicationSvc extends CommonFileSvc
 									{
 										case 'local sql db schema':
 										case 'remote sql db schema':
-											$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+											$db = ServiceHandler::getServiceObject( $serviceName );
 											$describe = $db->describeTable( $component );
 											// add under service name
 											$found = false;
@@ -398,7 +398,7 @@ class ApplicationSvc extends CommonFileSvc
 					foreach ( $services as $schemas )
 					{
 						$serviceName = Utilities::getArrayValue( 'api_name', $schemas, '' );
-						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$db = ServiceHandler::getServiceObject( $serviceName );
 						$tables = Utilities::getArrayValue( 'table', $schemas, array() );
 						if ( !empty( $tables ) )
 						{
@@ -422,7 +422,7 @@ class ApplicationSvc extends CommonFileSvc
 						{
 							$serviceName = 'schema'; // for older packages
 						}
-						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$db = ServiceHandler::getServiceObject( $serviceName );
 						$result = $db->createTables( $tables );
 						if ( isset( $result[0]['error'] ) )
 						{
@@ -437,7 +437,7 @@ class ApplicationSvc extends CommonFileSvc
 						if ( !empty( $table ) )
 						{
 							$serviceName = 'schema';
-							$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+							$db = ServiceHandler::getServiceObject( $serviceName );
 							$result = $db->createTable( $data );
 							if ( isset( $result['error'] ) )
 							{
@@ -459,7 +459,7 @@ class ApplicationSvc extends CommonFileSvc
 					foreach ( $services as $service )
 					{
 						$serviceName = Utilities::getArrayValue( 'api_name', $service, '' );
-						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$db = ServiceHandler::getServiceObject( $serviceName );
 						$tables = Utilities::getArrayValue( 'table', $data, array() );
 						foreach ( $tables as $table )
 						{
@@ -485,7 +485,7 @@ class ApplicationSvc extends CommonFileSvc
 						{
 							$serviceName = 'db'; // for older packages
 						}
-						$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+						$db = ServiceHandler::getServiceObject( $serviceName );
 						foreach ( $tables as $table )
 						{
 							$tableName = Utilities::getArrayValue( 'name', $table, '' );
@@ -505,7 +505,7 @@ class ApplicationSvc extends CommonFileSvc
 						if ( !empty( $tableName ) )
 						{
 							$serviceName = 'db';
-							$db = ServiceHandler::getInstance()->getServiceObject( $serviceName );
+							$db = ServiceHandler::getServiceObject( $serviceName );
 							$records = Utilities::getArrayValue( 'record', $data, array() );
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )

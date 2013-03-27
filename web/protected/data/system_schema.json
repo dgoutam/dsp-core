@@ -655,6 +655,39 @@
                 }
             ]
         },
+		{
+			"name": "df_sys_role_system_access",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name": "role_id",
+					"type": "reference",
+					"ref_table": "df_sys_role",
+					"ref_fields": "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null": false
+				},
+				{
+					"name": "component",
+					"type": "string",
+					"length": 128,
+					"allow_null": true
+				},
+				{
+					"name": "access",
+					"type": "string",
+					"length": 64,
+					"value": ["No Access", "Read Only", "Write Only", "Read and Write", "Full Access"],
+					"default": "No Access",
+					"allow_null": false,
+					"validation": "picklist"
+				}
+			]
+		},
         {
             "name": "df_sys_schema_extras",
             "field": [

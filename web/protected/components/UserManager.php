@@ -50,7 +50,7 @@
 class UserManager implements iRestHandler
 {
     /**
-     * @var ServiceHandler
+     * @var UserManager
      */
     private static $_instance = null;
 
@@ -466,7 +466,7 @@ class UserManager implements iRestHandler
 
         $html = str_replace("\r\n", "<br />", $body);
         try {
-            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $svc = ServiceHandler::getServiceObject('email');
             $result = ($svc) ? $svc->sendEmail($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send user welcome email.";
@@ -496,7 +496,7 @@ class UserManager implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $svc = ServiceHandler::getServiceObject('email');
             $result = ($svc) ? $svc->sendEmailToAdmin('', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send registration complete email.";
@@ -533,7 +533,7 @@ class UserManager implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $svc = ServiceHandler::getServiceObject('email');
             $result = ($svc) ? $svc->sendEmailPhp($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send user password change email.";
@@ -574,7 +574,7 @@ class UserManager implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $svc = ServiceHandler::getServiceObject('email');
             $result = ($svc) ? $svc->sendEmailPhp($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send new password email.";
@@ -613,7 +613,7 @@ class UserManager implements iRestHandler
 
         $html = str_replace("\r\n", "<br />", $body);
         try {
-            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $svc = ServiceHandler::getServiceObject('email');
             $result = ($svc) ? $svc->sendEmailPhp($to, '', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed sending registration confirmation email.";
@@ -645,7 +645,7 @@ class UserManager implements iRestHandler
         $html = str_replace("\r\n", "<br />", $body);
 
         try {
-            $svc = ServiceHandler::getInstance()->getServiceObject('email');
+            $svc = ServiceHandler::getServiceObject('email');
             $result = ($svc) ? $svc->sendEmailToAdmin('', '', $subject, $body, $html) : false;
             if (!filter_var($result, FILTER_VALIDATE_BOOLEAN)) {
                 $msg = "Error: Failed to send admin notification email.";

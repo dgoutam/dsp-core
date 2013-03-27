@@ -209,7 +209,7 @@ class App extends BaseDspSystemModel
 		// make sure we have an app in the folder
 		if ( !$this->is_url_external )
 		{
-			$_service = ServiceHandler::getInstance()->getServiceObject( 'app' );
+			$_service = ServiceHandler::getServiceObject( 'app' );
 
 			if ( !$_service->appExists( $this->api_name ) )
 			{
@@ -233,7 +233,7 @@ class App extends BaseDspSystemModel
 			//return false;
 		}
 
-		$store = ServiceHandler::getInstance()->getServiceObject( 'app' );
+		$store = ServiceHandler::getServiceObject( 'app' );
 		$store->deleteApp( $this->api_name );
 
 		return parent::beforeDelete();

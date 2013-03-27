@@ -20,7 +20,7 @@ class AppController extends Controller
     {
         $path = (isset($_GET['path']) ? $_GET['path'] : '');
         try {
-            $app = ServiceHandler::getInstance()->getServiceObject('app');
+            $app = ServiceHandler::getServiceObject('app');
             $app->streamFile($path);
             Yii::app()->end();
         }
