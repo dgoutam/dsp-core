@@ -263,26 +263,37 @@ class Role extends BaseDspSystemModel
 					}
 				}
 			}
-			$oldAccesses = RoleServiceAccess::model()->findAll( 'role_id = :rid', array( ':rid' => $role_id ) );
-			foreach ( $oldAccesses as $oldAccess )
+			$map_table = static::tableNamePrefix() . 'role_service_access';
+			$pkMapField = 'id';
+			// use query builder
+			$command = Yii::app()->db->createCommand();
+			$command->select( 'id,service_id,component,access' );
+			$command->from( $map_table );
+			$command->where( 'role_id = :id' );
+			$maps = $command->queryAll( true, array( ':id' => $role_id ) );
+			$toDelete = array();
+			$toUpdate = array();
+			foreach ( $maps as $map )
 			{
+				$manyId = Utilities::getArrayValue( 'service_id', $map, null );
+				$manyComponent = Utilities::getArrayValue( 'component', $map, '' );
+				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
 				$found = false;
-				foreach ( $accesses as $key => $access )
+				foreach ( $accesses as $key => $item )
 				{
-					$newServiceId = Utilities::getArrayValue( 'service_id', $access, null );
-					$newComponent = Utilities::getArrayValue( 'component', $access, '' );
-					if ( ( $newServiceId == $oldAccess->service_id ) &&
-						 ( $newComponent == $oldAccess->component )
-					)
+					$assignId = Utilities::getArrayValue( 'service_id', $item, null );
+					$assignComponent = Utilities::getArrayValue( 'component', $item, '' );
+					if ( ( $assignId == $manyId ) && ( $assignComponent == $manyComponent ) )
 					{
 						// found it, make sure nothing needs to be updated
-						$newAccess = Utilities::getArrayValue( 'access', $access, '' );
-						if ( ( $oldAccess->access != $newAccess ) )
+						$oldAccess = Utilities::getArrayValue( 'access', $map, '' );
+						$newAccess = Utilities::getArrayValue( 'access', $item, '' );
+						if ( ( $oldAccess != $newAccess ) )
 						{
-							$oldAccess->access = $newAccess;
-							$oldAccess->save();
+							$map['access'] = $newAccess;
+							$toUpdate[] = $map;
 						}
-						// keeping it, so remove it from the list, as this becomes adds
+						// otherwise throw it out
 						unset( $accesses[$key] );
 						$found = true;
 						continue;
@@ -290,21 +301,47 @@ class Role extends BaseDspSystemModel
 				}
 				if ( !$found )
 				{
-					$oldAccess->delete();
+					$toDelete[] = $id;
 					continue;
+				}
+			}
+			if ( !empty( $toDelete ) )
+			{
+				// simple delete request
+				$command->reset();
+				$rows = $command->delete( $map_table, array( 'in', $pkMapField, $toDelete ) );
+			}
+			if ( !empty( $toUpdate ) )
+			{
+				foreach ( $toUpdate as $item )
+				{
+					$itemId = Utilities::getArrayValue( 'id', $item, '' );
+					unset( $item['id'] );
+					// simple update request
+					$command->reset();
+					$rows = $command->update( $map_table, $item, 'id = :id', array( ':id' => $itemId ) );
+					if ( 0 >= $rows )
+					{
+						throw new Exception( "Record update failed." );
+					}
 				}
 			}
 			if ( !empty( $accesses ) )
 			{
-				// add what is leftover
-				foreach ( $accesses as $access )
+				foreach ( $accesses as $item )
 				{
-					$newAccess = new RoleServiceAccess;
-					if ( $newAccess )
+					// simple insert request
+					$record = array(
+						'role_id' => $role_id,
+						'service_id' => Utilities::getArrayValue( 'service_id', $item, null ),
+						'component' => Utilities::getArrayValue( 'component', $item, '' ),
+						'access' => Utilities::getArrayValue( 'access', $item, '' )
+					);
+					$command->reset();
+					$rows = $command->insert( $map_table, $record );
+					if ( 0 >= $rows )
 					{
-						$newAccess->setAttribute( 'role_id', $role_id );
-						$newAccess->setAttributes( $access );
-						$newAccess->save();
+						throw new Exception( "Record insert failed." );
 					}
 				}
 			}
