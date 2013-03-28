@@ -402,7 +402,7 @@ class ApplicationSvc extends CommonFileSvc
 						$tables = Utilities::getArrayValue( 'table', $schemas, array() );
 						if ( !empty( $tables ) )
 						{
-							$result = $db->createTables( $tables );
+							$result = $db->createTables( $tables, true );
 							if ( isset( $result[0]['error'] ) )
 							{
 								$msg = $result[0]['error']['message'];
@@ -423,7 +423,7 @@ class ApplicationSvc extends CommonFileSvc
 							$serviceName = 'schema'; // for older packages
 						}
 						$db = ServiceHandler::getServiceObject( $serviceName );
-						$result = $db->createTables( $tables );
+						$result = $db->createTables( $tables, true );
 						if ( isset( $result[0]['error'] ) )
 						{
 							$msg = $result[0]['error']['message'];
@@ -438,7 +438,7 @@ class ApplicationSvc extends CommonFileSvc
 						{
 							$serviceName = 'schema';
 							$db = ServiceHandler::getServiceObject( $serviceName );
-							$result = $db->createTable( $data );
+							$result = $db->createTables( $data, true );
 							if ( isset( $result['error'] ) )
 							{
 								$msg = $result['error']['message'];

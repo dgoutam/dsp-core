@@ -252,10 +252,19 @@ class SystemManager implements iRestHandler
 			{
 				if ( !isset( $config ) )
 				{
-					$config = new Config;
+					// first time is troublesome with session user id
+					$command->reset();
+					$rows = $command->insert( Config::tableNamePrefix() . 'config', array('db_version' => $version) );
+					if ( 0 >= $rows )
+					{
+						throw new Exception( "Record insert failed." );
+					}
 				}
-				$config->db_version = $version;
-				$config->save();
+				else
+				{
+					$config->db_version = $version;
+					$config->save();
+				}
 			}
 			catch ( CDbException $_ex )
 			{
@@ -369,63 +378,109 @@ class SystemManager implements iRestHandler
 			}
 			SessionManager::setCurrentUserId( $userId );
 
-			// init system tables with records
+			// init with system required data
 			$contents = file_get_contents( Yii::app()->basePath . '/data/system_data.json' );
 			if ( empty( $contents ) )
 			{
 				throw new \Exception( "Empty or no system data file found." );
 			}
 			$contents = Utilities::jsonToArray( $contents );
-			$result = Service::model()->findAll();
-			if ( empty( $result ) )
+			foreach ( $contents as $table => $content )
 			{
-				$services = Utilities::getArrayValue( 'df_sys_service', $contents );
-				if ( empty( $services ) )
+				switch ( $table )
 				{
-					throw new \Exception( "No default system services found." );
-				}
-				foreach ( $services as $service )
-				{
-					$obj = new Service;
-					$obj->setAttributes( $service );
-					if ( !$obj->save() )
-					{
-						$msg = '';
-						if ( $obj->hasErrors() )
+					case 'df_sys_service':
+						$result = Service::model()->findAll();
+						if ( empty( $result ) )
 						{
-							foreach ( $obj->errors as $error )
+							if ( empty( $content ) )
 							{
-								$msg .= implode( PHP_EOL, $error );
+								throw new \Exception( "No default system services found." );
 							}
-						}
-						error_log( print_r( $obj->errors, true ) );
-						throw new Exception( "Failed to create services.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
-					}
-				}
-			}
-			$result = App::model()->findAll();
-			if ( empty( $result ) )
-			{
-				$apps = Utilities::getArrayValue( 'df_sys_app', $contents );
-				if ( !empty( $apps ) )
-				{
-					foreach ( $apps as $app )
-					{
-						$obj = new App;
-						$obj->setAttributes( $app );
-						if ( !$obj->save() )
-						{
-							$msg = '';
-							if ( $obj->hasErrors() )
+							foreach ( $content as $service )
 							{
-								foreach ( $obj->errors as $error )
+								$obj = new Service;
+								$obj->setAttributes( $service );
+								if ( !$obj->save() )
 								{
-									$msg .= implode( PHP_EOL, $error );
+									$msg = '';
+									if ( $obj->hasErrors() )
+									{
+										foreach ( $obj->errors as $error )
+										{
+											$msg .= implode( PHP_EOL, $error );
+										}
+									}
+									error_log( print_r( $obj->errors, true ) );
+									throw new Exception( "Failed to create services.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
 								}
 							}
-							error_log( print_r( $obj->errors, true ) );
-							throw new Exception( "Failed to create apps.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
 						}
+						break;
+				}
+			}
+			// init system with sample setup
+			$contents = file_get_contents( Yii::app()->basePath . '/data/sample_data.json' );
+			if ( !empty( $contents ) )
+			{
+				$contents = Utilities::jsonToArray( $contents );
+				foreach ( $contents as $table => $content )
+				{
+					switch ( $table )
+					{
+						case 'df_sys_service':
+							$result = Service::model()->findAll();
+							if ( empty( $result ) )
+							{
+								if ( !empty( $content ) )
+								{
+									foreach ( $content as $service )
+									{
+										$obj = new Service;
+										$obj->setAttributes( $service );
+										if ( !$obj->save() )
+										{
+											$msg = '';
+											if ( $obj->hasErrors() )
+											{
+												foreach ( $obj->errors as $error )
+												{
+													$msg .= implode( PHP_EOL, $error );
+												}
+											}
+											error_log( print_r( $obj->errors, true ) );
+											throw new Exception( "Failed to create services.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
+										}
+									}
+								}
+							}
+							break;
+						case 'app_package':
+							$result = App::model()->findAll();
+							if ( empty( $result ) )
+							{
+								if ( !empty( $content ) )
+								{
+									foreach ( $content as $package )
+									{
+										$fileUrl = Utilities::getArrayValue( 'url', $package, '' );
+										if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
+										{
+											try
+											{
+												// need to download and extract zip file and move contents to storage
+												$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
+												$this->importAppFromPackage( $filename, $fileUrl );
+											}
+											catch ( Exception $ex )
+											{
+												Log::error( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
+											}
+										}
+									}
+								}
+							}
+							break;
 					}
 				}
 			}
@@ -670,8 +725,7 @@ class SystemManager implements iRestHandler
 						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
 						try
 						{
-							return $this->importAppFromPackage( $filename );
-							// todo save url for later updates
+							return $this->importAppFromPackage( $filename, $fileUrl );
 						}
 						catch ( Exception $ex )
 						{
@@ -2271,7 +2325,7 @@ class SystemManager implements iRestHandler
 											$describe = $db->describeTables( implode( ',', $component ) );
 											$temp = array(
 												'api_name' => $serviceName,
-												'table'    => array( $describe )
+												'table'    => $describe
 											);
 											$schemas[] = $temp;
 											break;
@@ -2334,7 +2388,7 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function importAppFromPackage( $pkg_file )
+	public function importAppFromPackage( $pkg_file, $import_url = '' )
 	{
 		$zip = new ZipArchive();
 		if ( true !== $zip->open( $pkg_file ) )
@@ -2347,6 +2401,10 @@ class SystemManager implements iRestHandler
 			throw new Exception( 'No application description file in this package file.' );
 		}
 		$record = Utilities::jsonToArray( $data );
+		if ( !empty( $import_url ) )
+		{
+			$record['import_url'] = $import_url;
+		}
 		try
 		{
 			$returnData = $this->createRecord( 'app', $record, 'id,api_name' );
@@ -2387,7 +2445,7 @@ class SystemManager implements iRestHandler
 						$tables = Utilities::getArrayValue( 'table', $schemas, array() );
 						if ( !empty( $tables ) )
 						{
-							$result = $db->createTables( $tables );
+							$result = $db->createTables( $tables, true );
 							if ( isset( $result[0]['error'] ) )
 							{
 								$msg = $result[0]['error']['message'];
@@ -2408,7 +2466,7 @@ class SystemManager implements iRestHandler
 							$serviceName = 'schema'; // for older packages
 						}
 						$db = ServiceHandler::getServiceObject( $serviceName );
-						$result = $db->createTables( $tables );
+						$result = $db->createTables( $tables, true );
 						if ( isset( $result[0]['error'] ) )
 						{
 							$msg = $result[0]['error']['message'];
@@ -2423,7 +2481,7 @@ class SystemManager implements iRestHandler
 						{
 							$serviceName = 'schema';
 							$db = ServiceHandler::getServiceObject( $serviceName );
-							$result = $db->createTable( $data );
+							$result = $db->createTables( $data, true );
 							if ( isset( $result['error'] ) )
 							{
 								$msg = $result['error']['message'];
