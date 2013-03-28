@@ -88,6 +88,29 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	}
 
 	/**
+	 * @return bool
+	 */
+	protected function beforeValidate()
+	{
+		try
+		{
+			$_userId = SessionManager::getCurrentUserId();
+
+			if ( $this->isNewRecord )
+			{
+				$this->created_by_id = $_userId;
+			}
+
+			$this->last_modified_by_id = $_userId;
+		}
+		catch ( Exception $_ex )
+		{
+		}
+
+		return parent::beforeValidate();
+	}
+
+	/**
 	 * @param string $requested Comma-delimited list of requested fields
 	 *
 	 * @param array  $columns   Additional columns to add
@@ -181,18 +204,24 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		}
 		try
 		{
-			$manyModel = SystemManager::getResourceModel( $many_table );
 			$manyObj = SystemManager::getNewResource( $many_table );
 			$pkField = $manyObj->tableSchema->primaryKey;
-			$oldMany = $manyModel->findAll( $many_field . ' = :oid', array( ':oid' => $one_id ) );
-			foreach ( $oldMany as $old )
+			$many_table = static::tableNamePrefix() . $many_table;
+			// use query builder
+			$command = Yii::app()->db->createCommand();
+			$command->select( "$pkField,$many_field" );
+			$command->from( $many_table );
+			$command->where( "$many_field = :oid" );
+			$maps = $command->queryAll( true, array( ':oid' => $one_id ) );
+			$toDelete = array();
+			foreach ( $maps as $map )
 			{
-				$oldId = $old->primaryKey;
+				$id = Utilities::getArrayValue( $pkField, $map, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
-					if ( $id == $oldId )
+					$assignId = Utilities::getArrayValue( $pkField, $item, '' );
+					if ( $id == $assignId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
 						unset( $many_records[$key] );
@@ -202,22 +231,39 @@ abstract class BaseDspSystemModel extends BaseDspModel
 				}
 				if ( !$found )
 				{
-					$old->setAttribute( $many_field, null );
-					$old->save();
+					$toDelete[] = $id;
 					continue;
+				}
+			}
+			if ( !empty( $toDelete ) )
+			{
+				// simple update to null request
+				$command->reset();
+				$rows = $command->update( $many_table, array( $many_field => null ), array( 'in', $pkField, $toDelete ) );
+				if ( 0 >= $rows )
+				{
+//					throw new Exception( "Record update failed for table '$many_table'." );
 				}
 			}
 			if ( !empty( $many_records ) )
 			{
-				// add what is leftover
+				$toAdd = array();
 				foreach ( $many_records as $item )
 				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
-					$assigned = $manyModel->findByPk( $id );
-					if ( $assigned )
+					$itemId = Utilities::getArrayValue( $pkField, $item, '' );
+					if ( !empty( $itemId ) )
 					{
-						$assigned->setAttribute( $many_field, $one_id );
-						$assigned->save();
+						$toAdd[] = $itemId;
+					}
+				}
+				if ( !empty( $toAdd ))
+				{
+					// simple update to null request
+					$command->reset();
+					$rows = $command->update( $many_table, array( $many_field => $one_id ), array( 'in', $pkField, $toAdd ) );
+					if ( 0 >= $rows )
+					{
+//						throw new Exception( "Record update failed for table '$many_table'." );
 					}
 				}
 			}
@@ -255,8 +301,8 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$command = Yii::app()->db->createCommand();
 			$command->select( $pkMapField . ',' . $many_field );
 			$command->from( $map_table );
-			$command->where( "$one_field = '$one_id'" );
-			$maps = $command->queryAll();
+			$command->where( "$one_field = :id" );
+			$maps = $command->queryAll( true, array( ':id' => $one_id ) );
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
@@ -282,13 +328,12 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			}
 			if ( !empty( $toDelete ) )
 			{
+				// simple delete request
 				$command->reset();
-
-				foreach ( $toDelete as $key => $id )
+				$rows = $command->delete( $map_table, array( 'in', $pkMapField, $toDelete ) );
+				if ( 0 >= $rows )
 				{
-					// simple delete request
-					$command->reset();
-					$rows = $command->delete( $map_table, array( 'in', $pkMapField, $id ) );
+//					throw new Exception( "Record delete failed for table '$map_table'." );
 				}
 			}
 			if ( !empty( $many_records ) )
@@ -311,28 +356,5 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		{
 			throw new Exception( "Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
-	}
-
-	/**
-	 * @return bool
-	 */
-	protected function beforeValidate()
-	{
-		try
-		{
-			$_userId = SessionManager::getCurrentUserId();
-
-			if ( $this->isNewRecord )
-			{
-				$this->created_by_id = $_userId;
-			}
-
-			$this->last_modified_by_id = $_userId;
-		}
-		catch ( Exception $_ex )
-		{
-		}
-
-		return parent::beforeValidate();
 	}
 }
