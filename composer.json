@@ -29,13 +29,13 @@
 		}
 	],
 	"require":           {
-		"php":                                 ">=5.3.8",
-		"kisma/kisma":                         "dev-master",
-		"dreamfactory/yii":                    "dev-master",
-		"dreamfactory/app-admin":              "dev-master",
-		"dreamfactory/app-launchpad":          "dev-master",
-		"dreamfactory/web-core":               "dev-master",
-		"amazonwebservices/aws-sdk-for-php":   "1.5.*"
+		"php":                               ">=5.3.8",
+		"kisma/kisma":                       "dev-master",
+		"dreamfactory/yii":                  "dev-master",
+		"dreamfactory/app-admin":            "dev-master",
+		"dreamfactory/app-launchpad":        "dev-master",
+		"dreamfactory/web-core":             "dev-master",
+		"amazonwebservices/aws-sdk-for-php": "1.5.*"
 	},
 	"minimum-stability": "dev",
 	"autoload":          {

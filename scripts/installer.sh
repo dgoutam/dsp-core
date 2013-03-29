@@ -4,6 +4,9 @@
 #
 # CHANGELOG:
 #
+# v1.1.2
+#	Make note if composer is already installed, and if so, not remove it after run or on clean
+#
 # v1.1.1
 # 	Added --clean flag for a clean install
 #
@@ -26,10 +29,11 @@
 ##	Initial settings
 ##
 
-VERSION=1.1.1
+VERSION=1.1.2
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=${USER}/bin
 COMPOSER=composer.phar
+COMPOSER_INSTALLED=0
 PHP=/usr/bin/php
 WEB_USER=www-data
 BASE=`pwd`
@@ -41,6 +45,7 @@ TAG="Mode: ${B1}Local${B2}"
 VERBOSE=
 QUIET="--quiet"
 
+# Hosted or standalone?
 if [ -f "${FABRIC_MARKER}" ] ; then
 	FABRIC=1
 	TAG="Mode: ${B1}Fabric${B2}"
@@ -54,6 +59,11 @@ PARSED_OPTIONS=$(getopt -n "$0"  -o hvc --long "help,verbose,clean"  -- "$@")
 #	Bad arguments, something has gone wrong with the getopt command.
 if [ $? -ne 0 ] ; then
 	exit 1
+fi
+
+# Composer already installed?
+if [ -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
+	COMPOSER_INSTALLED=1
 fi
 
 #	A little magic, necessary when using getopt.
@@ -74,12 +84,17 @@ while true ;  do
 			;;
 
 		-c|--clean)
-			if [ -f "/usr/local/bin/composer.phar" ] ; then
-				rm /usr/local/bin/composer.phar
-				if [ $? -ne 0 ] ; then
-					echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
+			if [ ${COMPOSER_INSTALLED} -eq 0 ] ; then
+				if [ -f "/usr/local/bin/composer.phar" ] ; then
+					rm /usr/local/bin/composer.phar
+					if [ $? -ne 0 ] ; then
+						echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
+					fi
 				fi
+			else
+				echo "  * ${B1}Did not remove composer.phar as we did not install it."
 			fi
+
 			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null 2>&1
 			echo "  * Clean install. Dependencies removed."
 			shift
@@ -163,6 +178,7 @@ if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
 	echo "  * Installing package manager"
 	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} ${QUIET} ${VERBOSE} --no-interaction
 else
+	[ ${VERBOSE} -eq 1 ] && echo "  * Composer pre-installed"
 	echo "  * Checking for package manager updates"
 	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction self-update
 fi
