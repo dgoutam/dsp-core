@@ -387,12 +387,16 @@ class AmazonWebServicesS3 extends CommonBlob
                 $meta = $this->_blobConn->get_object_metadata($this->_bucket, $object);
                 $name = $meta['Key'];
                 $name = self::removeContainerFromName($container, $name);
-                $out[] = array(
-                    'name' => $name,
-                    'contentType' => $meta['ContentType'],
-                    'size' => $meta['Size'],
-                    'lastModified' => $meta['Headers']['last-modified']
-                );
+				// list contains container by default, drop it
+				if ( !empty( $name ) )
+				{
+					$out[] = array(
+						'name' => $name,
+						'contentType' => $meta['ContentType'],
+						'size' => $meta['Size'],
+						'lastModified' => $meta['Headers']['last-modified']
+					);
+				}
             }
 
             return $out;
