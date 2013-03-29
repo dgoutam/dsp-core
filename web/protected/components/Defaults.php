@@ -15,17 +15,6 @@ class Defaults
 	 */
 
 	/**
-	 * Storage Service Directory Defaults
-	 */
-	const APPS_STORAGE_NAME = 'applications';
-
-	const ATTACHMENTS_STORAGE_NAME = 'attachments';
-
-	const DOCS_STORAGE_NAME = 'documents';
-
-	const LIBS_STORAGE_NAME = 'libraries';
-
-	/**
 	 * Constructs the virtual storage path
 	 *
 	 * @param string $append

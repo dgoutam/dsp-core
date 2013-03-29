@@ -663,7 +663,7 @@ class SystemManager implements iRestHandler
 							$asPkg = Utilities::boolval( Utilities::getArrayValue( 'pkg', $_REQUEST, false ) );
 							if ( $asPkg )
 							{
-								$includeFiles = Utilities::boolval( Utilities::getArrayValue( 'include_files', $_REQUEST, true ) );
+								$includeFiles = Utilities::boolval( Utilities::getArrayValue( 'include_files', $_REQUEST, false ) );
 								$includeServices = Utilities::boolval( Utilities::getArrayValue( 'include_services', $_REQUEST, false ) );
 								$includeSchema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
 								$includeData = Utilities::boolval( Utilities::getArrayValue( 'include_data', $_REQUEST, false ) );
@@ -2231,7 +2231,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return void
 	 */
-	public function exportAppAsPackage( $app_id, $include_files = true, $include_services = false, $include_schema = false, $include_data = false )
+	public function exportAppAsPackage( $app_id, $include_files = false, $include_services = false, $include_schema = false, $include_data = false )
 	{
 		SessionManager::checkPermission( 'read', 'system', 'app' );
 		$model = App::model();
@@ -2349,11 +2349,10 @@ class SystemManager implements iRestHandler
 			{
 				// add files
 				$_service = ServiceHandler::getServiceObject( 'app' );
-				if ( !$_service->appExists( $app_root ) )
+				if ( $_service->folderExists( $app_root ) )
 				{
-					throw new Exception( "Application '$app_root' does not exist in the system." );
+					$_service->getFolderAsZip( $app_root, $zip, $zipFileName, true );
 				}
-				$_service->getFolderAsZip( $app_root, $zip, $zipFileName, true );
 			}
 			$zip->close();
 

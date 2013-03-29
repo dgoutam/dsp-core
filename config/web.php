@@ -120,8 +120,6 @@ return array(
 			'showScriptName' => false,
 			'rules'          => array(
 				// REST patterns
-				array( 'app/stream',  'pattern' => 'app/<path:[_0-9a-zA-Z-\/. ]+>',  'verb' => 'GET' ),
-				array( 'lib/stream',  'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>',  'verb' => 'GET' ),
 				array( 'rest/get',    'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 				array( 'rest/post',   'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
 				array( 'rest/put',    'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
@@ -131,6 +129,8 @@ return array(
 				'<controller:\w+>/<id:\d+>'              => '<controller>/view',
 				'<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'          => '<controller>/<action>',
+				// fall through to storage services for direct access
+				array( 'storage/get',  'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>',  'verb' => 'GET' ),
 			),
 		),
 		//	User configuration

@@ -210,10 +210,19 @@ class App extends BaseDspSystemModel
 		if ( !$this->is_url_external )
 		{
 			$_service = ServiceHandler::getServiceObject( 'app' );
-
-			if ( !$_service->appExists( $this->api_name ) )
+			if ( !$_service->folderExists( $this->api_name ) )
 			{
-				$_service->createApp( $this->api_name, $this->name, $this->url );
+				// create in permanent storage
+				$_service->createFolder( $this->api_name );
+				$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
+				$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
+				$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
+				$path = $this->api_name . '/';
+				$path .= ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
+				if ( !$_service->fileExists( $path ) )
+				{
+					$_service->writeFile( $path, $content );
+				}
 			}
 		}
 
@@ -234,7 +243,7 @@ class App extends BaseDspSystemModel
 		}
 
 		$store = ServiceHandler::getServiceObject( 'app' );
-		$store->deleteApp( $this->api_name );
+		$store->deleteFolder( $this->api_name );
 
 		return parent::beforeDelete();
 	}

@@ -163,15 +163,6 @@ class ServiceHandler
 				case 'app':
 					$service = new ApplicationSvc( $record );
 					break;
-				case 'lib':
-					$service = new LibrarySvc( $record );
-					break;
-				case 'attachment':
-					$service = new AttachmentSvc( $record );
-					break;
-				case 'doc':
-					$service = new DocumentSvc( $record );
-					break;
 				default:
 					$type = Utilities::getArrayValue( 'type', $record, '' );
 					switch ( $type )

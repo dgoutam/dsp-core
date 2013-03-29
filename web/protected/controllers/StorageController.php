@@ -1,8 +1,8 @@
 <?php
 /**
- *
+ *  Generic controller for streaming content from storage services
  */
-class AppController extends Controller
+class StorageController extends Controller
 {
 
     /**
@@ -16,12 +16,19 @@ class AppController extends Controller
     /**
      *
      */
-    public function actionStream()
+    public function actionGet()
     {
+		$service = (isset($_GET['service']) ? $_GET['service'] : '');
         $path = (isset($_GET['path']) ? $_GET['path'] : '');
         try {
-            $app = ServiceHandler::getServiceObject('app');
-            $app->streamFile($path);
+            $service = ServiceHandler::getServiceObject($service);
+			switch ( $service->getType() )
+			{
+				case 'Local File Storage':
+				case 'Remote File Storage':
+					$service->streamFile($path);
+					break;
+			}
             Yii::app()->end();
         }
         catch (\Exception $ex) {
