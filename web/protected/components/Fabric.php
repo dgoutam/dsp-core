@@ -83,6 +83,10 @@ class Fabric extends SeedUtility
 	 * @var string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
+	/**
+	 * @var int
+	 */
+	const EXPIRATION_THRESHOLD = 30;
 
 	//*************************************************************************
 	//* Methods
@@ -106,6 +110,10 @@ class Fabric extends SeedUtility
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
 		}
 
+		//	Create a hash
+		$_hash = sha1( $_host . $_SERVER['REMOTE_ADDR'] );
+		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . $_hash . '.dsp.config.php';
+
 		//	What has it gots in its pocketses?
 		if ( null === ( $_privateKey = FilterInput::cookie( static::PrivateFigNewton ) ) )
 		{
@@ -115,7 +123,8 @@ class Fabric extends SeedUtility
 
 		//	Check cookies/session for keys
 		$_key = FilterInput::cookie( static::FigNewton, FilterInput::session( static::FigNewton ), \Kisma::get( 'platform.storage_key' ) );
-		$_privateKey = FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
+		$_privateKey =
+			FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
 		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
 
 		$_dbConfigFileName = str_ireplace(
@@ -137,17 +146,40 @@ class Fabric extends SeedUtility
 			\Kisma::set( 'platform.user_key', $_privateKey );
 		}
 
+		if ( file_exists( $_tmpConfig ) )
+		{
+			if ( ( time() - fileatime( $_tmpConfig ) ) > static::EXPIRATION_THRESHOLD )
+			{
+				Log::warning( 'Expired (' . ( time() - fileatime( $_tmpConfig ) ) . 's old) dbconfig found. Removing: ' . $_tmpConfig );
+				unlink( $_tmpConfig );
+			}
+			else if ( '' == session_id() )
+			{
+				Log::warning( 'Logged out user session found. Removing: ' . $_tmpConfig );
+				unlink( $_tmpConfig );
+			}
+			else
+			{
+				Log::debug( 'Using tmp dbconfig: ' . $_tmpConfig );
+
+				return require_once $_tmpConfig;
+			}
+		}
+
 		//	If an existing database config file is found for this instance
 		if ( !empty( $_privateKey ) )
 		{
 			$_config = static::BaseStorage . '/' . $_privateKey . '/.private/' . $_dbConfigFileName;
 
+			\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_privateKey . '/.private' );
+			\Kisma::set( 'platform.db_config_file', $_config );
+
 			if ( file_exists( $_config ) )
 			{
-				\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_privateKey . '/.private' );
-				\Kisma::set( 'platform.db_config_file', $_config );
-
 				/** @noinspection PhpIncludeInspection */
+				\Kisma::set( 'platform.tmp.db_config_file', $_tmpConfig );
+				file_put_contents( $_tmpConfig, file_get_contents( $_config ) );
+				Log::debug( 'Storing dbconfig tmp: ' . $_tmpConfig );
 
 				return require_once $_config;
 			}
@@ -158,6 +190,7 @@ class Fabric extends SeedUtility
 		$_dbName = $_dspName = $_parts[0];
 
 		//	Otherwise, get the credentials from the auth server...
+		Log::info( 'Credentials pull' );
 		$_response = \Curl::get( static::AUTH_ENDPOINT . '/' . $_dspName . '/database' );
 
 		if ( is_object( $_response ) && isset( $_response->details, $_response->details->code ) && HttpResponse::NotFound == $_response->details->code )
@@ -191,8 +224,12 @@ class Fabric extends SeedUtility
 			\Kisma::set( 'platform.db_config_file', $_privatePath . '/' . $_dbConfigFileName );
 
 			/** @noinspection PhpIncludeInspection */
+			//	Create a temp local file that we can determine with math.
+			\Kisma::set( 'platform.tmp.db_config_file', $_tmpConfig );
+			file_put_contents( $_tmpConfig, file_get_contents( $_privatePath . '/' . $_dbConfigFileName ) );
+			Log::debug( 'Storing dbconfig tmp: ' . $_tmpConfig );
 
-			return require_once $_privatePath . '/' . $_dbConfigFileName;
+			return require_once $_tmpConfig;
 		}
 
 		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );

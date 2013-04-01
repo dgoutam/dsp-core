@@ -38,10 +38,6 @@ $_appName = 'DreamFactory Services Platform';
 require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
 \Pii::run( __DIR__, $_autoloader );
 
-//	Read in the database configuration
-$_dbConfig = require_once( __DIR__ . '/database.config.php' );
-$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require_once( __DIR__ . '/common.config.php' ) : array();
-
 //	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
 $_blobConfig = __DIR__ . '/blob.config.php';
 
@@ -50,6 +46,10 @@ $_basePath = dirname( __DIR__ );
 
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';
+
+//	Read in the database configuration
+$_dbConfig = require_once( __DIR__ . '/database.config.php' );
+$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require_once( __DIR__ . '/common.config.php' ) : array();
 
 /**
  * Database Caching
@@ -120,17 +120,17 @@ return array(
 			'showScriptName' => false,
 			'rules'          => array(
 				// REST patterns
-				array( 'rest/get',    'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
-				array( 'rest/post',   'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
-				array( 'rest/put',    'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
-				array( 'rest/merge',  'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE' ),
+				array( 'rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
+				array( 'rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
+				array( 'rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
+				array( 'rest/merge', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE' ),
 				array( 'rest/delete', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE' ),
 				// Other controllers
 				'<controller:\w+>/<id:\d+>'              => '<controller>/view',
 				'<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'          => '<controller>/<action>',
 				// fall through to storage services for direct access
-				array( 'storage/get',  'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>',  'verb' => 'GET' ),
+				array( 'storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 			),
 		),
 		//	User configuration
@@ -146,7 +146,7 @@ return array(
 					'maxFileSize' => '102400',
 					'logFile'     => basename( \Kisma::get( 'app.log_file' ) ),
 					'logPath'     => $_logFilePath,
-					'levels'      => 'error, warning, trace, info, profile, debug',
+					'levels'      => 'error, warning, trace, info',
 				),
 			),
 		),
