@@ -110,15 +110,12 @@ class Fabric extends SeedUtility
 		if ( null === ( $_privateKey = FilterInput::cookie( static::PrivateFigNewton ) ) )
 		{
 			//	If there is a configuration file available, we'll use it for this session.
-			$_privateKey = isset( $_SESSION ) ? Option::get( $_SESSION, static::PrivateFigNewton ) : null;
+			$_privateKey = FilterInput::session( static::PrivateFigNewton );
 		}
 
-		if ( null === ( $_key = FilterInput::cookie( static::FigNewton ) ) )
-		{
-			//	If there is a configuration file available, we'll use it for this session.
-			$_key = isset( $_SESSION ) ? Option::get( $_SESSION, static::FigNewton ) : null;
-		}
-
+		//	Check cookies/session for keys
+		$_key = FilterInput::cookie( static::FigNewton, FilterInput::session( static::FigNewton ), \Kisma::get( 'platform.storage_key' ) );
+		$_privateKey = FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
 		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
 
 		$_dbConfigFileName = str_ireplace(
@@ -129,8 +126,16 @@ class Fabric extends SeedUtility
 
 		\Kisma::set( 'platform.dsp_name', $_dspName );
 		\Kisma::set( 'platform.db_config_file_name', $_dbConfigFileName );
-		\Kisma::set( 'platform.storage_key', $_key );
-		\Kisma::set( 'platform.user_key', $_privateKey );
+
+		if ( $_key )
+		{
+			\Kisma::set( 'platform.storage_key', $_key );
+		}
+
+		if ( $_privateKey )
+		{
+			\Kisma::set( 'platform.user_key', $_privateKey );
+		}
 
 		//	If an existing database config file is found for this instance
 		if ( !empty( $_privateKey ) )
@@ -169,8 +174,11 @@ class Fabric extends SeedUtility
 
 		$_instance = $_cache = $_response->details;
 		$_privatePath = $_cache->private_path;
+		$_privateKey = basename( dirname( $_privatePath ) );
 
 		\Kisma::set( 'dsp.credentials', $_cache );
+		\Kisma::set( 'platform.storage_key', $_instance->storage_key );
+		\Kisma::set( 'platform.user_key', $_privateKey );
 
 		//	Save it for later (don't run away and let me down <== extra points if you get the reference)
 		setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
