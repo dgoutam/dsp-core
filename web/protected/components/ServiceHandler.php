@@ -79,22 +79,8 @@ class ServiceHandler
 	 */
 	public static function getServiceListing()
 	{
-		try
-		{
-			$_criteria = new CDbCriteria( array( 'select' => 'api_name,name' ) );
-			$result = Service::model()->findAll( $_criteria );
-			$out = array();
-			foreach ( $result as $service )
-			{
-				$out[] = array( 'api_name' => $service->api_name, 'name' => $service->name );
-			}
-
-			return $out;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
+		$command = Yii::app()->db->createCommand();
+		return $command->select('api_name,name')->from('df_sys_service')->queryAll();
 	}
 
 	/**
@@ -109,20 +95,29 @@ class ServiceHandler
 	 */
 	private static function getService( $api_name )
 	{
-		try
+		$command = Yii::app()->db->createCommand();
+		$result = $command->from( 'df_sys_service' )->where( 'api_name=:name' )->queryRow( true, array( ':name' => $api_name ) );
+		if ( !$result )
 		{
-			$result = Service::model()->find( 'api_name=:name', array( ':name' => $api_name ) );
-			if ( isset( $result ) )
-			{
-				return $result->attributes;
-			}
-
 			return array();
 		}
-		catch ( Exception $ex )
+
+		if ( isset( $result['credentials'] ) )
 		{
-			throw $ex;
+			$result['credentials'] = json_decode( $result['credentials'], true );
 		}
+
+		if ( isset( $result['parameters'] ) )
+		{
+			$result['parameters'] = json_decode( $result['parameters'], true );
+		}
+
+		if ( isset( $result['headers'] ) )
+		{
+			$result['headers'] = json_decode( $result['headers'], true );
+		}
+
+		return $result;
 	}
 
 	/**
