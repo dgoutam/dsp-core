@@ -70,7 +70,11 @@ class Fabric extends SeedUtility
 	/**
 	 * @var string My favorite cookie
 	 */
-	const FigNewton = '___DSP_FIG_NEWTON___';
+	const FigNewton = 'dsp.blob';
+	/**
+	 * @var string My favorite cookie
+	 */
+	const PrivateFigNewton = 'dsp.private';
 	/**
 	 * @var string
 	 */
@@ -103,6 +107,12 @@ class Fabric extends SeedUtility
 		}
 
 		//	What has it gots in its pocketses?
+		if ( null === ( $_privateKey = FilterInput::cookie( static::PrivateFigNewton ) ) )
+		{
+			//	If there is a configuration file available, we'll use it for this session.
+			$_privateKey = isset( $_SESSION ) ? Option::get( $_SESSION, static::PrivateFigNewton ) : null;
+		}
+
 		if ( null === ( $_key = FilterInput::cookie( static::FigNewton ) ) )
 		{
 			//	If there is a configuration file available, we'll use it for this session.
@@ -119,16 +129,17 @@ class Fabric extends SeedUtility
 
 		\Kisma::set( 'platform.dsp_name', $_dspName );
 		\Kisma::set( 'platform.db_config_file_name', $_dbConfigFileName );
+		\Kisma::set( 'platform.storage_key', $_key );
+		\Kisma::set( 'platform.user_key', $_privateKey );
 
 		//	If an existing database config file is found for this instance
-		if ( !empty( $_key ) )
+		if ( !empty( $_privateKey ) )
 		{
-			\Kisma::set( 'platform.user_key', $_key );
-			$_config = static::BaseStorage . '/' . $_key . '/.private/' . $_dbConfigFileName;
+			$_config = static::BaseStorage . '/' . $_privateKey . '/.private/' . $_dbConfigFileName;
 
 			if ( file_exists( $_config ) )
 			{
-				\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_key . '/.private' );
+				\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_privateKey . '/.private' );
 				\Kisma::set( 'platform.db_config_file', $_config );
 
 				/** @noinspection PhpIncludeInspection */
@@ -163,6 +174,7 @@ class Fabric extends SeedUtility
 
 		//	Save it for later (don't run away and let me down <== extra points if you get the reference)
 		setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
+		setcookie( static::PrivateFigNewton, $_privateKey, time() + DateTime::TheEnd, '/' );
 
 		//	File should be there from provisioning... If not, tenemos un problema!
 		if ( file_exists( $_privatePath . '/' . $_dbConfigFileName ) )
