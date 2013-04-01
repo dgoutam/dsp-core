@@ -316,21 +316,17 @@ class SystemManager implements iRestHandler
 				'is_sys_admin' => true,
 				'confirm_code' => 'y'
 			);
-			$user = new User();
-			$user->setAttributes( $fields );
-			// write back login datetime
-			$user->last_login_date = new CDbExpression( 'NOW()' );
-			if ( !$user->save() )
+			try
 			{
-				$msg = '';
-				if ( $user->hasErrors() )
-				{
-					foreach ( $user->errors as $error )
-					{
-						$msg .= implode( PHP_EOL, $error );
-					}
-				}
-				throw new Exception( "Failed to create a new user.\n$msg", ErrorCodes::BAD_REQUEST );
+				$user = new User();
+				$user->setAttributes( $fields );
+				// write back login datetime
+				$user->last_login_date = new CDbExpression( 'NOW()' );
+				$user->save();
+			}
+			catch ( Exception $ex )
+			{
+				throw new Exception( "Failed to create a new user.\n{$ex->getMessage()}", ErrorCodes::BAD_REQUEST );
 			}
 			$userId = $user->getPrimaryKey();
 			// set session for first user
@@ -362,132 +358,111 @@ class SystemManager implements iRestHandler
 	 */
 	public function initData()
 	{
-		try
+		// for now use the first admin we find
+		$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
+		if ( null === $theUser )
 		{
-			// for now use the first admin we find
-			$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
-			if ( null === $theUser )
-			{
-				throw new \Exception( "Failed to retrieve admin user." );
-			}
-			$userId = $theUser->getPrimaryKey();
-			if ( empty( $userId ) )
-			{
-				error_log( print_r( $theUser, true ) );
-				throw new \Exception( "Failed to retrieve user id." );
-			}
-			SessionManager::setCurrentUserId( $userId );
+			throw new \Exception( "Failed to retrieve admin user." );
+		}
+		$userId = $theUser->getPrimaryKey();
+		if ( empty( $userId ) )
+		{
+			error_log( print_r( $theUser, true ) );
+			throw new \Exception( "Failed to retrieve user id." );
+		}
+		SessionManager::setCurrentUserId( $userId );
 
-			// init with system required data
-			$contents = file_get_contents( Yii::app()->basePath . '/data/system_data.json' );
-			if ( empty( $contents ) )
+		// init with system required data
+		$contents = file_get_contents( Yii::app()->basePath . '/data/system_data.json' );
+		if ( empty( $contents ) )
+		{
+			throw new \Exception( "Empty or no system data file found." );
+		}
+		$contents = Utilities::jsonToArray( $contents );
+		foreach ( $contents as $table => $content )
+		{
+			switch ( $table )
 			{
-				throw new \Exception( "Empty or no system data file found." );
+				case 'df_sys_service':
+					$result = Service::model()->findAll();
+					if ( empty( $result ) )
+					{
+						if ( empty( $content ) )
+						{
+							throw new \Exception( "No default system services found." );
+						}
+						foreach ( $content as $service )
+						{
+							try
+							{
+								$obj = new Service;
+								$obj->setAttributes( $service );
+								$obj->save();
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to create services.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+							}
+						}
+					}
+					break;
 			}
+		}
+		// init system with sample setup
+		$contents = file_get_contents( Yii::app()->basePath . '/data/sample_data.json' );
+		if ( !empty( $contents ) )
+		{
 			$contents = Utilities::jsonToArray( $contents );
 			foreach ( $contents as $table => $content )
 			{
 				switch ( $table )
 				{
 					case 'df_sys_service':
-						$result = Service::model()->findAll();
-						if ( empty( $result ) )
+						if ( !empty( $content ) )
 						{
-							if ( empty( $content ) )
-							{
-								throw new \Exception( "No default system services found." );
-							}
 							foreach ( $content as $service )
 							{
-								$obj = new Service;
-								$obj->setAttributes( $service );
-								if ( !$obj->save() )
+								try
 								{
-									$msg = '';
-									if ( $obj->hasErrors() )
+									$obj = new Service;
+									$obj->setAttributes( $service );
+									$obj->save();
+								}
+								catch ( Exception $ex )
+								{
+									Log::error( "Failed to create sample services.\n{$ex->getMessage()}" );
+								}
+							}
+						}
+						break;
+					case 'app_package':
+						$result = App::model()->findAll();
+						if ( empty( $result ) )
+						{
+							if ( !empty( $content ) )
+							{
+								foreach ( $content as $package )
+								{
+									$fileUrl = Utilities::getArrayValue( 'url', $package, '' );
+									if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
 									{
-										foreach ( $obj->errors as $error )
+										try
 										{
-											$msg .= implode( PHP_EOL, $error );
+											// need to download and extract zip file and move contents to storage
+											$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
+											$this->importAppFromPackage( $filename, $fileUrl );
+										}
+										catch ( Exception $ex )
+										{
+											Log::error( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
 										}
 									}
-									error_log( print_r( $obj->errors, true ) );
-									throw new Exception( "Failed to create services.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
 								}
 							}
 						}
 						break;
 				}
 			}
-			// init system with sample setup
-			$contents = file_get_contents( Yii::app()->basePath . '/data/sample_data.json' );
-			if ( !empty( $contents ) )
-			{
-				$contents = Utilities::jsonToArray( $contents );
-				foreach ( $contents as $table => $content )
-				{
-					switch ( $table )
-					{
-						case 'df_sys_service':
-							$result = Service::model()->findAll();
-							if ( empty( $result ) )
-							{
-								if ( !empty( $content ) )
-								{
-									foreach ( $content as $service )
-									{
-										$obj = new Service;
-										$obj->setAttributes( $service );
-										if ( !$obj->save() )
-										{
-											$msg = '';
-											if ( $obj->hasErrors() )
-											{
-												foreach ( $obj->errors as $error )
-												{
-													$msg .= implode( PHP_EOL, $error );
-												}
-											}
-											error_log( print_r( $obj->errors, true ) );
-											throw new Exception( "Failed to create services.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
-										}
-									}
-								}
-							}
-							break;
-						case 'app_package':
-							$result = App::model()->findAll();
-							if ( empty( $result ) )
-							{
-								if ( !empty( $content ) )
-								{
-									foreach ( $content as $package )
-									{
-										$fileUrl = Utilities::getArrayValue( 'url', $package, '' );
-										if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
-										{
-											try
-											{
-												// need to download and extract zip file and move contents to storage
-												$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-												$this->importAppFromPackage( $filename, $fileUrl );
-											}
-											catch ( Exception $ex )
-											{
-												Log::error( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
-											}
-										}
-									}
-								}
-							}
-							break;
-					}
-				}
-			}
-		}
-		catch ( \Exception $ex )
-		{
-			throw $ex;
 		}
 	}
 
@@ -1198,19 +1173,15 @@ class SystemManager implements iRestHandler
 			// create DB record
 			$obj = static::getNewResource( $table );
 			$obj->setAttributes( $record );
-			if ( !$obj->save() )
-			{
-				$msg = '';
-				if ( $obj->hasErrors() )
-				{
-					foreach ( $obj->errors as $error )
-					{
-						$msg .= implode( PHP_EOL, $error );
-					}
-				}
-				error_log( print_r( $obj->errors, true ) );
-				throw new Exception( "Failed to create $table.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
-			}
+			$obj->save();
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to create $table.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+		}
+
+		try
+		{
 			$id = $obj->primaryKey;
 			if ( empty( $id ) )
 			{
@@ -1378,65 +1349,62 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( "Failed to find the $table resource identified by '$id'.", ErrorCodes::NOT_FOUND );
 		}
-		try
+
+		$primaryKey = $obj->tableSchema->primaryKey;
+		$record = Utilities::removeOneFromArray( $primaryKey, $record );
+		$sessionAction = '';
+		switch ( strtolower( $table ) )
 		{
-			$primaryKey = $obj->tableSchema->primaryKey;
-			$record = Utilities::removeOneFromArray( $primaryKey, $record );
-			$sessionAction = '';
-			switch ( strtolower( $table ) )
-			{
-				case 'user':
-					if ( $obj->is_active && isset( $record['is_active'] ) )
-					{
-						$isActive = Utilities::boolval( $record['is_active'] );
-						if ( Utilities::boolval( $obj->is_active ) !== $isActive )
-						{
-							$sessionAction = 'delete';
-						}
-					}
-					if ( isset( $record['is_sys_admin'] ) )
-					{
-						$isSysAdmin = Utilities::boolval( $record['is_sys_admin'] );
-						if ( Utilities::boolval( $obj->is_sys_admin ) !== $isSysAdmin )
-						{
-							$sessionAction = 'update';
-						}
-					}
-					if ( isset( $record['role_id'] ) )
-					{
-						$roleId = $record['role_id'];
-						if ( $obj->role_id !== $roleId )
-						{
-							$sessionAction = 'update';
-						}
-					}
-					break;
-				case 'role':
-					if ( $obj->is_active && isset( $record['is_active'] ) )
-					{
-						$isActive = Utilities::boolval( $record['is_active'] );
-						if ( Utilities::boolval( $obj->is_active ) !== $isActive )
-						{
-							$sessionAction = 'delete';
-						}
-					}
-					break;
-			}
-			$obj->setAttributes( $record );
-			if ( !$obj->save() )
-			{
-				error_log( print_r( $obj->errors, true ) );
-				$msg = '';
-				if ( $obj->hasErrors() )
+			case 'user':
+				if ( $obj->is_active && isset( $record['is_active'] ) )
 				{
-					foreach ( $obj->errors as $error )
+					$isActive = Utilities::boolval( $record['is_active'] );
+					if ( Utilities::boolval( $obj->is_active ) !== $isActive )
 					{
-						$msg .= implode( PHP_EOL, $error );
+						$sessionAction = 'delete';
 					}
 				}
-				throw new Exception( "Failed to update user.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
-			}
+				if ( isset( $record['is_sys_admin'] ) )
+				{
+					$isSysAdmin = Utilities::boolval( $record['is_sys_admin'] );
+					if ( Utilities::boolval( $obj->is_sys_admin ) !== $isSysAdmin )
+					{
+						$sessionAction = 'update';
+					}
+				}
+				if ( isset( $record['role_id'] ) )
+				{
+					$roleId = $record['role_id'];
+					if ( $obj->role_id !== $roleId )
+					{
+						$sessionAction = 'update';
+					}
+				}
+				break;
+			case 'role':
+				if ( $obj->is_active && isset( $record['is_active'] ) )
+				{
+					$isActive = Utilities::boolval( $record['is_active'] );
+					if ( Utilities::boolval( $obj->is_active ) !== $isActive )
+					{
+						$sessionAction = 'delete';
+					}
+				}
+				break;
+		}
 
+		try
+		{
+			$obj->setAttributes( $record );
+			$obj->save();
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to update user.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+		}
+
+		try
+		{
 			// after record create
 			$obj->setRelated( $record, $id );
 
