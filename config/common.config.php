@@ -56,5 +56,6 @@ return array_merge(
 		 'adminEmail'            => 'developer-support@dreamfactory.com',
 		 'companyLabel'          => 'DreamFactory Service Platform(tm)',
 		 'allowOpenRegistration' => 'true',
+		 'dsp.version'           => '0.6.1',
 	)
 );
