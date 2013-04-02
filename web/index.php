@@ -22,10 +22,10 @@
  *
  * This script is the main entry point for the DSP.
  */
-$_autoloader = require_once( dirname( __DIR__ ) . '/vendor/autoload.php' );
+$_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
 
 //	Main DSP web configuration
-$_config = dirname( __DIR__ ) . '/config/web.php';
+$_config = __DIR__ . '/../config/web.php';
 
 //	Comment out the following lines in production
 //defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );

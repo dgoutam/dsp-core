@@ -35,14 +35,14 @@ $_dbName = null;
 $_appName = 'DreamFactory Services Platform';
 
 //	Get the globals set...
-require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
+require_once __DIR__ . '/../web/protected/components/Pii.php';
 \Pii::run( __DIR__, $_autoloader );
 
 //	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
 $_blobConfig = __DIR__ . '/blob.config.php';
 
 //	Our base path
-$_basePath = dirname( __DIR__ );
+$_basePath = __DIR__ . '/..';
 
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';

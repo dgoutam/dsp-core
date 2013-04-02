@@ -41,10 +41,10 @@ if ( \Kisma::get( 'app.fabric_hosted' ) && !empty( $_instance ) )
 else
 {
 	$_instanceSettings = array(
-		'storage_base_path' => dirname( __DIR__ ) . '/storage',
-		'private_path'      => dirname( __DIR__ ) . '/storage/.private',
-		'storage_path'      => dirname( __DIR__ ) . '/storage',
-		'snapshot_path'     => dirname( __DIR__ ) . '/storage/.private/snapshots',
+		'storage_base_path' => __DIR__ . '/../storage',
+		'private_path'      => __DIR__ . '/../storage/.private',
+		'storage_path'      => __DIR__ . '/../storage',
+		'snapshot_path'     => __DIR__ . '/../storage/.private/snapshots',
 		'dsp_name'          => $_dbName,
 	);
 }

@@ -24,7 +24,7 @@
  */
 if ( file_exists( '/var/www/.fabric_hosted' ) )
 {
-	require_once dirname( __DIR__ ) . '/web/protected/components/Fabric.php';
+	require_once __DIR__ . '/../web/protected/components/Fabric.php';
 
 	return Fabric::initialize();
 }

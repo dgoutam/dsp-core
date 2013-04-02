@@ -158,31 +158,32 @@ class SessionManager
 			// would like to not write to db if nothing changed, but need timestamp update to keep session alive
 //			if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] )
 //			{
-				// get extra stuff used for disabling users
-				$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-				$userId = ( !empty( $userId ) ) ? intval( $userId ) : null;
-				$roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-				$roleId = ( !empty( $roleId ) ) ? intval( $roleId ) : null;
-				$startTime = time();
-				$params = array( $id, $userId, $roleId, $startTime, $data );
-				switch ( $this->_driverType )
-				{
-					case DbUtilities::DRV_SQLSRV:
-						$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
-						break;
-					case DbUtilities::DRV_MYSQL:
-						$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-						break;
-					default:
-						$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-						break;
-				}
-				if ( !$this->_sqlConn->active )
-				{
-					$this->_sqlConn->active = true;
-				}
-				$command = $this->_sqlConn->createCommand( $sql );
-				$result = $command->execute( $params );
+			// get extra stuff used for disabling users
+			$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
+			$userId = ( !empty( $userId ) ) ? intval( $userId ) : null;
+			$roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
+			$roleId = ( !empty( $roleId ) ) ? intval( $roleId ) : null;
+			$startTime = time();
+			$params = array( $id, $userId, $roleId, $startTime, $data );
+			switch ( $this->_driverType )
+			{
+				case DbUtilities::DRV_SQLSRV:
+					$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
+					break;
+				case DbUtilities::DRV_MYSQL:
+					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+					break;
+				default:
+					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+					break;
+			}
+			if ( !$this->_sqlConn->active )
+			{
+				$this->_sqlConn->active = true;
+			}
+			$command = $this->_sqlConn->createCommand( $sql );
+			$result = $command->execute( $params );
+
 //			}
 
 			return true;
@@ -501,6 +502,7 @@ class SessionManager
 			if ( isset( $_SESSION['public']['id'] ) )
 			{
 				$_userId = $_SESSION['public']['id'];
+
 				//Log::debug( 'Session validate user id: ' . $_userId . ' ' . print_r( $_SESSION['public'], true ) );
 
 				return $_userId;
@@ -730,6 +732,7 @@ class SessionManager
 	public static function setCurrentUserId( $userId )
 	{
 		static::$_userId = $userId;
+		Pii::setState( 'user_id', $userId );
 	}
 
 	/**
@@ -747,7 +750,6 @@ class SessionManager
 			return static::$_userId = $_SESSION['public']['id'];
 		}
 
-
 		return null;
 	}
 
@@ -757,6 +759,7 @@ class SessionManager
 	public static function setCurrentRoleId( $roleId )
 	{
 		static::$_roleId = $roleId;
+		Pii::setState( 'role_id', $userId );
 	}
 
 	/**
