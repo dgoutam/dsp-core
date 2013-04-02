@@ -759,7 +759,7 @@ class SessionManager
 	public static function setCurrentRoleId( $roleId )
 	{
 		static::$_roleId = $roleId;
-		Pii::setState( 'role_id', $userId );
+		Pii::setState( 'role_id', $roleId );
 	}
 
 	/**
