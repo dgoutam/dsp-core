@@ -178,10 +178,18 @@ class Fabric extends SeedUtility
 			{
 				/** @noinspection PhpIncludeInspection */
 				\Kisma::set( 'platform.tmp.db_config_file', $_tmpConfig );
-				file_put_contents( $_tmpConfig, file_get_contents( $_config ) );
+				$_settings = file_get_contents( $_config );
+
+				if ( !empty( $_settings ) && !isset( $_settings['schemaCacheDuration'] ) )
+				{
+					$_settings['schemaCacheDuration'] = 3600;
+				}
+
+				file_put_contents( $_tmpConfig, $_settings );
+
 				Log::debug( 'Storing dbconfig tmp: ' . $_tmpConfig );
 
-				return require_once $_config;
+				return $_settings;
 			}
 		}
 

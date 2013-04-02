@@ -34,11 +34,12 @@ $_dbUser = 'dsp_user';
 $_dbPassword = 'dsp_user';
 
 return array(
-	'connectionString'   => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
-	'username'           => $_dbUser,
-	'password'           => $_dbPassword,
-	'emulatePrepare'     => true,
-	'charset'            => 'utf8',
+	'connectionString'      => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
+	'username'              => $_dbUser,
+	'password'              => $_dbPassword,
+	'emulatePrepare'        => true,
+	'charset'               => 'utf8',
 //	'enableProfiling'    => true,
-	'enableParamLogging' => true,
+//	'enableParamLogging'    => true,
+	'schemaCachingDuration' => 3600,
 );

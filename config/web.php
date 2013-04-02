@@ -31,7 +31,7 @@ const ENABLE_DB_CACHE = true;
 
 global $_autoloader;
 
-$_dbName = null;
+$_dbCache = $_dbName = null;
 $_appName = 'DreamFactory Services Platform';
 
 //	Get the globals set...
@@ -54,17 +54,18 @@ $_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require_once( _
 /**
  * Database Caching
  */
-$_dbCache = ENABLE_DB_CACHE ? array(
+if ( ENABLE_DB_CACHE )
+{
 	/**
 	 * The database cache object
 	 */
-	'cache' => array(
+	$_dbCache = array(
 		'class'                => 'CDbCache',
 		'connectionID'         => 'db',
 		'cacheTableName'       => 'df_sys_cache',
 		'autoCreateCacheTable' => true,
-	),
-) : null;
+	);
+}
 
 //.........................................................................
 //. The configuration himself (like Raab)
@@ -151,7 +152,7 @@ return array(
 			),
 		),
 		//	Database Cache
-		$_dbCache
+		'cache'        => $_dbCache,
 	),
 	//.........................................................................
 	//. Global application parameters
