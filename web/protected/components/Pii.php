@@ -196,7 +196,7 @@ class Pii extends \CHtml
 		if ( 'cli' != PHP_SAPI )
 		{
 			static::$_clientScript = $_thisApp->getClientScript();
-			static::$_thisUser = UserManager::get->getUser();
+            static::$_thisUser = $_thisApp->getUser();
 		}
 
 		static::$_thisRequest = $_thisApp->getRequest();
