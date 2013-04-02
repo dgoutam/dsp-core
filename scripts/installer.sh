@@ -31,7 +31,7 @@
 
 VERSION=1.1.2
 SYSTEM_TYPE=`uname -s`
-INSTALL_DIR=${USER}/bin
+INSTALL_DIR=${HOME}/bin
 COMPOSER=composer.phar
 COMPOSER_INSTALLED=0
 PHP=/usr/bin/php
@@ -161,7 +161,7 @@ chown -R ${USER}:${WEB_USER} * .git*
 find ./ -type d -exec chmod 2775 {} \;
 find ./ -type f -exec chmod 0664 {} \;
 find ./ -name '*.sh' -exec chmod 0770 {} \;
-rm -rf ~${USER}/.composer/
+rm -rf ~${HOME}/.composer/
 chmod +x ${BASE_PATH}/scripts/*.sh
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
