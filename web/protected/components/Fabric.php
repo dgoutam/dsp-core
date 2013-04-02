@@ -151,12 +151,12 @@ class Fabric extends SeedUtility
 			if ( ( time() - fileatime( $_tmpConfig ) ) > static::EXPIRATION_THRESHOLD )
 			{
 				Log::warning( 'Expired (' . ( time() - fileatime( $_tmpConfig ) ) . 's old) dbconfig found. Removing: ' . $_tmpConfig );
-				unlink( $_tmpConfig );
+				@unlink( $_tmpConfig );
 			}
-			else if ( '' == session_id() )
+			else if ( '' == session_id() || 'deleted' == FilterInput::cookie( 'PHPSESSID' ) )
 			{
 				Log::warning( 'Logged out user session found. Removing: ' . $_tmpConfig );
-				unlink( $_tmpConfig );
+				@unlink( $_tmpConfig );
 			}
 			else
 			{
@@ -242,5 +242,13 @@ class Fabric extends SeedUtility
 
 		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );
 		throw new \CHttpException( HttpResponse::BadRequest );
+	}
+
+	/**
+	 * @return bool True if this DSP is fabric-hosted
+	 */
+	public static function fabricHosted()
+	{
+		return file_exists( static::FABRIC_MARKER );
 	}
 }

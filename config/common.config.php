@@ -28,7 +28,7 @@ global $_dbName, $_blobConfig, $_instance;
 //* Set fabric-hosted storage paths here...
 //*************************************************************************
 
-if ( \Kisma::get( 'app.fabric_hosted' ) && !empty( $_instance ) )
+if ( Fabric::fabricHosted() && !empty( $_instance ) )
 {
 	$_instanceSettings = array(
 		'storage_base_path' => $_instance->storage_path,

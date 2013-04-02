@@ -3,8 +3,7 @@ use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
 
 /**
- * BaseDspModelBehavior.php
- * A base class for AR behaviors
+ * BaseDspModel.php
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -185,10 +184,10 @@ class BaseDspModel extends \CActiveRecord
 				 ),
 				 //	Timestamper
 				 'base_model.timestamp_behavior'   => array(
-					 'class'                => 'application.behaviors.TimestampBehavior',
-					 'createdColumn'        => 'created_date',
+					 'class'              => 'application.behaviors.TimestampBehavior',
+					 'createdColumn'      => 'created_date',
 //					 'createdByColumn'      => 'created_by_id',
-					 'lastModifiedColumn'   => 'last_modified_date',
+					 'lastModifiedColumn' => 'last_modified_date',
 //					 'lastModifiedByColumn' => 'last_modified_by_id',
 				 ),
 			)
@@ -521,5 +520,4 @@ class BaseDspModel extends \CActiveRecord
 	{
 		return static::getDb()->createCommand( $sql );
 	}
-
 }

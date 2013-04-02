@@ -8,6 +8,8 @@
  * @license    http://www.dreamfactory.com/license
  */
 
+use Kisma\Core\Utility\Log;
+
 class FileManager extends CommonFileManager
 {
 	/**
@@ -515,6 +517,8 @@ class FileManager extends CommonFileManager
 			}
 			else
 			{
+				Log::debug('FileManager::streamFile is_file call fail: ' . $key );
+
 				$status_header = "HTTP/1.1 404 The specified file '$path' does not exist.";
 				header( $status_header );
 				header( 'Content-type: text/html' );

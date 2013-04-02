@@ -277,12 +277,14 @@ class Role extends BaseDspSystemModel
 		{
 			$accesses = array_values( $accesses ); // reset indices if needed
 			$count = count( $accesses );
+
 			// check for dupes before processing
 			for ( $key1 = 0; $key1 < $count; $key1++ )
 			{
 				$access = $accesses[$key1];
 				$serviceId = Utilities::getArrayValue( 'service_id', $access, null );
 				$component = Utilities::getArrayValue( 'component', $access, '' );
+
 				for ( $key2 = $key1 + 1; $key2 < $count; $key2++ )
 				{
 					$access2 = $accesses[$key2];
@@ -294,6 +296,7 @@ class Role extends BaseDspSystemModel
 					}
 				}
 			}
+
 			$map_table = static::tableNamePrefix() . 'role_service_access';
 			$pkMapField = 'id';
 			// use query builder

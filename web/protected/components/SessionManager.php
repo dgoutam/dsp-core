@@ -732,7 +732,9 @@ class SessionManager
 	public static function setCurrentUserId( $userId )
 	{
 		static::$_userId = $userId;
-		Pii::setState( 'user_id', $userId );
+		\Kisma::set( 'user_id', $userId );
+
+		return $userId;
 	}
 
 	/**
@@ -747,7 +749,7 @@ class SessionManager
 
 		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['id'] ) )
 		{
-			return static::$_userId = $_SESSION['public']['id'];
+			return static::setCurrentUserId( $_SESSION['public']['id'] );
 		}
 
 		return null;
@@ -759,7 +761,9 @@ class SessionManager
 	public static function setCurrentRoleId( $roleId )
 	{
 		static::$_roleId = $roleId;
-		Pii::setState( 'role_id', $roleId );
+		\Kisma::set( 'role_id', $roleId );
+
+		return $roleId;
 	}
 
 	/**
@@ -774,7 +778,7 @@ class SessionManager
 
 		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['role'], $_SESSION['public']['role']['id'] ) )
 		{
-			return static::$_roleId = $_SESSION['public']['role']['id'];
+			return static::setCurrentRoleId( $_SESSION['public']['role']['id'] );
 		}
 
 		return null;
