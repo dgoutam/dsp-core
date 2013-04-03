@@ -27,6 +27,7 @@
 //. Default Values
 //.........................................................................
 
+use Kisma\Core\Utility\Log;
 const ENABLE_DB_CACHE = true;
 
 global $_autoloader;
@@ -50,6 +51,8 @@ $_logFilePath = $_basePath . '/log';
 //	Read in the database configuration
 $_dbConfig = require_once( __DIR__ . '/database.config.php' );
 $_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require __DIR__ . '/common.config.php' : array();
+
+Log::debug( 'DB CONFIG: ' . print_r( $_dbConfig, true ) );
 
 /**
  * Database Caching

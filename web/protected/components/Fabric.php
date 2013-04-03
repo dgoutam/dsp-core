@@ -110,19 +110,8 @@ class Fabric extends SeedUtility
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
 		}
 
-		//	Create a hash
-		$_hash = sha1( $_host . $_SERVER['REMOTE_ADDR'] );
-		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . $_hash . '.dsp.config.php';
-
-		//	What has it gots in its pocketses?
-		if ( null === ( $_privateKey = FilterInput::cookie( static::PrivateFigNewton ) ) )
-		{
-			//	If there is a configuration file available, we'll use it for this session.
-			$_privateKey = FilterInput::session( static::PrivateFigNewton );
-		}
-
-		//	Check cookies/session for keys
-		$_key = FilterInput::cookie( static::FigNewton, FilterInput::session( static::FigNewton ), \Kisma::get( 'platform.storage_key' ) );
+		//	What has it gots in its pocketses? Cookies first, then session
+		$_storageKey = FilterInput::cookie( static::FigNewton, FilterInput::session( static::FigNewton ), \Kisma::get( 'platform.storage_key' ) );
 		$_privateKey =
 			FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
 		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
@@ -133,18 +122,70 @@ class Fabric extends SeedUtility
 			static::DSP_DB_CONFIG_FILE_NAME_PATTERN
 		);
 
+		//	Try and get them from server...
+		if ( false === ( $_settings = static::_checkCache( $_host ) ) )
+		{
+			//	Otherwise we need to build it.
+			$_parts = explode( '.', $_host );
+			$_dbName = $_dspName = $_parts[0];
+
+			//	Otherwise, get the credentials from the auth server...
+			Log::info( 'Credentials pull' );
+			$_response = \Curl::get( static::AUTH_ENDPOINT . '/' . $_dspName . '/database' );
+
+			if ( is_object( $_response ) && isset( $_response->details, $_response->details->code ) && HttpResponse::NotFound == $_response->details->code )
+			{
+				Log::error( 'Instance "' . $_dspName . '" not found during web initialize.' );
+				throw new \CHttpException( HttpResponse::NotFound, 'Instance not available.' );
+			}
+
+			if ( !$_response || !is_object( $_response ) || false == $_response->success )
+			{
+				Log::error( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
+				throw new \CHttpException( HttpResponse::InternalServerError, 'Cannot connect to authentication service' );
+			}
+
+			$_instance = $_cache = $_response->details;
+			\Kisma::set( 'dsp.credentials', $_cache );
+			\Kisma::set( 'platform.private_path', $_privatePath = $_cache->private_path );
+			$_privateKey = basename( dirname( $_privatePath ) );
+			\Kisma::set( 'platform.storage_key', $_instance->storage_key );
+			\Kisma::set( 'platform.db_config_file', $_privatePath . '/' . $_dbConfigFileName );
+
+			//	File should be there from provisioning... If not, tenemos un problema!
+			$_settings = require( $_privatePath . '/' . $_dbConfigFileName );
+
+			if ( !empty( $_settings ) )
+			{
+				setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
+				$_settings = static::_cacheSettings( $_host, $_settings );
+			}
+		}
+
 		\Kisma::set( 'platform.dsp_name', $_dspName );
 		\Kisma::set( 'platform.db_config_file_name', $_dbConfigFileName );
 
-		if ( $_key )
+		//	Save it for later (don't run away and let me down <== extra points if you get the reference)
+		setcookie( static::PrivateFigNewton, $_privateKey, time() + DateTime::TheEnd, '/' );
+
+		if ( !empty( $_settings ) )
 		{
-			\Kisma::set( 'platform.storage_key', $_key );
+			return $_settings;
 		}
 
-		if ( $_privateKey )
-		{
-			\Kisma::set( 'platform.user_key', $_privateKey );
-		}
+		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );
+		throw new \CHttpException( HttpResponse::BadRequest );
+	}
+
+	/**
+	 * @param string $host
+	 *
+	 * @return bool|mixed
+	 */
+	protected static function _checkCache( $host )
+	{
+		//	Create a hash
+		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . sha1( $host . $_SERVER['REMOTE_ADDR'] ) . '.dsp.config.php';
 
 		if ( file_exists( $_tmpConfig ) )
 		{
@@ -152,96 +193,41 @@ class Fabric extends SeedUtility
 			{
 				Log::warning( 'Expired (' . ( time() - fileatime( $_tmpConfig ) ) . 's old) dbconfig found. Removing: ' . $_tmpConfig );
 				@unlink( $_tmpConfig );
+
+				return false;
 			}
-			else if ( '' == session_id() || 'deleted' == FilterInput::cookie( 'PHPSESSID' ) )
+
+			if ( /*'' == session_id() ||*/
+				'deleted' == FilterInput::cookie( 'PHPSESSID' )
+			)
 			{
 				Log::warning( 'Logged out user session found. Removing: ' . $_tmpConfig );
 				@unlink( $_tmpConfig );
+
+				return false;
 			}
-			else
-			{
-				Log::debug( 'Using tmp dbconfig: ' . $_tmpConfig );
 
-				return require_once $_tmpConfig;
-			}
+			Log::debug( 'tmp read: ' . $_tmpConfig );
+			return json_decode( file_get_contents( $_tmpConfig ), true );
 		}
 
-		//	If an existing database config file is found for this instance
-		if ( !empty( $_privateKey ) )
-		{
-			$_config = static::BaseStorage . '/' . $_privateKey . '/.private/' . $_dbConfigFileName;
+		return false;
+	}
 
-			\Kisma::set( 'platform.private_path', static::BaseStorage . '/' . $_privateKey . '/.private' );
-			\Kisma::set( 'platform.db_config_file', $_config );
+	/**
+	 * @param array $settings
+	 *
+	 * @return mixed
+	 */
+	protected static function _cacheSettings( $host, $settings )
+	{
+		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . sha1( $host . $_SERVER['REMOTE_ADDR'] ) . '.dsp.config.php';
 
-			if ( file_exists( $_config ) )
-			{
-				/** @noinspection PhpIncludeInspection */
-				\Kisma::set( 'platform.tmp.db_config_file', $_tmpConfig );
-				$_settings = file_get_contents( $_config );
+		file_put_contents( $_tmpConfig, json_encode( $settings ) );
 
-				if ( !empty( $_settings ) && !isset( $_settings['schemaCacheDuration'] ) )
-				{
-					$_settings['schemaCacheDuration'] = 3600;
-				}
+		Log::debug( 'tmp store: ' . $_tmpConfig );
 
-				file_put_contents( $_tmpConfig, $_settings );
-
-				Log::debug( 'Storing dbconfig tmp: ' . $_tmpConfig );
-
-				return $_settings;
-			}
-		}
-
-		//	Otherwise we need to build it.
-		$_parts = explode( '.', $_host );
-		$_dbName = $_dspName = $_parts[0];
-
-		//	Otherwise, get the credentials from the auth server...
-		Log::info( 'Credentials pull' );
-		$_response = \Curl::get( static::AUTH_ENDPOINT . '/' . $_dspName . '/database' );
-
-		if ( is_object( $_response ) && isset( $_response->details, $_response->details->code ) && HttpResponse::NotFound == $_response->details->code )
-		{
-			Log::error( 'Instance "' . $_dspName . '" not found during web initialize.' );
-			throw new \CHttpException( HttpResponse::NotFound, 'Instance not available.' );
-		}
-
-		if ( !$_response || !is_object( $_response ) || false == $_response->success )
-		{
-			Log::error( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
-			throw new \CHttpException( HttpResponse::InternalServerError, 'Cannot connect to authentication service' );
-		}
-
-		$_instance = $_cache = $_response->details;
-		$_privatePath = $_cache->private_path;
-		$_privateKey = basename( dirname( $_privatePath ) );
-
-		\Kisma::set( 'dsp.credentials', $_cache );
-		\Kisma::set( 'platform.storage_key', $_instance->storage_key );
-		\Kisma::set( 'platform.user_key', $_privateKey );
-
-		//	Save it for later (don't run away and let me down <== extra points if you get the reference)
-		setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
-		setcookie( static::PrivateFigNewton, $_privateKey, time() + DateTime::TheEnd, '/' );
-
-		//	File should be there from provisioning... If not, tenemos un problema!
-		if ( file_exists( $_privatePath . '/' . $_dbConfigFileName ) )
-		{
-			\Kisma::set( 'platform.private_path', $_privatePath );
-			\Kisma::set( 'platform.db_config_file', $_privatePath . '/' . $_dbConfigFileName );
-
-			/** @noinspection PhpIncludeInspection */
-			//	Create a temp local file that we can determine with math.
-			\Kisma::set( 'platform.tmp.db_config_file', $_tmpConfig );
-			file_put_contents( $_tmpConfig, file_get_contents( $_privatePath . '/' . $_dbConfigFileName ) );
-			Log::debug( 'Storing dbconfig tmp: ' . $_tmpConfig );
-
-			return require_once $_tmpConfig;
-		}
-
-		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );
-		throw new \CHttpException( HttpResponse::BadRequest );
+		return $settings;
 	}
 
 	/**
