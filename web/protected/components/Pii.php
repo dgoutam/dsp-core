@@ -205,7 +205,7 @@ class Pii extends \CHtml
 		if ( 'cli' != PHP_SAPI )
 		{
 			static::$_clientScript = $_thisApp->getClientScript();
-			static::$_thisUser = $_thisApp->getUser();
+            static::$_thisUser = $_thisApp->getUser();
 		}
 
 		static::$_thisRequest = $_thisApp->getRequest();
@@ -893,7 +893,7 @@ class Pii extends \CHtml
 	 */
 	public static function getState( $name, $defaultValue = null )
 	{
-		return static::$_thisUser->getState( $name, $defaultValue );
+		return static::$_thisUser ? static::$_thisUser->getState( $name, $defaultValue ) : false;
 	}
 
 	/**
@@ -903,7 +903,10 @@ class Pii extends \CHtml
 	 */
 	public static function setState( $name, $value, $defaultValue = null )
 	{
-		static::$_thisUser->setState( $name, $value, $defaultValue );
+		if ( static::$_thisUser )
+		{
+			static::$_thisUser->setState( $name, $value, $defaultValue );
+		}
 	}
 
 	/**

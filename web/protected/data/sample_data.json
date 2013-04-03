@@ -1,0 +1,22 @@
+{
+    "df_sys_service": [
+        {
+            "api_name":"doc","name":"Document Storage","is_active":1,"type":"Local File Storage","storage_name":"documents",
+            "description":"Default storage for documents"
+        }
+    ],
+	"app_package": [
+		{
+			"url":"https://github.com/dreamfactorysoftware/app-helloworld/raw/master/helloworld.dfpkg"
+		},
+		{
+			"url":"https://github.com/dreamfactorysoftware/app-todo/raw/master/todo.dfpkg"
+		},
+		{
+			"url":"https://github.com/dreamfactorysoftware/app-calendar/raw/master/calendar.dfpkg"
+		},
+		{
+			"url":"https://github.com/dreamfactorysoftware/app-swagger/raw/master/swagger.dfpkg"
+		}
+	]
+}

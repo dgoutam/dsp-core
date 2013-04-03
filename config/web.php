@@ -22,57 +22,54 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//	Just ignore this...
-global $_autoloader;
 
 //.........................................................................
-//. Default Values & Constants
+//. Default Values
 //.........................................................................
 
+use Kisma\Core\Utility\Log;
 const ENABLE_DB_CACHE = true;
 
-$_dbName = null;
+global $_autoloader;
+
+$_dbCache = $_dbName = null;
 $_appName = 'DreamFactory Services Platform';
-$_vendorPath = dirname( __DIR__ ) . '/vendor';
-
-//	Get the globals set...
-require_once dirname( __DIR__ ) . '/web/protected/components/Pii.php';
-\Pii::run( __DIR__, $_autoloader );
-
-//	Read in the database configuration
-$_dbConfig = require_once( __DIR__ . '/database.config.php' );
-$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require_once( __DIR__ . '/common.config.php' ) : array();
-
-//	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
-$_blobConfig = __DIR__ . '/blob.config.php';
 
 //	Our base path
 $_basePath = dirname( __DIR__ );
 
+//	Get the globals set...
+require_once $_basePath . '/web/protected/components/Pii.php';
+require_once $_basePath . '/web/protected/components/Fabric.php';
+\Pii::run( __DIR__, $_autoloader );
+
+//	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
+$_blobConfig = __DIR__ . '/blob.config.php';
+
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';
+
+//	Read in the database configuration
+$_dbConfig = require_once( __DIR__ . '/database.config.php' );
+$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require __DIR__ . '/common.config.php' : array();
+
+Log::debug( 'DB CONFIG: ' . print_r( $_dbConfig, true ) );
 
 /**
  * Database Caching
  */
-$_dbCache = ENABLE_DB_CACHE ? array(
+if ( ENABLE_DB_CACHE )
+{
 	/**
 	 * The database cache object
 	 */
-	'cache' => array(
+	$_dbCache = array(
 		'class'                => 'CDbCache',
 		'connectionID'         => 'db',
 		'cacheTableName'       => 'df_sys_cache',
 		'autoCreateCacheTable' => true,
-	),
-) : null;
-
-//.........................................................................
-//. Set some aliases...
-//.........................................................................
-
-Pii::alias( 'DreamFactory', dirname( __DIR__ ) . '/src/DreamFactory' );
-\Yii::setPathOfAlias( 'vendor', $_vendorPath );
+	);
+}
 
 //.........................................................................
 //. The configuration himself (like Raab)
@@ -96,7 +93,6 @@ return array(
 		'application.components.blobs.*',
 		'application.components.file_managers.*',
 		'application.components.services.*',
-		'DreamFactory.Platform.Interfaces.*',
 	),
 	'modules'     => array(
 		'gii' => array(
@@ -129,8 +125,6 @@ return array(
 			'showScriptName' => false,
 			'rules'          => array(
 				// REST patterns
-				array( 'app/stream', 'pattern' => 'app/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
-				array( 'lib/stream', 'pattern' => 'lib/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 				array( 'rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 				array( 'rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
 				array( 'rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
@@ -140,6 +134,8 @@ return array(
 				'<controller:\w+>/<id:\d+>'              => '<controller>/view',
 				'<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'          => '<controller>/<action>',
+				// fall through to storage services for direct access
+				array( 'storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 			),
 		),
 		//	User configuration
@@ -155,12 +151,12 @@ return array(
 					'maxFileSize' => '102400',
 					'logFile'     => basename( \Kisma::get( 'app.log_file' ) ),
 					'logPath'     => $_logFilePath,
-					'levels'      => 'error, warning, trace, info, profile, debug',
+					'levels'      => 'error, warning, trace, info',
 				),
 			),
 		),
 		//	Database Cache
-		$_dbCache
+		'cache'        => $_dbCache,
 	),
 	//.........................................................................
 	//. Global application parameters

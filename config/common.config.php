@@ -28,23 +28,28 @@ global $_dbName, $_blobConfig, $_instance;
 //* Set fabric-hosted storage paths here...
 //*************************************************************************
 
-if ( \Kisma::get( 'platform.fabric_hosted' ) && !empty( $_instance ) )
+if ( Fabric::fabricHosted() && !empty( $_instance ) )
 {
+	if ( is_object( $_instance ) )
+	{
+		$_instance = (array)$_instance;
+	}
+
 	$_instanceSettings = array(
-		'storage_base_path' => $_instance->storage_path,
-		'private_path'      => $_instance->private_path,
-		'storage_path'      => $_instance->blob_storage_path,
-		'snapshot_path'     => $_instance->snapshot_path,
-		'dsp_name'          => $_instance->db_name,
+		'storage_base_path' => $_instance['storage_path'],
+		'private_path'      => $_instance['private_path'],
+		'storage_path'      => $_instance['blob_storage_path'],
+		'snapshot_path'     => $_instance['snapshot_path'],
+		'dsp_name'          => $_instance['db_name'],
 	);
 }
 else
 {
 	$_instanceSettings = array(
-		'storage_base_path' => dirname( __DIR__ ) . '/storage',
-		'private_path'      => dirname( __DIR__ ) . '/storage/.private',
-		'storage_path'      => dirname( __DIR__ ) . '/storage',
-		'snapshot_path'     => dirname( __DIR__ ) . '/storage/.private/snapshots',
+		'storage_base_path' => __DIR__ . '/../storage',
+		'private_path'      => __DIR__ . '/../storage/.private',
+		'storage_path'      => __DIR__ . '/../storage',
+		'snapshot_path'     => __DIR__ . '/../storage/.private/snapshots',
 		'dsp_name'          => $_dbName,
 	);
 }
@@ -54,8 +59,8 @@ return array_merge(
 	array(
 		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
 		 'adminEmail'            => 'developer-support@dreamfactory.com',
-		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
+		 'companyLabel'          => 'DreamFactory Service Platform(tm)',
 		 'allowOpenRegistration' => 'true',
-		 'system_table_prefix'   => 'df_sys_',
+		 'dsp.version'           => '0.6.1',
 	)
 );

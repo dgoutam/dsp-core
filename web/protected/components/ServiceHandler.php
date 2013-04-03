@@ -32,18 +32,12 @@
  * @license    http://phpazure.codeplex.com/license
  * @version    $Id: ServiceHandler.php 66505 2012-04-02 08:45:51Z unknown $
  */
-use Kisma\Core\Utility\Option;
 
 /**
  *
  */
 class ServiceHandler
 {
-	/**
-	 * @var ServiceHandler
-	 */
-	private static $_instance = null;
-
 	/**
 	 * Services
 	 *
@@ -52,7 +46,7 @@ class ServiceHandler
 	 * @access private
 	 * @var array
 	 */
-	private $_services = array();
+	private static $_services = array();
 
 	/**
 	 * Creates a new ServiceHandler instance
@@ -61,7 +55,7 @@ class ServiceHandler
 	public function __construct()
 	{
 		// create services as needed, store local pointer in array for speed
-		$this->_services = array();
+		static::$_services = array();
 	}
 
 	/**
@@ -69,47 +63,24 @@ class ServiceHandler
 	 */
 	public function __destruct()
 	{
-		if ( !empty( $this->_services ) )
+		if ( !empty( static::$_services ) )
 		{
-			foreach ( $this->_services as $key => $service )
+			foreach ( static::$_services as $key => $service )
 			{
-				unset( $this->_services[$key] );
+				unset( static::$_services[$key] );
 			}
-
-			$this->_services = null;
+			static::$_services = null;
 		}
-	}
-
-	/**
-	 * Gets the static instance of this class.
-	 *
-	 * @return ServiceHandler
-	 */
-	public static function getInstance()
-	{
-		if ( !isset( self::$_instance ) )
-		{
-			self::$_instance = new ServiceHandler();
-		}
-
-		return self::$_instance;
 	}
 
 	/**
 	 * @return array
 	 * @throws Exception
 	 */
-	public function getServiceListing()
+	public static function getServiceListing()
 	{
-		$_criteria = new CDbCriteria( array( 'select' => 'api_name,name' ) );
-		$result = Service::model()->findAll( $_criteria );
-		$out = array();
-		foreach ( $result as $service )
-		{
-			$out[] = array( 'api_name' => $service->api_name, 'name' => $service->name );
-		}
-
-		return $out;
+		$command = Yii::app()->db->createCommand();
+		return $command->select('api_name,name')->from('df_sys_service')->queryAll();
 	}
 
 	/**
@@ -122,15 +93,31 @@ class ServiceHandler
 	 * @return array The service record array
 	 * @throws Exception if retrieving of service is not possible
 	 */
-	private function getService( $api_name )
+	private static function getService( $api_name )
 	{
-		$result = Service::model()->find( 'api_name=:name', array( ':name' => $api_name ) );
-		if ( isset( $result ) )
+		$command = Yii::app()->db->createCommand();
+		$result = $command->from( 'df_sys_service' )->where( 'api_name=:name' )->queryRow( true, array( ':name' => $api_name ) );
+		if ( !$result )
 		{
-			return $result->attributes;
+			return array();
 		}
 
-		return array();
+		if ( isset( $result['credentials'] ) )
+		{
+			$result['credentials'] = json_decode( $result['credentials'], true );
+		}
+
+		if ( isset( $result['parameters'] ) )
+		{
+			$result['parameters'] = json_decode( $result['parameters'], true );
+		}
+
+		if ( isset( $result['headers'] ) )
+		{
+			$result['headers'] = json_decode( $result['headers'], true );
+		}
+
+		return $result;
 	}
 
 	/**
@@ -148,37 +135,28 @@ class ServiceHandler
 	 * @return object The new or previously constructed XXXSvc
 	 * @throws Exception if construction of service is not possible
 	 */
-	public function getServiceObject( $api_name, $check_active = false )
+	public static function getServiceObject( $api_name, $check_active = false )
 	{
 		if ( empty( $api_name ) )
 		{
-			throw new ServiceHandlerException( "Failed to launch service, no service name given." );
+			throw new Exception( "Failed to launch service, no service name given." );
 		}
 
 		// if it hasn't been created, do so
-		if ( null !== ( $service = Option::get( $this->_services, $api_name ) ) )
+		$service = Utilities::getArrayValue( $api_name, static::$_services, null );
+		if ( isset( $service ) && !empty( $service ) )
 		{
 			return $service;
 		}
 
 		try
 		{
-			$record = $this->getService( $api_name );
-
+			$record = static::getService( $api_name );
 			switch ( strtolower( $api_name ) )
 			{
 				// some special cases first
 				case 'app':
 					$service = new ApplicationSvc( $record );
-					break;
-				case 'lib':
-					$service = new LibrarySvc( $record );
-					break;
-				case 'attachment':
-					$service = new AttachmentSvc( $record );
-					break;
-				case 'doc':
-					$service = new DocumentSvc( $record );
 					break;
 				default:
 					$type = Utilities::getArrayValue( 'type', $record, '' );
@@ -209,18 +187,19 @@ class ServiceHandler
 					}
 					break;
 			}
-			$this->_services[$api_name] = $service;
+			static::$_services[$api_name] = $service;
 		}
 		catch ( Exception $ex )
 		{
-			throw new ServiceHandlerException( "Failed to launch service '$api_name'.\n{$ex->getMessage()}" );
+			throw new Exception( "Failed to launch service '$api_name'.\n{$ex->getMessage()}" );
 		}
 
 		if ( $check_active && !$service->getIsActive() )
 		{
-			throw new ServiceHandlerException( "Requested service '$api_name' is not active." );
+			throw new Exception( "Requested service '$api_name' is not active." );
 		}
 
 		return $service;
 	}
+
 }

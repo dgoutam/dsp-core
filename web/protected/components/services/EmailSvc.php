@@ -56,7 +56,122 @@ class EmailSvc extends CommonService implements iRestHandler
         parent::__destruct();
     }
 
-    // Controller based methods
+	// Controller based methods
+
+	/**
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionSwagger()
+	{
+		try {
+			$result = parent::actionSwagger();
+			$resources = array(
+				array(
+					'path' => '/'.$this->_api_name,
+					'description' => $this->_description,
+					'operations' => array(
+						array(
+							"httpMethod"=> "POST",
+							"summary"=> "Send an email created from posted data.",
+							"notes"=> "Post data as an array of parameters, or include them as url parameters.",
+							"responseClass"=> "array",
+							"nickname"=> "sendEmail",
+							"parameters"=> array(
+								array(
+									"paramType"=>"query",
+									"name"=>"to_emails",
+									"description"=>"Comma-delimited list of receiver addresses.",
+									"dataType"=>"String",
+									"required"=>true,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"cc_emails",
+									"description"=>"Comma-delimited list of CC receiver addresses.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"bcc_emails",
+									"description"=>"Comma-delimited list of BCC receiver addresses.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"subject",
+									"description"=>"Text only subject line.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"text_body",
+									"description"=>"Text only version of the email body.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"html_body",
+									"description"=>"Escaped HTML version of the email body.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"from_name",
+									"description"=>"Name displayed for the sender.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"from_email",
+									"description"=>"Email displayed for the sender.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"reply_name",
+									"description"=>"Name displayed for the reply to.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								),
+								array(
+									"paramType"=>"query",
+									"name"=>"reply_email",
+									"description"=>"Email displayed for the reply to.",
+									"dataType"=>"String",
+									"required"=>false,
+									"allowMultiple"=>true
+								)
+							),
+							"errorResponses"=> array()
+						  )
+					  )
+				)
+			);
+			$result['apis'] = $resources;
+			return $result;
+		}
+		catch (Exception $ex) {
+			throw $ex;
+		}
+	}
 
     public function actionPost()
     {

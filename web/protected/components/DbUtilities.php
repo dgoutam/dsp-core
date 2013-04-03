@@ -1182,7 +1182,7 @@ class DbUtilities
 							'ref_table'  => 'df_sys_user',
 							'ref_fields' => 'id',
 							'delete'     => null,
-							'update'     => 'CASCADE'
+							'update'     => null
 						);
 					}
 				}
@@ -1200,7 +1200,7 @@ class DbUtilities
 							'ref_table'  => 'df_sys_user',
 							'ref_fields' => 'id',
 							'delete'     => null,
-							'update'     => 'CASCADE'
+							'update'     => null
 						);
 					}
 				}
@@ -1218,7 +1218,7 @@ class DbUtilities
 							'ref_table'  => 'df_sys_user',
 							'ref_fields' => 'id',
 							'delete'     => null,
-							'update'     => 'CASCADE'
+							'update'     => null
 						);
 					}
 				}

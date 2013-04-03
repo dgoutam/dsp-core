@@ -1,23 +1,45 @@
 <?php
-namespace DreamFactory\Yii\Models;
-
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
-use DreamFactory\Yii\Utility\Pii;
 
 /**
- * BaseModel
+ * BaseDspModel.php
  *
- * The base class for all models. Defines two "built-in" behaviors: DataFormat and TimeStamp
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Defines two "built-in" behaviors: DataFormat and TimeStamp
  *  - DataFormat automatically formats date/time values for the target database platform (MySQL, Oracle, etc.)
  *  - TimeStamp automatically updates create_date and lmod_date columns in tables upon save.
  *
  * @property int    $id
- * @property string $create_date
- * @property string $lmod_date
+ * @property string $created_date
+ * @property string $last_modified_date
  */
-class BaseModel extends \CActiveRecord
+class BaseDspModel extends \CActiveRecord
 {
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const ALL_ATTRIBUTES = '*';
+
 	//*******************************************************************************
 	//* Members
 	//*******************************************************************************
@@ -38,10 +60,6 @@ class BaseModel extends \CActiveRecord
 	 * @var \CDbTransaction The current transaction
 	 */
 	protected $_transaction = null;
-	/**
-	 * @var bool If true, CDbExceptions will be thrown on save() or update() fail
-	 */
-	protected $_throwExceptionsForSaveUpdate = true;
 
 	//********************************************************************************
 	//* Methods
@@ -52,8 +70,8 @@ class BaseModel extends \CActiveRecord
 	 */
 	public function init()
 	{
-		parent::init();
 		$this->_modelClass = get_class( $this );
+		parent::init();
 	}
 
 	/**
@@ -63,7 +81,43 @@ class BaseModel extends \CActiveRecord
 	 */
 	public function getSchema()
 	{
-		return $this->_schema ? : $this->_schema = $this->getMetaData()->columns;
+		return $this->_schema ? $this->_schema : $this->_schema = $this->getMetaData()->columns;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function attributeLabels()
+	{
+		static $_cache;
+
+		if ( null !== $_cache )
+		{
+			return $_cache;
+		}
+
+		return $_cache = array_merge(
+			parent::attributeLabels(),
+			array(
+				 'id'                  => 'ID',
+				 'create_date'         => 'Created Date',
+				 'created_date'        => 'Created Date',
+				 'last_modified_date'  => 'Last Modified Date',
+				 'lmod_date'           => 'Last Modified Date',
+				 'created_by_id'       => 'Created By',
+				 'last_modified_by_id' => 'Last Modified By',
+			)
+		);
+	}
+
+	/**
+	 * @param string $attribute
+	 *
+	 * @return array
+	 */
+	public function attributeLabel( $attribute )
+	{
+		return Option::get( $this->attributeLabels(), $attribute );
 	}
 
 	/**
@@ -126,13 +180,15 @@ class BaseModel extends \CActiveRecord
 			array(
 				 //	Data formatter
 				 'base_model.data_format_behavior' => array(
-					 'class' => 'DreamFactory\\Yii\\Behaviors\\DataFormatBehavior',
+					 'class' => 'application.behaviors.DataFormatBehavior',
 				 ),
 				 //	Timestamper
 				 'base_model.timestamp_behavior'   => array(
-					 'class'              => 'DreamFactory\\Yii\\Behaviors\\TimestampBehavior',
-					 'createdColumn'      => 'create_date',
-					 'lastModifiedColumn' => 'lmod_date',
+					 'class'              => 'application.behaviors.TimestampBehavior',
+					 'createdColumn'      => 'created_date',
+//					 'createdByColumn'      => 'created_by_id',
+					 'lastModifiedColumn' => 'last_modified_date',
+//					 'lastModifiedByColumn' => 'last_modified_by_id',
 				 ),
 			)
 		);
@@ -142,11 +198,10 @@ class BaseModel extends \CActiveRecord
 	 * Returns the errors on this model in a single string suitable for logging.
 	 *
 	 * @param string $attribute Attribute name. Use null to retrieve errors for all attributes.
-	 * @param string $pattern   Pass NULL to get errors as an array
 	 *
-	 * @return string|array
+	 * @return string
 	 */
-	public function getErrorsForLogging( $attribute = null, $pattern = '%%#%% "%%column%%": %%error_message%%' )
+	public function getErrorsForLogging( $attribute = null )
 	{
 		$_result = null;
 		$_i = 1;
@@ -155,29 +210,9 @@ class BaseModel extends \CActiveRecord
 
 		if ( !empty( $_errors ) )
 		{
-			if ( empty( $pattern ) )
-			{
-				return $_errors;
-			}
-
 			foreach ( $_errors as $_attribute => $_error )
 			{
-				$_format = str_ireplace(
-					array(
-						 '%%#%%',
-						 '%%column%%',
-						 '%%error_message%%',
-					),
-					array(
-						 $_i++,
-						 $_attribute,
-						 $_error
-					),
-					$pattern
-				);
-
-				$_result .= $_format;
-				//$_i++ . '. [' . $_attribute . '] : ' . implode( '|', $_error );
+				$_result .= $_i++ . '. [' . $_attribute . '] : ' . implode( '|', $_error );
 			}
 		}
 
@@ -190,18 +225,13 @@ class BaseModel extends \CActiveRecord
 	 * @param bool  $runValidation
 	 * @param array $attributes
 	 *
-	 * @throws \CDbException
+	 * @throws CDbException
 	 * @return bool
 	 */
 	public function save( $runValidation = true, $attributes = null )
 	{
 		if ( !parent::save( $runValidation, $attributes ) )
 		{
-			if ( false === $this->_throwExceptionsForSaveUpdate )
-			{
-				return false;
-			}
-
 			throw new \CDbException( $this->getErrorsForLogging() );
 		}
 
@@ -214,8 +244,8 @@ class BaseModel extends \CActiveRecord
 	 *
 	 * @param array $attributes list of attributes and values that need to be saved. Defaults to null, meaning all attributes that are loaded from DB will be saved.
 	 *
-	 * @throws \CDbException
 	 * @return bool whether the update is successful
+	 * @throws \CException if the record is new
 	 */
 	public function update( $attributes = null )
 	{
@@ -242,40 +272,21 @@ class BaseModel extends \CActiveRecord
 			$_columns[] = $_column;
 		}
 
-		$_result = parent::update( $_columns );
-
-		if ( empty( $_result ) )
-		{
-			if ( false === $this->_throwExceptionsForSaveUpdate )
-			{
-				return $_result;
-			}
-
-			throw new \CDbException( $this->getErrorsForLogging() );
-		}
-
-		return $_result;
+		return parent::update( $_columns );
 	}
 
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
-	 * @param bool $returnCriteria
-	 *
 	 * @return bool the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search( $returnCriteria = false )
+	public function search()
 	{
 		$_criteria = new \CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
-		$_criteria->compare( 'create_date', $this->create_date, true );
-		$_criteria->compare( 'lmod_date', $this->lmod_date, true );
-
-		if ( false !== $returnCriteria )
-		{
-			return $_criteria;
-		}
+		$_criteria->compare( 'created_date', $this->created_date, true );
+		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
 
 		return new \CActiveDataProvider(
 			$this,
@@ -316,7 +327,7 @@ class BaseModel extends \CActiveRecord
 	 */
 	public function hasTransaction()
 	{
-		return !empty( $this->_transaction );
+		return ( null !== $this->_transaction );
 	}
 
 	/**
@@ -351,12 +362,9 @@ class BaseModel extends \CActiveRecord
 	/**
 	 * Rolls back the current transaction, if any...
 	 *
-	 * @param \Exception $exception
-	 *
-	 * @return bool
-	 * @throws \Exception
+	 * @throws \CDbException
 	 */
-	public function rollback( \Exception $exception = null )
+	public function rollback( Exception $exception = null )
 	{
 		if ( $this->hasTransaction() )
 		{
@@ -368,88 +376,86 @@ class BaseModel extends \CActiveRecord
 		{
 			throw $exception;
 		}
+	}
 
-		return false;
+	//*******************************************************************************
+	//* REST Methods
+	//*******************************************************************************
+
+	/**
+	 * A mapping of attributes to REST attributes
+	 *
+	 * @return array
+	 */
+	public function restMap()
+	{
+		return array();
 	}
 
 	/**
-	 * @return array
+	 * If a model has a REST mapping, attributes are mapped an returned in an array.
+	 *
+	 * @return array|null The resulting view
 	 */
-	public function attributeLabels()
+	public function getRestAttributes()
 	{
-		static $_cache;
+		$_map = $this->restMap();
 
-		if ( null !== $_cache )
+		if ( empty( $_map ) )
 		{
-			return $_cache;
+			return null;
 		}
 
-		return $_cache = array_merge(
-			parent::attributeLabels(),
-			array(
-				 'id'          => 'ID',
-				 'create_date' => 'Create Date',
-				 'lmod_date'   => 'Last Modified Date',
-			)
-		);
+		$_results = array();
+		$_columns = $this->getSchema();
+
+		foreach ( $this->restMap() as $_key => $_value )
+		{
+			$_attributeValue = $this->getAttribute( $_key );
+
+			//	Apply formats
+			switch ( $_columns[$_key]->dbType )
+			{
+				case 'date':
+				case 'datetime':
+				case 'timestamp':
+					//	Handle blanks
+					if ( null !== $_attributeValue && $_attributeValue != '0000-00-00' && $_attributeValue != '0000-00-00 00:00:00' )
+					{
+						$_attributeValue = date( 'c', strtotime( $_attributeValue ) );
+					}
+					break;
+			}
+
+			$_results[$_value] = $_attributeValue;
+		}
+
+		return $_results;
 	}
 
 	/**
-	 * @param string $attribute
+	 * Sets the values in the model based on REST attribute names
 	 *
-	 * @return mixed
-	 */
-	public function attributeLabel( $attribute )
-	{
-		return Option::get( $this->attributeLabels(), $attribute );
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getAttributeLabels()
-	{
-		return $this->attributeLabels();
-	}
-
-	/**
-	 * @param array $attributeLabels
+	 * @param array $attributeList
 	 *
-	 * @return BaseModel
+	 * @return BaseDspModel
 	 */
-	public function setAttributeLabels( $attributeLabels )
+	public function setRestAttributes( array $attributeList = array() )
 	{
-		$this->_attributeLabels = $attributeLabels;
+		$_map = $this->restMap();
+
+		if ( !empty( $_map ) )
+		{
+			foreach ( $attributeList as $_key => $_value )
+			{
+				if ( false !== ( $_mapKey = array_search( $_key, $_map ) ) )
+				{
+					$this->setAttribute( $_mapKey, $_value );
+				}
+			}
+		}
 
 		return $this;
-	}
-
-	/**
-	 * @param boolean $throwExceptionsForSaveUpdate
-	 *
-	 * @return BaseModel
-	 */
-	public function setThrowExceptionsForSaveUpdate( $throwExceptionsForSaveUpdate )
-	{
-		$this->_throwExceptionsForSaveUpdate = $throwExceptionsForSaveUpdate;
-
-		return $this;
-	}
-
-	/**
-	 * @return boolean
-	 */
-	public function getThrowExceptionsForSaveUpdate()
-	{
-		return $this->_throwExceptionsForSaveUpdate;
-	}
-
-	/**
-	 * @return \CDbTransaction
-	 */
-	public function getTransaction()
-	{
-		return $this->transaction();
 	}
 
 	//*************************************************************************
@@ -459,19 +465,19 @@ class BaseModel extends \CActiveRecord
 	/**
 	 * Executes the SQL statement and returns all rows. (static version)
 	 *
-	 * @param mixed   $criteria         The criteria for the query
-	 * @param boolean $fetchAssociative Whether each row should be returned as an associated array with column names as the keys or the array keys are column indexes (0-based).
-	 * @param array   $parameters       input parameters (name=>value) for the SQL execution. This is an alternative to {@link bindParam} and {@link bindValue}. If you have multiple input parameters, passing them in this way can improve the performance. Note that you pass parameters in this way, you cannot bind parameters or values using {@link bindParam} or {@link bindValue}, and vice versa. binding methods and  the input parameters this way can improve the performance. This parameter has been available since version 1.0.10.
+	 * @param mixed   $_criteria         The criteria for the query
+	 * @param boolean $fetchAssociative  Whether each row should be returned as an associated array with column names as the keys or the array keys are column indexes (0-based).
+	 * @param array   $parameters        input parameters (name=>value) for the SQL execution. This is an alternative to {@link bindParam} and {@link bindValue}. If you have multiple input parameters, passing them in this way can improve the performance. Note that you pass parameters in this way, you cannot bind parameters or values using {@link bindParam} or {@link bindValue}, and vice versa. binding methods and  the input parameters this way can improve the performance. This parameter has been available since version 1.0.10.
 	 *
 	 * @return array All rows of the query result. Each array element is an array representing a row. An empty array is returned if the query results in nothing.
 	 * @throws \CException execution failed
 	 * @static
 	 */
-	public static function queryAll( $criteria, $fetchAssociative = true, $parameters = array() )
+	public static function queryAll( $_criteria, $fetchAssociative = true, $parameters = array() )
 	{
 		if ( null !== ( $_builder = static::getDb()->getCommandBuilder() ) )
 		{
-			if ( null !== ( $_command = $_builder->createFindCommand( static::model()->getTableSchema(), $criteria ) ) )
+			if ( null !== ( $_command = $_builder->createFindCommand( static::model()->getTableSchema(), $_criteria ) ) )
 			{
 				return $_command->queryAll( $fetchAssociative, $parameters );
 			}
@@ -514,4 +520,5 @@ class BaseModel extends \CActiveRecord
 	{
 		return static::getDb()->createCommand( $sql );
 	}
+
 }

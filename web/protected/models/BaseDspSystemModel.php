@@ -1,6 +1,5 @@
 <?php
-use DreamFactory\Platform\Enums\PlatformError;
-use DreamFactory\Yii\Models\BaseModel;
+use Kisma\Core\Exceptions\StorageException;
 
 /**
  * BaseDspSystemModel.php
@@ -34,49 +33,24 @@ use DreamFactory\Yii\Models\BaseModel;
  *
  * @property User    $created_by
  * @property User    $last_modified_by
- *
- *
- * Behavior Methods
- * @method TimestampBehavior setCurrentUserId( $currentUserId )
  */
-abstract class BaseDspSystemModel extends BaseModel
+abstract class BaseDspSystemModel extends BaseDspModel
 {
-	//*************************************************************************
-	//* Constants
-	//*************************************************************************
-
-	/**
-	 * @var string
-	 */
-	const ALL_ATTRIBUTES = '*';
-
-	//*************************************************************************
-	//* Methods
-	//*************************************************************************
-
-	/**
-	 * Initialize
-	 */
-	public function init()
-	{
-		parent::init();
-
-		try
-		{
-			//	Set the current user id for stamping
-			$this->setCurrentUserId( \SessionManager::getCurrentUserId() );
-		}
-		catch ( \Exception $_ex )
-		{
-		}
-	}
-
 	/**
 	 * @return string the system database table name prefix
 	 */
 	public static function tableNamePrefix()
 	{
 		return 'df_sys_';
+	}
+
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		return array( //array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
+		);
 	}
 
 	/**
@@ -97,7 +71,7 @@ abstract class BaseDspSystemModel extends BaseModel
 	 */
 	public function search()
 	{
-		$_criteria = new \CDbCriteria;
+		$_criteria = new CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'created_date', $this->created_date, true );
@@ -105,12 +79,35 @@ abstract class BaseDspSystemModel extends BaseModel
 		$_criteria->compare( 'created_by_id', $this->created_by_id );
 		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new \CActiveDataProvider(
+		return new CActiveDataProvider(
 			$this,
 			array(
 				 'criteria' => $_criteria,
 			)
 		);
+	}
+
+	/**
+	 * @return bool
+	 */
+	protected function beforeValidate()
+	{
+		try
+		{
+			$_userId = SessionManager::getCurrentUserId();
+
+			if ( $this->isNewRecord )
+			{
+				$this->created_by_id = $_userId;
+			}
+
+			$this->last_modified_by_id = $_userId;
+		}
+		catch ( Exception $_ex )
+		{
+		}
+
+		return parent::beforeValidate();
 	}
 
 	/**
@@ -195,7 +192,7 @@ abstract class BaseDspSystemModel extends BaseModel
 	 * @param string $many_field
 	 * @param array  $many_records
 	 *
-	 * @throws InvalidArgumentException
+	 * @throws Kisma\Core\Exceptions\StorageException
 	 * @throws Exception
 	 * @return void
 	 */
@@ -203,23 +200,28 @@ abstract class BaseDspSystemModel extends BaseModel
 	{
 		if ( empty( $one_id ) )
 		{
-			throw new InvalidArgumentException( 'The id can not be empty.', PlatformError::BadRequest );
+			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-
 		try
 		{
-			$manyModel = SystemManager::getResourceModel( $many_table );
 			$manyObj = SystemManager::getNewResource( $many_table );
 			$pkField = $manyObj->tableSchema->primaryKey;
-			$oldMany = $manyModel->findAll( $many_field . ' = :oid', array( ':oid' => $one_id ) );
-			foreach ( $oldMany as $old )
+			$many_table = static::tableNamePrefix() . $many_table;
+			// use query builder
+			$command = Yii::app()->db->createCommand();
+			$command->select( "$pkField,$many_field" );
+			$command->from( $many_table );
+			$command->where( "$many_field = :oid" );
+			$maps = $command->queryAll( true, array( ':oid' => $one_id ) );
+			$toDelete = array();
+			foreach ( $maps as $map )
 			{
-				$oldId = $old->primaryKey;
+				$id = Utilities::getArrayValue( $pkField, $map, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
-					if ( $id == $oldId )
+					$assignId = Utilities::getArrayValue( $pkField, $item, '' );
+					if ( $id == $assignId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
 						unset( $many_records[$key] );
@@ -229,22 +231,39 @@ abstract class BaseDspSystemModel extends BaseModel
 				}
 				if ( !$found )
 				{
-					$old->setAttribute( $many_field, null );
-					$old->save();
+					$toDelete[] = $id;
 					continue;
+				}
+			}
+			if ( !empty( $toDelete ) )
+			{
+				// simple update to null request
+				$command->reset();
+				$rows = $command->update( $many_table, array( $many_field => null ), array( 'in', $pkField, $toDelete ) );
+				if ( 0 >= $rows )
+				{
+//					throw new Exception( "Record update failed for table '$many_table'." );
 				}
 			}
 			if ( !empty( $many_records ) )
 			{
-				// add what is leftover
+				$toAdd = array();
 				foreach ( $many_records as $item )
 				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
-					$assigned = $manyModel->findByPk( $id );
-					if ( $assigned )
+					$itemId = Utilities::getArrayValue( $pkField, $item, '' );
+					if ( !empty( $itemId ) )
 					{
-						$assigned->setAttribute( $many_field, $one_id );
-						$assigned->save();
+						$toAdd[] = $itemId;
+					}
+				}
+				if ( !empty( $toAdd ))
+				{
+					// simple update to null request
+					$command->reset();
+					$rows = $command->update( $many_table, array( $many_field => $one_id ), array( 'in', $pkField, $toAdd ) );
+					if ( 0 >= $rows )
+					{
+//						throw new Exception( "Record update failed for table '$many_table'." );
 					}
 				}
 			}
@@ -272,7 +291,7 @@ abstract class BaseDspSystemModel extends BaseModel
 		{
 			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-		$map_table = SystemManager::SYSTEM_TABLE_PREFIX . $map_table;
+		$map_table = static::tableNamePrefix() . $map_table;
 		try
 		{
 			$manyObj = SystemManager::getNewResource( $many_table );
@@ -282,8 +301,8 @@ abstract class BaseDspSystemModel extends BaseModel
 			$command = Yii::app()->db->createCommand();
 			$command->select( $pkMapField . ',' . $many_field );
 			$command->from( $map_table );
-			$command->where( "$one_field = '$one_id'" );
-			$maps = $command->queryAll();
+			$command->where( "$one_field = :id" );
+			$maps = $command->queryAll( true, array( ':id' => $one_id ) );
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
@@ -309,13 +328,12 @@ abstract class BaseDspSystemModel extends BaseModel
 			}
 			if ( !empty( $toDelete ) )
 			{
+				// simple delete request
 				$command->reset();
-
-				foreach ( $toDelete as $key => $id )
+				$rows = $command->delete( $map_table, array( 'in', $pkMapField, $toDelete ) );
+				if ( 0 >= $rows )
 				{
-					// simple delete request
-					$command->reset();
-					$rows = $command->delete( $map_table, array( 'in', $pkMapField, $id ) );
+//					throw new Exception( "Record delete failed for table '$map_table'." );
 				}
 			}
 			if ( !empty( $many_records ) )
@@ -339,27 +357,4 @@ abstract class BaseDspSystemModel extends BaseModel
 			throw new Exception( "Error updating many to one map assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
-
-//	/**
-//	 * @return bool
-//	 */
-//	protected function beforeValidate()
-//	{
-//		try
-//		{
-//			$_userId = SessionManager::getCurrentUserId();
-//
-//			if ( $this->isNewRecord )
-//			{
-//				$this->created_by_id = $_userId;
-//			}
-//
-//			$this->last_modified_by_id = $_userId;
-//		}
-//		catch ( Exception $_ex )
-//		{
-//		}
-//
-//		return parent::beforeValidate();
-//	}
 }

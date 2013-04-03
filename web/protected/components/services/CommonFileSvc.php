@@ -59,15 +59,96 @@ class CommonFileSvc extends CommonService implements iRestHandler
      */
     public function streamFile($path)
     {
-        try {
-            $this->fileRestHandler->streamFile($path);
-        }
-        catch (Exception $ex) {
-            throw $ex;
-        }
+        $this->fileRestHandler->streamFile($path);
     }
 
-    protected function handleFile($dest_path, $dest_name, $source_file, $contentType='',
+	/**
+	 * @param $folder
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function folderExists( $folder )
+	{
+		// applications are defined as a top level folder in the storage
+		return $this->fileRestHandler->folderExists( $folder );
+	}
+
+	/**
+	 * @param string $app_root
+	 * @param bool   $is_public
+	 * @param array  $properties
+	 * @param bool   $check_exist
+	 *
+	 */
+	public function createFolder( $app_root, $is_public = true, $properties = array(), $check_exist = true )
+	{
+		$this->fileRestHandler->createFolder( $app_root, $is_public, $properties, $check_exist );
+	}
+
+	/**
+	 * @param $path
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function fileExists( $path )
+	{
+		return $this->fileRestHandler->fileExists( $path );
+	}
+
+	/**
+	 * @param      $path
+	 * @param      $content
+	 * @param bool $content_is_base
+	 * @param bool $check_exist
+	 */
+	public function writeFile( $path, $content, $content_is_base = false, $check_exist = false )
+	{
+		$this->fileRestHandler->writeFile( $path, $content, $content_is_base, $check_exist );
+	}
+
+	/**
+	 * @param $folder
+	 *
+	 * @throws Exception
+	 */
+	public function deleteFolder( $folder )
+	{
+		// check if an application (folder) exists with that name
+		if ( $this->fileRestHandler->folderExists( $folder ) )
+		{
+			$this->fileRestHandler->deleteFolder( $folder, true );
+		}
+	}
+
+	/**
+	 * @param        $path
+	 * @param null   $zip
+	 * @param string $zipFileName
+	 * @param bool   $overwrite
+	 *
+	 * @return string
+	 */
+	public function getFolderAsZip( $path, $zip = null, $zipFileName = '', $overwrite = false )
+	{
+		return $this->fileRestHandler->getFolderAsZip( $path, $zip, $zipFileName, $overwrite );
+	}
+
+	/**
+	 * @param        $path
+	 * @param        $zip
+	 * @param bool   $clean
+	 * @param string $drop_path
+	 *
+	 * @return array
+	 */
+	public function extractZipFile( $path, $zip, $clean = false, $drop_path = '' )
+	{
+		return $this->fileRestHandler->extractZipFile( $path, $zip, $clean, $drop_path );
+	}
+
+	protected function handleFile($dest_path, $dest_name, $source_file, $contentType='',
                                   $extract=false, $clean=false, $check_exist=false)
     {
         $ext = FileUtilities::getFileExtension($source_file);

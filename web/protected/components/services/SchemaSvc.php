@@ -652,7 +652,7 @@ class SchemaSvc extends CommonService implements iRestHandler
      * @return array
      * @throws Exception
      */
-    public function createTables($tables)
+    public function createTables($tables, $allow_merge = false)
     {
         if (!isset($tables) || empty($tables)) {
             throw new Exception('There are no table sets in the request.', ErrorCodes::BAD_REQUEST);
@@ -677,7 +677,7 @@ class SchemaSvc extends CommonService implements iRestHandler
         }
         $this->checkPermission('create');
 
-        return DbUtilities::createTables($this->_sqlConn, $tables);
+        return DbUtilities::createTables($this->_sqlConn, $tables, $allow_merge);
     }
 
     /**

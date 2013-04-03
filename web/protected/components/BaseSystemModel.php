@@ -309,7 +309,7 @@ abstract class BaseSystemModel extends CActiveRecord
 		{
 			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-		$map_table = SystemManager::SYSTEM_TABLE_PREFIX . $map_table;
+		$map_table = static::tableNamePrefix() . $map_table;
 		try
 		{
 			$manyObj = SystemManager::getNewResource( $many_table );

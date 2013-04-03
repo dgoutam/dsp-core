@@ -19,10 +19,6 @@
         {
             "api_name":"email","name":"Email Service","is_active":1,"type":"Local Email Service",
             "description":"Default system email utility access"
-        },
-        {
-            "api_name":"doc","name":"Document Storage","is_active":1,"type":"Local File Storage","storage_name":"documents",
-            "description":"Default storage for documents"
         }
     ]
 }

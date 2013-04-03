@@ -22,8 +22,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-if ( file_exists( Pii::FABRIC_MARKER ) )
+if ( file_exists( '/var/www/.fabric_hosted' ) )
 {
+	require_once __DIR__ . '/../web/protected/components/Fabric.php';
+
 	return Fabric::initialize();
 }
 
@@ -32,11 +34,12 @@ $_dbUser = 'dsp_user';
 $_dbPassword = 'dsp_user';
 
 return array(
-	'connectionString'   => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
-	'username'           => $_dbUser,
-	'password'           => $_dbPassword,
-	'emulatePrepare'     => true,
-	'charset'            => 'utf8',
+	'connectionString'      => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
+	'username'              => $_dbUser,
+	'password'              => $_dbPassword,
+	'emulatePrepare'        => true,
+	'charset'               => 'utf8',
 //	'enableProfiling'    => true,
-	'enableParamLogging' => true,
+//	'enableParamLogging'    => true,
+	'schemaCachingDuration' => 3600,
 );

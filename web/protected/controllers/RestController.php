@@ -37,6 +37,14 @@ class RestController extends Controller
 	private $swagger = false;
 
 	/**
+	 * @return array action filters
+	 */
+	public function filters()
+	{
+		return array();
+	}
+
+	/**
 	 * Initializes the controller.
 	 * This method is called by the application before the controller starts to execute.
 	 */
@@ -52,6 +60,7 @@ class RestController extends Controller
 			$ex = new Exception( "Failed to create session service.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
 			$this->handleErrors( $ex );
 		}
+
 	}
 
 	// Actions
@@ -63,20 +72,21 @@ class RestController extends Controller
 	{
 		try
 		{
-			$_criteria = new CDbCriteria( array(
-											   'select' => 'api_name,name,description',
-											   'order'  => 'api_name'
-										  ) );
-			$result = Service::model()->findAll( $_criteria );
+			$command = Yii::app()->db->createCommand();
 			if ( $this->swagger )
 			{
 				$services = array(
 					array( 'path' => '/user', 'description' => 'User Login' ),
 					array( 'path' => '/system', 'description' => 'System Configuration' )
 				);
+				$command->select( 'api_name,description' )
+					->from( 'df_sys_service' )
+					->order( 'api_name' )
+					->where( 'type != :t', array( ':t' => 'Remote Web Service'));
+				$result = $command->queryAll();
 				foreach ( $result as $service )
 				{
-					$services[] = array( 'path' => '/' . $service->api_name, 'description' => $service->name );
+					$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
 				}
 				$result = SwaggerUtilities::swaggerBaseInfo();
 				$result['apis'] = $services;
@@ -85,14 +95,11 @@ class RestController extends Controller
 			{
 				// add non-service managers
 				$services = array(
-					array( 'name' => 'user', 'label' => 'User Login' ),
-					array( 'name' => 'system', 'label' => 'System Configuration' )
+					array( 'api_name' => 'user', 'name' => 'User Login' ),
+					array( 'api_name' => 'system', 'name' => 'System Configuration' )
 				);
-				foreach ( $result as $service )
-				{
-					$services[] = array( 'api_name' => $service->api_name, 'name' => $service->name );
-				}
-				$result = array( 'resources' => $services );
+				$result = $command->select( 'api_name,name' )->from( 'df_sys_service' )->order( 'api_name' )->queryAll();
+				$result = array( 'resources' => array_merge( $services, $result ) );
 			}
 			$this->handleResults( $result );
 		}
@@ -118,7 +125,7 @@ class RestController extends Controller
 					$svcObj = UserManager::getInstance();
 					break;
 				default:
-					$svcObj = ServiceHandler::getInstance()->getServiceObject( $this->service );
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					break;
 			}
 			if ( $this->swagger )
@@ -197,7 +204,7 @@ class RestController extends Controller
 					$result = UserManager::getInstance()->actionPost();
 					break;
 				default:
-					$svcObj = ServiceHandler::getInstance()->getServiceObject( $this->service );
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					$result = $svcObj->actionPost();
 
 					$type = $svcObj->getType();
@@ -235,7 +242,7 @@ class RestController extends Controller
 					$result = UserManager::getInstance()->actionMerge();
 					break;
 				default:
-					$svcObj = ServiceHandler::getInstance()->getServiceObject( $this->service );
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					$result = $svcObj->actionMerge();
 
 					$type = $svcObj->getType();
@@ -273,7 +280,7 @@ class RestController extends Controller
 					$result = UserManager::getInstance()->actionPut();
 					break;
 				default:
-					$svcObj = ServiceHandler::getInstance()->getServiceObject( $this->service );
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					$result = $svcObj->actionPut();
 
 					$type = $svcObj->getType();
@@ -311,7 +318,7 @@ class RestController extends Controller
 					$result = UserManager::getInstance()->actionDelete();
 					break;
 				default:
-					$svcObj = ServiceHandler::getInstance()->getServiceObject( $this->service );
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					$result = $svcObj->actionDelete();
 
 					$type = $svcObj->getType();
@@ -387,8 +394,8 @@ class RestController extends Controller
 			{
 				$requestUri = yii::app()->request->requestUri;
 				if ( ( false === strpos( $requestUri, '?' ) &&
-					'/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
-					( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
+					   '/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
+					 ( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
 				)
 				{
 					$this->resource .= '/';
@@ -425,34 +432,19 @@ class RestController extends Controller
 	{
 		$code = ErrorCodes::getHttpStatusCode( $code );
 		$title = ErrorCodes::getHttpStatusCodeTitle( $code );
-
 		header( "HTTP/1.1 $code $title" );
-
 		switch ( $this->format )
 		{
-			/** @noinspection PhpMissingBreakStatementInspection */
 			case 'json':
-				//	If it can't be converted to json, dump it raw...
-				if ( false !== ( $_response = json_encode( $result ) ) )
-				{
-					Utilities::sendJsonResponse( $_response );
-					break;
-				}
-
-				//	No clue what this is...
-				echo $result;
+				$result = json_encode( $result );
+				Utilities::sendJsonResponse( $result );
 				break;
-
 			case 'xml':
-				$_response = Utilities::arrayToXml( '', $result );
-				Utilities::sendXmlResponse( $_response );
-				break;
-
-			default:
-				echo $result;
+				$result = Utilities::arrayToXml( '', $result );
+				Utilities::sendXmlResponse( $result );
 				break;
 		}
-
-		Pii::end();
+		Yii::app()->end();
 	}
+
 }
