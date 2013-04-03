@@ -40,6 +40,7 @@ $_basePath = dirname( __DIR__ );
 
 //	Get the globals set...
 require_once $_basePath . '/web/protected/components/Pii.php';
+require_once $_basePath . '/web/protected/components/Fabric.php';
 \Pii::run( __DIR__, $_autoloader );
 
 //	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
