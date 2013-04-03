@@ -779,7 +779,7 @@ class PdoSqlDbSvc
 					$out_fields = Utilities::addOnceToList( $out_fields, $idField );
 				}
 
-				return $this->retrieveSqlRecordsByIds( $table, $id, $idField, $out_fields, $extras );
+				return $this->retrieveSqlRecordById( $table, $id, $idField, $out_fields, $extras );
 			}
 		}
 		catch ( Exception $ex )
@@ -1310,6 +1310,92 @@ class PdoSqlDbSvc
 		$idList = implode( ',', $ids );
 
 		return $this->retrieveSqlRecordsByIds( $table, $idList, $id_field, $fields, $extras );
+	}
+
+	/**
+	 * @param string $table
+	 * @param string $id
+	 * @param string $id_field
+	 * @param string $fields
+	 * @param array  $extras
+	 *
+	 * @throws Exception
+	 * @return array
+	 */
+	public function retrieveSqlRecordById( $table, $id, $id_field, $fields = '', $extras = array() )
+	{
+		if ( empty( $id ) )
+		{
+			return array();
+		}
+		$table = $this->correctTableName( $table );
+		try
+		{
+			$availFields = $this->describeTableFields( $table );
+			$relations = $this->describeTableRelated( $table );
+			if ( empty( $id_field ) )
+			{
+				$id_field = DbUtilities::getPrimaryKeyFieldFromDescribe( $availFields );
+				if ( empty( $id_field ) )
+				{
+					throw new Exception( "Identifying field can not be empty." );
+				}
+			}
+			if ( !empty( $fields ) && ( '*' !== $fields ) )
+			{
+				// add id field to field list
+				$fields = Utilities::addOnceToList( $fields, $id_field, ',' );
+			}
+			$result = $this->parseFieldsForSqlSelect( $fields, $availFields );
+			$bindings = $result['bindings'];
+			$fields = $result['fields'];
+			// use query builder
+			$command = $this->_sqlConn->createCommand();
+			$command->select( $fields );
+			$command->from( $this->_tablePrefix . $table );
+			$command->where( "$id_field = :id", array( ':id' => $id ) );
+
+			$this->checkConnection();
+			Utilities::markTimeStart( 'DB_TIME' );
+			$reader = $command->query();
+			$data = array();
+			$dummy = array();
+			foreach ( $bindings as $binding )
+			{
+				$reader->bindColumn( $binding['name'], $dummy[$binding['name']], $binding['type'] );
+			}
+			$reader->setFetchMode( PDO::FETCH_BOUND );
+			if ( false !== $reader->read() )
+			{
+				foreach ( $bindings as $binding )
+				{
+					$data[$binding['name']] = $dummy[$binding['name']];
+				}
+				if ( !empty( $extras ) )
+				{
+					$data = $this->retrieveRelatedRecords( $relations, $data, $extras );
+				}
+			}
+			else
+			{
+				throw new Exception( "Could not find record for id = '$id'" );
+			}
+
+			Utilities::markTimeStop( 'DB_TIME' );
+
+			return $data;
+		}
+		catch ( Exception $ex )
+		{
+			Utilities::markTimeStop( 'DB_TIME' );
+			/*
+            $msg = '[QUERYFAILED]: ' . implode(':', $this->_sqlConn->errorInfo()) . "\n";
+            if (isset($GLOBALS['DB_DEBUG'])) {
+                error_log($msg . "\n$query");
+            }
+            */
+			throw $ex;
+		}
 	}
 
 	/**
