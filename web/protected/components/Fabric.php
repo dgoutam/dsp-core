@@ -112,8 +112,8 @@ class Fabric extends SeedUtility
 
 		//	What has it gots in its pocketses? Cookies first, then session
 		$_storageKey = FilterInput::cookie( static::FigNewton, FilterInput::session( static::FigNewton ), \Kisma::get( 'platform.storage_key' ) );
-		$_privateKey =
-			FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
+		$_privateKey
+			= FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
 		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
 
 		$_dbConfigFileName = str_ireplace(
@@ -123,7 +123,7 @@ class Fabric extends SeedUtility
 		);
 
 		//	Try and get them from server...
-		if ( false === ( $_settings = static::_checkCache( $_host ) ) )
+		if ( false === ( list( $_settings, $_instance ) = static::_checkCache( $_host ) ) )
 		{
 			//	Otherwise we need to build it.
 			$_parts = explode( '.', $_host );
@@ -158,7 +158,7 @@ class Fabric extends SeedUtility
 			if ( !empty( $_settings ) )
 			{
 				setcookie( static::FigNewton, $_instance->storage_key, time() + DateTime::TheEnd, '/' );
-				$_settings = static::_cacheSettings( $_host, $_settings );
+				$_settings = static::_cacheSettings( $_host, $_settings, $_instance );
 			}
 		}
 
@@ -173,7 +173,7 @@ class Fabric extends SeedUtility
 			return $_settings;
 		}
 
-		Log::error( 'Unable to find private path or database config: ' . $_privatePath . '/' . $_dbConfigFileName );
+		Log::error( 'Unable to find private path or database config: ' . $_dbConfigFileName );
 		throw new \CHttpException( HttpResponse::BadRequest );
 	}
 
@@ -208,7 +208,11 @@ class Fabric extends SeedUtility
 			}
 
 			Log::debug( 'tmp read: ' . $_tmpConfig );
-			return json_decode( file_get_contents( $_tmpConfig ), true );
+
+			if ( false !== ( $_data = json_decode( file_get_contents( $_tmpConfig ), true ) ) )
+			{
+				return array( $_data['settings'], $_data['instance'] );
+			}
 		}
 
 		return false;
@@ -219,11 +223,15 @@ class Fabric extends SeedUtility
 	 *
 	 * @return mixed
 	 */
-	protected static function _cacheSettings( $host, $settings )
+	protected static function _cacheSettings( $host, $settings, $instance )
 	{
 		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . sha1( $host . $_SERVER['REMOTE_ADDR'] ) . '.dsp.config.php';
+		$_data = array(
+			'settings' => $settings,
+			'instance' => $instance,
+		);
 
-		file_put_contents( $_tmpConfig, json_encode( $settings ) );
+		file_put_contents( $_tmpConfig, json_encode( $_data ) );
 
 		Log::debug( 'tmp store: ' . $_tmpConfig );
 

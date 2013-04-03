@@ -30,12 +30,17 @@ global $_dbName, $_blobConfig, $_instance;
 
 if ( Fabric::fabricHosted() && !empty( $_instance ) )
 {
+	if ( is_object( $_instance ) )
+	{
+		$_instance = (array)$_instance;
+	}
+
 	$_instanceSettings = array(
-		'storage_base_path' => $_instance->storage_path,
-		'private_path'      => $_instance->private_path,
-		'storage_path'      => $_instance->blob_storage_path,
-		'snapshot_path'     => $_instance->snapshot_path,
-		'dsp_name'          => $_instance->db_name,
+		'storage_base_path' => $_instance['storage_path'],
+		'private_path'      => $_instance['private_path'],
+		'storage_path'      => $_instance['blob_storage_path'],
+		'snapshot_path'     => $_instance['snapshot_path'],
+		'dsp_name'          => $_instance['db_name'],
 	);
 }
 else
