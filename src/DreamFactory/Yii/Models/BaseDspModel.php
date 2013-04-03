@@ -1,4 +1,6 @@
 <?php
+namespace DreamFactory\Yii\Models;
+
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
 
@@ -121,20 +123,6 @@ class BaseDspModel extends \CActiveRecord
 	}
 
 	/**
-	 * PHP sleep magic method.
-	 * Take opportunity to flush schema cache...
-	 *
-	 * @return array
-	 */
-	public function __sleep()
-	{
-		//	Clean up and phone home...
-		$this->_schema = null;
-
-		return parent::__sleep();
-	}
-
-	/**
 	 * Override of CModel::setAttributes
 	 * Populates member variables as well.
 	 *
@@ -186,9 +174,7 @@ class BaseDspModel extends \CActiveRecord
 				 'base_model.timestamp_behavior'   => array(
 					 'class'              => 'application.behaviors.TimestampBehavior',
 					 'createdColumn'      => 'created_date',
-//					 'createdByColumn'      => 'created_by_id',
 					 'lastModifiedColumn' => 'last_modified_date',
-//					 'lastModifiedByColumn' => 'last_modified_by_id',
 				 ),
 			)
 		);
@@ -225,7 +211,7 @@ class BaseDspModel extends \CActiveRecord
 	 * @param bool  $runValidation
 	 * @param array $attributes
 	 *
-	 * @throws CDbException
+	 * @throws \CDbException
 	 * @return bool
 	 */
 	public function save( $runValidation = true, $attributes = null )
@@ -475,9 +461,11 @@ class BaseDspModel extends \CActiveRecord
 	 */
 	public static function queryAll( $_criteria, $fetchAssociative = true, $parameters = array() )
 	{
-		if ( null !== ( $_builder = static::getDb()->getCommandBuilder() ) )
+		$_model = static::model();
+
+		if ( null !== ( $_builder = $_model->getCommandBuilder() ) )
 		{
-			if ( null !== ( $_command = $_builder->createFindCommand( static::model()->getTableSchema(), $_criteria ) ) )
+			if ( null !== ( $_command = $_builder->createFindCommand( $_model->getTableSchema(), $_criteria ) ) )
 			{
 				return $_command->queryAll( $fetchAssociative, $parameters );
 			}
@@ -519,6 +507,17 @@ class BaseDspModel extends \CActiveRecord
 	public static function createCommand( $sql )
 	{
 		return static::getDb()->createCommand( $sql );
+	}
+
+	/**
+	 * @param array|string|\CDbCriteria $condition
+	 * @param array                     $params
+	 *
+	 * @return string
+	 */
+	public static function rowCount( $condition = null, $params = array() )
+	{
+		return static::model()->count( $condition, $params );
 	}
 
 }
