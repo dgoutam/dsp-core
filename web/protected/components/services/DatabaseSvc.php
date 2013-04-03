@@ -770,10 +770,9 @@ class DatabaseSvc extends CommonService implements iRestHandler
             throw new Exception('There are no fields in the record.', ErrorCodes::BAD_REQUEST);
         }
         try {
-            $records = array($record);
-            $result = $this->sqlDb->createSqlRecords($table, $records, false, $fields, $extras);
+            $result = $this->sqlDb->createSqlRecord($table, $record, $fields, $extras);
 
-            return $result[0];
+            return $result;
         }
         catch (Exception $ex) {
             throw $ex;
