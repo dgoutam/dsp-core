@@ -1,7 +1,7 @@
 <?php
 use DreamFactory\Platform\Interfaces\PlatformStates;
 
-Yii::import( 'DreamFactory.Platform.Interfaces.PlatformStates' );
+\Yii::import( 'DreamFactory.Platform.Interfaces.PlatformStates' );
 
 /**
  * BaseController.php
@@ -25,7 +25,7 @@ Yii::import( 'DreamFactory.Platform.Interfaces.PlatformStates' );
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class BaseController extends CController implements PlatformStates
+class BaseController extends \CController implements PlatformStates
 {
 	//*************************************************************************
 	//* Members

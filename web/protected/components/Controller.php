@@ -21,7 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class Controller extends CController
+class Controller extends \CController
 {
 	/**
 	 * @var string the default layout for the controller view. Defaults to '//layouts/column1',

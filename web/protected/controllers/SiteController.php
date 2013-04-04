@@ -24,7 +24,7 @@ use Kisma\Core\Utility\FilterInput;
  *
  * This is the default controller for the DSP
  */
-class SiteController extends BaseController
+class SiteController extends Controller
 {
 	//*************************************************************************
 	//* Methods
