@@ -1276,7 +1276,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		if ( !isset( $records ) || empty( $records ) )
+		if ( empty( $records ) )
 		{
 			throw new Exception( 'There are no record sets in the request.', ErrorCodes::BAD_REQUEST );
 		}
@@ -1512,7 +1512,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		if ( !isset( $records ) || empty( $records ) )
+		if ( empty( $records ) )
 		{
 			throw new Exception( 'There are no record sets in the request.', ErrorCodes::BAD_REQUEST );
 		}
@@ -1555,7 +1555,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		if ( !isset( $record ) || empty( $record ) )
+		if ( empty( $record ) )
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
@@ -1583,7 +1583,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		if ( !isset( $record ) || empty( $record ) )
+		if ( empty( $record ) )
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
@@ -1621,7 +1621,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		if ( !isset( $record ) || empty( $record ) )
+		if ( empty( $record ) )
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
@@ -1732,7 +1732,7 @@ class SystemManager implements iRestHandler
 	 */
 	public function deleteRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
 	{
-		if ( !isset( $records ) || empty( $records ) )
+		if ( empty( $records ) )
 		{
 			throw new Exception( 'There are no record sets in the request.', ErrorCodes::BAD_REQUEST );
 		}
@@ -1744,7 +1744,7 @@ class SystemManager implements iRestHandler
 		$out = array();
 		foreach ( $records as $record )
 		{
-			if ( !isset( $record ) || empty( $record ) )
+			if ( !empty( $record ) )
 			{
 				throw new Exception( 'There are no fields in the record set.', ErrorCodes::BAD_REQUEST );
 			}
@@ -1773,7 +1773,7 @@ class SystemManager implements iRestHandler
 	 */
 	public function deleteRecord( $table, $record, $return_fields = '', $extras = array() )
 	{
-		if ( !isset( $record ) || empty( $record ) )
+		if ( empty( $record ) )
 		{
 			throw new Exception( 'There are no fields in the record.', ErrorCodes::BAD_REQUEST );
 		}

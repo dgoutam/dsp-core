@@ -152,30 +152,44 @@ class ServiceHandler
 		try
 		{
 			$record = static::getService( $api_name );
+			$type = Utilities::getArrayValue( 'type', $record, '' );
 			switch ( strtolower( $api_name ) )
 			{
 				// some special cases first
 				case 'app':
-					$service = new ApplicationSvc( $record );
+					switch ( $type )
+					{
+						case 'Local File Storage':
+							$service = new ApplicationSvc( $record, true );
+							break;
+						case 'Remote File Storage':
+							$service = new ApplicationSvc( $record, false );
+							break;
+					}
 					break;
 				default:
-					$type = Utilities::getArrayValue( 'type', $record, '' );
 					switch ( $type )
 					{
 						case 'Remote Web Service':
-							$service = new WebService( $record );
+							$service = new RemoteWebSvc( $record );
 							break;
 						case 'Local File Storage':
+							$service = new BaseFileSvc( $record, true );
+							break;
 						case 'Remote File Storage':
-							$service = new CommonFileSvc( $record );
+							$service = new BaseFileSvc( $record, false );
 							break;
 						case 'Local SQL DB':
+							$service = new SqlDbSvc( $record, true );
+							break;
 						case 'Remote SQL DB':
-							$service = new DatabaseSvc( $record );
+							$service = new SqlDbSvc( $record, false );
 							break;
 						case 'Local SQL DB Schema':
+							$service = new SchemaSvc( $record, true );
+							break;
 						case 'Remote SQL DB Schema':
-							$service = new SchemaSvc( $record );
+							$service = new SchemaSvc( $record, false );
 							break;
 						case 'Local Email Service':
 						case 'Remote Email Service':

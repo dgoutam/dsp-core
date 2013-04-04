@@ -2,9 +2,28 @@
 use Kisma\Core\SeedBag;
 
 /**
- * Class BaseService
+ * BaseService.php
+ * A base service class to handle services accessed through the REST API.
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-abstract class BaseService extends SeedBag implements iRestHandler
+abstract class BaseService implements iRestHandler
+// not quite ready to let the seed out of the bag
+//abstract class BaseService extends SeedBag implements iRestHandler
 {
 	//*************************************************************************
 	//* Members
@@ -14,22 +33,27 @@ abstract class BaseService extends SeedBag implements iRestHandler
 	 * @var string
 	 */
 	protected $_apiName;
+
 	/**
 	 * @var string
 	 */
 	protected $_name;
+
 	/**
 	 * @var string
 	 */
 	protected $_description;
+
 	/**
 	 * @var string
 	 */
-	protected $_apiType;
+	protected $_type;
+
 	/**
 	 * @var boolean
 	 */
 	protected $_isActive = false;
+
 	/**
 	 * @var string
 	 */
@@ -49,24 +73,30 @@ abstract class BaseService extends SeedBag implements iRestHandler
 	 */
 	public function __construct( $settings = array() )
 	{
-		parent::__construct( $settings );
+		//parent::__construct( $settings ); // not ready to let the seed out of the bag
 
-		if ( null === $this->_apiName )
+		// Validate basic settings
+		$this->_apiName = Utilities::getArrayValue( 'api_name', $settings, '' );
+		if ( empty( $this->_apiName ) )
 		{
-			throw new InvalidArgumentException( 'You must supply a value for "api_name".' );
+			throw new \InvalidArgumentException( 'Service name can not be empty.' );
 		}
-
-		if ( null === $this->_apiType )
+		$this->_type = Utilities::getArrayValue( 'type', $settings, '' );
+		if ( empty( $this->_type ) )
 		{
-			throw new InvalidArgumentException( 'You must supply a value for "api_type".' );
+			throw new \InvalidArgumentException( 'Service type can not be empty.' );
 		}
+		$this->_name = Utilities::getArrayValue( 'name', $settings, '' );
+		$this->_description = Utilities::getArrayValue( 'description', $settings, '' );
+		$this->_nativeFormat = Utilities::getArrayValue( 'native_format', $settings, '' );
+		$this->_isActive = Utilities::boolval( Utilities::getArrayValue( 'is_active', $settings, false ) );
 	}
 
 	/**
-	 * @param mixed  $request
+	 * @param string $request
 	 * @param string $component
 	 */
-	protected function _permissionCheck( $request, $component = null )
+	protected function checkPermission( $request, $component = '' )
 	{
 		SessionManager::checkPermission( $request, $this->_apiName, $component );
 	}
@@ -101,13 +131,13 @@ abstract class BaseService extends SeedBag implements iRestHandler
 	}
 
 	/**
-	 * @param string $apiType
+	 * @param string $type
 	 *
 	 * @return BaseService
 	 */
-	public function setApiType( $apiType )
+	public function setType( $type )
 	{
-		$this->_apiType = $apiType;
+		$this->_type = $type;
 
 		return $this;
 	}
@@ -115,9 +145,9 @@ abstract class BaseService extends SeedBag implements iRestHandler
 	/**
 	 * @return string
 	 */
-	public function getApiType()
+	public function getType()
 	{
-		return $this->_apiType;
+		return $this->_type;
 	}
 
 	/**

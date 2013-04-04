@@ -1,8 +1,8 @@
 <?php
-use Kisma\Core\Utility\Option;
 
 /**
- * RemoteWebService.php
+ * RemoteWebSvc.php
+ * A service to handle remote web services accessed through the REST API.
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -20,7 +20,7 @@ use Kisma\Core\Utility\Option;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class RemoteWebService extends BaseService
+class RemoteWebSvc extends BaseService
 {
 	//*************************************************************************
 	//* Members
@@ -29,15 +29,18 @@ class RemoteWebService extends BaseService
 	/**
 	 * @var string
 	 */
-	protected $_endpoint;
+	protected $_baseUrl;
+
 	/**
 	 * @var array
 	 */
 	protected $_credentials;
+
 	/**
 	 * @var array
 	 */
 	protected $_headers;
+
 	/**
 	 * @var array
 	 */
@@ -47,18 +50,34 @@ class RemoteWebService extends BaseService
 	//* Methods
 	//*************************************************************************
 
-	/** @{InheritDoc} */
+	/**
+	 * Create a new RemoteWebSvc
+	 *
+	 * @param array $config configuration array
+	 *
+	 * @throws \InvalidArgumentException
+	 */
 	public function __construct( $config )
 	{
 		parent::__construct( $config );
 
-		//	Validate url
-		if ( null === $this->_endpoint )
+		// Validate url setup
+
+		$this->_baseUrl = Utilities::getArrayValue( 'base_url', $config, '' );
+		if ( empty( $this->_baseUrl ) )
 		{
-			throw new \InvalidArgumentException( 'The "endpoint" supplied is invalid.' );
+			throw new \InvalidArgumentException( 'Remote Web Service base url can not be empty.' );
 		}
+		$this->_credentials = Utilities::getArrayValue( 'credentials', $config, null );
+		$this->_headers = Utilities::getArrayValue( 'headers', $config, null );
+		$this->_parameters = Utilities::getArrayValue( 'parameters', $config, null );
 	}
 
+	/**
+	 * @param $action
+	 *
+	 * @return string
+	 */
 	protected function buildParameterString( $action )
 	{
 		$param_str = '';
@@ -107,37 +126,41 @@ class RemoteWebService extends BaseService
 	 *
 	 * @return array
 	 */
-	protected function addHeaders( $action, &$options = array() )
+	protected function addHeaders( $action, $options = array() )
 	{
-		$_action = strtolower( trim( $action ) );
-		$_options = $options ? : array();
-		$_curlHeaders = Option::get( $_options, CURLOPT_HTTPHEADER, array() );
-
-		if ( empty( $this->_headers ) )
+		if ( !empty( $this->_headers ) )
 		{
-			$this->_headers = array();
-		}
-
-		foreach ( $this->_headers as $_header )
-		{
-			if ( null !== ( $_headerAction = strtolower( Option::get( $_header, 'action' ) ) ) && 'all' != $_headerAction )
+			foreach ( $this->_headers as $header )
 			{
-				if ( $_action != $_headerAction )
+				$headerAction = Utilities::getArrayValue( 'action', $header );
+				if ( !empty( $headerAction ) && ( 0 !== strcasecmp( 'all', $headerAction ) ) )
 				{
-					continue;
+					if ( 0 !== strcasecmp( $action, $headerAction ) )
+					{
+						continue;
+					}
+				}
+				$key = Utilities::getArrayValue( 'name', $header );
+				$value = Utilities::getArrayValue( 'value', $header );
+				if ( !isset( $options[CURLOPT_HTTPHEADER] ) )
+				{
+					$options[CURLOPT_HTTPHEADER] = array( $key . ': ' . $value );
+				}
+				else
+				{
+					$options[CURLOPT_HTTPHEADER][] = $key . ': ' . $value;
 				}
 			}
-
-			$_curlHeaders[] = Option::get( $_header, 'name' ) . ': ' . Option::get( $_header, 'value' );
 		}
 
-		$_options[CURLOPT_HTTPHEADER] = $_curlHeaders;
-
-		return $options = $_options;
+		return $options;
 	}
 
 	// Controller based methods
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionGet()
 	{
 		$this->checkPermission( 'read' );
@@ -158,18 +181,21 @@ class RemoteWebService extends BaseService
 		{
 			$err = Curl::getError();
 			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-				Utilities::getArrayValue( 'code', $err, 500 ) );
+								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
 		Utilities::markTimeStop( 'WS_TIME' );
 		Utilities::markTimeStop( 'API_TIME' );
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-	}
+}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionPost()
 	{
-		$this->_permissionCheck( 'create' );
+		$this->checkPermission( 'create' );
 
 		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
 		$param_str = $this->buildParameterString( 'POST' );
@@ -187,7 +213,7 @@ class RemoteWebService extends BaseService
 		{
 			$err = Curl::getError();
 			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-				Utilities::getArrayValue( 'code', $err, 500 ) );
+								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
 		Utilities::markTimeStop( 'WS_TIME' );
 
@@ -195,8 +221,11 @@ class RemoteWebService extends BaseService
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-	}
+}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionPut()
 	{
 		$this->checkPermission( 'update' );
@@ -217,15 +246,18 @@ class RemoteWebService extends BaseService
 		{
 			$err = Curl::getError();
 			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-				Utilities::getArrayValue( 'code', $err, 500 ) );
+								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
 		Utilities::markTimeStop( 'WS_TIME' );
 		Utilities::markTimeStop( 'API_TIME' );
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-	}
+}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionMerge()
 	{
 		$this->checkPermission( 'update' );
@@ -246,15 +278,18 @@ class RemoteWebService extends BaseService
 		{
 			$err = Curl::getError();
 			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-				Utilities::getArrayValue( 'code', $err, 500 ) );
+								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
 		Utilities::markTimeStop( 'WS_TIME' );
 		Utilities::markTimeStop( 'API_TIME' );
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-	}
+}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionDelete()
 	{
 		$this->checkPermission( 'delete' );
@@ -275,7 +310,7 @@ class RemoteWebService extends BaseService
 		{
 			$err = Curl::getError();
 			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-				Utilities::getArrayValue( 'code', $err, 500 ) );
+								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
 		Utilities::markTimeStop( 'WS_TIME' );
 		Utilities::markTimeStop( 'API_TIME' );
@@ -283,4 +318,5 @@ class RemoteWebService extends BaseService
 
 		exit; // bail to avoid header error, unless we are reformatting the data
 	}
+
 }
