@@ -49,7 +49,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 */
 	public function rules()
 	{
-		return array( //array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
+		return array(//array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
 		);
 	}
 
@@ -94,14 +94,12 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	{
 		try
 		{
-			$_userId = SessionManager::getCurrentUserId();
+			$this->last_modified_by_id = $_userId = SessionManager::getCurrentUserId();
 
 			if ( $this->isNewRecord )
 			{
 				$this->created_by_id = $_userId;
 			}
-
-			$this->last_modified_by_id = $_userId;
 		}
 		catch ( Exception $_ex )
 		{
@@ -256,7 +254,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 						$toAdd[] = $itemId;
 					}
 				}
-				if ( !empty( $toAdd ))
+				if ( !empty( $toAdd ) )
 				{
 					// simple update to null request
 					$command->reset();

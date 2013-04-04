@@ -92,9 +92,6 @@ jQuery.validator.addMethod(
 );
 
 var	_validator = $("{$selector}").validate({$_scriptOptions});
-if ( _options ){
-	_options.validator =_validator;
-}
 JS;
 
 		//	Register the jquery plugin

@@ -168,11 +168,11 @@ class BaseDspModel extends \CActiveRecord
 			array(
 				 //	Data formatter
 				 'base_model.data_format_behavior' => array(
-					 'class' => 'application.behaviors.DataFormatBehavior',
+					 'class' => 'DreamFactory\\Yii\\Behaviors\\DataFormatBehavior',
 				 ),
 				 //	Timestamper
 				 'base_model.timestamp_behavior'   => array(
-					 'class'              => 'application.behaviors.TimestampBehavior',
+					 'class'              => 'DreamFactory\\Yii\\Behaviors\\TimestampBehavior',
 					 'createdColumn'      => 'created_date',
 					 'lastModifiedColumn' => 'last_modified_date',
 				 ),
