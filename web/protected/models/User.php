@@ -21,7 +21,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *
- *
  * Columns
  *
  * @property integer    $id
@@ -58,6 +57,10 @@
  */
 class User extends BaseDspSystemModel
 {
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
+
 	/**
 	 * Returns the static model of the specified AR class.
 	 *
@@ -92,11 +95,6 @@ class User extends BaseDspSystemModel
 			array( 'email', 'length', 'max' => 255 ),
 			array( 'phone', 'length', 'max' => 32 ),
 			array( 'confirm_code, display_name, security_question', 'length', 'max' => 128 ),
-			array(
-				'id, username, first_name, last_name, display_name, email, phone, is_active, is_sys_admin, confirm_code, default_app_id, role_id, last_login_data',
-				'safe',
-				'on' => 'search'
-			),
 		);
 
 		return array_merge( parent::rules(), $_rules );
@@ -148,41 +146,6 @@ class User extends BaseDspSystemModel
 		);
 
 		return array_merge( parent::attributeLabels(), $_labels );
-	}
-
-	/**
-	 * Retrieves a list of models based on the current search/filter conditions.
-	 *
-	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
-	 */
-	public function search()
-	{
-		$_criteria = new CDbCriteria();
-
-		$_criteria->compare( 'id', $this->id );
-		$_criteria->compare( 'username', $this->username, true );
-		$_criteria->compare( 'first_name', $this->first_name, true );
-		$_criteria->compare( 'last_name', $this->last_name, true );
-		$_criteria->compare( 'display_name', $this->display_name, true );
-		$_criteria->compare( 'email', $this->email, true );
-		$_criteria->compare( 'phone', $this->phone, true );
-		$_criteria->compare( 'is_active', $this->is_active );
-		$_criteria->compare( 'is_sys_admin', $this->is_sys_admin );
-		$_criteria->compare( 'confirm_code', $this->confirm_code, true );
-		$_criteria->compare( 'default_app_id', $this->default_app_id );
-		$_criteria->compare( 'role_id', $this->role_id );
-		$_criteria->compare( 'last_login_date', $this->created_date, true );
-		$_criteria->compare( 'created_date', $this->created_date, true );
-		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-		$_criteria->compare( 'created_by_id', $this->created_by_id );
-		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
-
-		return new CActiveDataProvider(
-			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
-		);
 	}
 
 	/** {@InheritDoc} */

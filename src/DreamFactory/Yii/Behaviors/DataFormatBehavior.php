@@ -1,7 +1,11 @@
 <?php
+namespace DreamFactory\Yii\Behaviors;
+
+use Kisma\Core\Utility\Scalar;
+
 /**
  * BaseDspModelBehavior.php
- * A base class for AR behaviors
+ * If attached to a model, fields are formatted per your configuration. Also provides a default sort for a model
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -22,14 +26,6 @@
  * Defines two "built-in" behaviors: DataFormat and TimeStamp
  *  - DataFormat automatically formats date/time values for the target database platform (MySQL, Oracle, etc.)
  *  - TimeStamp automatically updates create_date and lmod_date columns in tables upon save.
- *
- * @property int    $id
- * @property string $created_date
- * @property string $last_modified_date
- */
-/**
- * DataFormatBehavior
- * If attached to a model, fields are formatted per your configuration. Also provides a default sort for a model
  */
 class DataFormatBehavior extends BaseDspModelBehavior
 {
@@ -119,9 +115,11 @@ class DataFormatBehavior extends BaseDspModelBehavior
 			if ( !$_criteria->order )
 			{
 				$_model->getDbCriteria()->mergeWith(
-					new CDbCriteria( array(
-										  'order' => $this->_defaultSort,
-									 ) )
+					new \CDbCriteria(
+						array(
+							 'order' => $this->_defaultSort,
+						)
+					)
 				);
 			}
 		}
@@ -153,7 +151,7 @@ class DataFormatBehavior extends BaseDspModelBehavior
 	 */
 	public function getFormat( $which = 'afterFind', $type = 'date' )
 	{
-		return \Kisma\Core\Utility\Scalar::nvl( $this->_dateFormat[$which][$type], 'm/d/Y' );
+		return Scalar::nvl( $this->_dateFormat[$which][$type], 'm/d/Y' );
 	}
 
 	/**

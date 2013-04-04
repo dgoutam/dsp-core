@@ -26,6 +26,15 @@ use Kisma\Core\Utility\Option;
  */
 class Pii extends \CHtml
 {
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const FABRIC_MARKER = '/var/www/.fabric_hosted';
+
 	//********************************************************************************
 	//* Members
 	//********************************************************************************
@@ -103,7 +112,7 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.vendor_path', $_basePath . '/vendor' );
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.dsp_name', $_dspName );
-		\Kisma::set( 'app.fabric_hosted', $_isFabric = file_exists( '/var/www/.fabric_hosted' ) );
+		\Kisma::set( 'platform.fabric_hosted', $_isFabric = file_exists( static::FABRIC_MARKER ) );
 
 		//	Just return the app if there is one...
 		return static::app();
