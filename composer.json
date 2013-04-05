@@ -36,8 +36,7 @@
 		"dreamfactory/app-admin":            "dev-master",
 		"dreamfactory/app-launchpad":        "dev-master",
 		"dreamfactory/web-core":             "dev-master",
-		"aws/aws-sdk-php":                   "2.*",
-		"silex/silex":                       "dev-master"
+		"aws/aws-sdk-php":                   "2.*"
 	},
 	"autoload":          {
 		"psr-0": {
