@@ -36,7 +36,7 @@
 		"dreamfactory/app-admin":            "dev-master",
 		"dreamfactory/app-launchpad":        "dev-master",
 		"dreamfactory/web-core":             "dev-master",
-		"amazonwebservices/aws-sdk-for-php": "1.5.*",
+		"aws/aws-sdk-php":                   "2.*",
 		"silex/silex":                       "dev-master"
 	},
 	"autoload":          {

@@ -10,8 +10,13 @@
 
 use Kisma\Core\Utility\Log;
 
-class FileManager extends CommonFileManager
+class FileManager implements iFileManager
 {
+	/**
+	 * @var string
+	 */
+	protected $storageContainer;
+
 	/**
 	 * Creates a new FileManager instance
 	 *

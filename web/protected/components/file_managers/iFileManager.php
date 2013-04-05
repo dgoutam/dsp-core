@@ -1,31 +1,38 @@
 <?php
 
 /**
- * @category   DreamFactory
- * @package    DreamFactory
- * @subpackage CommonFileManager
- * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
- * @license    http://www.dreamfactory.com/license
+ * iFileManager.php
+ * Interface for handling file storage.
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-abstract class CommonFileManager
+interface iFileManager
 {
-    /**
-     * @var string
-     */
-    protected $storageContainer;
-
     /**
      * @throw Exception
      */
-    abstract public function checkContainerForWrite();
+    public function checkContainerForWrite();
 
     /**
      * @param $path
      * @return bool
      * @throw Exception
      */
-    abstract public function folderExists($path);
+    public function folderExists($path);
 
     /**
      * @param string $path
@@ -35,14 +42,14 @@ abstract class CommonFileManager
      * @return array
      * @throws Exception
      */
-    abstract public function getFolderContent($path, $include_files = true, $include_folders = true, $full_tree = false);
+    public function getFolderContent($path, $include_files = true, $include_folders = true, $full_tree = false);
 
     /**
      * @param $path
      * @return array
      * @throws Exception
      */
-    abstract public function getFolderProperties($path);
+    public function getFolderProperties($path);
 
     /**
      * @param string $path
@@ -50,7 +57,7 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function createFolder($path, $properties = array());
+    public function createFolder($path, $properties = array());
 
     /**
      * @param string $path
@@ -58,7 +65,7 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function updateFolderProperties($path, $properties = '');
+    public function updateFolderProperties($path, $properties = '');
 
     /**
      * @param string $dest_path
@@ -67,7 +74,7 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function copyFolder($dest_path, $src_path, $check_exist = false);
+    public function copyFolder($dest_path, $src_path, $check_exist = false);
 
     /**
      * @param string $path Folder path relative to the service root directory
@@ -75,7 +82,7 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function deleteFolder($path, $force = false);
+    public function deleteFolder($path, $force = false);
 
     /**
      * @param array $folders Array of folder paths that are relative to the root directory
@@ -84,14 +91,14 @@ abstract class CommonFileManager
      * @return array
      * @throws Exception
      */
-    abstract  public function deleteFolders($folders, $root = '', $force = false);
+     public function deleteFolders($folders, $root = '', $force = false);
 
     /**
      * @param $path
      * @return bool
      * @throws Exception
      */
-    abstract public function fileExists($path);
+    public function fileExists($path);
 
     /**
      * @param $path
@@ -100,7 +107,7 @@ abstract class CommonFileManager
      * @return string
      * @throws Exception
      */
-    abstract public function getFileContent($path, $local_file = '', $content_as_base = true);
+    public function getFileContent($path, $local_file = '', $content_as_base = true);
 
     /**
      * @param $path
@@ -109,19 +116,19 @@ abstract class CommonFileManager
      * @return array
      * @throws Exception
      */
-    abstract public function getFileProperties($path, $include_content = false, $content_as_base = true);
+    public function getFileProperties($path, $include_content = false, $content_as_base = true);
 
     /**
      * @param string $path
      * @return null
      */
-    abstract public function streamFile($path);
+    public function streamFile($path);
 
     /**
      * @param string $path
      * @return null
      */
-    abstract public function downloadFile($path);
+    public function downloadFile($path);
 
     /**
      * @param string $path
@@ -131,7 +138,7 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function writeFile($path, $content, $content_is_base = true, $check_exist = false);
+    public function writeFile($path, $content, $content_is_base = true, $check_exist = false);
 
     /**
      * @param string $path
@@ -140,7 +147,7 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function moveFile($path, $local_path, $check_exist = false);
+    public function moveFile($path, $local_path, $check_exist = false);
 
     /**
      * @param string $dest_path
@@ -149,14 +156,14 @@ abstract class CommonFileManager
      * @return void
      * @throws Exception
      */
-    abstract public function copyFile($dest_path, $src_path, $check_exist = false);
+    public function copyFile($dest_path, $src_path, $check_exist = false);
 
     /**
      * @param $path File path relative to the service root directory
      * @return void
      * @throws Exception
      */
-    abstract public function deleteFile($path);
+    public function deleteFile($path);
 
     /**
      * @param array $files Array of file paths relative to root
@@ -164,7 +171,7 @@ abstract class CommonFileManager
      * @return array
      * @throws Exception
      */
-    abstract public function deleteFiles($files, $root='');
+    public function deleteFiles($files, $root='');
 
     /**
      * @param $path
@@ -174,7 +181,7 @@ abstract class CommonFileManager
      * @return array
      * @throws Exception
      */
-    abstract public function extractZipFile($path, $zip, $clean = false, $drop_path = '');
+    public function extractZipFile($path, $zip, $clean = false, $drop_path = '');
 
     /**
      * @param string $path
@@ -183,6 +190,6 @@ abstract class CommonFileManager
      * @param bool $overwrite
      * @return string Zip File Name created/updated
      */
-    abstract public function getFolderAsZip($path, $zip = null, $zipFileName = '', $overwrite = false);
+    public function getFolderAsZip($path, $zip = null, $zipFileName = '', $overwrite = false);
 
 }
