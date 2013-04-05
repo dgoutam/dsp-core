@@ -20,142 +20,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class BaseFileSvc extends BaseService
+abstract class BaseFileSvc extends BaseService implements iFileManager
 {
 	/**
-	 * @var FileManager|BlobFileManager
-	 */
-	protected $fileRestHandler;
-
-	/**
 	 * @param array $config
-	 * @param bool  $native
 	 *
 	 * @throws Exception
 	 */
-	public function __construct( $config, $native = false )
+	public function __construct( $config )
 	{
 		parent::__construct( $config );
-
-		// Validate storage setup
-		$store_name = Utilities::getArrayValue( 'storage_name', $config, '' );
-		if ( empty( $store_name ) )
-		{
-			throw new Exception( "Error creating common file service. No storage name given." );
-		}
-		if ( $native )
-		{
-			$this->fileRestHandler = new FileManager( $store_name );
-		}
-		else
-		{
-			$this->fileRestHandler = new BlobFileManager( $config, $store_name );
-		}
-	}
-
-	/**
-	 * Object destructor
-	 */
-	public function __destruct()
-	{
-		unset( $this->fileRestHandler );
-	}
-
-	/**
-	 * @param string $path
-	 *
-	 * @return void
-	 * @throws Exception
-	 */
-	public function streamFile( $path )
-	{
-		$this->fileRestHandler->streamFile( $path );
-	}
-
-	/**
-	 * @param $folder
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	public function folderExists( $folder )
-	{
-		// applications are defined as a top level folder in the storage
-		return $this->fileRestHandler->folderExists( $folder );
-	}
-
-	/**
-	 * @param string $app_root
-	 * @param bool   $is_public
-	 * @param array  $properties
-	 * @param bool   $check_exist
-	 *
-	 */
-	public function createFolder( $app_root, $is_public = true, $properties = array(), $check_exist = true )
-	{
-		$this->fileRestHandler->createFolder( $app_root, $is_public, $properties, $check_exist );
-	}
-
-	/**
-	 * @param $path
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	public function fileExists( $path )
-	{
-		return $this->fileRestHandler->fileExists( $path );
-	}
-
-	/**
-	 * @param      $path
-	 * @param      $content
-	 * @param bool $content_is_base
-	 * @param bool $check_exist
-	 */
-	public function writeFile( $path, $content, $content_is_base = false, $check_exist = false )
-	{
-		$this->fileRestHandler->writeFile( $path, $content, $content_is_base, $check_exist );
-	}
-
-	/**
-	 * @param $folder
-	 *
-	 * @throws Exception
-	 */
-	public function deleteFolder( $folder )
-	{
-		// check if an application (folder) exists with that name
-		if ( $this->fileRestHandler->folderExists( $folder ) )
-		{
-			$this->fileRestHandler->deleteFolder( $folder, true );
-		}
-	}
-
-	/**
-	 * @param        $path
-	 * @param null   $zip
-	 * @param string $zipFileName
-	 * @param bool   $overwrite
-	 *
-	 * @return string
-	 */
-	public function getFolderAsZip( $path, $zip = null, $zipFileName = '', $overwrite = false )
-	{
-		return $this->fileRestHandler->getFolderAsZip( $path, $zip, $zipFileName, $overwrite );
-	}
-
-	/**
-	 * @param        $path
-	 * @param        $zip
-	 * @param bool   $clean
-	 * @param string $drop_path
-	 *
-	 * @return array
-	 */
-	public function extractZipFile( $path, $zip, $clean = false, $drop_path = '' )
-	{
-		return $this->fileRestHandler->extractZipFile( $path, $zip, $clean, $drop_path );
 	}
 
 	/**
@@ -184,7 +58,7 @@ class BaseFileSvc extends BaseService
 			$zip = new ZipArchive();
 			if ( true === $zip->open( $source_file ) )
 			{
-				return $this->fileRestHandler->extractZipFile( $dest_path, $zip, $clean );
+				return $this->extractZipFile( $dest_path, $zip, $clean );
 			}
 			else
 			{
@@ -195,7 +69,7 @@ class BaseFileSvc extends BaseService
 		{
 			$name = ( empty( $dest_name ) ? basename( $source_file ) : $dest_name );
 			$fullPathName = $dest_path . $name;
-			$this->fileRestHandler->moveFile( $fullPathName, $source_file, $check_exist );
+			$this->moveFile( $fullPathName, $source_file, $check_exist );
 
 			return array( 'file' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
 		}
@@ -230,7 +104,7 @@ class BaseFileSvc extends BaseService
 			$zip = new ZipArchive();
 			if ( true === $zip->open( $tmpName ) )
 			{
-				return $this->fileRestHandler->extractZipFile( $dest_path, $zip, $clean );
+				return $this->extractZipFile( $dest_path, $zip, $clean );
 			}
 			else
 			{
@@ -240,7 +114,7 @@ class BaseFileSvc extends BaseService
 		else
 		{
 			$fullPathName = $dest_path . $dest_name;
-			$this->fileRestHandler->writeFile( $fullPathName, $content, false, $check_exist );
+			$this->writeFile( $fullPathName, $content, false, $check_exist );
 
 			return array( 'file' => array( array( 'name' => $dest_name, 'path' => $fullPathName ) ) );
 		}
@@ -611,14 +485,14 @@ class BaseFileSvc extends BaseService
 				if ( isset( $_REQUEST['properties'] ) )
 				{
 					// just properties of the directory itself
-					$result = $this->fileRestHandler->getFolderProperties( $path );
+					$result = $this->getFolderProperties( $path );
 				}
 				else
 				{
 					$asZip = Utilities::boolval( Utilities::getArrayValue( 'zip', $_REQUEST, false ) );
 					if ( $asZip )
 					{
-						$zipFileName = $this->fileRestHandler->getFolderAsZip( $path );
+						$zipFileName = $this->getFolderAsZip( $path );
 						$fd = fopen( $zipFileName, "r" );
 						if ( $fd )
 						{
@@ -651,7 +525,7 @@ class BaseFileSvc extends BaseService
 						{
 							$include_files = false;
 						}
-						$result = $this->fileRestHandler->getFolderContent( $path, $include_files, $include_folders, $full_tree );
+						$result = $this->getFolderContent( $path, $include_files, $include_folders, $full_tree );
 					}
 				}
 			}
@@ -669,7 +543,7 @@ class BaseFileSvc extends BaseService
 				{
 					// just properties of the file itself
 					$content = Utilities::boolval( Utilities::getArrayValue( 'content', $_REQUEST, false ) );
-					$result = $this->fileRestHandler->getFileProperties( $path, $content );
+					$result = $this->getFileProperties( $path, $content );
 				}
 				else
 				{
@@ -677,12 +551,12 @@ class BaseFileSvc extends BaseService
 					if ( $download )
 					{
 						// stream the file, exits processing
-						$this->fileRestHandler->downloadFile( $path );
+						$this->downloadFile( $path );
 					}
 					else
 					{
 						// stream the file, exits processing
-						$this->fileRestHandler->streamFile( $path );
+						$this->streamFile( $path );
 					}
 				}
 			}
@@ -741,7 +615,7 @@ class BaseFileSvc extends BaseService
 				try
 				{
 					$content = Utilities::getPostDataAsArray();
-					$this->fileRestHandler->createFolder( $fullPathName, true, $content, true );
+					$this->createFolder( $fullPathName, true, $content, true );
 					$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
 				}
 				catch ( Exception $ex )
@@ -824,7 +698,7 @@ class BaseFileSvc extends BaseService
 						if ( empty( $data ) )
 						{
 							// create folder from resource path
-							$this->fileRestHandler->createFolder( $path );
+							$this->createFolder( $path );
 							$result = array( 'folder' => array( array( 'path' => $path ) ) );
 						}
 						else
@@ -857,11 +731,11 @@ class BaseFileSvc extends BaseService
 										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->copyFolder( $fullPathName, $srcPath, true );
+											$this->copyFolder( $fullPathName, $srcPath, true );
 											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
 											if ( $deleteSource )
 											{
-												$this->fileRestHandler->deleteFolder( $srcPath, true );
+												$this->deleteFolder( $srcPath, true );
 											}
 										}
 										catch ( Exception $ex )
@@ -881,7 +755,7 @@ class BaseFileSvc extends BaseService
 										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->createFolder( $fullPathName, true, $content );
+											$this->createFolder( $fullPathName, true, $content );
 										}
 										catch ( Exception $ex )
 										{
@@ -917,11 +791,11 @@ class BaseFileSvc extends BaseService
 										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->copyFile( $fullPathName, $srcPath, true );
+											$this->copyFile( $fullPathName, $srcPath, true );
 											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
 											if ( $deleteSource )
 											{
-												$this->fileRestHandler->deleteFile( $srcPath );
+												$this->deleteFile( $srcPath );
 											}
 										}
 										catch ( Exception $ex )
@@ -941,7 +815,7 @@ class BaseFileSvc extends BaseService
 										}
 										try
 										{
-											$this->fileRestHandler->writeFile( $fullPathName, $content );
+											$this->writeFile( $fullPathName, $content );
 										}
 										catch ( Exception $ex )
 										{
@@ -998,7 +872,7 @@ class BaseFileSvc extends BaseService
 				try
 				{
 					$content = Utilities::getPostDataAsArray();
-					$this->fileRestHandler->createFolder( $path, true, $content );
+					$this->createFolder( $path, true, $content );
 				}
 				catch ( Exception $ex )
 				{
@@ -1103,7 +977,7 @@ class BaseFileSvc extends BaseService
 				try
 				{
 					$content = Utilities::getPostDataAsArray();
-					$this->fileRestHandler->createFolder( $fullPathName, true, $content, true );
+					$this->createFolder( $fullPathName, true, $content, true );
 					$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
 				}
 				catch ( Exception $ex )
@@ -1185,7 +1059,7 @@ class BaseFileSvc extends BaseService
 						if ( empty( $data ) )
 						{
 							// create folder from resource path
-							$this->fileRestHandler->createFolder( $path );
+							$this->createFolder( $path );
 							$result = array( 'folder' => array( array( 'path' => $path ) ) );
 						}
 						else
@@ -1218,11 +1092,11 @@ class BaseFileSvc extends BaseService
 										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->copyFolder( $fullPathName, $srcPath, true );
+											$this->copyFolder( $fullPathName, $srcPath, true );
 											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
 											if ( $deleteSource )
 											{
-												$this->fileRestHandler->deleteFolder( $srcPath, true );
+												$this->deleteFolder( $srcPath, true );
 											}
 										}
 										catch ( Exception $ex )
@@ -1242,7 +1116,7 @@ class BaseFileSvc extends BaseService
 										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->createFolder( $fullPathName, true, $content );
+											$this->createFolder( $fullPathName, true, $content );
 										}
 										catch ( Exception $ex )
 										{
@@ -1278,11 +1152,11 @@ class BaseFileSvc extends BaseService
 										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->copyFile( $fullPathName, $srcPath, true );
+											$this->copyFile( $fullPathName, $srcPath, true );
 											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
 											if ( $deleteSource )
 											{
-												$this->fileRestHandler->deleteFile( $srcPath );
+												$this->deleteFile( $srcPath );
 											}
 										}
 										catch ( Exception $ex )
@@ -1302,7 +1176,7 @@ class BaseFileSvc extends BaseService
 										}
 										try
 										{
-											$this->fileRestHandler->writeFile( $fullPathName, $content );
+											$this->writeFile( $fullPathName, $content );
 										}
 										catch ( Exception $ex )
 										{
@@ -1359,7 +1233,7 @@ class BaseFileSvc extends BaseService
 				try
 				{
 					$content = Utilities::getPostDataAsArray();
-					$this->fileRestHandler->updateFolderProperties( $path, $content );
+					$this->updateFolderProperties( $path, $content );
 				}
 				catch ( Exception $ex )
 				{
@@ -1464,7 +1338,7 @@ class BaseFileSvc extends BaseService
 				try
 				{
 					$content = Utilities::getPostDataAsArray();
-					$this->fileRestHandler->createFolder( $fullPathName, true, $content, true );
+					$this->createFolder( $fullPathName, true, $content, true );
 					$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
 				}
 				catch ( Exception $ex )
@@ -1547,7 +1421,7 @@ class BaseFileSvc extends BaseService
 						if ( empty( $data ) )
 						{
 							// create folder from resource path
-							$this->fileRestHandler->createFolder( $path );
+							$this->createFolder( $path );
 							$result = array( 'folder' => array( array( 'path' => $path ) ) );
 						}
 						else
@@ -1580,11 +1454,11 @@ class BaseFileSvc extends BaseService
 										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->copyFolder( $fullPathName, $srcPath, true );
+											$this->copyFolder( $fullPathName, $srcPath, true );
 											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
 											if ( $deleteSource )
 											{
-												$this->fileRestHandler->deleteFolder( $srcPath, true );
+												$this->deleteFolder( $srcPath, true );
 											}
 										}
 										catch ( Exception $ex )
@@ -1604,7 +1478,7 @@ class BaseFileSvc extends BaseService
 										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->createFolder( $fullPathName, true, $content );
+											$this->createFolder( $fullPathName, true, $content );
 										}
 										catch ( Exception $ex )
 										{
@@ -1640,11 +1514,11 @@ class BaseFileSvc extends BaseService
 										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
 										try
 										{
-											$this->fileRestHandler->copyFile( $fullPathName, $srcPath, true );
+											$this->copyFile( $fullPathName, $srcPath, true );
 											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
 											if ( $deleteSource )
 											{
-												$this->fileRestHandler->deleteFile( $srcPath );
+												$this->deleteFile( $srcPath );
 											}
 										}
 										catch ( Exception $ex )
@@ -1664,7 +1538,7 @@ class BaseFileSvc extends BaseService
 										}
 										try
 										{
-											$this->fileRestHandler->writeFile( $fullPathName, $content );
+											$this->writeFile( $fullPathName, $content );
 										}
 										catch ( Exception $ex )
 										{
@@ -1721,7 +1595,7 @@ class BaseFileSvc extends BaseService
 				try
 				{
 					$content = Utilities::getPostDataAsArray();
-					$this->fileRestHandler->updateFolderProperties( $path, $content );
+					$this->updateFolderProperties( $path, $content );
 				}
 				catch ( Exception $ex )
 				{
@@ -1810,7 +1684,7 @@ class BaseFileSvc extends BaseService
 				}
 				try
 				{
-					$this->fileRestHandler->deleteFolder( $path, $force );
+					$this->deleteFolder( $path, $force );
 					$result = array( 'folder' => array( array( 'path' => $path ) ) );
 				}
 				catch ( Exception $ex )
@@ -1826,12 +1700,12 @@ class BaseFileSvc extends BaseService
 					if ( isset( $content['file'] ) )
 					{
 						$files = $content['file'];
-						$out['file'] = $this->fileRestHandler->deleteFiles( $files, $path );
+						$out['file'] = $this->deleteFiles( $files, $path );
 					}
 					if ( isset( $content['folder'] ) )
 					{
 						$folders = $content['folder'];
-						$out['folder'] = $this->fileRestHandler->deleteFolders( $folders, $path, $force );
+						$out['folder'] = $this->deleteFolders( $folders, $path, $force );
 					}
 					$result = $out;
 				}
@@ -1846,7 +1720,7 @@ class BaseFileSvc extends BaseService
 			// delete file from permanent storage
 			try
 			{
-				$this->fileRestHandler->deleteFile( $path );
+				$this->deleteFile( $path );
 				$result = array( 'file' => array( array( 'path' => $path ) ) );
 			}
 			catch ( Exception $ex )
@@ -1857,4 +1731,195 @@ class BaseFileSvc extends BaseService
 
 		return $result;
 	}
+
+	/**
+	 * @throw Exception
+	 */
+	abstract public function checkContainerForWrite();
+
+	/**
+	 * @param $path
+	 *
+	 * @return bool
+	 * @throw Exception
+	 */
+	abstract public function folderExists( $path );
+
+	/**
+	 * @param string $path
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	abstract public function getFolderContent( $path, $include_files = true, $include_folders = true, $full_tree = false );
+
+	/**
+	 * @param $path
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	abstract public function getFolderProperties( $path );
+
+	/**
+	 * @param string $path
+	 * @param array  $properties
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function createFolder( $path, $properties = array() );
+
+	/**
+	 * @param string $path
+	 * @param string $properties
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function updateFolderProperties( $path, $properties = '' );
+
+	/**
+	 * @param string $dest_path
+	 * @param string $src_path
+	 * @param bool   $check_exist
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function copyFolder( $dest_path, $src_path, $check_exist = false );
+
+	/**
+	 * @param string $path Folder path relative to the service root directory
+	 * @param  bool  $force
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function deleteFolder( $path, $force = false );
+
+	/**
+	 * @param array  $folders Array of folder paths that are relative to the root directory
+	 * @param string $root    directory from which to delete
+	 * @param  bool  $force
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	abstract public function deleteFolders( $folders, $root = '', $force = false );
+
+	/**
+	 * @param $path
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	abstract public function fileExists( $path );
+
+	/**
+	 * @param         $path
+	 * @param  string $local_file
+	 * @param  bool   $content_as_base
+	 *
+	 * @return string
+	 * @throws Exception
+	 */
+	abstract public function getFileContent( $path, $local_file = '', $content_as_base = true );
+
+	/**
+	 * @param       $path
+	 * @param  bool $include_content
+	 * @param  bool $content_as_base
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	abstract public function getFileProperties( $path, $include_content = false, $content_as_base = true );
+
+	/**
+	 * @param string $path
+	 *
+	 * @return null
+	 */
+	abstract public function streamFile( $path );
+
+	/**
+	 * @param string $path
+	 *
+	 * @return null
+	 */
+	abstract public function downloadFile( $path );
+
+	/**
+	 * @param string  $path
+	 * @param string  $content
+	 * @param boolean $content_is_base
+	 * @param bool    $check_exist
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function writeFile( $path, $content, $content_is_base = true, $check_exist = false );
+
+	/**
+	 * @param string $path
+	 * @param string $local_path
+	 * @param bool   $check_exist
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function moveFile( $path, $local_path, $check_exist = false );
+
+	/**
+	 * @param string $dest_path
+	 * @param string $src_path
+	 * @param bool   $check_exist
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function copyFile( $dest_path, $src_path, $check_exist = false );
+
+	/**
+	 * @param $path File path relative to the service root directory
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	abstract public function deleteFile( $path );
+
+	/**
+	 * @param array  $files Array of file paths relative to root
+	 * @param string $root
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	abstract public function deleteFiles( $files, $root = '' );
+
+	/**
+	 * @param            $path
+	 * @param ZipArchive $zip
+	 * @param bool       $clean
+	 * @param string     $drop_path
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	abstract public function extractZipFile( $path, $zip, $clean = false, $drop_path = '' );
+
+	/**
+	 * @param string          $path
+	 * @param null|ZipArchive $zip
+	 * @param string          $zipFileName
+	 * @param bool            $overwrite
+	 *
+	 * @return string Zip File Name created/updated
+	 */
+	abstract public function getFolderAsZip( $path, $zip = null, $zipFileName = '', $overwrite = false );
+
 }

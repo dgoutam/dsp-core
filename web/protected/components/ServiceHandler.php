@@ -160,10 +160,10 @@ class ServiceHandler
 					switch ( $type )
 					{
 						case 'Local File Storage':
-							$service = new ApplicationSvc( $record, true );
+							$service = new AppLocalFileSvc( $record );
 							break;
 						case 'Remote File Storage':
-							$service = new ApplicationSvc( $record, false );
+							$service = new AppRemoteFileSvc( $record );
 							break;
 					}
 					break;
@@ -174,10 +174,10 @@ class ServiceHandler
 							$service = new RemoteWebSvc( $record );
 							break;
 						case 'Local File Storage':
-							$service = new BaseFileSvc( $record, true );
+							$service = new LocalFileSvc( $record );
 							break;
 						case 'Remote File Storage':
-							$service = new BaseFileSvc( $record, false );
+							$service = new RemoteFileSvc( $record );
 							break;
 						case 'Local SQL DB':
 							$service = new SqlDbSvc( $record, true );

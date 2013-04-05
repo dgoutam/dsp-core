@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ApplicationSvc.php
+ * AppRemoteFileSvc.php
  * A service to handle application-specific file storage accessed through the REST API.
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
@@ -20,13 +20,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class ApplicationSvc extends BaseFileSvc
+class AppRemoteFileSvc extends RemoteFileSvc
 {
 	/**
 	 * @param array $config
-	 * @param bool  $native
 	 */
-	public function __construct( $config, $native = false )
+	public function __construct( $config )
 	{
 		// Validate storage setup
 		$store_name = Utilities::getArrayValue( 'storage_name', $config, '' );
@@ -35,7 +34,7 @@ class ApplicationSvc extends BaseFileSvc
 			$config['storage_name'] = 'applications';
 		}
 
-		parent::__construct( $config, $native );
+		parent::__construct( $config );
 	}
 
 	/**
@@ -250,7 +249,7 @@ class ApplicationSvc extends BaseFileSvc
 		if ( empty( $app_root ) )
 		{
 			// list app folders only for now
-			return $this->fileRestHandler->getFolderContent( '', false, true, false );
+			return $this->getFolderContent( '', false, true, false );
 		}
 
 		return parent::actionGet();

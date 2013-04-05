@@ -1,38 +1,96 @@
 <?php
 
 /**
- * @category   DreamFactory
- * @package    DreamFactory
- * @subpackage FileManager
- * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
- * @license    http://www.dreamfactory.com/license
+ * RemoteFileSvc.php
+ * Remote File Storage Service giving REST access to file storage.
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-use Kisma\Core\Utility\Log;
-
-class FileManager implements iFileManager
+class RemoteFileSvc extends BaseFileSvc
 {
+	/**
+	 * @var AwsS3Blob | WindowsAzureBlob | null
+	 */
+	protected $blobSvc;
+
 	/**
 	 * @var string
 	 */
 	protected $storageContainer;
 
 	/**
-	 * Creates a new FileManager instance
+	 * Create a new RemoteFileSvc
 	 *
-	 * @param  string $store_name
+	 * @param  array  $config
 	 *
 	 * @throws InvalidArgumentException
 	 * @throws Exception
 	 */
-	public function __construct( $store_name = '' )
+	public function __construct( $config )
 	{
-		// Validate storage setup
+		parent::__construct( $config );
+
+		// Validate blob setup
+		$store_name = Utilities::getArrayValue( 'storage_name', $config, '' );
 		if ( empty( $store_name ) )
 		{
-			throw new InvalidArgumentException( 'File container name can not be empty.' );
+			throw new InvalidArgumentException( 'Blob container name can not be empty.' );
 		}
 		$this->storageContainer = $store_name;
+		try
+		{
+			$type = isset( $config['storage_type'] ) ? $config['storage_type'] : '';
+			$credentials = isset( $config['credentials'] ) ? $config['credentials'] : '';
+			switch ( strtolower( $type ) )
+			{
+				case 'azure blob':
+					$local_dev = isset( $credentials['local_dev'] ) ? Utilities::boolval( $credentials['local_dev'] ) : false;
+					$accountName = isset( $credentials['account_name'] ) ? $credentials['account_name'] : '';
+					$accountKey = isset( $credentials['account_key'] ) ? $credentials['account_key'] : '';
+					try
+					{
+						$this->blobSvc = new WindowsAzureBlob( $local_dev, $accountName, $accountKey );
+					}
+					catch ( Exception $ex )
+					{
+						throw new Exception( "Unexpected Windows Azure Blob Service Exception:\n{$ex->getMessage()}" );
+					}
+					break;
+				case 'aws s3':
+					$accessKey = isset( $credentials['access_key'] ) ? $credentials['access_key'] : '';
+					$secretKey = isset( $credentials['secret_key'] ) ? $credentials['secret_key'] : '';
+					try
+					{
+						$this->blobSvc = new AwsS3Blob( $accessKey, $secretKey );
+					}
+					catch ( Exception $ex )
+					{
+						throw new Exception( "Unexpected Amazon S3 Service Exception:\n{$ex->getMessage()}" );
+					}
+					break;
+				default:
+					throw new Exception( "Invalid Blob Storage Type in configuration environment." );
+					break;
+			}
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Error creating blob file manager.\n{$ex->getMessage()}" );
+		}
 	}
 
 	/**
@@ -40,6 +98,11 @@ class FileManager implements iFileManager
 	 */
 	public function __destruct()
 	{
+		if ( isset( $this->blobSvc ) )
+		{
+			// any special destruction for blob services?
+			unset( $this->blobSvc );
+		}
 		unset( $this->storageContainer );
 	}
 
@@ -52,13 +115,9 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			$container = self::addContainerToName( $this->storageContainer, '' );
-			if ( !is_dir( $container ) )
+			if ( !$this->blobSvc->containerExists( $this->storageContainer ) )
 			{
-				if ( !mkdir( $container ) )
-				{
-					throw new Exception( 'Failed to create container.' );
-				}
+				$this->blobSvc->createContainer( $this->storageContainer );
 			}
 		}
 		catch ( Exception $ex )
@@ -78,21 +137,27 @@ class FileManager implements iFileManager
 		$path = FileUtilities::fixFolderPath( $path );
 		try
 		{
-			$key = self::addContainerToName( $this->storageContainer, $path );
-
-			return is_dir( $key );
+			if ( $this->blobSvc->containerExists( $this->storageContainer ) )
+			{
+				if ( $this->blobSvc->blobExists( $this->storageContainer, $path ) )
+				{
+					return true;
+				}
+			}
 		}
 		catch ( Exception $ex )
 		{
 			throw $ex;
 		}
+
+		return false;
 	}
 
 	/**
-	 * @param             $path
-	 * @param  bool       $include_files
-	 * @param  bool       $include_folders
-	 * @param  bool       $full_tree
+	 * @param       $path
+	 * @param  bool $include_files
+	 * @param  bool $include_folders
+	 * @param  bool $full_tree
 	 *
 	 * @return array
 	 * @throws Exception
@@ -100,28 +165,35 @@ class FileManager implements iFileManager
 	public function getFolderContent( $path, $include_files = true, $include_folders = true, $full_tree = false )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		$delimiter = ( $full_tree ) ? '' : DIRECTORY_SEPARATOR;
+		$delimiter = ( $full_tree ) ? '' : '/';
 		try
 		{
 			$files = array();
 			$folders = array();
-			$dirPath = self::addContainerToName( $this->storageContainer, '' );
-			if ( is_dir( $dirPath ) )
+			if ( $this->blobSvc->containerExists( $this->storageContainer ) )
 			{
-				$results = static::listTree( $dirPath, $path, $delimiter );
-				foreach ( $results as $data )
+				if ( !empty( $path ) )
 				{
-					$fullPathName = $data['name'];
-					$shortName = FileUtilities::getNameFromPath( $fullPathName );
+					if ( !$this->blobSvc->blobExists( $this->storageContainer, $path ) )
+					{
+						throw new Exception( "Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
+					}
+				}
+				$results = $this->blobSvc->listBlobs( $this->storageContainer, $path, $delimiter );
+				foreach ( $results as $blob )
+				{
+					$fullPathName = $blob['name'];
+					$shortName = substr_replace( $fullPathName, '', 0, strlen( $path ) );
 					if ( '/' == substr( $fullPathName, strlen( $fullPathName ) - 1 ) )
 					{
 						// folders
 						if ( $include_folders )
 						{
+							$shortName = FileUtilities::getNameFromPath( $shortName );
 							$folders[] = array(
 								'name'         => $shortName,
 								'path'         => $fullPathName,
-								'lastModified' => isset( $data['lastModified'] ) ? $data['lastModified'] : null
+								'lastModified' => isset( $blob['lastModified'] ) ? $blob['lastModified'] : null
 							);
 						}
 					}
@@ -130,19 +202,12 @@ class FileManager implements iFileManager
 						// files
 						if ( $include_files )
 						{
-							$data['path'] = $fullPathName;
-							$data['name'] = $shortName;
-							$files[] = $data;
+							$blob['path'] = $fullPathName;
+							$blob['name'] = $shortName;
+							$files[] = $blob;
 						}
 					}
 				}
-			}
-			else
-			{
-                if (!empty($path)) {
-                    throw new Exception("Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND);
-                }
-                // container root doesn't really exist until first write creates it
 			}
 
 			return array( "folder" => $folders, "file" => $files );
@@ -164,12 +229,13 @@ class FileManager implements iFileManager
 		$path = FileUtilities::fixFolderPath( $path );
 		try
 		{
-			if ( !$this->folderExists( $path ) )
+			if ( !$this->blobSvc->blobExists( $this->storageContainer, $path ) )
 			{
 				throw new Exception( "Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
 			}
-
-			return array( 'folder' => array( array( 'path' => $path, 'properties' => array() ) ) );
+			$folder = $this->blobSvc->getBlobData( $this->storageContainer, $path );
+			$properties = json_decode( $folder, true ); // array of properties
+			return array( 'folder' => array( array( 'path' => $path, 'properties' => $properties ) ) );
 		}
 		catch ( Exception $ex )
 		{
@@ -219,16 +285,8 @@ class FileManager implements iFileManager
 		{
 			// create the folder
 			$this->checkContainerForWrite(); // need to be able to write to storage
-			$key = self::addContainerToName( $this->storageContainer, $path );
-			if ( !mkdir( $key ) )
-			{
-				throw new Exception( 'Failed to create folder.' );
-			}
-//            $properties = (empty($properties)) ? '' : json_encode($properties);
-//            $result = file_put_contents($key, $properties);
-//            if (false === $result) {
-//                throw new Exception('Failed to create folder properties.');
-//            }
+			$properties = ( empty( $properties ) ) ? '' : json_encode( $properties );
+			$this->blobSvc->putBlobData( $this->storageContainer, $path, $properties );
 		}
 		catch ( Exception $ex )
 		{
@@ -237,9 +295,9 @@ class FileManager implements iFileManager
 	}
 
 	/**
-	 * @param string  $dest_path
-	 * @param string  $src_path
-	 * @param bool    $check_exist
+	 * @param string $dest_path
+	 * @param string $src_path
+	 * @param bool   $check_exist
 	 *
 	 * @return void
 	 * @throws Exception
@@ -268,10 +326,23 @@ class FileManager implements iFileManager
 		{
 			// create the folder
 			$this->checkContainerForWrite(); // need to be able to write to storage
-			static::copyTree(
-				static::addContainerToName( $this->storageContainer, $src_path ),
-				static::addContainerToName( $this->storageContainer, $dest_path )
-			);
+			$this->blobSvc->copyBlob( $this->storageContainer, $dest_path, $this->storageContainer, $src_path );
+			// now copy content of folder...
+			$blobs = $this->blobSvc->listBlobs( $this->storageContainer, $src_path );
+			if ( !empty( $blobs ) )
+			{
+				foreach ( $blobs as $blob )
+				{
+					$srcName = $blob['name'];
+					if ( ( 0 !== strcasecmp( $src_path, $srcName ) ) )
+					{
+						// not self properties blob
+						$name = FileUtilities::getNameFromPath( $srcName );
+						$fullPathName = $dest_path . $name;
+						$this->blobSvc->copyBlob( $this->storageContainer, $fullPathName, $this->storageContainer, $srcName );
+					}
+				}
+			}
 		}
 		catch ( Exception $ex )
 		{
@@ -297,12 +368,8 @@ class FileManager implements iFileManager
 		try
 		{
 			// update the file that holds folder properties
-//            $properties = json_encode($properties);
-//            $key = self::addContainerToName($this->storageContainer, $path);
-//            $result = file_put_contents($key, $properties);
-//            if (false === $result) {
-//                throw new Exception('Failed to create folder properties.');
-//            }
+			$properties = json_encode( $properties );
+			$this->blobSvc->putBlobData( $this->storageContainer, $path, $properties );
 		}
 		catch ( Exception $ex )
 		{
@@ -323,8 +390,27 @@ class FileManager implements iFileManager
 		try
 		{
 			$this->checkContainerForWrite(); // need to be able to write to storage
-			$dirPath = static::addContainerToName( $this->storageContainer, $path );
-			static::deleteTree( $dirPath, $force );
+			error_log( $path );
+			$blobs = $this->blobSvc->listBlobs( $this->storageContainer, $path );
+			if ( !empty( $blobs ) )
+			{
+				if ( ( 1 === count( $blobs ) ) && ( 0 === strcasecmp( $path, $blobs[0]['name'] ) ) )
+				{
+					// only self properties blob
+				}
+				else
+				{
+					if ( !$force )
+					{
+						throw new Exception( "Folder '$path' contains other files or folders." );
+					}
+					foreach ( $blobs as $blob )
+					{
+						$this->blobSvc->deleteBlob( $this->storageContainer, $blob['name'] );
+					}
+				}
+			}
+			$this->blobSvc->deleteBlob( $this->storageContainer, $path );
 		}
 		catch ( Exception $ex )
 		{
@@ -390,14 +476,20 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			$key = static::asFullPath( self::addContainerToName( $this->storageContainer, $path ) );
-
-			return is_file( $key ); // is_file() faster than file_exists()
+			if ( $this->blobSvc->containerExists( $this->storageContainer ) )
+			{
+				if ( $this->blobSvc->blobExists( $this->storageContainer, $path ) )
+				{
+					return true;
+				}
+			}
 		}
 		catch ( Exception $ex )
 		{
 			throw $ex;
 		}
+
+		return false;
 	}
 
 	/**
@@ -412,30 +504,21 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			$key = static::addContainerToName( $this->storageContainer, $path );
-			if ( !is_file( $key ) )
+			if ( !$this->blobSvc->blobExists( $this->storageContainer, $path ) )
 			{
 				throw new Exception( "File '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
-			}
-			$data = file_get_contents( $key );
-			if ( false === $data )
-			{
-				throw new Exception( 'Failed to retrieve file content.' );
 			}
 			if ( !empty( $local_file ) )
 			{
 				// write to local or temp file
-				$result = file_put_contents( $local_file, $data );
-				if ( false === $result )
-				{
-					throw new Exception( 'Failed to put file content as local file.' );
-				}
+				$this->blobSvc->getBlobAsFile( $this->storageContainer, $path, $local_file );
 
 				return '';
 			}
 			else
 			{
 				// get content as raw or encoded as base64 for transport
+				$data = $this->blobSvc->getBlobData( $this->storageContainer, $path );
 				if ( $content_as_base )
 				{
 					$data = base64_encode( $data );
@@ -462,35 +545,25 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			if ( !$this->fileExists( $path ) )
+			if ( !$this->blobSvc->blobExists( $this->storageContainer, $path ) )
 			{
 				throw new Exception( "File '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
 			}
-			$key = self::addContainerToName( $this->storageContainer, $path );
+			$blob = $this->blobSvc->listBlob( $this->storageContainer, $path );
 			$shortName = FileUtilities::getNameFromPath( $path );
-			$ext = FileUtilities::getFileExtension( $key );
-			$data = array(
-				'path'         => $path,
-				'name'         => $shortName,
-				'contentType'  => FileUtilities::determineContentType( $ext, '', $key ),
-				'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $key ) ),
-				'size'         => filesize( $key )
-			);
+			$blob['path'] = $path;
+			$blob['name'] = $shortName;
 			if ( $include_content )
 			{
-				$contents = file_get_contents( $key );
-				if ( false === $contents )
-				{
-					throw new Exception( 'Failed to retrieve file properties.' );
-				}
+				$data = $this->blobSvc->getBlobData( $this->storageContainer, $path );
 				if ( $content_as_base )
 				{
-					$contents = base64_encode( $contents );
+					$data = base64_encode( $data );
 				}
-				$data['content'] = $contents;
+				$blob['content'] = $data;
 			}
 
-			return $data;
+			return $blob;
 		}
 		catch ( Exception $ex )
 		{
@@ -508,28 +581,7 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			$key = static::addContainerToName( $this->storageContainer, $path );
-			if ( is_file( $key ) )
-			{
-				$ext = FileUtilities::getFileExtension( $key );
-				$result = file_get_contents( $key );
-				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $key ) ) );
-				header( 'Content-type: ' . FileUtilities::determineContentType( $ext, '', $key ) );
-				header( 'Content-Length:' . filesize( $key ) );
-				$disposition = 'inline';
-				header( "Content-Disposition: $disposition; filename=\"$path\";" );
-				echo $result;
-			}
-			else
-			{
-				Log::debug('FileManager::streamFile is_file call fail: ' . $key );
-
-				$status_header = "HTTP/1.1 404 The specified file '$path' does not exist.";
-				header( $status_header );
-				header( 'Content-type: text/html' );
-			}
-			Yii::app()->end();
-			;
+			$this->blobSvc->streamBlob( $this->storageContainer, $path, array() );
 		}
 		catch ( Exception $ex )
 		{
@@ -547,26 +599,8 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			$key = static::addContainerToName( $this->storageContainer, $path );
-			if ( is_file( $key ) )
-			{
-				$result = file_get_contents( $key );
-				$ext = FileUtilities::getFileExtension( $key );
-				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $key ) ) );
-				header( 'Content-type: ' . FileUtilities::determineContentType( $ext, '', $key ) );
-				header( 'Content-Length:' . filesize( $key ) );
-				$disposition = 'attachment';
-				header( "Content-Disposition: $disposition; filename=\"$path\";" );
-				echo $result;
-			}
-			else
-			{
-				$status_header = "HTTP/1.1 404 The specified file '$path' does not exist.";
-				header( $status_header );
-				header( 'Content-type: text/html' );
-			}
-			Yii::app()->end();
-			;
+			$params = array( 'disposition' => 'attachment' );
+			$this->blobSvc->streamBlob( $this->storageContainer, $path, $params );
 		}
 		catch ( Exception $ex )
 		{
@@ -590,7 +624,7 @@ class FileManager implements iFileManager
 		{
 			if ( ( $check_exist ) )
 			{
-				throw new Exception( "File '$path' already exists." );
+				throw new Exception( "File '$path' already exists.", ErrorCodes::BAD_REQUEST );
 			}
 		}
 		// does this folder's parent exist?
@@ -607,12 +641,9 @@ class FileManager implements iFileManager
 			{
 				$content = base64_decode( $content );
 			}
-			$key = self::addContainerToName( $this->storageContainer, $path );
-			$result = file_put_contents( $key, $content );
-			if ( false === $result )
-			{
-				throw new Exception( 'Failed to create file.' );
-			}
+			$ext = FileUtilities::getFileExtension( $path );
+			$mime = FileUtilities::determineContentType( $ext, $content );
+			$this->blobSvc->putBlobData( $this->storageContainer, $path, $content, $mime );
 		}
 		catch ( Exception $ex )
 		{
@@ -653,11 +684,9 @@ class FileManager implements iFileManager
 		{
 			// create the file
 			$this->checkContainerForWrite(); // need to be able to write to storage
-			$key = static::addContainerToName( $this->storageContainer, $path );
-			if ( !rename( $local_path, $key ) )
-			{
-				throw new Exception( "Failed to move file '$path'" );
-			}
+			$ext = FileUtilities::getFileExtension( $path );
+			$mime = FileUtilities::determineContentType( $ext, '', $local_path );
+			$this->blobSvc->putBlobFromFile( $this->storageContainer, $path, $local_path, $mime );
 		}
 		catch ( Exception $ex )
 		{
@@ -666,9 +695,9 @@ class FileManager implements iFileManager
 	}
 
 	/**
-	 * @param string  $dest_path
-	 * @param string  $src_path
-	 * @param bool    $check_exist
+	 * @param string $dest_path
+	 * @param string $src_path
+	 * @param bool   $check_exist
 	 *
 	 * @return void
 	 * @throws Exception
@@ -697,13 +726,7 @@ class FileManager implements iFileManager
 		{
 			// create the file
 			$this->checkContainerForWrite(); // need to be able to write to storage
-			$key = self::addContainerToName( $this->storageContainer, $dest_path );
-			$src_key = self::addContainerToName( $this->storageContainer, $src_path );
-			$result = copy( $src_key, $key );
-			if ( !$result )
-			{
-				throw new Exception( 'Failed to copy file.' );
-			}
+			$this->blobSvc->copyBlob( $this->storageContainer, $dest_path, $this->storageContainer, $src_path );
 		}
 		catch ( Exception $ex )
 		{
@@ -721,16 +744,7 @@ class FileManager implements iFileManager
 	{
 		try
 		{
-			$key = self::addContainerToName( $this->storageContainer, $path );
-			if ( !is_file( $key ) )
-			{
-				throw new Exception( "'$key' is not a valid filename." );
-			}
-			$result = unlink( $key );
-			if ( !$result )
-			{
-				throw new Exception( 'Failed to delete file.' );
-			}
+			$this->blobSvc->deleteBlob( $this->storageContainer, $path );
 		}
 		catch ( Exception $ex )
 		{
@@ -742,7 +756,6 @@ class FileManager implements iFileManager
 	 * @param array  $files
 	 * @param string $root
 	 *
-	 * @throws Exception
 	 * @return array
 	 */
 	public function deleteFiles( $files, $root = '' )
@@ -763,7 +776,7 @@ class FileManager implements iFileManager
 				}
 				else
 				{
-					throw new Exception( 'No path or name found for file in delete request.' );
+					throw new Exception( 'No path or name found for file in delete request.', ErrorCodes::BAD_REQUEST );
 				}
 				if ( !empty( $path ) )
 				{
@@ -771,7 +784,7 @@ class FileManager implements iFileManager
 				}
 				else
 				{
-					throw new Exception( 'No path or name found for file in delete request.' );
+					throw new Exception( 'No path or name found for file in delete request.', ErrorCodes::BAD_REQUEST );
 				}
 			}
 			catch ( Exception $ex )
@@ -795,12 +808,13 @@ class FileManager implements iFileManager
 	 */
 	public function getFolderAsZip( $path, $zip = null, $zipFileName = '', $overwrite = false )
 	{
+		$path = FileUtilities::fixFolderPath( $path );
+		$delimiter = '';
 		try
 		{
-			$container = self::addContainerToName( $this->storageContainer, '' );
-			if ( !is_dir( $container ) )
+			if ( $this->blobSvc->containerExists( $this->storageContainer ) )
 			{
-				throw new Exception( "Can not find directory '$container'." );
+				throw new Exception( "Can not find storage container for folder zip operation." );
 			}
 			$needClose = false;
 			if ( !isset( $zip ) )
@@ -822,7 +836,34 @@ class FileManager implements iFileManager
 					throw new Exception( "Can not create zip file for directory '$path'." );
 				}
 			}
-			static::addTreeToZip( $container, rtrim( $path, '/' ), $zip );
+			$results = $this->blobSvc->listBlobs( $this->storageContainer, $path, $delimiter );
+			foreach ( $results as $blob )
+			{
+				$fullPathName = $blob['name'];
+				$shortName = substr_replace( $fullPathName, '', 0, strlen( $path ) );
+				if ( empty( $shortName ) )
+				{
+					continue;
+				}
+				error_log( $shortName );
+				if ( '/' == substr( $fullPathName, strlen( $fullPathName ) - 1 ) )
+				{
+					// folders
+					if ( !$zip->addEmptyDir( $shortName ) )
+					{
+						throw new Exception( "Can not include folder '$shortName' in zip file." );
+					}
+				}
+				else
+				{
+					// files
+					$content = $this->blobSvc->getBlobData( $this->storageContainer, $fullPathName );
+					if ( !$zip->addFromString( $shortName, $content ) )
+					{
+						throw new Exception( "Can not include file '$shortName' in zip file." );
+					}
+				}
+			}
 			if ( $needClose )
 			{
 				$zip->close();
@@ -837,13 +878,13 @@ class FileManager implements iFileManager
 	}
 
 	/**
-	 * @param string     $path
+	 * @param            $path
 	 * @param ZipArchive $zip
 	 * @param bool       $clean
 	 * @param string     $drop_path
 	 *
-	 * @throws Exception
 	 * @return array
+	 * @throws Exception
 	 */
 	public function extractZipFile( $path, $zip, $clean = false, $drop_path = '' )
 	{
@@ -852,8 +893,17 @@ class FileManager implements iFileManager
 			try
 			{
 				// clear out anything in this directory
-				$dirPath = static::addContainerToName( $this->storageContainer, $path );
-				static::deleteTree( $dirPath, true, false );
+				$blobs = $this->blobSvc->listBlobs( $this->storageContainer, $path );
+				if ( !empty( $blobs ) )
+				{
+					foreach ( $blobs as $blob )
+					{
+						if ( ( 0 !== strcasecmp( $path, $blob['name'] ) ) )
+						{ // not folder itself
+							$this->blobSvc->deleteBlob( $this->storageContainer, $blob['name'] );
+						}
+					}
+				}
 			}
 			catch ( Exception $ex )
 			{
@@ -896,299 +946,5 @@ class FileManager implements iFileManager
 		}
 
 		return array( 'folder' => array( 'name' => rtrim( $path, DIRECTORY_SEPARATOR ), 'path' => $path ) );
-	}
-
-	/**
-	 * @param $name
-	 *
-	 * @return string
-	 */
-	private static function asFullPath( $name )
-	{
-		return Defaults::getStoragePath($name);
-	}
-
-	/**
-	 * @param $name
-	 *
-	 * @return string
-	 */
-	private static function asLocalPath( $name )
-	{
-		return basename( Defaults::getStoragePath( $name ) );
-//		return substr( $name, strlen( $root ) + 1 );
-	}
-
-	/**
-	 * @param $container
-	 *
-	 * @return string
-	 */
-	private static function fixContainerName( $container )
-	{
-		return rtrim( $container, '/' ) . '/';
-	}
-
-	/**
-	 * @param $container
-	 * @param $name
-	 *
-	 * @return string
-	 */
-	private static function addContainerToName( $container, $name )
-	{
-		if ( !empty( $container ) )
-		{
-			$container = self::fixContainerName( $container );
-		}
-
-		return static::asFullPath( $container . $name );
-	}
-
-	/**
-	 * @param $container
-	 * @param $name
-	 *
-	 * @return string
-	 */
-	private static function removeContainerFromName( $container, $name )
-	{
-		$name = static::asLocalPath( $name );
-		if ( empty( $container ) )
-		{
-			return $name;
-		}
-		$container = self::fixContainerName( $container );
-
-		return substr( $name, strlen( $container ) + 1 );
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function listContainers()
-	{
-		try
-		{
-			$out = array();
-			$handle = opendir( static::asFullPath( '' ) );
-			if ( $handle )
-			{
-				while ( false !== ( $name = readdir( $handle ) ) )
-				{
-					if ( $name != "." && $name != ".." )
-					{
-						if ( is_dir( $name ) )
-						{
-							$out[] = array( 'name' => $name );
-						}
-					}
-				}
-				closedir( $handle );
-			}
-
-			return $out;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * @param string $container
-	 *
-	 * @throws Exception
-	 */
-	public function deleteContainer( $container = '' )
-	{
-		try
-		{
-			$dir = static::addContainerToName( $container, '' );
-			$result = rmdir( $dir );
-			if ( !$result )
-			{
-				throw new Exception( 'Failed to delete container.' );
-			}
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * List folders and files
-	 *
-	 * @param  string $root      root path name
-	 * @param  string $prefix    Optional. search only for folders and files by specified prefix.
-	 * @param  string $delimiter Optional. Delimiter, i.e. '/', for specifying folder hierarchy
-	 *
-	 * @return array
-	 * @throws Exception
-	 */
-	public static function listTree( $root, $prefix = '', $delimiter = '' )
-	{
-		try
-		{
-			$dir = $root . ( ( !empty( $prefix ) ) ? $prefix : '' );
-			$out = array();
-			if ( is_dir( $dir ) )
-			{
-				$files = array_diff( scandir( $dir ), array( '.', '..' ) );
-				foreach ( $files as $file )
-				{
-					$key = $dir . $file;
-					$local = ( ( !empty( $prefix ) ) ? $prefix : '' ) . $file;
-					// get file meta
-					if ( is_dir( $key ) )
-					{
-						$out[] = array(
-							'name'         => str_replace( DIRECTORY_SEPARATOR, '/', $local ) . '/',
-							'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $key ) )
-						);
-						if ( empty( $delimiter ) )
-						{
-							$out = array_merge( $out, self::listTree( $root, $local . DIRECTORY_SEPARATOR ) );
-						}
-					}
-					elseif ( is_file( $key ) )
-					{
-						$ext = FileUtilities::getFileExtension( $key );
-						$out[] = array(
-							'name'         => str_replace( DIRECTORY_SEPARATOR, '/', $local ),
-							'contentType'  => FileUtilities::determineContentType( $ext, '', $key ),
-							'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $key ) ),
-							'size'         => filesize( $key )
-						);
-					}
-					else
-					{
-						error_log( $key );
-					}
-				}
-			}
-			else
-			{
-				throw new Exception( "Folder '$prefix' does not exist in storage." );
-			}
-
-			return $out;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * @param      $dir
-	 * @param bool $force
-	 * @param bool $delete_self
-	 *
-	 * @throws Exception
-	 */
-	public static function deleteTree( $dir, $force = false, $delete_self = true )
-	{
-		if ( is_dir( $dir ) )
-		{
-			$files = array_diff( scandir( $dir ), array( '.', '..' ) );
-			if ( !empty( $files ) && !$force )
-			{
-				throw new Exception( "Directory not empty, can not delete without force option." );
-			}
-			foreach ( $files as $file )
-			{
-				$delPath = $dir . DIRECTORY_SEPARATOR . $file;
-				if ( is_dir( $delPath ) )
-				{
-					static::deleteTree( $delPath, $force, true );
-				}
-				elseif ( is_file( $delPath ) )
-				{
-					unlink( $delPath );
-				}
-				else
-				{
-					// bad path?
-				}
-			}
-			if ( $delete_self )
-			{
-				rmdir( $dir );
-			}
-		}
-	}
-
-	/**
-	 * @param $src
-	 * @param $dst
-	 */
-	public static function copyTree( $src, $dst )
-	{
-		if ( file_exists( $dst ) )
-		{
-			static::deleteTree( $dst );
-		}
-		if ( is_dir( $src ) )
-		{
-			mkdir( $dst );
-			$files = array_diff( scandir( $src ), array( '.', '..' ) );
-			foreach ( $files as $file )
-			{
-				static::copyTree( $src . DIRECTORY_SEPARATOR . $file, $dst . DIRECTORY_SEPARATOR, $file );
-			}
-		}
-		else if ( file_exists( $src ) )
-		{
-			copy( $src, $dst );
-		}
-	}
-
-	/**
-	 * @param $root
-	 * @param $path
-	 * @param $zip ZipArchive
-	 *
-	 * @throws Exception
-	 */
-	public static function addTreeToZip( $root, $path, $zip )
-	{
-		$dirPath = $root;
-		if ( !empty( $path ) )
-		{
-			$dirPath .= $path . DIRECTORY_SEPARATOR;
-		}
-		if ( is_dir( $dirPath ) )
-		{
-			$files = array_diff( scandir( $dirPath ), array( '.', '..' ) );
-			if ( empty( $files ) )
-			{
-				$newPath = str_replace( DIRECTORY_SEPARATOR, '/', $path );
-				if ( !$zip->addEmptyDir( $newPath ) )
-				{
-					throw new Exception( "Can not include folder '$newPath' in zip file." );
-				}
-
-				return;
-			}
-			foreach ( $files as $file )
-			{
-				$newPath = ( empty( $path ) ? $file : $path . DIRECTORY_SEPARATOR . $file );
-				if ( is_dir( $dirPath . $file ) )
-				{
-					static::addTreeToZip( $root, $newPath, $zip );
-				}
-				else
-				{
-					$newPath = str_replace( DIRECTORY_SEPARATOR, '/', $newPath );
-					if ( !$zip->addFile( $dirPath . $file, $newPath ) )
-					{
-						throw new Exception( "Can not include file '$newPath' in zip file." );
-					}
-				}
-			}
-		}
 	}
 }
