@@ -9,10 +9,7 @@ use Kisma\Core\Utility\Option;
  * DSP session manager
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
+ * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
