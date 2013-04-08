@@ -53,8 +53,6 @@ $_blobConfig = __DIR__ . '/blob.config.php';
 $_dbConfig = require_once( __DIR__ . '/database.config.php' );
 $_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require __DIR__ . '/common.config.php' : array();
 
-Log::debug( 'DB CONFIG: ' . print_r( $_dbConfig, true ) );
-
 /**
  * Database Caching
  */
