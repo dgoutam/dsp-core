@@ -1,11 +1,11 @@
 <?php
 /**
- * index.php
+ * aliases.php
+ * Yii aliases for the DreamFactory Services Platform server application.
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
- *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,22 +20,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use DreamFactory\Platform\Utility\DataCache;
+//	Our base path
+$_basePath = dirname( __DIR__ );
 
-$_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
-require_once __DIR__ . '/protected/components/Pii.php';
-\Pii::run( __DIR__ . '/../config', $_autoloader );
-
-//	Main DSP web configuration
-if ( !( $_config = DataCache::load( $_key = $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_HOST'] . '.web' ) ) )
-{
-	DataCache::store( $_key, $_config = require __DIR__ . '/../config/web.php' );
-}
-
-require_once __DIR__ . '/../config/aliases.php';
-
-//	Comment out the following lines in production
-//defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-//defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
-
-\Yii::createWebApplication( $_config )->run();
+\Yii::setPathOfAlias( 'DreamFactory', $_basePath . '/src/DreamFactory' );
+\Yii::setPathOfAlias( 'vendor', $_basePath . '/vendor' );

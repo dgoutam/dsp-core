@@ -202,14 +202,17 @@ class Pii extends \CHtml
 		}
 
 		//	Non-CLI requests have clientScript and a user maybe
-		if ( 'cli' != PHP_SAPI )
+		if ( 'cli' != PHP_SAPI && $_thisApp )
 		{
 			static::$_clientScript = $_thisApp->getClientScript();
-            static::$_thisUser = $_thisApp->getUser();
+			static::$_thisUser = $_thisApp->getUser();
 		}
 
-		static::$_thisRequest = $_thisApp->getRequest();
-		static::$_appParameters = $_thisApp->getParams();
+		if ( $_thisApp )
+		{
+			static::$_thisRequest = $_thisApp->getRequest();
+			static::$_appParameters = $_thisApp->getParams();
+		}
 
 		return $_thisApp;
 	}

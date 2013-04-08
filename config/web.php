@@ -28,6 +28,7 @@
 //.........................................................................
 
 use Kisma\Core\Utility\Log;
+
 const ENABLE_DB_CACHE = true;
 
 global $_autoloader;
@@ -39,17 +40,11 @@ $_appName = 'DreamFactory Services Platform';
 $_basePath = dirname( __DIR__ );
 
 //	Get the globals set...
-require_once $_basePath . '/web/protected/components/Pii.php';
 require_once $_basePath . '/web/protected/components/Fabric.php';
 
 //	Our log file path. Log name is set by startup script
 $_logFilePath = $_basePath . '/log';
 $_vendorPath = $_basePath . '/vendor';
-
-Pii::alias( 'DreamFactory', $_basePath . '/src/DreamFactory' );
-\Yii::setPathOfAlias( 'vendor', $_vendorPath );
-
-\Pii::run( __DIR__, $_autoloader );
 
 //	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
 $_blobConfig = __DIR__ . '/blob.config.php';

@@ -2,10 +2,10 @@
 	"name":              "dreamfactory/web-csp",
 	"description":       "DreamFactory Services Platform(tm)",
 	"keywords":          [
-		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library"
+		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library", "dsp-core", "dsp"
 	],
 	"type":              "library",
-	"license":           "MIT",
+	"license":           ["GPL-3.0", "proprietary"],
 	"authors":           [
 		{
 			"name":  "Lee Hicks",
@@ -30,13 +30,13 @@
 	],
 	"minimum-stability": "dev",
 	"require":           {
-		"php":                               ">=5.3.8",
-		"kisma/kisma":                       "dev-master",
-		"dreamfactory/yii":                  "dev-master",
-		"dreamfactory/app-admin":            "dev-master",
-		"dreamfactory/app-launchpad":        "dev-master",
-		"dreamfactory/web-core":             "dev-master",
-		"aws/aws-sdk-php":                   "2.*"
+		"php":                        ">=5.3.8",
+		"kisma/kisma":                "dev-master",
+		"dreamfactory/yii":           "dev-master",
+		"dreamfactory/app-admin":     "dev-master",
+		"dreamfactory/app-launchpad": "dev-master",
+		"dreamfactory/web-core":      "dev-master",
+		"aws/aws-sdk-php":            "2.*"
 	},
 	"autoload":          {
 		"psr-0": {

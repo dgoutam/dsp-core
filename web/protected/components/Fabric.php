@@ -130,18 +130,18 @@ class Fabric extends SeedUtility
 			$_dbName = $_dspName = $_parts[0];
 
 			//	Otherwise, get the credentials from the auth server...
-			Log::info( 'Credentials pull' );
+//			Log::info( 'Credentials pull' );
 			$_response = \Curl::get( static::AUTH_ENDPOINT . '/' . $_dspName . '/database' );
 
 			if ( is_object( $_response ) && isset( $_response->details, $_response->details->code ) && HttpResponse::NotFound == $_response->details->code )
 			{
-				Log::error( 'Instance "' . $_dspName . '" not found during web initialize.' );
+//				Log::error( 'Instance "' . $_dspName . '" not found during web initialize.' );
 				throw new \CHttpException( HttpResponse::NotFound, 'Instance not available.' );
 			}
 
 			if ( !$_response || !is_object( $_response ) || false == $_response->success )
 			{
-				Log::error( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
+//				Log::error( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
 				throw new \CHttpException( HttpResponse::InternalServerError, 'Cannot connect to authentication service' );
 			}
 
@@ -173,7 +173,7 @@ class Fabric extends SeedUtility
 			return $_settings;
 		}
 
-		Log::error( 'Unable to find private path or database config: ' . $_dbConfigFileName );
+//		Log::error( 'Unable to find private path or database config: ' . $_dbConfigFileName );
 		throw new \CHttpException( HttpResponse::BadRequest );
 	}
 
@@ -191,7 +191,7 @@ class Fabric extends SeedUtility
 		{
 			if ( ( time() - fileatime( $_tmpConfig ) ) > static::EXPIRATION_THRESHOLD )
 			{
-				Log::warning( 'Expired (' . ( time() - fileatime( $_tmpConfig ) ) . 's old) dbconfig found. Removing: ' . $_tmpConfig );
+//				Log::warning( 'Expired (' . ( time() - fileatime( $_tmpConfig ) ) . 's old) dbconfig found. Removing: ' . $_tmpConfig );
 				@unlink( $_tmpConfig );
 
 				return false;
@@ -201,13 +201,13 @@ class Fabric extends SeedUtility
 				'deleted' == FilterInput::cookie( 'PHPSESSID' )
 			)
 			{
-				Log::warning( 'Logged out user session found. Removing: ' . $_tmpConfig );
+//				Log::warning( 'Logged out user session found. Removing: ' . $_tmpConfig );
 				@unlink( $_tmpConfig );
 
 				return false;
 			}
 
-			Log::debug( 'tmp read: ' . $_tmpConfig );
+//			Log::debug( 'tmp read: ' . $_tmpConfig );
 
 			if ( false !== ( $_data = json_decode( file_get_contents( $_tmpConfig ), true ) ) )
 			{
@@ -233,7 +233,7 @@ class Fabric extends SeedUtility
 
 		file_put_contents( $_tmpConfig, json_encode( $_data ) );
 
-		Log::debug( 'tmp store: ' . $_tmpConfig );
+//		Log::debug( 'tmp store: ' . $_tmpConfig );
 
 		return $settings;
 	}
