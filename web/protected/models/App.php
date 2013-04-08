@@ -243,7 +243,7 @@ class App extends BaseDspSystemModel
 		}
 
 		$store = ServiceHandler::getServiceObject( 'app' );
-		$store->deleteFolder( $this->api_name );
+		$store->deleteFolder( $this->api_name, true );
 
 		return parent::beforeDelete();
 	}
