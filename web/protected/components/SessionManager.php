@@ -1,9 +1,5 @@
 <?php
 
-use Kisma\Core\Utility\FilterInput;
-use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\Option;
-
 /**
  * SessionManager.php
  * DSP session manager
@@ -27,11 +23,6 @@ use Kisma\Core\Utility\Option;
 class SessionManager
 {
 	/**
-	 * @var SessionManager
-	 */
-	private static $_instance = null;
-
-	/**
 	 * @var null
 	 */
 	private static $_userId = null;
@@ -44,20 +35,20 @@ class SessionManager
 	/**
 	 * @var \CDbConnection
 	 */
-	protected $_sqlConn;
+    private static $_sqlConn;
 
 	/**
 	 * @var int
 	 */
-	protected $_driverType = DbUtilities::DRV_OTHER;
+    private static $_driverType = DbUtilities::DRV_OTHER;
 
 	/**
 	 *
 	 */
 	public function __construct()
 	{
-		$this->_sqlConn = Yii::app()->db;
-		$this->_driverType = DbUtilities::getDbDriverType( $this->_sqlConn );
+		static::$_sqlConn = Yii::app()->db;
+        static::$_driverType = DbUtilities::getDbDriverType( Yii::app()->db );
 
 		if ( !session_set_save_handler( array( $this, 'open' ),
 			array( $this, 'close' ),
@@ -83,24 +74,9 @@ class SessionManager
 	}
 
 	/**
-	 * Gets the static instance of this class.
-	 *
-	 * @return SessionManager
-	 */
-	public static function getInstance()
-	{
-		if ( !isset( self::$_instance ) )
-		{
-			self::$_instance = new SessionManager();
-		}
-
-		return self::$_instance;
-	}
-
-	/**
 	 * @return bool
 	 */
-	public function open()
+	public static function open()
 	{
 		return true;
 	}
@@ -108,7 +84,7 @@ class SessionManager
 	/**
 	 * @return bool
 	 */
-	public function close()
+	public static function close()
 	{
 		return true;
 	}
@@ -118,15 +94,15 @@ class SessionManager
 	 *
 	 * @return mixed|string
 	 */
-	public function read( $id )
+	public static function read( $id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->select( 'data' )->from( 'df_sys_session' )->where( array( 'in', 'id', array( $id ) ) );
 			$result = $command->queryRow();
 			if ( !empty( $result ) )
@@ -148,21 +124,16 @@ class SessionManager
 	 *
 	 * @return bool
 	 */
-	public function write( $id, $data )
+	public static function write( $id, $data )
 	{
 		try
 		{
-			// would like to not write to db if nothing changed, but need timestamp update to keep session alive
-//			if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] )
-//			{
 			// get extra stuff used for disabling users
-			$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-			$userId = ( !empty( $userId ) ) ? intval( $userId ) : null;
-			$roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-			$roleId = ( !empty( $roleId ) ) ? intval( $roleId ) : null;
+			$userId = static::getCurrentUserId();
+			$roleId = static::getCurrentRoleId();
 			$startTime = time();
 			$params = array( $id, $userId, $roleId, $startTime, $data );
-			switch ( $this->_driverType )
+			switch ( static::$_driverType )
 			{
 				case DbUtilities::DRV_SQLSRV:
 					$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
@@ -174,14 +145,12 @@ class SessionManager
 					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
 					break;
 			}
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand( $sql );
+			$command = static::$_sqlConn->createCommand( $sql );
 			$result = $command->execute( $params );
-
-//			}
 
 			return true;
 		}
@@ -198,15 +167,15 @@ class SessionManager
 	 *
 	 * @return bool
 	 */
-	public function destroy( $id )
+	public static function destroy( $id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->delete( 'df_sys_session', array( 'in', 'id', array( $id ) ) );
 
 			return true;
@@ -224,16 +193,16 @@ class SessionManager
 	 *
 	 * @return bool
 	 */
-	public function gc( $lifeTime )
+	public static function gc( $lifeTime )
 	{
 		try
 		{
 			$expired = time() - $lifeTime;
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->delete( 'df_sys_session', "start_time < $expired" );
 
 			return true;
@@ -251,15 +220,15 @@ class SessionManager
 	/**
 	 * @param $user_ids
 	 */
-	public function deleteSessionsByUser( $user_ids )
+	public static function deleteSessionsByUser( $user_ids )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			if ( is_array( $user_ids ) )
 			{
 				$command->delete( 'df_sys_session', array( 'in', 'user_id', $user_ids ) );
@@ -275,18 +244,18 @@ class SessionManager
 		}
 	}
 
-	/**
-	 * @param $user_ids
-	 */
-	public function deleteSessionsByRole( $role_ids )
+    /**
+     * @param $role_ids
+     */
+	public static function deleteSessionsByRole( $role_ids )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			if ( is_array( $role_ids ) )
 			{
 				$command->delete( 'df_sys_session', array( 'in', 'role_id', $role_ids ) );
@@ -305,15 +274,15 @@ class SessionManager
 	/**
 	 * @param $user_id
 	 */
-	public function updateSessionByUser( $user_id )
+	public static function updateSessionByUser( $user_id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->select( 'id' )->from( 'df_sys_session' )->where( 'user_id=:id', array( ':id' => $user_id ) );
 			$results = $command->queryScalar();
 			if ( false !== $results )
@@ -347,15 +316,15 @@ class SessionManager
 	/**
 	 * @param $role_id
 	 */
-	public function updateSessionByRole( $role_id )
+	public static function updateSessionByRole( $role_id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->select( 'user_id' )->from( 'df_sys_session' )->where( 'role_id=:id', array( ':id' => $role_id ) );
 			$results = $command->queryAll();
 			if ( false !== $results )
@@ -729,7 +698,6 @@ class SessionManager
 	public static function setCurrentUserId( $userId )
 	{
 		static::$_userId = $userId;
-		\Kisma::set( 'user_id', $userId );
 
 		return $userId;
 	}
@@ -758,7 +726,6 @@ class SessionManager
 	public static function setCurrentRoleId( $roleId )
 	{
 		static::$_roleId = $roleId;
-		\Kisma::set( 'role_id', $roleId );
 
 		return $roleId;
 	}

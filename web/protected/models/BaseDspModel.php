@@ -238,7 +238,7 @@ class BaseDspModel extends \CActiveRecord
 		return true;
 	}
 
-	/**
+    /**
 	 * A mo-betta CActiveRecord update method. Pass in column => value to update.
 	 * NB: validation is not performed in this method. You may call {@link validate} to perform the validation.
 	 *
@@ -275,7 +275,23 @@ class BaseDspModel extends \CActiveRecord
 		return parent::update( $_columns );
 	}
 
-	/**
+    /**
+     * Forces an exception on failed delete
+     *
+     * @throws CDbException
+     * @return bool
+     */
+    public function delete( )
+    {
+        if ( !parent::delete( ) )
+        {
+            throw new \CDbException( $this->getErrorsForLogging() );
+        }
+
+        return true;
+    }
+
+    /**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
 	 * @return bool the data provider that can return the models based on the search/filter conditions.

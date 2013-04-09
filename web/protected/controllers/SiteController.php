@@ -110,7 +110,7 @@ class SiteController extends Controller
 	{
 		try
 		{
-			$state = SystemManager::getInstance()->getSystemState();
+			$state = SystemManager::getSystemState();
 
 			switch ( $state )
 			{
@@ -246,7 +246,7 @@ class SiteController extends Controller
 			// validate user input, configure the system and redirect to the home page
 			if ( $model->validate() )
 			{
-				SystemManager::getInstance()->initSchema();
+				SystemManager::initSchema();
 				$this->redirect( Yii::app()->homeUrl );
 			}
 			$this->refresh();
@@ -270,7 +270,7 @@ class SiteController extends Controller
 			// validate user input, configure the system and redirect to the previous page
 			if ( $model->validate() )
 			{
-				SystemManager::getInstance()->initSystem( $model->attributes );
+				SystemManager::initSystem( $model->attributes );
 				$this->redirect( Yii::app()->homeUrl );
 			}
 			$this->refresh();
@@ -298,7 +298,7 @@ class SiteController extends Controller
 			// validate user input, configure the system and redirect to the previous page
 			if ( $model->validate() )
 			{
-				SystemManager::getInstance()->initAdmin( $model->attributes );
+				SystemManager::initAdmin( $model->attributes );
 				$this->redirect( Yii::app()->homeUrl );
 			}
 			$this->refresh();
@@ -326,7 +326,7 @@ class SiteController extends Controller
 			// validate user input, configure the system and redirect to the previous page
 			if ( $model->validate() )
 			{
-				SystemManager::getInstance()->initData();
+				SystemManager::initData();
 				$this->redirect( Yii::app()->homeUrl );
 			}
 			$this->refresh();

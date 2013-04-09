@@ -34,7 +34,7 @@ class SystemManager implements iRestHandler
 	// Members
 
 	/**
-	 * @var System Manager
+	 * @var SystemManager
 	 */
 	private static $_instance = null;
 
@@ -108,7 +108,7 @@ class SystemManager implements iRestHandler
 	/**
 	 * Determines the current state of the system
 	 */
-	public function getSystemState()
+	public static function getSystemState()
 	{
 		try
 		{
@@ -175,11 +175,11 @@ class SystemManager implements iRestHandler
 	 *
 	 * @return null
 	 */
-	public function initSystem( $data = array() )
+	public static function initSystem( $data = array() )
 	{
-		$this->initSchema();
-		$this->initAdmin( $data );
-		$this->initData();
+		static::initSchema();
+        static::initAdmin( $data );
+        static::initData();
 	}
 
 	/**
@@ -188,7 +188,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return null
 	 */
-	public function initSchema()
+	public static function initSchema()
 	{
 		try
 		{
@@ -299,7 +299,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return null
 	 */
-	public function initAdmin( $data = array() )
+	public static function initAdmin( $data = array() )
 	{
 		try
 		{
@@ -349,7 +349,7 @@ class SystemManager implements iRestHandler
 			$sess_name = session_name();
 			if ( isset( $_COOKIE[$sess_name] ) )
 			{
-				SessionManager::getInstance()->write( $_COOKIE[$sess_name], $data );
+				SessionManager::write( $_COOKIE[$sess_name], $data );
 			}
 			else
 			{
@@ -368,7 +368,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return boolean whether configuration is successful
 	 */
-	public function initData()
+	public static function initData()
 	{
 		// for now use the first admin we find
 		$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
@@ -379,7 +379,7 @@ class SystemManager implements iRestHandler
 		$userId = $theUser->getPrimaryKey();
 		if ( empty( $userId ) )
 		{
-			error_log( print_r( $theUser, true ) );
+			error_log( "Failed to retrieve user id.\n" . print_r( $theUser, true ) );
 			throw new \Exception( "Failed to retrieve user id." );
 		}
 		SessionManager::setCurrentUserId( $userId );
@@ -462,7 +462,7 @@ class SystemManager implements iRestHandler
 										{
 											// need to download and extract zip file and move contents to storage
 											$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-											$this->importAppFromPackage( $filename, $fileUrl );
+											static::importAppFromPackage( $filename, $fileUrl );
 										}
 										catch ( Exception $ex )
 										{
@@ -573,7 +573,7 @@ class SystemManager implements iRestHandler
 						$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
 						if ( !empty( $ids ) )
 						{
-							$result = $this->retrieveRecordsByIds( $this->modelName, $ids, $fields, $extras );
+							$result = static::retrieveRecordsByIds( $this->modelName, $ids, $fields, $extras );
 						}
 						else
 						{ // get by filter or all
@@ -583,7 +583,7 @@ class SystemManager implements iRestHandler
 								$ids = Utilities::getArrayValue( 'ids', $data, '' );
 								if ( !empty( $ids ) )
 								{
-									$result = $this->retrieveRecordsByIds( $this->modelName, $ids, $fields, $extras );
+									$result = static::retrieveRecordsByIds( $this->modelName, $ids, $fields, $extras );
 								}
 								else
 								{
@@ -597,7 +597,7 @@ class SystemManager implements iRestHandler
 									{
 										// passing records to have them updated with new or more values, id field required
 										// for single record and no id field given, get records matching given fields
-										$result = $this->retrieveRecords( $this->modelName, $records, $fields, $extras );
+										$result = static::retrieveRecords( $this->modelName, $records, $fields, $extras );
 									}
 									else
 									{ // if not specified use filter
@@ -607,7 +607,7 @@ class SystemManager implements iRestHandler
 										$offset = intval( Utilities::getArrayValue( 'offset', $data, 0 ) );
 										$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
 										$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $data, false ) );
-										$result = $this->retrieveRecordsByFilter(
+										$result = static::retrieveRecordsByFilter(
 											$this->modelName,
 											$fields,
 											$filter,
@@ -629,7 +629,7 @@ class SystemManager implements iRestHandler
 								$offset = intval( Utilities::getArrayValue( 'offset', $_REQUEST, 0 ) );
 								$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $_REQUEST, false ) );
 								$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
-								$result = $this->retrieveRecordsByFilter(
+								$result = static::retrieveRecordsByFilter(
 									$this->modelName,
 									$fields,
 									$filter,
@@ -654,11 +654,11 @@ class SystemManager implements iRestHandler
 								$includeServices = Utilities::boolval( Utilities::getArrayValue( 'include_services', $_REQUEST, false ) );
 								$includeSchema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
 								$includeData = Utilities::boolval( Utilities::getArrayValue( 'include_data', $_REQUEST, false ) );
-								$this->exportAppAsPackage( $this->modelId, $includeFiles, $includeServices, $includeSchema, $includeData );
+								static::exportAppAsPackage( $this->modelId, $includeFiles, $includeServices, $includeSchema, $includeData );
 							}
 						}
 						// single entity by id
-						$result = $this->retrieveRecordById( $this->modelName, $this->modelId, $fields, $extras );
+						$result = static::retrieveRecordById( $this->modelName, $this->modelId, $fields, $extras );
 					}
 					break;
 				default:
@@ -712,7 +712,7 @@ class SystemManager implements iRestHandler
 						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
 						try
 						{
-							return $this->importAppFromPackage( $filename, $fileUrl );
+							return static::importAppFromPackage( $filename, $fileUrl );
 						}
 						catch ( Exception $ex )
 						{
@@ -727,7 +727,7 @@ class SystemManager implements iRestHandler
 						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
 						try
 						{
-							return $this->importAppFromZip( $name, $filename );
+							return static::importAppFromZip( $name, $filename );
 							// todo save url for later updates
 						}
 						catch ( Exception $ex )
@@ -756,7 +756,7 @@ class SystemManager implements iRestHandler
 							try
 							{
 								// need to extract zip file and move contents to storage
-								return $this->importAppFromPackage( $tmpName );
+								return static::importAppFromPackage( $tmpName );
 							}
 							catch ( Exception $ex )
 							{
@@ -768,7 +768,7 @@ class SystemManager implements iRestHandler
 							try
 							{
 								// need to extract zip file and move contents to storage
-								return $this->importAppFromZip( $name, $tmpName );
+								return static::importAppFromZip( $name, $tmpName );
 							}
 							catch ( Exception $ex )
 							{
@@ -793,7 +793,7 @@ class SystemManager implements iRestHandler
 						{
 							throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
 						}
-						$result = $this->createRecord( $this->modelName, $data, $fields, $extras );
+						$result = static::createRecord( $this->modelName, $data, $fields, $extras );
 					}
 					else
 					{
@@ -802,7 +802,7 @@ class SystemManager implements iRestHandler
 						{
 							$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
 						}
-						$result = $this->createRecords( $this->modelName, $records, $rollback, $fields, $extras );
+						$result = static::createRecords( $this->modelName, $records, $rollback, $fields, $extras );
 					}
 					break;
 				default:
@@ -866,7 +866,7 @@ class SystemManager implements iRestHandler
 						}
 						if ( !empty( $ids ) )
 						{
-							$result = $this->updateRecordsByIds( $this->modelName, $ids, $data, $rollback, $fields, $extras );
+							$result = static::updateRecordsByIds( $this->modelName, $ids, $data, $rollback, $fields, $extras );
 						}
 						else
 						{
@@ -882,17 +882,17 @@ class SystemManager implements iRestHandler
 								{
 									throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
 								}
-								$result = $this->updateRecord( $this->modelName, $data, $fields, $extras );
+								$result = static::updateRecord( $this->modelName, $data, $fields, $extras );
 							}
 							else
 							{
-								$result = $this->updateRecords( $this->modelName, $records, $rollback, $fields, $extras );
+								$result = static::updateRecords( $this->modelName, $records, $rollback, $fields, $extras );
 							}
 						}
 					}
 					else
 					{
-						$result = $this->updateRecordById( $this->modelName, $this->modelId, $data, $fields, $extras );
+						$result = static::updateRecordById( $this->modelName, $this->modelId, $data, $fields, $extras );
 					}
 					break;
 				default:
@@ -956,7 +956,7 @@ class SystemManager implements iRestHandler
 						}
 						if ( !empty( $ids ) )
 						{
-							$result = $this->updateRecordsByIds( $this->modelName, $ids, $data, $rollback, $fields, $extras );
+							$result = static::updateRecordsByIds( $this->modelName, $ids, $data, $rollback, $fields, $extras );
 						}
 						else
 						{
@@ -972,17 +972,17 @@ class SystemManager implements iRestHandler
 								{
 									throw new Exception( 'No record in MERGE update request.', ErrorCodes::BAD_REQUEST );
 								}
-								$result = $this->updateRecord( $this->modelName, $data, $fields, $extras );
+								$result = static::updateRecord( $this->modelName, $data, $fields, $extras );
 							}
 							else
 							{
-								$result = $this->updateRecords( $this->modelName, $records, $rollback, $fields, $extras );
+								$result = static::updateRecords( $this->modelName, $records, $rollback, $fields, $extras );
 							}
 						}
 					}
 					else
 					{
-						$result = $this->updateRecordById( $this->modelName, $this->modelId, $data, $fields, $extras );
+						$result = static::updateRecordById( $this->modelName, $this->modelId, $data, $fields, $extras );
 					}
 					break;
 				default:
@@ -1041,7 +1041,7 @@ class SystemManager implements iRestHandler
 						}
 						if ( !empty( $ids ) )
 						{
-							$result = $this->deleteRecordsByIds( $this->modelName, $ids, $fields, $extras );
+							$result = static::deleteRecordsByIds( $this->modelName, $ids, $fields, $extras );
 						}
 						else
 						{
@@ -1057,17 +1057,17 @@ class SystemManager implements iRestHandler
 								{
 									throw new Exception( "Id list or record containing Id field required to delete $this->modelName records.", ErrorCodes::BAD_REQUEST );
 								}
-								$result = $this->deleteRecord( $this->modelName, $data, $fields, $extras );
+								$result = static::deleteRecord( $this->modelName, $data, $fields, $extras );
 							}
 							else
 							{
-								$result = $this->deleteRecords( $this->modelName, $records, $fields, $extras );
+								$result = static::deleteRecords( $this->modelName, $records, $fields, $extras );
 							}
 						}
 					}
 					else
 					{
-						$result = $this->deleteRecordById( $this->modelName, $this->modelId, $fields, $extras );
+						$result = static::deleteRecordById( $this->modelName, $this->modelId, $fields, $extras );
 					}
 					break;
 				default:
@@ -1174,7 +1174,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	protected function createRecordLow( $table, $record, $return_fields = '', $extras = array() )
+	protected static function createRecordLow( $table, $record, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $record ) )
 		{
@@ -1197,7 +1197,7 @@ class SystemManager implements iRestHandler
 			$id = $obj->primaryKey;
 			if ( empty( $id ) )
 			{
-				error_log( print_r( $obj, true ) );
+				error_log( "Failed to get primary key from created user.\n" . print_r( $obj, true ) );
 				throw new Exception( "Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR );
 			}
 
@@ -1282,7 +1282,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function createRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
+	public static function createRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1304,7 +1304,7 @@ class SystemManager implements iRestHandler
 		{
 			try
 			{
-				$out[] = $this->createRecordLow( $table, $record, $return_fields, $extras );
+				$out[] = static::createRecordLow( $table, $record, $return_fields, $extras );
 			}
 			catch ( Exception $ex )
 			{
@@ -1324,7 +1324,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function createRecord( $table, $record, $return_fields = '', $extras = array() )
+	public static function createRecord( $table, $record, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1332,7 +1332,7 @@ class SystemManager implements iRestHandler
 		}
 		SessionManager::checkPermission( 'create', 'system', $table );
 
-		return $this->createRecordLow( $table, $record, $return_fields, $extras );
+		return static::createRecordLow( $table, $record, $return_fields, $extras );
 	}
 
 	/**
@@ -1345,7 +1345,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	protected function updateRecordLow( $table, $id, $record, $return_fields = '', $extras = array() )
+	protected static function updateRecordLow( $table, $id, $record, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $record ) )
 		{
@@ -1426,10 +1426,10 @@ class SystemManager implements iRestHandler
 					switch ( $sessionAction )
 					{
 						case 'delete':
-							SessionManager::getInstance()->deleteSessionsByRole( $id );
+							SessionManager::deleteSessionsByRole( $id );
 							break;
 						case 'update':
-							SessionManager::getInstance()->updateSessionByRole( $id );
+							SessionManager::updateSessionByRole( $id );
 							break;
 					}
 					break;
@@ -1437,10 +1437,10 @@ class SystemManager implements iRestHandler
 					switch ( $sessionAction )
 					{
 						case 'delete':
-							SessionManager::getInstance()->deleteSessionsByUser( $id );
+							SessionManager::deleteSessionsByUser( $id );
 							break;
 						case 'update':
-							SessionManager::getInstance()->updateSessionByUser( $id );
+							SessionManager::updateSessionByUser( $id );
 							break;
 					}
 					break;
@@ -1518,7 +1518,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function updateRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
+	public static function updateRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1541,7 +1541,7 @@ class SystemManager implements iRestHandler
 			{
 				// todo this needs to use $model->getPrimaryKey()
 				$id = Utilities::getArrayValue( 'id', $record, '' );
-				$out[] = $this->updateRecordLow( $table, $id, $record, $return_fields, $extras );
+				$out[] = static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 			}
 			catch ( Exception $ex )
 			{
@@ -1561,7 +1561,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function updateRecord( $table, $record, $return_fields = '', $extras = array() )
+	public static function updateRecord( $table, $record, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1575,7 +1575,7 @@ class SystemManager implements iRestHandler
 		// todo this needs to use $model->getPrimaryKey()
 		$id = Utilities::getArrayValue( 'id', $record, '' );
 
-		return $this->updateRecordLow( $table, $id, $record, $return_fields, $extras );
+		return static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 	}
 
 	/**
@@ -1589,7 +1589,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function updateRecordsByIds( $table, $id_list, $record, $rollback = false, $return_fields = '', $extras = array() )
+	public static function updateRecordsByIds( $table, $id_list, $record, $rollback = false, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1606,7 +1606,7 @@ class SystemManager implements iRestHandler
 		{
 			try
 			{
-				$out[] = $this->updateRecordLow( $table, $id, $record, $return_fields, $extras );
+				$out[] = static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 			}
 			catch ( Exception $ex )
 			{
@@ -1627,7 +1627,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function updateRecordById( $table, $id, $record, $return_fields = '', $extras = array() )
+	public static function updateRecordById( $table, $id, $record, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1639,7 +1639,7 @@ class SystemManager implements iRestHandler
 		}
 		SessionManager::checkPermission( 'update', 'system', $table );
 
-		return $this->updateRecordLow( $table, $id, $record, $return_fields, $extras );
+		return static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 	}
 
 	/**
@@ -1651,7 +1651,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	protected function deleteRecordLow( $table, $id, $return_fields = '', $extras = array() )
+	protected static function deleteRecordLow( $table, $id, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $id ) )
 		{
@@ -1665,20 +1665,15 @@ class SystemManager implements iRestHandler
 		}
 		try
 		{
-			if ( !$obj->delete() )
-			{
-				error_log( print_r( $obj->errors, true ) );
-				$msg = '';
-				if ( $obj->hasErrors() )
-				{
-					foreach ( $obj->errors as $error )
-					{
-						$msg .= implode( PHP_EOL, $error );
-					}
-				}
-				throw new Exception( "Failed to delete user.\n$msg", ErrorCodes::INTERNAL_SERVER_ERROR );
-			}
+			$obj->delete();
+		}
+        catch ( Exception $ex )
+        {
+            throw new Exception( "Failed to delete $table.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+		}
 
+        try
+        {
 			$return_fields = $model->getRetrievableAttributes( $return_fields );
 			$data = $obj->getAttributes( $return_fields );
 			if ( !empty( $extras ) )
@@ -1742,7 +1737,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function deleteRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
+	public static function deleteRecords( $table, $records, $rollback = false, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $records ) )
 		{
@@ -1763,7 +1758,7 @@ class SystemManager implements iRestHandler
 			$id = Utilities::getArrayValue( 'id', $record, '' );
 			try
 			{
-				$out[] = $this->deleteRecordLow( $table, $id, $return_fields, $extras );
+				$out[] = static::deleteRecordLow( $table, $id, $return_fields, $extras );
 			}
 			catch ( Exception $ex )
 			{
@@ -1783,7 +1778,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function deleteRecord( $table, $record, $return_fields = '', $extras = array() )
+	public static function deleteRecord( $table, $record, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $record ) )
 		{
@@ -1791,7 +1786,7 @@ class SystemManager implements iRestHandler
 		}
 		$id = Utilities::getArrayValue( 'id', $record, '' );
 
-		return $this->deleteRecordById( $table, $id, $return_fields, $extras );
+		return static::deleteRecordById( $table, $id, $return_fields, $extras );
 	}
 
 	/**
@@ -1803,7 +1798,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function deleteRecordsByIds( $table, $id_list, $return_fields = '', $extras = array() )
+	public static function deleteRecordsByIds( $table, $id_list, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1816,7 +1811,7 @@ class SystemManager implements iRestHandler
 		{
 			try
 			{
-				$out[] = $this->deleteRecordLow( $table, $id, $return_fields, $extras );
+				$out[] = static::deleteRecordLow( $table, $id, $return_fields, $extras );
 			}
 			catch ( Exception $ex )
 			{
@@ -1836,7 +1831,7 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function deleteRecordById( $table, $id, $return_fields = '', $extras = array() )
+	public static function deleteRecordById( $table, $id, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -1844,7 +1839,7 @@ class SystemManager implements iRestHandler
 		}
 		SessionManager::checkPermission( 'delete', 'system', $table );
 
-		return $this->deleteRecordLow( $table, $id, $return_fields, $extras );
+		return static::deleteRecordLow( $table, $id, $return_fields, $extras );
 	}
 
 	/**
@@ -1856,7 +1851,7 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function retrieveRecords( $table, $records, $return_fields = '', $extras = array() )
+	public static function retrieveRecords( $table, $records, $return_fields = '', $extras = array() )
 	{
 		if ( isset( $records[0] ) )
 		{
@@ -1873,14 +1868,14 @@ class SystemManager implements iRestHandler
 			}
 			$idList = implode( ',', $ids );
 
-			return $this->retrieveRecordsByIds( $table, $idList, $return_fields, $extras );
+			return static::retrieveRecordsByIds( $table, $idList, $return_fields, $extras );
 		}
 		else
 		{
 			// single record
 			$id = Utilities::getArrayValue( 'id', $records, '' );
 
-			return $this->retrieveRecordById( $table, $id, $return_fields, $extras );
+			return static::retrieveRecordById( $table, $id, $return_fields, $extras );
 		}
 	}
 
@@ -1893,11 +1888,11 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function retrieveRecord( $table, $record, $return_fields = '', $extras = array() )
+	public static function retrieveRecord( $table, $record, $return_fields = '', $extras = array() )
 	{
 		$id = Utilities::getArrayValue( 'id', $record, '' );
 
-		return $this->retrieveRecordById( $table, $id, $return_fields, $extras );
+		return static::retrieveRecordById( $table, $id, $return_fields, $extras );
 	}
 
 	/**
@@ -1914,10 +1909,10 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return array
 	 */
-	public function retrieveRecordsByFilter( $table, $return_fields = '', $filter = '',
-											 $limit = 0, $order = '', $offset = 0,
-											 $include_count = false, $include_schema = false,
-											 $extras = array() )
+	public static function retrieveRecordsByFilter( $table, $return_fields = '', $filter = '',
+											        $limit = 0, $order = '', $offset = 0,
+											        $include_count = false, $include_schema = false,
+											        $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -2035,7 +2030,7 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function retrieveRecordsByIds( $table, $id_list, $return_fields = '', $extras = array() )
+	public static function retrieveRecordsByIds( $table, $id_list, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -2133,7 +2128,7 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function retrieveRecordById( $table, $id, $return_fields = '', $extras = array() )
+	public static function retrieveRecordById( $table, $id, $return_fields = '', $extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -2211,7 +2206,11 @@ class SystemManager implements iRestHandler
 	 * @throws Exception
 	 * @return void
 	 */
-	public function exportAppAsPackage( $app_id, $include_files = false, $include_services = false, $include_schema = false, $include_data = false )
+	public static function exportAppAsPackage( $app_id,
+                                               $include_files = false,
+                                               $include_services = false,
+                                               $include_schema = false,
+                                               $include_data = false )
 	{
 		SessionManager::checkPermission( 'read', 'system', 'app' );
 		$model = App::model();
@@ -2361,13 +2360,13 @@ class SystemManager implements iRestHandler
 		}
 	}
 
-	/**
-	 * @param $pkg_file
-	 *
-	 * @return array
-	 * @throws Exception
-	 */
-	public function importAppFromPackage( $pkg_file, $import_url = '' )
+    /**
+     * @param string $pkg_file
+     * @param string $import_url
+     * @throws Exception
+     * @return array
+     */
+	public static function importAppFromPackage( $pkg_file, $import_url = '' )
 	{
 		$zip = new ZipArchive();
 		if ( true !== $zip->open( $pkg_file ) )
@@ -2386,7 +2385,7 @@ class SystemManager implements iRestHandler
 		}
 		try
 		{
-			$returnData = $this->createRecord( 'app', $record, 'id,api_name' );
+			$returnData = static::createRecord( 'app', $record, 'id,api_name' );
 		}
 		catch ( Exception $ex )
 		{
@@ -2402,7 +2401,7 @@ class SystemManager implements iRestHandler
 				$data = Utilities::jsonToArray( $data );
 				try
 				{
-					$result = $this->createRecords( 'service', $data, true );
+					$result = static::createRecords( 'service', $data, true );
 				}
 				catch ( Exception $ex )
 				{
@@ -2545,7 +2544,7 @@ class SystemManager implements iRestHandler
 		{
 			// delete db record
 			// todo anyone else using schema created?
-			$this->deleteRecordById( 'app', $id );
+            static::deleteRecordById( 'app', $id );
 			throw $ex;
 		}
 
@@ -2564,13 +2563,12 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function importAppFromZip( $name, $zip_file )
+	public static function importAppFromZip( $name, $zip_file )
 	{
 		$record = array( 'api_name' => $name, 'name' => $name, 'is_url_external' => 0, 'url' => '/index.html' );
-		$sys = SystemManager::getInstance();
 		try
 		{
-			$result = $sys->createRecord( 'app', $record );
+			$result = static::createRecord( 'app', $record );
 		}
 		catch ( Exception $ex )
 		{
@@ -2603,7 +2601,7 @@ class SystemManager implements iRestHandler
 	 * @return string
 	 * @throws Exception
 	 */
-	public function getAppNameFromId( $id )
+	public static function getAppNameFromId( $id )
 	{
 		if ( !empty( $id ) )
 		{
@@ -2630,7 +2628,7 @@ class SystemManager implements iRestHandler
 	 * @return string
 	 * @throws Exception
 	 */
-	public function getAppIdFromName( $name )
+	public static function getAppIdFromName( $name )
 	{
 		if ( !empty( $name ) )
 		{
@@ -2654,9 +2652,9 @@ class SystemManager implements iRestHandler
 	/**
 	 * @return string
 	 */
-	public function getCurrentAppId()
+	public static function getCurrentAppId()
 	{
-		return $this->getAppIdFromName( SessionManager::getCurrentAppName() );
+		return static::getAppIdFromName( SessionManager::getCurrentAppName() );
 	}
 
 }

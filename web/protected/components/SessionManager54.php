@@ -1,16 +1,11 @@
 <?php
 
-use Kisma\Core\Utility\Log;
-
 /**
  * SessionManager.php
  * DSP session manager
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
+ * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +23,6 @@ use Kisma\Core\Utility\Log;
 class SessionManager54 extends SessionHandler
 {
 	/**
-	 * @var SessionManager
-	 */
-	private static $_instance = null;
-
-	/**
 	 * @var null
 	 */
 	private static $_userId = null;
@@ -45,29 +35,28 @@ class SessionManager54 extends SessionHandler
 	/**
 	 * @var \CDbConnection
 	 */
-	protected $_sqlConn;
+    private static $_sqlConn;
 
 	/**
 	 * @var int
 	 */
-	protected $_driverType = DbUtilities::DRV_OTHER;
+    private static $_driverType = DbUtilities::DRV_OTHER;
 
 	/**
 	 *
 	 */
 	public function __construct()
 	{
-		$this->_sqlConn = Yii::app()->db;
-		$this->_driverType = DbUtilities::getDbDriverType( $this->_sqlConn );
+		static::$_sqlConn = Yii::app()->db;
+        static::$_driverType = DbUtilities::getDbDriverType( Yii::app()->db );
 
-		/** @noinspection PhpParamsInspection */
 		if ( !session_set_save_handler( $this, true ) )
 		{
-			Log::error( "Failed to set session handler." );
+            error_log( "Failed to set session handler." );
 		}
 
 		// make sure we close out the session
-		\register_shutdown_function( '\\session_write_close' );
+		register_shutdown_function( 'session_write_close' );
 	}
 
 	/**
@@ -75,39 +64,13 @@ class SessionManager54 extends SessionHandler
 	 */
 	public function __destruct()
 	{
-		\session_write_close(); // IMPORTANT!
+		session_write_close(); // IMPORTANT!
 	}
 
 	/**
-	 * Gets the static instance of this class.
-	 *
-	 * @return SessionManager
+	 * @return bool
 	 */
-	public static function getInstance()
-	{
-		if ( !isset( self::$_instance ) )
-		{
-			self::$_instance = new self();
-		}
-
-		return self::$_instance;
-	}
-
-	/**
-	 * PHP >= 5.4.0<br/>
-	 * Initialize session
-	 *
-	 * @link http://php.net/manual/en/sessionhandler.open.php
-	 *
-	 * @param string $save_path  The path where to store/retrieve the session.
-	 * @param string $session_id The session id.
-	 *
-	 * @return bool <p>
-	 *       The return value (usually TRUE on success, FALSE on failure).
-	 *       Note this value is returned internally to PHP for processing.
-	 * </p>
-	 */
-	public function open( $save_path, $session_id )
+	public static function open()
 	{
 		return true;
 	}
@@ -115,7 +78,7 @@ class SessionManager54 extends SessionHandler
 	/**
 	 * @return bool
 	 */
-	public function close()
+	public static function close()
 	{
 		return true;
 	}
@@ -125,15 +88,15 @@ class SessionManager54 extends SessionHandler
 	 *
 	 * @return mixed|string
 	 */
-	public function read( $id )
+	public static function read( $id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->select( 'data' )->from( 'df_sys_session' )->where( array( 'in', 'id', array( $id ) ) );
 			$result = $command->queryRow();
 			if ( !empty( $result ) )
@@ -155,38 +118,33 @@ class SessionManager54 extends SessionHandler
 	 *
 	 * @return bool
 	 */
-	public function write( $id, $data )
+	public static function write( $id, $data )
 	{
 		try
 		{
-			if ( isset( $GLOBALS['write_session'] ) && $GLOBALS['write_session'] )
+			// get extra stuff used for disabling users
+			$userId = static::getCurrentUserId();
+			$roleId = static::getCurrentRoleId();
+			$startTime = time();
+			$params = array( $id, $userId, $roleId, $startTime, $data );
+			switch ( static::$_driverType )
 			{
-				// get extra stuff used for disabling users
-				$userId = ( isset( $_SESSION['public']['id'] ) ) ? $_SESSION['public']['id'] : null;
-//				$userId = ( isset( $userId ) && !empty( $userId ) ) ? intval( $userId ) : null;
-				$roleId = ( isset( $_SESSION['public']['role']['id'] ) ) ? $_SESSION['public']['role']['id'] : null;
-//				$roleId = ( isset( $roleId ) && !empty( $userId ) ) ? intval( $roleId ) : null;
-				$startTime = time();
-				$params = array( $id, $userId, $roleId, $startTime, $data );
-				switch ( $this->_driverType )
-				{
-					case DbUtilities::DRV_SQLSRV:
-						$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
-						break;
-					case DbUtilities::DRV_MYSQL:
-						$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-						break;
-					default:
-						$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
-						break;
-				}
-				if ( !$this->_sqlConn->active )
-				{
-					$this->_sqlConn->active = true;
-				}
-				$command = $this->_sqlConn->createCommand( $sql );
-				$result = $command->execute( $params );
+				case DbUtilities::DRV_SQLSRV:
+					$sql = "{call UpdateOrInsertSession(?,?,?,?,?)}";
+					break;
+				case DbUtilities::DRV_MYSQL:
+					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+					break;
+				default:
+					$sql = "call UpdateOrInsertSession(?,?,?,?,?)";
+					break;
 			}
+			if ( !static::$_sqlConn->active )
+			{
+				static::$_sqlConn->active = true;
+			}
+			$command = static::$_sqlConn->createCommand( $sql );
+			$result = $command->execute( $params );
 
 			return true;
 		}
@@ -203,15 +161,15 @@ class SessionManager54 extends SessionHandler
 	 *
 	 * @return bool
 	 */
-	public function destroy( $id )
+	public static function destroy( $id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->delete( 'df_sys_session', array( 'in', 'id', array( $id ) ) );
 
 			return true;
@@ -229,16 +187,16 @@ class SessionManager54 extends SessionHandler
 	 *
 	 * @return bool
 	 */
-	public function gc( $lifeTime )
+	public static function gc( $lifeTime )
 	{
 		try
 		{
 			$expired = time() - $lifeTime;
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->delete( 'df_sys_session', "start_time < $expired" );
 
 			return true;
@@ -256,15 +214,15 @@ class SessionManager54 extends SessionHandler
 	/**
 	 * @param $user_ids
 	 */
-	public function deleteSessionsByUser( $user_ids )
+	public static function deleteSessionsByUser( $user_ids )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			if ( is_array( $user_ids ) )
 			{
 				$command->delete( 'df_sys_session', array( 'in', 'user_id', $user_ids ) );
@@ -280,18 +238,18 @@ class SessionManager54 extends SessionHandler
 		}
 	}
 
-	/**
-	 * @param $user_ids
-	 */
-	public function deleteSessionsByRole( $role_ids )
+    /**
+     * @param $role_ids
+     */
+	public static function deleteSessionsByRole( $role_ids )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			if ( is_array( $role_ids ) )
 			{
 				$command->delete( 'df_sys_session', array( 'in', 'role_id', $role_ids ) );
@@ -310,15 +268,15 @@ class SessionManager54 extends SessionHandler
 	/**
 	 * @param $user_id
 	 */
-	public function updateSessionByUser( $user_id )
+	public static function updateSessionByUser( $user_id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->select( 'id' )->from( 'df_sys_session' )->where( 'user_id=:id', array( ':id' => $user_id ) );
 			$results = $command->queryScalar();
 			if ( false !== $results )
@@ -352,15 +310,15 @@ class SessionManager54 extends SessionHandler
 	/**
 	 * @param $role_id
 	 */
-	public function updateSessionByRole( $role_id )
+	public static function updateSessionByRole( $role_id )
 	{
 		try
 		{
-			if ( !$this->_sqlConn->active )
+			if ( !static::$_sqlConn->active )
 			{
-				$this->_sqlConn->active = true;
+				static::$_sqlConn->active = true;
 			}
-			$command = $this->_sqlConn->createCommand();
+			$command = static::$_sqlConn->createCommand();
 			$command->select( 'user_id' )->from( 'df_sys_session' )->where( 'role_id=:id', array( ':id' => $role_id ) );
 			$results = $command->queryAll();
 			if ( false !== $results )
@@ -504,6 +462,7 @@ class SessionManager54 extends SessionHandler
 			if ( isset( $_SESSION['public']['id'] ) )
 			{
 				$_userId = $_SESSION['public']['id'];
+
 				//Log::debug( 'Session validate user id: ' . $_userId . ' ' . print_r( $_SESSION['public'], true ) );
 
 				return $_userId;
@@ -733,6 +692,8 @@ class SessionManager54 extends SessionHandler
 	public static function setCurrentUserId( $userId )
 	{
 		static::$_userId = $userId;
+
+		return $userId;
 	}
 
 	/**
@@ -747,9 +708,8 @@ class SessionManager54 extends SessionHandler
 
 		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['id'] ) )
 		{
-			return static::$_userId = $_SESSION['public']['id'];
+			return static::setCurrentUserId( $_SESSION['public']['id'] );
 		}
-
 
 		return null;
 	}
@@ -760,6 +720,8 @@ class SessionManager54 extends SessionHandler
 	public static function setCurrentRoleId( $roleId )
 	{
 		static::$_roleId = $roleId;
+
+		return $roleId;
 	}
 
 	/**
@@ -774,7 +736,7 @@ class SessionManager54 extends SessionHandler
 
 		if ( isset( $_SESSION, $_SESSION['public'], $_SESSION['public']['role'], $_SESSION['public']['role']['id'] ) )
 		{
-			return static::$_roleId = $_SESSION['public']['role']['id'];
+			return static::setCurrentRoleId( $_SESSION['public']['role']['id'] );
 		}
 
 		return null;
