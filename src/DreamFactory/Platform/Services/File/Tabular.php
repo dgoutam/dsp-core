@@ -559,14 +559,6 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	{
 	}
 
-	/***
-	 * @return array
-	 */
-	public function keys()
-	{
-		return $this->getKeys();
-	}
-
 	/**
 	 * @param array $keys
 	 */

@@ -16,10 +16,4 @@ interface WriterLike
 	 * @return bool
 	 */
 	public function write( array $row );
-
-	/***
-	 * @return array
-	 */
-	public function keys();
-
 }
