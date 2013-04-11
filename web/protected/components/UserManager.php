@@ -35,12 +35,7 @@ class UserManager implements iRestHandler
 	/**
 	 * @var string
 	 */
-	protected $siteName;
-
-	/**
-	 * @var string
-	 */
-	protected $randKey;
+	protected static $randKey;
 
 	/**
 	 * Create a new UserManager
@@ -48,14 +43,8 @@ class UserManager implements iRestHandler
 	 */
 	public function __construct()
 	{
-		$this->siteName = Yii::app()->params['companyLabel'];
-		if ( empty( $this->siteName ) )
-		{
-			$this->siteName = $_SERVER['HTTP_HOST'];
-		}
-
 		//For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
-		$this->randKey = 'M1kVi0kE9ouXxF9';
+		static::$randKey = 'M1kVi0kE9ouXxF9';
 	}
 
 	/**
@@ -455,7 +444,36 @@ class UserManager implements iRestHandler
 
 	//------- Email Helpers ----------------------
 
-	/**
+    public static function sendUserEmail( $template, $data )
+    {
+        $to = Utilities::getArrayValue('to', $data);
+        $cc = Utilities::getArrayValue('cc', $data);
+        $bcc = Utilities::getArrayValue('bcc', $data);
+        $subject = Utilities::getArrayValue('subject', $template);
+        $content = Utilities::getArrayValue('content', $template);
+        $bodyText = Utilities::getArrayValue('text', $content);
+        $bodyHtml = Utilities::getArrayValue('html', $content);
+        try
+        {
+            $svc = ServiceHandler::getServiceObject( 'email' );
+            $result = ( $svc ) ? $svc->sendEmail( $to, $cc, $bcc, $subject, $bodyText, $bodyHtml ) : false;
+            if ( !filter_var( $result, FILTER_VALIDATE_BOOLEAN ) )
+            {
+                $msg = "Error: Failed to send user email.";
+                if ( is_string( $result ) )
+                {
+                    $msg .= "\n$result";
+                }
+                throw new Exception( $msg );
+            }
+        }
+        catch ( Exception $ex )
+        {
+            throw $ex;
+        }
+    }
+
+    /**
 	 * @param $email
 	 * @param $fullname
 	 *
@@ -705,7 +723,7 @@ class UserManager implements iRestHandler
 	 */
 	protected function getResetPasswordCode( $email )
 	{
-		return substr( md5( $email . $this->siteName . $this->randKey ), 0, 10 );
+		return substr( md5( $email . static::$randKey ), 0, 10 );
 	}
 
 	/**
@@ -718,7 +736,7 @@ class UserManager implements iRestHandler
 		$randNo1 = rand();
 		$randNo2 = rand();
 
-		return md5( $conf_key . $this->randKey . $randNo1 . '' . $randNo2 );
+		return md5( $conf_key . static::$randKey . $randNo1 . '' . $randNo2 );
 	}
 
 	/**
@@ -740,7 +758,7 @@ class UserManager implements iRestHandler
 
 		if ( $add_apps )
 		{
-			$appFields = 'id,api_name,name,description,url,is_url_external';
+			$appFields = 'id,api_name,name,description,url,is_url_external,requires_fullscreen,allow_fullscreen_toggle,toggle_location';
 			$theApps = Utilities::getArrayValue( 'allowed_apps', $session, array() );
 			if ( $is_sys_admin )
 			{
@@ -802,7 +820,7 @@ class UserManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function userLogin( $username, $password )
+	public static function userLogin( $username, $password )
 	{
 		if ( empty( $username ) )
 		{
@@ -861,7 +879,7 @@ class UserManager implements iRestHandler
 	 * @return mixed
 	 * @throws Exception
 	 */
-	public function userSession( $ticket = '' )
+	public static function userSession( $ticket = '' )
 	{
 		if ( empty( $ticket ) )
 		{
@@ -871,7 +889,7 @@ class UserManager implements iRestHandler
 			}
 			catch ( Exception $ex )
 			{
-				$this->userLogout();
+				static::userLogout();
 				throw $ex;
 			}
 		}
@@ -885,7 +903,7 @@ class UserManager implements iRestHandler
 			$lapse = $curTime - $timestamp;
 			if ( empty( $userId ) || ( $lapse > 300 ) )
 			{ // only lasts 5 minutes
-				$this->userLogout();
+                static::userLogout();
 				throw new Exception( "Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED );
 			}
 		}
@@ -922,7 +940,7 @@ class UserManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function userTicket()
+	public static function userTicket()
 	{
 		try
 		{
@@ -930,7 +948,7 @@ class UserManager implements iRestHandler
 		}
 		catch ( Exception $ex )
 		{
-			$this->userLogout();
+            static::userLogout();
 			throw $ex;
 		}
 		// regenerate new timed ticket
@@ -943,7 +961,7 @@ class UserManager implements iRestHandler
 	/**
 	 *
 	 */
-	public function userLogout()
+	public static function userLogout()
 	{
 		if ( !isset( $_SESSION ) )
 		{
@@ -967,9 +985,9 @@ class UserManager implements iRestHandler
 	 * @return array
 	 * @throws Exception
 	 */
-	public function userRegister( $username, $email, $password = '', $first_name = '', $last_name = '' )
+	public static function userRegister( $username, $email, $password = '', $first_name = '', $last_name = '' )
 	{
-		$confirmCode = $this->makeConfirmationMd5( $username );
+		$confirmCode = static::makeConfirmationMd5( $username );
 		// fill out the user fields for creation
 		$fields = array( 'username' => $username, 'email' => $email, 'password' => $password );
 		$fields['first_name'] = ( !empty( $first_name ) ) ? $first_name : $username;
@@ -999,7 +1017,7 @@ class UserManager implements iRestHandler
 		}
 		try
 		{
-			$this->sendUserConfirmationEmail( $email, $confirmCode, $fullName );
+            static::sendUserConfirmationEmail( $email, $confirmCode, $fullName );
 		}
 		catch ( Exception $ex )
 		{
@@ -1008,7 +1026,7 @@ class UserManager implements iRestHandler
 			throw new Exception( "Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR );
 		}
 
-		$this->sendAdminIntimationEmail( $email, $username, $fullName );
+        static::sendAdminIntimationEmail( $email, $username, $fullName );
 
 		unset( $fields['password'] );
 
@@ -1021,7 +1039,7 @@ class UserManager implements iRestHandler
 	 * @return mixed
 	 * @throws Exception
 	 */
-	public function userConfirm( $code )
+	public static function userConfirm( $code )
 	{
 		try
 		{
@@ -1041,8 +1059,8 @@ class UserManager implements iRestHandler
 		{
 			$fullName = $theUser->display_name;
 			$email = $theUser->email;
-			$this->sendUserWelcomeEmail( $email, $fullName );
-			$this->sendAdminIntimationOnRegComplete( $email, $fullName );
+            static::sendUserWelcomeEmail( $email, $fullName );
+            static::sendAdminIntimationOnRegComplete( $email, $fullName );
 		}
 		catch ( Exception $ex )
 		{
@@ -1058,7 +1076,7 @@ class UserManager implements iRestHandler
 	 * @throws Exception
 	 * @return string
 	 */
-	public function forgotPassword( $username, $send_email = false )
+	public static function forgotPassword( $username, $send_email = false )
 	{
 		try
 		{
@@ -1078,7 +1096,7 @@ class UserManager implements iRestHandler
 				$fullName = $theUser->getAttribute( 'display_name' );
 				if ( !empty( $email ) && !empty( $fullName ) )
 				{
-					$this->sendResetPasswordLink( $email, $fullName );
+                    static::sendResetPasswordLink( $email, $fullName );
 
 					return array( 'success' => true );
 				}
@@ -1115,7 +1133,7 @@ class UserManager implements iRestHandler
 	 * @throws Exception
 	 * @return mixed
 	 */
-	public function passwordResetBySecurityAnswer( $username, $answer, $new_password )
+	public static function passwordResetBySecurityAnswer( $username, $answer, $new_password )
 	{
 		try
 		{
@@ -1141,7 +1159,7 @@ class UserManager implements iRestHandler
 			$timestamp = time();
 			$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
 
-			return $this->userSession( $ticket );
+			return static::userSession( $ticket );
 		}
 		catch ( Exception $ex )
 		{
@@ -1156,7 +1174,7 @@ class UserManager implements iRestHandler
 	 * @throws Exception
 	 * @return mixed
 	 */
-	public function passwordResetByCode( $code, $new_password )
+	public static function passwordResetByCode( $code, $new_password )
 	{
 		try
 		{
@@ -1174,7 +1192,7 @@ class UserManager implements iRestHandler
 			$timestamp = time();
 			$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
 
-			return $this->userSession( $ticket );
+			return static::userSession( $ticket );
 		}
 		catch ( Exception $ex )
 		{
@@ -1189,7 +1207,7 @@ class UserManager implements iRestHandler
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function changePassword( $old_password, $new_password )
+	public static function changePassword( $old_password, $new_password )
 	{
 		// check valid session,
 		// using userId from session, query with check for old password
@@ -1226,7 +1244,7 @@ class UserManager implements iRestHandler
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function changeProfile( $record )
+	public static function changeProfile( $record )
 	{
 		// check valid session,
 		// using userId from session, update with new profile elements
@@ -1272,7 +1290,7 @@ class UserManager implements iRestHandler
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function getProfile()
+	public static function getProfile()
 	{
 		// check valid session,
 		// using userId from session, update with new profile elements

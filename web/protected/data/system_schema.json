@@ -1,5 +1,5 @@
 {
-    "version": "0.5.3",
+    "version": "0.5.4",
     "table": [
         {
             "name": "df_sys_config",
@@ -444,23 +444,36 @@
                     "default": false,
                     "allow_null": false
                 },
+				{
+					"name": "import_url",
+					"type": "text",
+					"allow_null": true,
+					"validation": "url"
+				},
                 {
                     "name": "requires_fullscreen",
                     "type": "boolean",
                     "default": false,
                     "allow_null": false
                 },
+				{
+					"name": "allow_fullscreen_toggle",
+					"type": "boolean",
+					"default": true,
+					"allow_null": false
+				},
+				{
+					"name": "toggle_location",
+					"type": "string",
+					"length": 64,
+					"default": "top",
+					"allow_null": false
+				},
                 {
                     "name": "requires_plugin",
                     "type": "boolean",
                     "default": false,
                     "allow_null": false
-                },
-                {
-                    "name": "import_url",
-                    "type": "text",
-                    "allow_null": true,
-                    "validation": "url"
                 },
                 {
                     "name": "created_date",
@@ -774,6 +787,70 @@
                     "allow_null": true
                 }
             ]
-        }
-    ]
+        },
+		{
+			"name": "df_sys_email_template",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name": "name",
+					"type": "string",
+					"supports_multibyte": true,
+					"length": 64,
+					"allow_null": false,
+					"is_unique": true,
+					"validation": "not_empty"
+				},
+				{
+					"name": "description",
+					"supports_multibyte": true,
+					"type": "text"
+				},
+				{
+					"name": "subject",
+					"type": "string",
+					"supports_multibyte": true,
+					"length": 80
+				},
+				{
+					"name": "body_text",
+					"type": "text",
+					"supports_multibyte": true
+				},
+				{
+					"name": "body_html",
+					"type": "text",
+					"supports_multibyte": true
+				},
+				{
+					"name": "defaults",
+					"type": "text",
+					"supports_multibyte": true
+				},
+				{
+					"name": "created_date",
+					"type": "timestamp_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name": "last_modified_date",
+					"type": "timestamp_on_update",
+					"validation": "api_read_only"
+				},
+				{
+					"name": "created_by_id",
+					"type": "user_id_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name": "last_modified_by_id",
+					"type": "user_id_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		}
+	]
 }

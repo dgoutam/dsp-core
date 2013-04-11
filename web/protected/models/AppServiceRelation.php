@@ -125,7 +125,7 @@ class AppServiceRelation extends BaseDspSystemModel
 		// unserialize component data
 		if ( !empty( $this->component ))
 		{
-			$this->component = unserialize( $this->component );
+			$this->component = json_decode( $this->component, true );
 		}
 	}
 

@@ -178,8 +178,8 @@ class SystemManager implements iRestHandler
 	public static function initSystem( $data = array() )
 	{
 		static::initSchema();
-        static::initAdmin( $data );
-        static::initData();
+		static::initAdmin( $data );
+		static::initData();
 	}
 
 	/**
@@ -266,7 +266,7 @@ class SystemManager implements iRestHandler
 				{
 					// first time is troublesome with session user id
 					$command->reset();
-					$rows = $command->insert( Config::tableNamePrefix() . 'config', array('db_version' => $version) );
+					$rows = $command->insert( Config::tableNamePrefix() . 'config', array( 'db_version' => $version ) );
 					if ( 0 >= $rows )
 					{
 						throw new Exception( "Record insert failed." );
@@ -514,7 +514,8 @@ class SystemManager implements iRestHandler
 				SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
 				SwaggerUtilities::swaggerPerResource( 'system', 'role' ),
 				SwaggerUtilities::swaggerPerResource( 'system', 'service' ),
-				SwaggerUtilities::swaggerPerResource( 'system', 'user' )
+				SwaggerUtilities::swaggerPerResource( 'system', 'user' ),
+				SwaggerUtilities::swaggerPerResource( 'system', 'email_template' )
 			);
 			$result['apis'] = $resources;
 
@@ -544,7 +545,8 @@ class SystemManager implements iRestHandler
 						array( 'name' => 'config', 'label' => 'Configuration' ),
 						array( 'name' => 'role', 'label' => 'Role' ),
 						array( 'name' => 'service', 'label' => 'Service' ),
-						array( 'name' => 'user', 'label' => 'User' )
+						array( 'name' => 'user', 'label' => 'User' ),
+						array( 'name' => 'email_template', 'label' => 'Email Template' )
 					);
 					$result = array( 'resource' => $result );
 					break;
@@ -553,6 +555,7 @@ class SystemManager implements iRestHandler
 				case 'role':
 				case 'service':
 				case 'user':
+				case 'email_template':
 					// Most requests contain 'returned fields' parameter, all by default
 					$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
 					$extras = array();
@@ -781,6 +784,7 @@ class SystemManager implements iRestHandler
 				case 'role':
 				case 'service':
 				case 'user':
+				case 'email_template':
 					$records = Utilities::getArrayValue( 'record', $data, array() );
 					if ( empty( $records ) )
 					{
@@ -852,6 +856,7 @@ class SystemManager implements iRestHandler
 				case 'role':
 				case 'service':
 				case 'user':
+				case 'email_template':
 					if ( empty( $this->modelId ) )
 					{
 						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
@@ -942,6 +947,7 @@ class SystemManager implements iRestHandler
 				case 'role':
 				case 'service':
 				case 'user':
+				case 'email_template':
 					if ( empty( $this->modelId ) )
 					{
 						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
@@ -1031,6 +1037,7 @@ class SystemManager implements iRestHandler
 				case 'role':
 				case 'service':
 				case 'user':
+				case 'email_template':
 					if ( empty( $this->modelId ) )
 					{
 						$data = Utilities::getPostDataAsArray();
@@ -1097,7 +1104,7 @@ class SystemManager implements iRestHandler
 	/**
 	 * @param $resource
 	 *
-	 * @return App|AppGroup|Role|Service|User
+	 * @return App|AppGroup|Role|Service|User|EmailTemplate
 	 * @throws Exception
 	 */
 	public static function getResourceModel( $resource )
@@ -1119,6 +1126,9 @@ class SystemManager implements iRestHandler
 				break;
 			case 'user':
 				$model = User::model();
+				break;
+			case 'email_template':
+				$model = EmailTemplate::model();
 				break;
 			default:
 				throw new Exception( "Invalid system resource '$resource' requested.", ErrorCodes::BAD_REQUEST );
@@ -1153,6 +1163,9 @@ class SystemManager implements iRestHandler
 				break;
 			case 'user':
 				$obj = new User;
+				break;
+			case 'email_template':
+				$obj = new EmailTemplate();
 				break;
 			default:
 				throw new Exception( "Attempting to create an invalid system resource '$resource'.", ErrorCodes::INTERNAL_SERVER_ERROR );
@@ -1667,13 +1680,13 @@ class SystemManager implements iRestHandler
 		{
 			$obj->delete();
 		}
-        catch ( Exception $ex )
-        {
-            throw new Exception( "Failed to delete $table.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to delete $table.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
 		}
 
-        try
-        {
+		try
+		{
 			$return_fields = $model->getRetrievableAttributes( $return_fields );
 			$data = $obj->getAttributes( $return_fields );
 			if ( !empty( $extras ) )
@@ -1910,9 +1923,9 @@ class SystemManager implements iRestHandler
 	 * @return array
 	 */
 	public static function retrieveRecordsByFilter( $table, $return_fields = '', $filter = '',
-											        $limit = 0, $order = '', $offset = 0,
-											        $include_count = false, $include_schema = false,
-											        $extras = array() )
+													$limit = 0, $order = '', $offset = 0,
+													$include_count = false, $include_schema = false,
+													$extras = array() )
 	{
 		if ( empty( $table ) )
 		{
@@ -2207,10 +2220,10 @@ class SystemManager implements iRestHandler
 	 * @return void
 	 */
 	public static function exportAppAsPackage( $app_id,
-                                               $include_files = false,
-                                               $include_services = false,
-                                               $include_schema = false,
-                                               $include_data = false )
+											   $include_files = false,
+											   $include_services = false,
+											   $include_schema = false,
+											   $include_data = false )
 	{
 		SessionManager::checkPermission( 'read', 'system', 'app' );
 		$model = App::model();
@@ -2360,12 +2373,13 @@ class SystemManager implements iRestHandler
 		}
 	}
 
-    /**
-     * @param string $pkg_file
-     * @param string $import_url
-     * @throws Exception
-     * @return array
-     */
+	/**
+	 * @param string $pkg_file
+	 * @param string $import_url
+	 *
+	 * @throws Exception
+	 * @return array
+	 */
 	public static function importAppFromPackage( $pkg_file, $import_url = '' )
 	{
 		$zip = new ZipArchive();
@@ -2544,7 +2558,7 @@ class SystemManager implements iRestHandler
 		{
 			// delete db record
 			// todo anyone else using schema created?
-            static::deleteRecordById( 'app', $id );
+			static::deleteRecordById( 'app', $id );
 			throw $ex;
 		}
 
@@ -2585,6 +2599,7 @@ class SystemManager implements iRestHandler
 
 			$_service = ServiceHandler::getServiceObject( 'app' );
 			$_service->extractZipFile( $name . DIRECTORY_SEPARATOR, $zip, false, $dropPath );
+
 			return $result;
 		}
 		else

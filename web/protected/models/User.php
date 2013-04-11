@@ -1,4 +1,6 @@
 <?php
+use \Kisma\Core\Exceptions\StorageException;
+
 /**
  * User.php
  * The system user model for the DSP
@@ -236,7 +238,7 @@ class User extends BaseDspSystemModel
 		{
 			if ( $_id != SessionManager::getCurrentUserId() )
 			{
-				throw new \Kisma\Core\Exceptions\StorageException( 'The currently logged in user may not be deleted.' );
+				throw new StorageException( 'The currently logged in user may not be deleted.' );
 			}
 
 			//	Check and make sure this is not the last admin user

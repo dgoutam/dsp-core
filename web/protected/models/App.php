@@ -30,9 +30,11 @@
  * @property boolean              $is_active
  * @property string               $url
  * @property boolean              $is_url_external
- * @property boolean              $requires_fullscreen
- * @property boolean              $requires_plugin
  * @property string               $import_url
+ * @property boolean              $requires_fullscreen
+ * @property boolean              $allow_fullscreen_toggle
+ * @property boolean              $toggle_location
+ * @property boolean              $requires_plugin
  *
  * Relations:
  *
@@ -76,15 +78,15 @@ class App extends BaseDspSystemModel
 				 array( 'name, api_name', 'required' ),
 				 array( 'name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 				 array(
-					 'is_active, is_url_external, requires_fullscreen, requires_plugin',
+					 'is_active, is_url_external, requires_fullscreen, requires_plugin, allow_fullscreen_toggle',
 					 'numerical',
 					 'integerOnly' => true
 				 ),
 				 array( 'name', 'length', 'max' => 64 ),
 				 array( 'api_name', 'length', 'max' => 64 ),
-				 array( 'description, url, import_url', 'safe' ),
+				 array( 'description, url, import_url, toggle_location', 'safe' ),
 				 array(
-					 'id, name, api_name, is_active, is_url_external, requires_fullscreen, requires_plugin, created_date, last_modified_date, created_by_id, last_modified_by_id',
+					 'id, name, api_name, is_active, is_url_external, requires_fullscreen, requires_plugin, allow_fullscreen_toggle, toggle_location, created_date, last_modified_date, created_by_id, last_modified_by_id',
 					 'safe',
 					 'on' => 'search'
 				 ),
@@ -115,15 +117,17 @@ class App extends BaseDspSystemModel
 	public function attributeLabels()
 	{
 		$_labels = array(
-			'name'                => 'Name',
-			'api_name'            => 'API Name',
-			'description'         => 'Description',
-			'is_active'           => 'Is Active',
-			'url'                 => 'Url',
-			'is_url_external'     => 'Is Url External',
-			'requires_fullscreen' => 'Requires Fullscreen',
-			'requires_plugin'     => 'Requires Plugin',
-			'import_url'          => 'Import Url',
+			'name'                    => 'Name',
+			'api_name'                => 'API Name',
+			'description'             => 'Description',
+			'is_active'               => 'Is Active',
+			'url'                     => 'Url',
+			'is_url_external'         => 'Is Url External',
+			'import_url'              => 'Import Url',
+			'requires_fullscreen'     => 'Requires Fullscreen',
+			'allow_fullscreen_toggle' => 'Allow Fullscreen Toggle',
+			'toggle_location'         => 'Toggle Location',
+			'requires_plugin'         => 'Requires Plugin',
 		);
 
 		return array_merge( parent::attributeLabels(), $_labels );
@@ -143,7 +147,10 @@ class App extends BaseDspSystemModel
 		$_criteria->compare( 'api_name', $this->api_name, true );
 		$_criteria->compare( 'is_active', $this->is_active );
 		$_criteria->compare( 'is_url_external', $this->is_url_external );
+		$_criteria->compare( 'import_url', $this->import_url );
 		$_criteria->compare( 'requires_fullscreen', $this->requires_fullscreen );
+		$_criteria->compare( 'allow_fullscreen_toggle', $this->allow_fullscreen_toggle );
+		$_criteria->compare( 'toggle_location', $this->toggle_location );
 		$_criteria->compare( 'requires_plugin', $this->requires_plugin );
 		$_criteria->compare( 'created_date', $this->created_date, true );
 		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
@@ -183,6 +190,7 @@ class App extends BaseDspSystemModel
 		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
 		$this->is_url_external = intval( Utilities::boolval( $this->is_url_external ) );
 		$this->requires_fullscreen = intval( Utilities::boolval( $this->requires_fullscreen ) );
+		$this->allow_fullscreen_toggle = intval( Utilities::boolval( $this->allow_fullscreen_toggle ) );
 		$this->requires_plugin = intval( Utilities::boolval( $this->requires_plugin ) );
 
 		return parent::beforeValidate();
@@ -259,6 +267,7 @@ class App extends BaseDspSystemModel
 		$this->is_active = intval( $this->is_active );
 		$this->is_url_external = intval( $this->is_url_external );
 		$this->requires_fullscreen = intval( $this->requires_fullscreen );
+		$this->allow_fullscreen_toggle = intval( $this->allow_fullscreen_toggle );
 		$this->requires_plugin = intval( $this->requires_plugin );
 	}
 
@@ -283,6 +292,8 @@ class App extends BaseDspSystemModel
 					 'is_url_external',
 					 'import_url',
 					 'requires_fullscreen',
+					 'allow_fullscreen_toggle',
+					 'toggle_location',
 					 'requires_plugin',
 				),
 				$columns
@@ -349,13 +360,13 @@ class App extends BaseDspSystemModel
 						$newComponent = Utilities::getArrayValue( 'component', $item, null );
 						if ( !empty( $newComponent ) )
 						{
-							$newComponent = serialize( $newComponent );
+							$newComponent = json_encode( $newComponent );
 						}
 						else
 						{
 							$newComponent = null; // no empty arrays here
 						}
-						// old should be serialized in the db
+						// old should be encoded in the db
 						if ( $oldComponent != $newComponent )
 						{
 							$map['component'] = $newComponent;
@@ -402,7 +413,7 @@ class App extends BaseDspSystemModel
 					$newComponent = Utilities::getArrayValue( 'component', $item, null );
 					if ( !empty( $newComponent ) )
 					{
-						$newComponent = serialize( $newComponent );
+						$newComponent = json_encode( $newComponent );
 					}
 					else
 					{
