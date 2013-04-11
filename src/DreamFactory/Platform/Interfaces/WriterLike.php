@@ -6,14 +6,4 @@ namespace DreamFactory\Platform\Interfaces;
  */
 interface WriterLike
 {
-	//*************************************************************************
-	//	Methods
-	//*************************************************************************
-
-	/**
-	 * @param array $row
-	 *
-	 * @return bool
-	 */
-	public function write( array $row );
 }

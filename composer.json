@@ -40,8 +40,8 @@
 	},
 	"autoload":          {
 		"psr-0": {
-			"WindowsAzure\\":           "../web/lib/microsoft/azure-sdk-for-php",
-			"DreamFactory\\Platform\\": "../src"
+			"WindowsAzure\\":           "lib/microsoft/azure-sdk-for-php",
+			"DreamFactory\\Platform\\": "src"
 		}
 	}
 

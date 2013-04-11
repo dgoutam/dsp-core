@@ -1,17 +1,16 @@
 <?php
-namespace DreamFactory\Platform\Services;
+namespace DreamFactory\Platform\Services\File;
 
 use DreamFactory\Platform\Exceptions\FileSystemException;
 use DreamFactory\Platform\Interfaces\EscapeStyle;
 use DreamFactory\Platform\Interfaces\ReaderLike;
-use DreamFactory\Platform\Interfaces\WriterLike;
 use Kisma\Core\Seed;
 
 /**
- * Tabular.php
- * Tabular data parser
+ * TabularReader.php
+ * Tabular data reader
  */
-class Tabular extends Seed implements ReaderLike, WriterLike
+class TabularReader extends Seed implements ReaderLike
 {
 	//*************************************************************************
 	//	Constants
@@ -30,6 +29,22 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 */
 	protected $_enclosure = '"';
 	/**
+	 * @var int
+	 */
+	protected $_escapeStyle = EscapeStyle::SLASHED;
+	/**
+	 * @var bool
+	 */
+	protected $_ignoreWhitespace = true;
+	/**
+	 * @var bool End of File
+	 */
+	protected $_eof = false;
+	/**
+	 * @var bool Beginning of File
+	 */
+	protected $_rewound = false;
+	/**
 	 * @var string
 	 */
 	protected $_fileName;
@@ -42,18 +57,6 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 */
 	protected $_keys;
 	/**
-	 * @var bool
-	 */
-	protected $_overrideKeys = true;
-	/**
-	 * @var bool
-	 */
-	protected $_header = true;
-	/**
-	 * @var int
-	 */
-	protected $_escapeStyle = EscapeStyle::DOUBLED;
-	/**
 	 * @var array
 	 */
 	protected $_currentRow;
@@ -64,96 +67,11 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	/**
 	 * @var bool
 	 */
-	protected $_ignoreWhitespace = true;
+	protected $_overrideKeys = false;
 	/**
 	 * @var bool
 	 */
-	protected $_eof = false;
-	/**
-	 * @var bool
-	 */
-	protected $_bof = false;
-
-	/**
-	 * @param callable $afterLineCallback
-	 *
-	 * @return Tabular
-	 */
-	public function setAfterLineCallback( $afterLineCallback )
-	{
-		$this->_afterLineCallback = $afterLineCallback;
-
-		return $this;
-	}
-
-	/**
-	 * @return callable
-	 */
-	public function getAfterLineCallback()
-	{
-		return $this->_afterLineCallback;
-	}
-
-	/**
-	 * @param callable $beforeLineCallback
-	 *
-	 * @return Tabular
-	 */
-	public function setBeforeLineCallback( $beforeLineCallback )
-	{
-		$this->_beforeLineCallback = $beforeLineCallback;
-
-		return $this;
-	}
-
-	/**
-	 * @return callable
-	 */
-	public function getBeforeLineCallback()
-	{
-		return $this->_beforeLineCallback;
-	}
-
-	/**
-	 * @param string $enclosure
-	 *
-	 * @return Tabular
-	 */
-	public function setEnclosure( $enclosure )
-	{
-		$this->_enclosure = $enclosure;
-
-		return $this;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getEnclosure()
-	{
-		return $this->_enclosure;
-	}
-
-	/**
-	 * @param string $separator
-	 *
-	 * @return Tabular
-	 */
-	public function setSeparator( $separator )
-	{
-		$this->_separator = $separator;
-
-		return $this;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getSeparator()
-	{
-		return $this->_separator;
-	}
-
+	protected $_header = true;
 	/**
 	 * @var callback
 	 */
@@ -176,6 +94,26 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	//*************************************************************************
 
 	/**
+	 * @param array $settings
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public function __construct( $settings = array() )
+	{
+		if ( is_string( $settings ) )
+		{
+			$settings = array( 'fileName' => $settings );
+		}
+
+		parent::__construct( $settings );
+
+		if ( null === $this->_fileName )
+		{
+			throw new \InvalidArgumentException( 'No "fileName" specified.' );
+		}
+	}
+
+	/**
 	 * Choose your destructor!
 	 */
 	public function __destruct()
@@ -191,12 +129,9 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 */
 	public function close()
 	{
-		if ( is_resource( $this->_handle ) )
+		if ( is_resource( $this->_handle ) && !fclose( $this->_handle ) )
 		{
-			if ( !fclose( $this->_handle ) )
-			{
-				throw new FileSystemException( 'Error closing file: ' . $this->_fileName );
-			}
+			throw new FileSystemException( 'Error closing file: ' . $this->_fileName );
 		}
 
 		$this->_eof = true;
@@ -215,7 +150,7 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 			return $this->_currentRow;
 		}
 
-		if ( false === ( $_row = $this->_readRow() ) )
+		if ( false === ( $_row = $this->_readLine() ) )
 		{
 			return null;
 		}
@@ -247,7 +182,7 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 */
 	public function key()
 	{
-		if ( $this->valid() )
+		if ( null !== $this->current() )
 		{
 			return $this->_rowId;
 		}
@@ -260,7 +195,7 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 */
 	public function next()
 	{
-		if ( $this->valid() )
+		if ( null !== $this->current() )
 		{
 			$this->_currentRow = null;
 			$this->_rowId++;
@@ -299,14 +234,12 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 
 		if ( $this->_header )
 		{
-			$_header = $this->_readRow( true );
-
-			if ( $_header === false )
+			if ( false === ( $_header = $this->_readLine( true ) ) )
 			{
 				throw new FileSystemException( 'Error reading header row from file: ' . $this->_fileName );
 			}
 
-			if ( $this->_overrideKeys )
+			if ( !$this->_overrideKeys )
 			{
 				$this->_keys = $_header;
 			}
@@ -314,7 +247,7 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 
 		$this->_currentRow = null;
 		$this->_rowId = 1;
-		$this->_bof = true;
+		$this->_rewound = true;
 	}
 
 	/**
@@ -331,15 +264,293 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 			throw new \OutOfBoundsException( 'Invalid position' );
 		}
 
-		while ( $this->_rowId < $index && $this->valid() )
+		while ( $this->_rowId < $index && null !== $this->current() )
 		{
 			$this->next();
 		}
 
-		if ( !$this->valid() )
+		if ( null === $this->current() )
 		{
 			throw new \OutOfBoundsException( 'Invalid position' );
 		}
+	}
+
+	/**
+	 * @param array $keys
+	 */
+	public function setKeys( $keys )
+	{
+		$this->_keys = $keys;
+		$this->_overrideKeys = true;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getKeys()
+	{
+		if ( !$this->_rewound )
+		{
+			$this->rewind();
+		}
+
+		return $this->_keys;
+	}
+
+	/**
+	 * @param callable $afterLineCallback
+	 *
+	 * @return TabularReader
+	 */
+	public function setAfterLineCallback( $afterLineCallback )
+	{
+		$this->_afterLineCallback = $afterLineCallback;
+
+		return $this;
+	}
+
+	/**
+	 * @return callable
+	 */
+	public function getAfterLineCallback()
+	{
+		return $this->_afterLineCallback;
+	}
+
+	/**
+	 * @param callable $beforeLineCallback
+	 *
+	 * @return TabularReader
+	 */
+	public function setBeforeLineCallback( $beforeLineCallback )
+	{
+		$this->_beforeLineCallback = $beforeLineCallback;
+
+		return $this;
+	}
+
+	/**
+	 * @return callable
+	 */
+	public function getBeforeLineCallback()
+	{
+		return $this->_beforeLineCallback;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getRewound()
+	{
+		return $this->_rewound;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getCurrentRow()
+	{
+		return $this->_currentRow;
+	}
+
+	/**
+	 * @param string $enclosure
+	 *
+	 * @return TabularReader
+	 */
+	public function setEnclosure( $enclosure )
+	{
+		$this->_enclosure = $enclosure;
+
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getEnclosure()
+	{
+		return $this->_enclosure;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getEof()
+	{
+		return $this->_eof;
+	}
+
+	/**
+	 * @param int $escapeStyle
+	 *
+	 * @return TabularReader
+	 */
+	public function setEscapeStyle( $escapeStyle )
+	{
+		$this->_escapeStyle = $escapeStyle;
+
+		return $this;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getEscapeStyle()
+	{
+		return $this->_escapeStyle;
+	}
+
+	/**
+	 * @param string $fileName
+	 *
+	 * @return TabularReader
+	 */
+	public function setFileName( $fileName )
+	{
+		$this->_fileName = $fileName;
+
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getFileName()
+	{
+		return $this->_fileName;
+	}
+
+	/**
+	 * @return resource
+	 */
+	public function getHandle()
+	{
+		return $this->_handle;
+	}
+
+	/**
+	 * @param boolean $header
+	 *
+	 * @return TabularReader
+	 */
+	public function setHeader( $header )
+	{
+		$this->_header = $header;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getHeader()
+	{
+		return $this->_header;
+	}
+
+	/**
+	 * @param boolean $ignoreWhitespace
+	 *
+	 * @return TabularReader
+	 */
+	public function setIgnoreWhitespace( $ignoreWhitespace )
+	{
+		$this->_ignoreWhitespace = $ignoreWhitespace;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getIgnoreWhitespace()
+	{
+		return $this->_ignoreWhitespace;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getLastBuffer()
+	{
+		return $this->_lastBuffer;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getLastLine()
+	{
+		return $this->_lastLine;
+	}
+
+	/**
+	 * @param boolean $overrideKeys
+	 *
+	 * @return TabularReader
+	 */
+	public function setOverrideKeys( $overrideKeys )
+	{
+		$this->_overrideKeys = $overrideKeys;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getOverrideKeys()
+	{
+		return $this->_overrideKeys;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getRowId()
+	{
+		return $this->_rowId;
+	}
+
+	/**
+	 * @param string $separator
+	 *
+	 * @return TabularReader
+	 */
+	public function setSeparator( $separator )
+	{
+		$this->_separator = $separator;
+
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getSeparator()
+	{
+		return $this->_separator;
+	}
+
+	/**
+	 * @param int $skipLines
+	 *
+	 * @return TabularReader
+	 */
+	public function setSkipLines( $skipLines )
+	{
+		$this->_skipLines = $skipLines;
+
+		return $this;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getSkipLines()
+	{
+		return $this->_skipLines;
 	}
 
 	/**
@@ -348,9 +559,9 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 * @throws \DreamFactory\Platform\Exceptions\FileSystemException
 	 * @return array|bool
 	 */
-	protected function _readRow( $rewinding = false )
+	protected function _readLine( $rewinding = false )
 	{
-		if ( !$this->_bof && !$rewinding )
+		if ( !$this->_rewound && !$rewinding )
 		{
 			$this->rewind();
 		}
@@ -366,7 +577,7 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 		{
 			$this->_lastLine = $_line;
 
-			if ( !is_callable( $this->_beforeLineCallback ) )
+			if ( is_callable( $this->_beforeLineCallback ) )
 			{
 				$_line = call_user_func( $this->_beforeLineCallback, $_line );
 
@@ -385,26 +596,28 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 
 			if ( empty( $this->_enclosure ) )
 			{
-				return explode( $this->_separator, preg_replace( '#\\r?\\n$#', null, $_buffer ) );
+				$_result = $this->_parseNone( $_buffer );
 			}
-
-			switch ( $this->_escapeStyle )
+			else
 			{
-				case EscapeStyle::DOUBLED:
-					$_result = $this->explodeExcel( $_buffer );
-					break;
+				switch ( $this->_escapeStyle )
+				{
+					case EscapeStyle::DOUBLED:
+						$_result = $this->_parseDoubled( $_buffer );
+						break;
 
-				case EscapeStyle::SLASHED:
-					$_result = $this->explodeUnix( $_buffer );
-					break;
+					case EscapeStyle::SLASHED:
+						$_result = $this->_parseSlashed( $_buffer );
+						break;
 
-				case EscapeStyle::NONE:
-				default:
-					$_result = $this->explodeNoEscape( $_buffer );
-					break;
+					case EscapeStyle::NONE:
+					default:
+						$_result = $this->_parseNonEscaped( $_buffer );
+						break;
+				}
 			}
 
-			if ( !is_callable( $this->_afterLineCallback ) )
+			if ( is_callable( $this->_afterLineCallback ) )
 			{
 				$_result = call_user_func( $this->_afterLineCallback, $_result );
 			}
@@ -539,45 +752,8 @@ class Tabular extends Seed implements ReaderLike, WriterLike
 	 */
 	protected function _parseNone( $line )
 	{
-		return explode( $this->_separator, preg_replace( '#\\r?\\n$#', null, $line ) );
+		$_line = preg_replace( '#\\r?\\n$#', '', $line );
+		return explode( $this->_separator, $_line );
 	}
 
-	/**
-	 * @return array
-	 */
-	public function read()
-	{
-		return $this->_readRow();
-	}
-
-	/**
-	 * @param array $row
-	 *
-	 * @return bool
-	 */
-	public function write( array $row )
-	{
-	}
-
-	/**
-	 * @param array $keys
-	 */
-	public function setKeys( $keys )
-	{
-		$this->_keys = $keys;
-		$this->_overrideKeys = true;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getKeys()
-	{
-		if ( !$this->_bof )
-		{
-			$this->rewind();
-		}
-
-		return $this->_keys;
-	}
 }
