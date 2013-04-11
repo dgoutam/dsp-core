@@ -6,12 +6,4 @@ namespace DreamFactory\Platform\Interfaces;
  */
 interface ReaderLike extends \SeekableIterator
 {
-	//*************************************************************************
-	//	Methods
-	//*************************************************************************
-
-	/**
-	 * @return array
-	 */
-	public function read();
 }
