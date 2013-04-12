@@ -59,7 +59,7 @@ return array_merge(
 	array(
 		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
 		 'adminEmail'            => 'developer-support@dreamfactory.com',
-		 'companyLabel'          => 'DreamFactory Service Platform(tm)',
+		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
 		 'allowOpenRegistration' => 'true',
 		 'dsp.version'           => '0.6.1',
 	)

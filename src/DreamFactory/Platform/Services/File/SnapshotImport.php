@@ -1,7 +1,10 @@
 <?php
 namespace DreamFactory\Platform\Services\File;
 
+use DreamFactory\Platform\Enums\DataSeparator;
 use DreamFactory\Platform\Exceptions\FileSystemException;
+use Kisma\Core\Enums\HttpResponse;
+use Kisma\Core\Seed;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\Log;
 
@@ -9,16 +12,12 @@ use Kisma\Core\Utility\Log;
  * SnapshotImport.php
  * Imports a snapshot file
  */
-class SnapshotImport extends Curl
+class SnapshotImport
 {
 	//*************************************************************************
 	//* Constants
 	//*************************************************************************
 
-	/**
-	 * @var string
-	 */
-	const DOWNLOAD_URL_BASE = 'http://cerberus.fabric.dreamfactory.com/api/download';
 	/**
 	 * @var string
 	 */
@@ -84,7 +83,7 @@ class SnapshotImport extends Curl
 
 			$this->_killTempDirectory( $_tempPath );
 
-			return false;
+			throw new RestException( HttpResponse::BadRequest, 'Invalid snapshot "' . $this->_fileName . '"' );
 		}
 
 		return array( $_tempPath, $_workPath, $_workFile, $_snapshot );
@@ -97,16 +96,31 @@ class SnapshotImport extends Curl
 	 */
 	public function restore()
 	{
+		//	1. Get the goodies
 		list( $_tempPath, $_workPath, $_workFile, $_snapshot ) = $this->_openSnapshot();
 
-		//	3. Install snapshot storage files
-		$_command = 'cd ' . \Pii::getParam( 'storage_path' ) . '; rm -rf ./*; /bin/tar zxf ' . $_tempPath . '/' . $_snapshot->storage->tarball . ' ./';
+		$_storagePath = \Pii::getParam( 'storage_path' );
+		$_dbName = \Pii::getParam( 'dsp_name' );
+
+		if ( false === strpos( $_storagePath, '/data/storage/', 0 ) && $_storagePath != '/../storage' )
+		{
+			throw new \InvalidArgumentException( 'Invalid storage path "' . $_storagePath . '" specified.' );
+		}
+
+		if ( empty( $_dbName ) )
+		{
+			throw new \InvalidArgumentException( 'Invalid database name "' . $_dbName . '" specified.' );
+		}
+
+		//	2. Restore storage...
+		$_command =
+			'cd ' . $_storagePath . '; rm -rf ' . $_storagePath . '/*; /bin/tar zxf ' . $_tempPath . '/' . $_snapshot->storage->tarball . ' ./';
 		$_result = exec( $_command, $_output, $_return );
 
 		if ( 0 != $_return )
 		{
 			Log::error(
-				'Error importing storage directory of dsp "' . $instanceId . '": ' . $_result . ' (' . $_return . ')' . PHP_EOL . $_command . PHP_EOL
+				'Error restoring storage directory for instance "' . $instanceId . '": ' . $_result . ' (' . $_return . ')' . PHP_EOL . $_command . PHP_EOL
 			);
 			Log::error( implode( PHP_EOL, $_output ) );
 			$this->_killTempDirectory( $_tempPath );
@@ -114,83 +128,48 @@ class SnapshotImport extends Curl
 			return false;
 		}
 
-		//	4. Drop old, Create new database for snapshot mysql data
-		$_db = \Pii::db();
-		$_dbName = '';
+		//	3. Clean out the database...
+		$_pdo = \Pii::pdo();
+		$_schema = \Pii::db()->getSchema();
+		$_schema->refresh();
 
-		$_sql
-			= <<<SQL
-DROP DATABASE {$_dbName};
-CREATE DATABASE {$_dbName};
-SQL;
-
-		if ( Provisioners::DreamFactory == $this->_instance->guest_location_nbr )
+		foreach ( $_schema->getTables() as $_tableName => $_info )
 		{
-			$_command
-				= 'sudo -u dfadmin /opt/dreamfactory/fabric/cerberus/config/scripts/restore_snapshot_mysql.sh ' . $this->_instance->db_name_text . ' ' .
-				  $_workPath;
-		}
-		else
-		{
-//			$_command
-//				= '/usr/bin/ssh ' . static::DEFAULT_SSH_OPTIONS . ' dfadmin@' . $this->_instance->instance_name_text . DSP::DEFAULT_DSP_SUB_DOMAIN .
-//				' \'mysqldump --delayed-insert -e -u ' . $this->_instance->db_user_text . ' -p' . $this->_instance->db_password_text . ' ' .
-//				$this->_instance->db_name_text . '\' | gzip -c >' . $_workPath;
+			if ( !$_pdo->exec( $_schema->dropTable( $_tableName ) ) )
+			{
+				Log::error( 'Error dropping table "' . $_tableName . '".' );
+			}
 		}
 
-		$_result = exec( $_command, $_output, $_return );
+		//	4.	Import the snapshot...
+		$_reader = new Linereader(
+			array(
+				 'fileName'  => $_workPath,
+				 'separator' => null,
+				 'enclosure' => null,
+			)
+		);
 
-		if ( 0 != $_return )
+		//	Rip through the file and exec...
+		foreach ( $_reader as $_line )
 		{
-			Log::error( 'Error restoring mysql dump of dsp "' . $instanceId . '": ' . $_result . ' (' . $_return . ')' . PHP_EOL . $_command . PHP_EOL );
-			Log::error( implode( PHP_EOL, $_output ) );
-			$this->_killTempDirectory( $_tempPath );
+			if ( empty( $_line ) || '--' == substr( $_line, 0, 2 ) )
+			{
+				continue;
+			}
 
-			//@TODO need to restore snapshot taken at the beginning cuz we sucked at this...
+			$_sql .= $_line;
 
-			return false;
+			if ( ';' == substr( $_line, -1, 1 ) )
+			{
+				$_pdo->exec( $_sql ) or Log::error( 'Error executing query: "' . $_sql . '": ' . print_r( $_pdo->errorInfo(), true ) );
+				$_sql = null;
+			}
 		}
 
 		Log::debug( 'MySQL dump restored: ' . $_workFile );
-//
-//		//	5. Import mysql data
-//
-//		$_command
-//			= 'cd ' . $_tempPath . '; ' .
-//			'gunzip ' . $_snapshot->mysql->tarball . '; ' .
-//			'mysql -u ' . $_db->username . ' -p' . $_db->password . ' -h ' . DSP::DEFAULT_DSP_SERVER . ' --database=' .
-//			$this->_instance->db_name_text . ' < mysql.' . $snapshot . '.sql';
-//
-//		$_result = exec( $_command, $_output, $_return );
-//
-//		if ( 0 != $_return )
-//		{
-//			Log::error( 'Error importing mysql dump of dsp "' . $instanceId . '": ' . $_result . ' (' . $_return . ')' . PHP_EOL . $_command . PHP_EOL );
-//			Log::error( implode( PHP_EOL, $_output ) );
-//
-//			//	Roll everything back...
-//			$_service->deprovision(
-//				array(
-//					 'name'        => $this->_instance->instance_name_text,
-//					 'storage_key' => $this->_instance->storage_id_text
-//				),
-//				true,
-//				$this->_instance
-//			);
-//
-//			$this->_killTempDirectory( $_tempPath );
-//
-//			return false;
-//		}
-//
-//		//	6.	Update snapshot with import info
-//		$_snapshot->imports[] = array(
-//			'timestamp' => date( 'c' ),
-//		);
-//
-//		$_import->addFromString( 'snapshot.json', json_encode( $_snapshot ) );
 
-		//	7. Cleanup
+		//	5. Cleanup
 		$this->_killTempDirectory( $_tempPath );
 
 		//	Import complete!!!
@@ -203,7 +182,8 @@ SQL;
 	 */
 	protected function _validateInstance()
 	{
-		$_instance = static::post( static::API_ENDPOINT . '/locate', array( 'user_name' => \Pii::db()->username, 'password' => \Pii::db()->password ) );
+		$_instance =
+			Curl::post( static::API_ENDPOINT . '/locate', array( 'user_name' => \Pii::db()->username, 'password' => \Pii::db()->password ) );
 
 		if ( empty( $_instance ) )
 		{
@@ -252,5 +232,4 @@ SQL;
 	protected function _killTempDirectory( $path )
 	{
 	}
-
 }
