@@ -1,5 +1,4 @@
 <?php
-
 /**
  * REST API router and controller
  */
@@ -81,7 +80,7 @@ class RestController extends Controller
 				$command->select( 'api_name,description' )
 					->from( 'df_sys_service' )
 					->order( 'api_name' )
-					->where( 'type != :t', array( ':t' => 'Remote Web Service'));
+					->where( 'type != :t', array( ':t' => 'Remote Web Service' ) );
 				$result = $command->queryAll();
 				foreach ( $result as $service )
 				{
@@ -235,25 +234,25 @@ class RestController extends Controller
 			switch ( strtolower( $this->service ) )
 			{
 				case 'system':
-                    $svcObj = SystemManager::getInstance();
+					$svcObj = SystemManager::getInstance();
 					break;
 				case 'user':
-                    $svcObj = UserManager::getInstance();
+					$svcObj = UserManager::getInstance();
 					break;
 				default:
 					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					break;
 			}
-            $result = $svcObj->actionMerge();
-            $type = $svcObj->getType();
-            if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
-            {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
-                {
-                    // reformat the code here
-                }
-            }
+			$result = $svcObj->actionMerge();
+			$type = $svcObj->getType();
+			if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+			{
+				$nativeFormat = $svcObj->getNativeFormat();
+				if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+				{
+					// reformat the code here
+				}
+			}
 			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
@@ -272,25 +271,25 @@ class RestController extends Controller
 			switch ( strtolower( $this->service ) )
 			{
 				case 'system':
-                    $svcObj = SystemManager::getInstance();
+					$svcObj = SystemManager::getInstance();
 					break;
 				case 'user':
-                    $svcObj = UserManager::getInstance();
+					$svcObj = UserManager::getInstance();
 					break;
 				default:
 					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					break;
 			}
-            $result = $svcObj->actionPut();
-            $type = $svcObj->getType();
-            if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
-            {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
-                {
-                    // reformat the code here
-                }
-            }
+			$result = $svcObj->actionPut();
+			$type = $svcObj->getType();
+			if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+			{
+				$nativeFormat = $svcObj->getNativeFormat();
+				if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+				{
+					// reformat the code here
+				}
+			}
 			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
@@ -309,25 +308,25 @@ class RestController extends Controller
 			switch ( strtolower( $this->service ) )
 			{
 				case 'system':
-                    $svcObj = SystemManager::getInstance();
+					$svcObj = SystemManager::getInstance();
 					break;
 				case 'user':
-                    $svcObj = UserManager::getInstance();
+					$svcObj = UserManager::getInstance();
 					break;
 				default:
 					$svcObj = ServiceHandler::getServiceObject( $this->service );
 					break;
 			}
-            $result = $svcObj->actionDelete();
-            $type = $svcObj->getType();
-            if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
-            {
-                $nativeFormat = $svcObj->getNativeFormat();
-                if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
-                {
-                    // reformat the code here
-                }
-            }
+			$result = $svcObj->actionDelete();
+			$type = $svcObj->getType();
+			if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+			{
+				$nativeFormat = $svcObj->getNativeFormat();
+				if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+				{
+					// reformat the code here
+				}
+			}
 			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
@@ -390,8 +389,8 @@ class RestController extends Controller
 			{
 				$requestUri = yii::app()->request->requestUri;
 				if ( ( false === strpos( $requestUri, '?' ) &&
-					   '/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
-					 ( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
+					'/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
+					( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
 				)
 				{
 					$this->resource .= '/';
@@ -442,5 +441,4 @@ class RestController extends Controller
 		}
 		Yii::app()->end();
 	}
-
 }

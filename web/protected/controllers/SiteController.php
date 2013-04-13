@@ -1,60 +1,42 @@
 <?php
-/**
- * SiteController.php
- *
- * This file is part of the DreamFactory Services Platform (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This source file and all is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- *
- * This is the default controller for the DSP
- */
 use Kisma\Core\Utility\FilterInput;
 
 /**
  * SiteController.php
+ * The initialization and set-up controller
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/platform-core>
+ * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class SiteController extends Controller
 {
 	/**
-	 * Returns the filter configurations.
-	 *
-	 * By overriding this method, child classes can specify filters to be applied to actions.
-	 *
-	 * This method returns an array of filter specifications. Each array element specify a single filter.
-	 *
-	 * For a method-based filter (called inline filter), it is specified as 'FilterName[ +|- Action1, Action2, ...]',
-	 * where the '+' ('-') operators describe which actions should be (should not be) applied with the filter.
-	 *
-	 * For a class-based filter, it is specified as an array like the following:
-	 * <pre>
-	 * array(
-	 *     'FilterClass[ +|- Action1, Action2, ...]',
-	 *     'name1'=>'value1',
-	 *     'name2'=>'value2',
-	 *     ...
-	 * )
-	 * </pre>
-	 * where the name-value pairs will be used to initialize the properties of the filter.
-	 *
-	 * Note, in order to inherit filters defined in the parent class, a child class needs to
-	 * merge the parent filters with child filters using functions like array_merge().
-	 *
-	 * @return array a list of filter configurations.
-	 * @see CFilter
+	 * {@InheritDoc}
+	 */
+	public function init()
+	{
+		parent::init();
+
+		$this->layout = 'initial';
+	}
+
+	/**
+	 * {@InheritDoc}
 	 */
 	public function filters()
 	{
@@ -64,21 +46,18 @@ class SiteController extends Controller
 	}
 
 	/**
-	 * Returns the access rules for this controller.
-	 * Override this method if you use the {@link filterAccessControl accessControl} filter.
-	 *
-	 * @return array list of access rules. See {@link CAccessControlFilter} for details about rule specification.
+	 * {@InheritDoc}
 	 */
 	public function accessRules()
 	{
 		return array(
-			// allow authenticated users access to init commands
+			//	Allow authenticated users access to init commands
 			array(
 				'allow',
 				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData' ),
 				'users'   => array( '@' ),
 			),
-			// deny all others access to init commands
+			//	Deny all others access to init commands
 			array(
 				'deny',
 				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData' ),
@@ -87,111 +66,68 @@ class SiteController extends Controller
 	}
 
 	/**
-	 * Declares class-based actions.
-	 */
-	public function actions()
-	{
-		return array(
-			'captcha' => array(
-				'class'     => 'CCaptchaAction',
-				'backColor' => 0xFFFFFF,
-			),
-			'page'    => array(
-				'class' => 'CViewAction',
-			),
-		);
-	}
-
-	/**
-	 * This is the default 'index' action that is invoked
-	 * when an action is not explicitly requested by users.
+	 * {@InheritDoc}
 	 */
 	public function actionIndex()
 	{
 		try
 		{
-			$state = SystemManager::getSystemState();
-
-			switch ( $state )
+			switch ( SystemManager::getSystemState() )
 			{
 				case 'ready':
 					// try local launchpad
-					if ( is_file( './public/launchpad/index.html' ) )
+					if ( is_file( '/public/launchpad/index.html' ) )
 					{
-						$this->redirect( './public/launchpad/index.html' );
+						$this->redirect( '/public/launchpad/index.html' );
 					}
-					// fall back to this app default site
-					else
-					{
-						$this->render( 'index' );
-					}
+
+					//	Fall back to this app default site
+					$this->render( 'index' );
 					break;
+
 				case 'init required':
 					$this->redirect( array( 'site/initSystem' ) );
 					break;
+
 				case 'admin required':
 					$this->redirect( array( 'site/initAdmin' ) );
 					break;
+
 				case 'schema required':
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
+
 				case 'upgrade required':
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
+
 				case 'data required':
 					$this->redirect( array( 'site/initData' ) );
 					break;
 			}
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $_ex )
 		{
-			die( $ex->getMessage() );
+			die( $_ex->getMessage() );
 		}
 	}
 
 	/**
-	 * This is the action to handle external exceptions.
+	 * Error action
 	 */
 	public function actionError()
 	{
-		$error = Yii::app()->errorHandler->error;
-		if ( $error )
+		if ( null !== ( $_error = Pii::error() ) )
 		{
-			if ( Yii::app()->request->isAjaxRequest )
+			if ( Pii::ajaxRequest() )
 			{
-				echo $error['message'];
-			}
-			else
-			{
-				$this->render( 'error', $error );
-			}
-		}
-	}
+				echo $_error['message'];
 
-	/**
-	 * Displays the contact page
-	 */
-	public function actionContact()
-	{
-		$model = new ContactForm;
-		if ( isset( $_POST['ContactForm'] ) )
-		{
-			$model->attributes = $_POST['ContactForm'];
-			if ( $model->validate() )
-			{
-				$name = '=?UTF-8?B?' . base64_encode( $model->name ) . '?=';
-				$subject = '=?UTF-8?B?' . base64_encode( $model->subject ) . '?=';
-				$headers = "From: $name <{$model->email}>\r\n" .
-						   "Reply-To: {$model->email}\r\n" .
-						   "MIME-Version: 1.0\r\n" .
-						   "Content-type: text/plain; charset=UTF-8";
-
-				mail( Yii::app()->params['adminEmail'], $subject, $model->body, $headers );
-				Yii::app()->user->setFlash( 'contact', 'Thank you for contacting us. We will respond to you as soon as possible.' );
-				$this->refresh();
+				return;
 			}
+
+			$this->render( 'error', $_error );
 		}
-		$this->render( 'contact', array( 'model' => $model ) );
 	}
 
 	/**
@@ -199,28 +135,33 @@ class SiteController extends Controller
 	 */
 	public function actionLogin()
 	{
-		$this->layout = 'initial';
-		$model = new LoginForm;
+		$_model = new LoginForm();
 
 		// if it is ajax validation request
-		if ( isset( $_POST['ajax'] ) && $_POST['ajax'] === 'login-form' )
+		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
 		{
-			echo CActiveForm::validate( $model );
-			Yii::app()->end();
+			echo CActiveForm::validate( $_model );
+			Pii::end();
 		}
 
 		// collect user input data
 		if ( isset( $_POST['LoginForm'] ) )
 		{
-			$model->attributes = $_POST['LoginForm'];
-			// validate user input and redirect to the previous page if valid
-			if ( $model->validate() && $model->login() )
+			$_model->attributes = $_POST['LoginForm'];
+
+			//	Validate user input and redirect to the previous page if valid
+			if ( $_model->validate() && $_model->login() )
 			{
-				$this->redirect( Yii::app()->user->getReturnUrl() );
+				$this->redirect( Pii::user()->getReturnUrl() );
 			}
 		}
-		// display the login form
-		$this->render( 'login', array( 'model' => $model ) );
+
+		$this->render(
+			'login',
+			array(
+				 'model' => $_model
+			)
+		);
 	}
 
 	/**
@@ -228,8 +169,8 @@ class SiteController extends Controller
 	 */
 	public function actionLogout()
 	{
-		Yii::app()->user->logout();
-		$this->redirect( Yii::app()->homeUrl );
+		Pii::user()->logout();
+		Pii::redirect( '/' );
 	}
 
 	/**
@@ -237,22 +178,27 @@ class SiteController extends Controller
 	 */
 	public function actionUpgradeSchema()
 	{
-		$model = new InitSchemaForm;
+		$_model = new InitSchemaForm();
 
-		// collect user input data
-		if ( isset( $_POST['InitSchemaForm'] ) )
+		if ( isset( $_POST, $_POST['InitSchemaForm'] ) )
 		{
-			$model->attributes = $_POST['InitSchemaForm'];
-			// validate user input, configure the system and redirect to the home page
-			if ( $model->validate() )
+			$_model->attributes = $_POST['InitSchemaForm'];
+
+			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				$this->redirect( Yii::app()->homeUrl );
+				$this->redirect( '/' );
 			}
+
 			$this->refresh();
 		}
-		// display the init form
-		$this->render( 'initSchema', array( 'model' => $model ) );
+
+		$this->render(
+			'initSchema',
+			array(
+				 'model' => $_model
+			)
+		);
 	}
 
 	/**
@@ -260,56 +206,44 @@ class SiteController extends Controller
 	 */
 	public function actionInitSystem()
 	{
-		$this->layout = 'initial';
-		$model = new InitAdminForm;
-
-		// collect user input data
-		if ( isset( $_POST['InitAdminForm'] ) )
-		{
-			$model->attributes = $_POST['InitAdminForm'];
-			// validate user input, configure the system and redirect to the previous page
-			if ( $model->validate() )
-			{
-				SystemManager::initSystem( $model->attributes );
-				$this->redirect( Yii::app()->homeUrl );
-			}
-			$this->refresh();
-		}
-		$model->email = Yii::app()->user->getState( 'email' );
-		$model->username = substr( $model->email, 0, strpos( $model->email, '@' ) );
-		$model->firstName = Yii::app()->user->getState( 'first_name' );
-		$model->lastName = Yii::app()->user->getState( 'last_name' );
-		$model->displayName = Yii::app()->user->getState( 'display_name' );
-		// display the init form
-		$this->render( 'initAdmin', array( 'model' => $model ) );
+		$this->actionInitAdmin( true );
 	}
 
 	/**
 	 * Displays the system init admin page
 	 */
-	public function actionInitAdmin()
+	public function actionInitAdmin( $initSystem = false )
 	{
-		$model = new InitAdminForm;
+		$_model = new InitAdminForm();
 
-		// collect user input data
-		if ( isset( $_POST['InitAdminForm'] ) )
+		if ( isset( $_POST, $_POST['InitAdminForm'] ) )
 		{
-			$model->attributes = $_POST['InitAdminForm'];
-			// validate user input, configure the system and redirect to the previous page
-			if ( $model->validate() )
+			$_model->attributes = $_POST['InitAdminForm'];
+
+			if ( $_model->validate() )
 			{
-				SystemManager::initAdmin( $model->attributes );
-				$this->redirect( Yii::app()->homeUrl );
+				if ( $initSystem )
+				{
+					SystemManager::initSystem( $_model->attributes );
+				}
+				else
+				{
+					SystemManager::initAdmin( $_model->attributes );
+				}
+
+				$this->redirect( '/' );
 			}
+
 			$this->refresh();
 		}
-		$model->email = Yii::app()->user->getState( 'email' );
-		$model->username = substr( $model->email, 0, strpos( $model->email, '@' ) );
-		$model->firstName = Yii::app()->user->getState( 'first_name' );
-		$model->lastName = Yii::app()->user->getState( 'last_name' );
-		$model->displayName = Yii::app()->user->getState( 'display_name' );
-		// display the init form
-		$this->render( 'initAdmin', array( 'model' => $model ) );
+
+		$_model->email = Pii::getState( 'email' );
+		$_model->username = substr( $_model->email, 0, strpos( $_model->email, '@' ) );
+		$_model->firstName = Pii::getState( 'first_name' );
+		$_model->lastName = Pii::getState( 'last_name' );
+		$_model->displayName = Pii::getState( 'display_name' );
+
+		$this->render( 'initAdmin', array( 'model' => $_model ) );
 	}
 
 	/**
@@ -317,30 +251,27 @@ class SiteController extends Controller
 	 */
 	public function actionInitData()
 	{
-		$model = new InitDataForm;
+		$_model = new InitDataForm();
 
-		// collect user input data
-		if ( isset( $_POST['InitDataForm'] ) )
+		if ( isset( $_POST, $_POST['InitDataForm'] ) )
 		{
-			$model->attributes = $_POST['InitDataForm'];
-			// validate user input, configure the system and redirect to the previous page
-			if ( $model->validate() )
+			$_model->attributes = $_POST['InitDataForm'];
+
+			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				$this->redirect( Yii::app()->homeUrl );
+				$this->redirect( '/' );
 			}
+
 			$this->refresh();
 		}
-		// display the init form
-		$this->render( 'initData', array( 'model' => $model ) );
-	}
 
-	/**
-	 * Displays the admin page
-	 */
-	public function actionAdmin()
-	{
-		$this->render( 'admin' );
+		$this->render(
+			'initData',
+			array(
+				 'model' => $_model
+			)
+		);
 	}
 
 	/**
@@ -361,20 +292,9 @@ class SiteController extends Controller
 	 */
 	public function actionFileTree( $instanceName = null, $path = null )
 	{
-		$instanceName = $instanceName ? : \Kisma::get( 'app.dsp_name', FilterInput::request( 'instanceName' ) );
-		$path = $path ? : FilterInput::request( 'path' );
-
 		$_data = array();
 
-		$_path = realpath(
-			$path
-				? :
-				$instanceName && file_exists( '/var/www/.fabric_hosted' )
-					?
-					'/data/storage/' . $instanceName . '/blob'
-					:
-					dirname( __DIR__ ) . '/storage'
-		);
+		$_path = Pii::getParam( 'storage_path' );
 
 		if ( !empty( $_path ) )
 		{
@@ -403,6 +323,6 @@ class SiteController extends Controller
 		}
 
 		echo json_encode( $_data );
-		die();
+		Pii::end();
 	}
 }
