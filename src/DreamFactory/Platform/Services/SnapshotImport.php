@@ -1,8 +1,8 @@
 <?php
-namespace DreamFactory\Platform\Services\File;
+namespace DreamFactory\Platform\Services;
 
-use DreamFactory\Platform\Enums\DataSeparator;
 use DreamFactory\Platform\Exceptions\FileSystemException;
+use Kisma\Core\Components\LineReader;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\Seed;
 use Kisma\Core\Utility\Curl;
@@ -92,6 +92,7 @@ class SnapshotImport
 	/**
 	 * Given an instance and a snapshot ID, replace the data with that of the snapshot.
 	 *
+	 * @throws \InvalidArgumentException
 	 * @return bool
 	 */
 	public function restore()
@@ -102,7 +103,7 @@ class SnapshotImport
 		$_storagePath = \Pii::getParam( 'storage_path' );
 		$_dbName = \Pii::getParam( 'dsp_name' );
 
-		if ( false === strpos( $_storagePath, '/data/storage/', 0 ) && $_storagePath != '/../storage' )
+		if ( empty( $_storagePath ) || ( false === strpos( $_storagePath, '/data/storage/', 0 ) && $_storagePath != '/../storage' ) )
 		{
 			throw new \InvalidArgumentException( 'Invalid storage path "' . $_storagePath . '" specified.' );
 		}
@@ -119,9 +120,7 @@ class SnapshotImport
 
 		if ( 0 != $_return )
 		{
-			Log::error(
-				'Error restoring storage directory for instance "' . $instanceId . '": ' . $_result . ' (' . $_return . ')' . PHP_EOL . $_command . PHP_EOL
-			);
+			Log::error( 'Error restoring storage directory for instance: ' . $_result . ' (' . $_return . ')' . PHP_EOL . $_command . PHP_EOL );
 			Log::error( implode( PHP_EOL, $_output ) );
 			$this->_killTempDirectory( $_tempPath );
 
@@ -142,13 +141,15 @@ class SnapshotImport
 		}
 
 		//	4.	Import the snapshot...
-		$_reader = new Linereader(
+		$_reader = new LineReader(
 			array(
 				 'fileName'  => $_workPath,
 				 'separator' => null,
 				 'enclosure' => null,
 			)
 		);
+
+		$_sql = null;
 
 		//	Rip through the file and exec...
 		foreach ( $_reader as $_line )
