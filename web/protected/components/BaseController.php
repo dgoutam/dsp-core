@@ -69,14 +69,16 @@ class BaseController extends \CController implements PlatformStates
 	 */
 	protected function beforeAction( $action )
 	{
+		$_host = $_SERVER['HTTP_HOST'];
+
 		//	Get the additional data ready
 		$_logInfo = array(
-			'short_message' => 'dsp request from "' . Pii::getParam( 'dsp_name' ) . '": ' . $action->id,
-			'full_message'  => 'dsp request from "' . Pii::getParam( 'dsp_name' ) . '": ' . $action->id,
+			'short_message' => 'dsp request from "' . $_host . '": ' . $action->id,
+			'full_message'  => 'dsp request from "' . $_host . '": ' . $action->id,
 			'level'         => GraylogLevels::Info,
 			'facility'      => 'dsp/api',
 			'source'        => 'web',
-			'payload'       => null,
+			'payload'       => $_REQUEST,
 		);
 
 		GelfLogger::logMessage( $_logInfo );

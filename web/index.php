@@ -38,4 +38,5 @@ require_once __DIR__ . '/../config/aliases.php';
 //defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 //defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
-\Yii::createWebApplication( $_config )->run();
+\Yii::createWebApplication( $_config );
+\Pii::app()->run();

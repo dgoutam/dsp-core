@@ -99,7 +99,7 @@ class Fabric extends SeedUtility
 	 */
 	public static function initialize()
 	{
-		global $_dbName, $_instance;
+		global $_dbName, $_instance, $_dspName;
 
 		//	If this isn't a cloud request, bail
 		$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
@@ -111,7 +111,6 @@ class Fabric extends SeedUtility
 		}
 
 		//	What has it gots in its pocketses? Cookies first, then session
-		$_storageKey = FilterInput::cookie( static::FigNewton, FilterInput::session( static::FigNewton ), \Kisma::get( 'platform.storage_key' ) );
 		$_privateKey
 			= FilterInput::cookie( static::PrivateFigNewton, FilterInput::session( static::PrivateFigNewton ), \Kisma::get( 'platform.user_key' ) );
 		$_dspName = str_ireplace( static::DSP_DEFAULT_SUBDOMAIN, null, $_host );
@@ -127,7 +126,7 @@ class Fabric extends SeedUtility
 		{
 			//	Otherwise we need to build it.
 			$_parts = explode( '.', $_host );
-			$_dbName = $_dspName = $_parts[0];
+			$_dbName = str_replace( '-', '_', $_dspName = $_parts[0] );
 
 			//	Otherwise, get the credentials from the auth server...
 //			Log::info( 'Credentials pull' );
@@ -146,6 +145,8 @@ class Fabric extends SeedUtility
 			}
 
 			$_instance = $_cache = $_response->details;
+			$_dbName = $_instance->db_name;
+			$_dspName = $_instance->instance->instance_name_text;
 			\Kisma::set( 'dsp.credentials', $_cache );
 			\Kisma::set( 'platform.private_path', $_privatePath = $_cache->private_path );
 			$_privateKey = basename( dirname( $_privatePath ) );

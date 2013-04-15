@@ -198,8 +198,7 @@ class Pii extends \CHtml
 		}
 		else
 		{
-			$_thisApp = \Yii::
-				app();
+			$_thisApp = \Yii::app();
 		}
 
 		//	Non-CLI requests have clientScript and a user maybe

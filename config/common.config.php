@@ -22,7 +22,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-global $_dbName, $_blobConfig, $_instance;
+global $_dbName, $_blobConfig, $_instance, $_dspName;
+
 
 //*************************************************************************
 //* Set fabric-hosted storage paths here...
@@ -40,7 +41,7 @@ if ( Fabric::fabricHosted() && !empty( $_instance ) )
 		'private_path'      => $_instance['private_path'],
 		'storage_path'      => $_instance['blob_storage_path'],
 		'snapshot_path'     => $_instance['snapshot_path'],
-		'dsp_name'          => $_instance['db_name'],
+		'dsp_name'          => $_instance['instance']->instance_name_text,
 	);
 }
 else
@@ -50,7 +51,7 @@ else
 		'private_path'      => __DIR__ . '/../storage/.private',
 		'storage_path'      => __DIR__ . '/../storage',
 		'snapshot_path'     => __DIR__ . '/../storage/.private/snapshots',
-		'dsp_name'          => $_dbName,
+		'dsp_name'          => gethostname(),
 	);
 }
 

@@ -40,25 +40,30 @@ class Controller extends \CController
 	public $breadcrumbs = array();
 
 	/**
+	 * Overridden to log API requests to local graylog server
+	 *
 	 * @param CAction $action
 	 *
 	 * @return bool
 	 */
 	protected function beforeAction( $action )
 	{
+		$_host = Pii::getParam( 'dsp_name' );
+
 		//	Get the additional data ready
 		$_logInfo = array(
-			'short_message' => 'dsp request from "' . Pii::getParam( 'dsp_name' ) . '": ' . $action->id,
-			'full_message'  => 'dsp request from "' . Pii::getParam( 'dsp_name' ) . '": ' . $action->id,
+			'short_message' => $action->id . ' from: ' . $_host,
+			'full_message'  => $action->id . ' from: ' . $_host,
 			'level'         => GraylogLevels::Info,
 			'facility'      => 'dsp/api',
 			'source'        => 'web',
-			'payload'       => null,
+			'payload'       => $_REQUEST,
+			'instance_name' => $_host,
+			'verb'          => $action->id,
 		);
 
 		GelfLogger::logMessage( $_logInfo );
 
 		return parent::beforeAction( $action );
 	}
-
 }
