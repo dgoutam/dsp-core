@@ -198,7 +198,8 @@ class Pii extends \CHtml
 		}
 		else
 		{
-			$_thisApp = \Yii::app();
+			$_thisApp = \Yii::
+				app();
 		}
 
 		//	Non-CLI requests have clientScript and a user maybe
@@ -531,7 +532,7 @@ class Pii extends \CHtml
 	 */
 	public static function identity()
 	{
-		return self::component( 'user' );
+		return static::component( 'user' );
 	}
 
 	/**
@@ -541,7 +542,7 @@ class Pii extends \CHtml
 	 */
 	public static function user()
 	{
-		return static::$_thisUser;
+		return static::$_thisUser = static::app()->getUser();
 	}
 
 	/**
@@ -564,7 +565,12 @@ class Pii extends \CHtml
 	 */
 	public static function getParam( $paramName, $defaultValue = null )
 	{
-		if ( static::$_appParameters && static::$_appParameters->contains( $paramName ) )
+		if ( null === static::$_appParameters )
+		{
+			static::app();
+		}
+
+		if ( null !== static::$_appParameters && static::$_appParameters->contains( $paramName ) )
 		{
 			return static::$_appParameters->itemAt( $paramName );
 		}
