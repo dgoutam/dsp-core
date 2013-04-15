@@ -76,9 +76,9 @@ class SiteController extends Controller
 			{
 				case 'ready':
 					// try local launchpad
-					if ( is_file( '/public/launchpad/index.html' ) )
+					if ( is_file( './public/launchpad/index.html' ) )
 					{
-						$this->redirect( '/public/launchpad/index.html' );
+						$this->redirect( './public/launchpad/index.html' );
 					}
 
 					//	Fall back to this app default site
