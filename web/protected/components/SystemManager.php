@@ -349,7 +349,15 @@ class SystemManager implements iRestHandler
 			$sess_name = session_name();
 			if ( isset( $_COOKIE[$sess_name] ) )
 			{
-				SessionManager::write( $_COOKIE[$sess_name], $data );
+				try
+				{
+					$sessHandler = new SessionManager();
+					SessionManager::write( $_COOKIE[$sess_name], $data );
+				}
+				catch ( Exception $ex )
+				{
+					error_log( "Failed to create session service.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+				}
 			}
 			else
 			{
