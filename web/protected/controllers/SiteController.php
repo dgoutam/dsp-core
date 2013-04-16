@@ -152,7 +152,7 @@ class SiteController extends Controller
 			//	Validate user input and redirect to the previous page if valid
 			if ( $_model->validate() && $_model->login() )
 			{
-				$this->redirect( Pii::user()->getReturnUrl() );
+				$this->redirect( '/' );
 			}
 		}
 
