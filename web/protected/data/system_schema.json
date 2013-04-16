@@ -1,5 +1,5 @@
 {
-    "version": "0.5.4",
+    "version": "0.6.0",
     "table": [
         {
             "name": "df_sys_config",
@@ -20,12 +20,35 @@
                     "default": false,
                     "allow_null": false
                 },
-                {
-                    "name": "allow_user_profile_editing",
-                    "type": "boolean",
-                    "default": true,
-                    "allow_null": false
-                },
+				{
+					"name": "open_reg_role_id",
+					"type": "reference",
+					"ref_table": "df_sys_role",
+					"ref_fields": "id",
+					"ref_on_delete": "CASCADE",
+					"allow_null": true
+				},
+				{
+					"name": "allow_guest_user",
+					"type": "boolean",
+					"default": false,
+					"allow_null": false
+				},
+				{
+					"name": "guest_role_id",
+					"type": "reference",
+					"ref_table": "df_sys_role",
+					"ref_fields": "id",
+					"ref_on_delete": "CASCADE",
+					"allow_null": true
+				},
+				{
+					"name": "editable_profile_fields",
+					"type": "string",
+					"default": "email,display_name,first_name,last_name,phone,default_app_id,security_question,security_answer",
+					"length": 255,
+					"allow_null": false
+				},
                 {
                     "name": "created_date",
                     "type": "timestamp_on_create",
@@ -79,7 +102,6 @@
                     "type": "reference",
                     "ref_table": "df_sys_role",
                     "ref_fields": "id",
-                    "ref_on_update": "CASCADE",
                     "ref_on_delete": "CASCADE",
                     "allow_null": true
                 },
@@ -99,15 +121,14 @@
                     "name": "id",
                     "type": "id"
                 },
-                {
-                    "name": "username",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 64,
-                    "allow_null": false,
-                    "is_unique": true,
-                    "validation": "not_empty"
-                },
+				{
+					"name": "email",
+					"type": "string",
+					"length": 255,
+					"allow_null": false,
+					"is_unique": true,
+					"validation": "not_empty,email"
+				},
                 {
                     "name": "password",
                     "type": "string",
@@ -139,14 +160,6 @@
                     "allow_null": false,
                     "is_index": true,
                     "validation": "not_empty"
-                },
-                {
-                    "name": "email",
-                    "type": "string",
-                    "length": 255,
-                    "allow_null": false,
-                    "is_index": true,
-                    "validation": "not_empty,email"
                 },
                 {
                     "name": "phone",

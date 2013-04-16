@@ -26,12 +26,11 @@ use \Kisma\Core\Exceptions\StorageException;
  * Columns
  *
  * @property integer    $id
- * @property string     $username
+ * @property string     $email
  * @property string     $password
  * @property string     $first_name
  * @property string     $last_name
  * @property string     $display_name
- * @property string     $email
  * @property string     $phone
  * @property integer    $is_active
  * @property integer    $is_sys_admin
@@ -89,12 +88,12 @@ class User extends BaseDspSystemModel
 	public function rules()
 	{
 		$_rules = array(
-			array( 'username, first_name, display_name, email', 'required' ),
-			array( 'username, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
+			array( 'email, display_name', 'required' ),
+			array( 'email, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 			array( 'email', 'email' ),
-			array( 'is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true ),
-			array( 'username, password, first_name, last_name, security_answer', 'length', 'max' => 64 ),
 			array( 'email', 'length', 'max' => 255 ),
+			array( 'is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true ),
+			array( 'password, first_name, last_name, security_answer', 'length', 'max' => 64 ),
 			array( 'phone', 'length', 'max' => 32 ),
 			array( 'confirm_code, display_name, security_question', 'length', 'max' => 128 ),
 		);
@@ -131,12 +130,11 @@ class User extends BaseDspSystemModel
 	public function attributeLabels()
 	{
 		$_labels = array(
-			'username'          => 'Username',
+			'email'             => 'Email',
 			'password'          => 'Password',
 			'first_name'        => 'First Name',
 			'last_name'         => 'Last Name',
 			'display_name'      => 'Display Name',
-			'email'             => 'Email',
 			'phone'             => 'Phone',
 			'is_active'         => 'Is Active',
 			'is_sys_admin'      => 'Is System Admin',
@@ -187,7 +185,8 @@ class User extends BaseDspSystemModel
 
 			if ( empty( $this->first_name ) )
 			{
-				$this->first_name = $this->username;
+				$temp = substr( $this->email, 0, strrpos( $this->email, '@' ) );
+				$this->first_name = $temp;
 			}
 
 			if ( empty( $this->display_name ) )
@@ -282,7 +281,6 @@ class User extends BaseDspSystemModel
 					 'display_name',
 					 'first_name',
 					 'last_name',
-					 'username',
 					 'email',
 					 'phone',
 					 'is_active',

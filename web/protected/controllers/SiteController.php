@@ -238,7 +238,6 @@ class SiteController extends Controller
 		}
 
 		$_model->email = Pii::getState( 'email' );
-		$_model->username = substr( $_model->email, 0, strpos( $_model->email, '@' ) );
 		$_model->firstName = Pii::getState( 'first_name' );
 		$_model->lastName = Pii::getState( 'last_name' );
 		$_model->displayName = Pii::getState( 'display_name' );

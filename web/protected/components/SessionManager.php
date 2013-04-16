@@ -33,6 +33,11 @@ class SessionManager
 	private static $_roleId = null;
 
 	/**
+	 * @var null
+	 */
+	private static $_cache = null;
+
+	/**
 	 * @var \CDbConnection
 	 */
     private static $_sqlConn;
@@ -378,15 +383,15 @@ class SessionManager
 		{
 			throw new Exception( "The user with id $user_id does not exist in the system.", ErrorCodes::UNAUTHORIZED );
 		}
-		$username = $user->getAttribute( 'username' );
+		$email = $user->getAttribute( 'email' );
 		if ( !$user->getAttribute( 'is_active' ) )
 		{
-			throw new Exception( "The user with username '$username' is not currently active.", ErrorCodes::FORBIDDEN );
+			throw new Exception( "The user with email '$email' is not currently active.", ErrorCodes::FORBIDDEN );
 		}
 
 		$isSysAdmin = $user->getAttribute( 'is_sys_admin' );
 		$defaultAppId = $user->getAttribute( 'default_app_id' );
-		$fields = array( 'id', 'display_name', 'first_name', 'last_name', 'username', 'email', 'is_sys_admin', 'last_login_date' );
+		$fields = array( 'id', 'display_name', 'first_name', 'last_name', 'email', 'is_sys_admin', 'last_login_date' );
 		$userInfo = $user->getAttributes( $fields );
 		$data = $userInfo; // reply data
 		$allowedApps = array();
@@ -396,7 +401,7 @@ class SessionManager
 			$theRole = $user->getRelated( 'role' );
 			if ( !isset( $theRole ) )
 			{
-				throw new Exception( "The user '$username' has not been assigned a role.", ErrorCodes::FORBIDDEN );
+				throw new Exception( "The user '$email' has not been assigned a role.", ErrorCodes::FORBIDDEN );
 			}
 			if ( !$theRole->getAttribute( 'is_active' ) )
 			{
@@ -480,7 +485,7 @@ class SessionManager
 			'role.role_service_accesses',
 			'role.apps',
 			'role.services'
-		)->find( 'username=:un', array( ':un' => 'guest' ) );
+		)->find( 'email=:email', array( ':email' => 'guest@dreamfactory.com' ) );
 
 		if ( !empty( $theUser ) )
 		{

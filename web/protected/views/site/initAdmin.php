@@ -12,7 +12,7 @@ Validate::register(
 		 'errorClass'     => 'error',
 		 'errorPlacement' => 'function(error,element){error.appendTo(element.parent("div"));error.css("margin","-10px 0 0");}',
 		 'rules'          => array(
-			 'InitAdminForm[username]'       => array(
+			 'InitAdminForm[email]'       => array(
 				 'required'  => true,
 				 'minlength' => 5,
 			 ),
@@ -43,13 +43,12 @@ Validate::register(
 	<?php
 	echo'<legend>Login Credentials</legend>';
 
-	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_username' ), 'User Name' ) . '<div class="controls">' .
-		Bootstrap::text( array(
-							  'id'    => 'InitAdminForm_username',
-							  'name'  => 'InitAdminForm[username]',
-							  'class' => 'required',
-							  'value' => $model->username
-						 ) ) . '</div></div>';
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_email' ), 'Email Address' ) . '<div class="controls">' .
+		 Bootstrap::text( array( 'id'  => 'InitAdminForm_email',
+							   'name'  => 'InitAdminForm[email]',
+							   'class' => 'email required',
+							   'value' => $model->email
+						  ) ) . '</div></div>';
 
 	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_password' ), 'Password' ) . '<div class="controls">' .
 		Bootstrap::password( array(
@@ -71,13 +70,6 @@ Validate::register(
 		'</div></div>';
 
 	echo'<legend>User Details</legend>';
-
-	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_email' ), 'Email Address' ) . '<div class="controls">' .
-		Bootstrap::text( array( 'id'  => 'InitAdminForm_email',
-							  'name'  => 'InitAdminForm[email]',
-							  'class' => 'email required',
-							  'value' => $model->email
-						 ) ) . '</div></div>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_firstName' ), 'First Name' ) . '<div class="controls">' .
 		Bootstrap::text( array( 'id'  => 'InitAdminForm_firstName',

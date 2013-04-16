@@ -183,7 +183,7 @@ class UserManager implements iRestHandler
 				'operations'  => array(
 					array(
 						"httpMethod"     => "GET",
-						"summary"        => "Retrieve the security challenge question for the given username",
+						"summary"        => "Retrieve the security challenge question for the given user",
 						"notes"          => "Use this to retrieve the challenge question to present to the user.",
 						"responseClass"  => "array",
 						"nickname"       => "getChallenge",
@@ -192,7 +192,7 @@ class UserManager implements iRestHandler
 					),
 					array(
 						"httpMethod"     => "POST",
-						"summary"        => "Answer the security challenge question for the given username",
+						"summary"        => "Answer the security challenge question for the given user",
 						"notes"          => "Use this to gain temporary access to change password.",
 						"responseClass"  => "array",
 						"nickname"       => "answerChallenge",
@@ -244,9 +244,9 @@ class UserManager implements iRestHandler
 				$result = array( 'resource' => $resources );
 				break;
 			case 'challenge':
-				$username = Utilities::getArrayValue( 'username', $_REQUEST, '' );
-				$send_email = Utilities::getArrayValue( 'send_email', $_REQUEST, '' );
-				$result = $this->forgotPassword( $username, $send_email );
+				$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
+				$send_email = Utilities::getArrayValue( 'send_email', $_REQUEST, false );
+				$result = $this->forgotPassword( $email, $send_email );
 				break;
 			case 'profile':
 				$result = $this->getProfile();
@@ -278,19 +278,19 @@ class UserManager implements iRestHandler
 		switch ( $this->command )
 		{
 			case 'session':
-				$username = Utilities::getArrayValue( 'username', $data, '' );
+				$email = Utilities::getArrayValue( 'email', $data, '' );
 				$password = Utilities::getArrayValue( 'password', $data, '' );
 				//$password = Utilities::decryptPassword($password);
-				$result = $this->userLogin( $username, $password );
+				$result = $this->userLogin( $email, $password );
 				break;
 			case 'register':
 				$firstName = Utilities::getArrayValue( 'first_name', $data, '' );
 				$lastName = Utilities::getArrayValue( 'last_name', $data, '' );
-				$username = Utilities::getArrayValue( 'username', $data, '' );
+				$displayName = Utilities::getArrayValue( 'display_name', $data, '' );
 				$email = Utilities::getArrayValue( 'email', $data, '' );
 				$password = Utilities::getArrayValue( 'password', $data, '' );
 				//$password = Utilities::decryptPassword($password);
-				$result = $this->userRegister( $username, $email, $password, $firstName, $lastName );
+				$result = $this->userRegister( $email, $password, $firstName, $lastName, $displayName );
 				break;
 			case 'confirm':
 				$code = Utilities::getArrayValue( 'code', $_REQUEST, '' );
@@ -306,15 +306,15 @@ class UserManager implements iRestHandler
 				{
 					throw new Exception( "Missing required fields 'new_password'.", ErrorCodes::BAD_REQUEST );
 				}
-				$username = Utilities::getArrayValue( 'username', $_REQUEST, '' );
-				if ( empty( $username ) )
+				$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
+				if ( empty( $email ) )
 				{
-					$username = Utilities::getArrayValue( 'username', $data, '' );
+					$email = Utilities::getArrayValue( 'email', $data, '' );
 				}
 				$answer = Utilities::getArrayValue( 'security_answer', $data, '' );
-				if ( !empty( $username ) && !empty( $answer ) )
+				if ( !empty( $email ) && !empty( $answer ) )
 				{
-					$result = $this->passwordResetBySecurityAnswer( $username, $answer, $newPassword );
+					$result = $this->passwordResetBySecurityAnswer( $email, $answer, $newPassword );
 				}
 				else
 				{
@@ -329,7 +329,7 @@ class UserManager implements iRestHandler
 					}
 					else
 					{
-						throw new Exception( "Missing required fields 'username' and 'security_answer'.", ErrorCodes::BAD_REQUEST );
+						throw new Exception( "Missing required fields 'email' and 'security_answer'.", ErrorCodes::BAD_REQUEST );
 					}
 				}
 				break;
@@ -604,7 +604,7 @@ class UserManager implements iRestHandler
 		$body = "Hello " . $user_rec['name'] . ",\r\n\r\n" .
 				"Your password was reset successfully. " .
 				"Here is your updated login:\r\n" .
-				"username:" . $user_rec['username'] . "\r\n" .
+				"email:" . $user_rec['email'] . "\r\n" .
 				"password:$new_password\r\n" .
 				"\r\n" .
 				"Login here: " . Utilities::getAbsoluteURLFolder() . "login.php\r\n" .
@@ -681,18 +681,16 @@ class UserManager implements iRestHandler
 
 	/**
 	 * @param $email
-	 * @param $username
 	 * @param $fullname
 	 *
 	 * @throws Exception
 	 */
-	protected function sendAdminIntimationEmail( $email, $username, $fullname )
+	protected function sendAdminIntimationEmail( $email, $fullname )
 	{
 		$subject = "New registration: " . $fullname;
 		$body = "A new user registered at " . $this->siteName . ".\r\n" .
 				"Name: " . $fullname . "\r\n" .
-				"Email address: " . $email . "\r\n" .
-				"UserName: " . $username;
+				"Email address: " . $email;
 
 		$html = str_replace( "\r\n", "<br />", $body );
 
@@ -814,17 +812,17 @@ class UserManager implements iRestHandler
 	//-------- User Operations ------------------------------------------------
 
 	/**
-	 * @param $username
+	 * @param $email
 	 * @param $password
 	 *
 	 * @return array
 	 * @throws Exception
 	 */
-	public static function userLogin( $username, $password )
+	public static function userLogin( $email, $password )
 	{
-		if ( empty( $username ) )
+		if ( empty( $email ) )
 		{
-			throw new Exception( "Login request is missing required username.", ErrorCodes::BAD_REQUEST );
+			throw new Exception( "Login request is missing required email.", ErrorCodes::BAD_REQUEST );
 		}
 		if ( empty( $password ) )
 		{
@@ -833,10 +831,10 @@ class UserManager implements iRestHandler
 
 		try
 		{
-			$theUser = User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->find( 'username=:un', array( ':un' => $username ) );
+			$theUser = User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->find( 'email=:email', array( ':email' => $email ) );
 			if ( null === $theUser )
 			{
-				// bad username
+				// bad email
 				throw new Exception( "The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED );
 			}
 			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
@@ -976,34 +974,35 @@ class UserManager implements iRestHandler
 	}
 
 	/**
-	 * @param        $username
 	 * @param        $email
 	 * @param string $password
 	 * @param string $first_name
 	 * @param string $last_name
+	 * @param string $display_name
 	 *
-	 * @return array
 	 * @throws Exception
+	 * @return array
 	 */
-	public static function userRegister( $username, $email, $password = '', $first_name = '', $last_name = '' )
+	public static function userRegister( $email, $password = '', $first_name = '', $last_name = '', $display_name = '' )
 	{
-		$confirmCode = static::makeConfirmationMd5( $username );
+		$confirmCode = static::makeConfirmationMd5( $email );
 		// fill out the user fields for creation
-		$fields = array( 'username' => $username, 'email' => $email, 'password' => $password );
-		$fields['first_name'] = ( !empty( $first_name ) ) ? $first_name : $username;
-		$fields['last_name'] = ( !empty( $last_name ) ) ? $last_name : $username;
-		$fullName = ( !empty( $first_name ) && !empty( $last_name ) ) ? $first_name . ' ' . $last_name : $username;
+		$fields = array( 'email' => $email, 'password' => $password );
+		$temp = substr( $email, 0, strrpos( $email, '@' ) );
+		$fields['first_name'] = ( !empty( $first_name ) ) ? $first_name : $temp;
+		$fields['last_name'] = ( !empty( $last_name ) ) ? $last_name : $temp;
+		$fullName = ( !empty( $first_name ) && !empty( $last_name ) ) ? $first_name . ' ' . $last_name : $temp;
 		$fields['display_name'] = $fullName;
 		$fields['confirm_code'] = $confirmCode;
 		$record = Utilities::array_key_lower( $fields );
-		if ( empty( $username ) )
+		if ( empty( $email ) )
 		{
-			throw new Exception( "The username field for User can not be empty.", ErrorCodes::BAD_REQUEST );
+			throw new Exception( "The email field for User can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-		$theUser = User::model()->find( 'username=:un', array( ':un' => $username ) );
+		$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
 		if ( null !== $theUser )
 		{
-			throw new Exception( "A User already exists with the username '$username'.", ErrorCodes::BAD_REQUEST );
+			throw new Exception( "A User already exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
 		}
 		try
 		{
@@ -1026,7 +1025,7 @@ class UserManager implements iRestHandler
 			throw new Exception( "Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR );
 		}
 
-        static::sendAdminIntimationEmail( $email, $username, $fullName );
+        static::sendAdminIntimationEmail( $email, $fullName );
 
 		unset( $fields['password'] );
 
@@ -1070,21 +1069,21 @@ class UserManager implements iRestHandler
 	}
 
 	/**
-	 * @param      $username
+	 * @param      $email
 	 * @param bool $send_email
 	 *
 	 * @throws Exception
 	 * @return string
 	 */
-	public static function forgotPassword( $username, $send_email = false )
+	public static function forgotPassword( $email, $send_email = false )
 	{
 		try
 		{
-			$theUser = User::model()->find( 'username=:un', array( ':un' => $username ) );
+			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
 			if ( null === $theUser )
 			{
-				// bad username
-				throw new Exception( "The supplied username was not found in the system." );
+				// bad email
+				throw new Exception( "The supplied email was not found in the system." );
 			}
 			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
 			{
@@ -1126,22 +1125,22 @@ class UserManager implements iRestHandler
 	}
 
 	/**
-	 * @param $username
+	 * @param $email
 	 * @param $answer
 	 * @param $new_password
 	 *
 	 * @throws Exception
 	 * @return mixed
 	 */
-	public static function passwordResetBySecurityAnswer( $username, $answer, $new_password )
+	public static function passwordResetBySecurityAnswer( $email, $answer, $new_password )
 	{
 		try
 		{
-			$theUser = User::model()->find( 'username=:un', array( ':un' => $username ) );
+			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
 			if ( null === $theUser )
 			{
-				// bad username
-				throw new Exception( "The supplied username was not found in the system." );
+				// bad email
+				throw new Exception( "The supplied email was not found in the system." );
 			}
 			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
 			{
@@ -1181,8 +1180,8 @@ class UserManager implements iRestHandler
 			$theUser = User::model()->find( 'confirm_code=:cc', array( ':cc' => $code ) );
 			if ( null === $theUser )
 			{
-				// bad username
-				throw new Exception( "The supplied username was not found in the system." );
+				// bad code
+				throw new Exception( "The supplied confirmation was not found in the system." );
 			}
 			$theUser->setAttribute( 'confirm_code', 'y' );
 			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );

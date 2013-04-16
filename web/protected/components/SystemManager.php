@@ -305,11 +305,11 @@ class SystemManager implements iRestHandler
 		{
 			// create and login first admin user
 			// fill out the user fields for creation
-			$username = Utilities::getArrayValue( 'username', $data );
-			$theUser = User::model()->find( 'username=:un', array( ':un' => $username ) );
+			$email = Utilities::getArrayValue( 'email', $data );
+			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
 			if ( null !== $theUser )
 			{
-				throw new Exception( "A user already exists with the username '$username'.", ErrorCodes::BAD_REQUEST );
+				throw new Exception( "A user already exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
 			}
 			$firstName = Utilities::getArrayValue( 'firstName', $data );
 			$lastName = Utilities::getArrayValue( 'lastName', $data );
@@ -318,8 +318,7 @@ class SystemManager implements iRestHandler
 				: $displayName );
 			$pwd = Utilities::getArrayValue( 'password', $data, '' );
 			$fields = array(
-				'username'     => $username,
-				'email'        => Utilities::getArrayValue( 'email', $data ),
+				'email'        => $email,
 				'password'     => $pwd,
 				'first_name'   => $firstName,
 				'last_name'    => $lastName,
@@ -558,6 +557,25 @@ class SystemManager implements iRestHandler
 					);
 					$result = array( 'resource' => $result );
 					break;
+				case 'config':
+					// Most requests contain 'returned fields' parameter, all by default
+					$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
+					$extras = array();
+					$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
+					if ( !empty( $related ) )
+					{
+						$related = array_map( 'trim', explode( ',', $related ) );
+						foreach ( $related as $relative )
+						{
+							$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
+							$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
+							$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+						}
+					}
+
+					$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+					$result = static::retrieveConfig( $fields, $include_schema, $extras );
+					break;
 				case 'app':
 				case 'app_group':
 				case 'role':
@@ -714,6 +732,14 @@ class SystemManager implements iRestHandler
 				case '':
 					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
 					break;
+				case 'config':
+					// typically an update here
+					if ( empty( $data ) )
+					{
+						throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
+					}
+					$result = static::updateConfig( $data, $fields, $extras );
+					break;
 				case 'app':
 					// you can import an application package file, local or remote, or from zip, but nothing else
 					$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
@@ -859,6 +885,14 @@ class SystemManager implements iRestHandler
 				case '':
 					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
 					break;
+				case 'config':
+					// typically an update here
+					if ( empty( $data ) )
+					{
+						throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
+					}
+					$result = static::updateConfig( $data, $fields, $extras );
+					break;
 				case 'app':
 				case 'app_group':
 				case 'role':
@@ -949,6 +983,14 @@ class SystemManager implements iRestHandler
 			{
 				case '':
 					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
+					break;
+				case 'config':
+					// typically an update here
+					if ( empty( $data ) )
+					{
+						throw new Exception( 'No record in MERGE update request.', ErrorCodes::BAD_REQUEST );
+					}
+					$result = static::updateConfig( $data, $fields, $extras );
 					break;
 				case 'app':
 				case 'app_group':
@@ -1185,6 +1227,174 @@ class SystemManager implements iRestHandler
 
 	//-------- System Records Operations ---------------------
 	// records is an array of field arrays
+
+	public static function retrieveConfig( $return_fields = '', $include_schema = false, $extras = array() )
+	{
+		SessionManager::checkPermission( 'read', 'system', 'config' );
+		$model = Config::model();
+		$return_fields = $model->getRetrievableAttributes( $return_fields );
+		$relations = $model->relations();
+
+		try
+		{
+			$record = $model->find();
+			$results = array();
+			if ( !empty( $record ) )
+			{
+				$data = $record->getAttributes( $return_fields );
+				if ( !empty( $extras ) )
+				{
+					$relatedData = array();
+					foreach ( $extras as $extra )
+					{
+						$extraName = $extra['name'];
+						if ( !isset( $relations[$extraName] ) )
+						{
+							throw new Exception( "Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST );
+						}
+						$extraFields = $extra['fields'];
+						$relatedRecords = $record->getRelated( $extraName, true );
+						if ( is_array( $relatedRecords ) )
+						{
+							// an array of records
+							$tempData = array();
+							if ( !empty( $relatedRecords ) )
+							{
+								$relatedFields = $relatedRecords[0]->getRetrievableAttributes( $extraFields );
+								foreach ( $relatedRecords as $relative )
+								{
+									$tempData[] = $relative->getAttributes( $relatedFields );
+								}
+							}
+						}
+						else
+						{
+							$tempData = null;
+							if ( isset( $relatedRecords ) )
+							{
+								$relatedFields = $relatedRecords->getRetrievableAttributes( $extraFields );
+								$tempData = $relatedRecords->getAttributes( $relatedFields );
+							}
+						}
+						$relatedData[$extraName] = $tempData;
+					}
+					if ( !empty( $relatedData ) )
+					{
+						$data = array_merge( $data, $relatedData );
+					}
+				}
+
+				$results = $data;
+			}
+
+			if ( $include_schema )
+			{
+				$results['meta']['schema'] = DbUtilities::describeTable( Yii::app()->db, $model->tableName(), static::SYSTEM_TABLE_PREFIX );
+			}
+
+			return $results;
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Error retrieving configuration record.\n{$ex->getMessage()}" );
+		}
+	}
+
+	protected static function updateConfig( $record, $fields, $extras )
+	{
+		SessionManager::checkPermission( 'update', 'system', 'config' );
+
+		try
+		{
+			// try to local config record first
+			$obj = Config::model()->find();
+			if ( empty( $obj ) )
+			{
+				// create DB record
+				$obj = new Config();
+			}
+			$obj->setAttributes( $record );
+			$obj->save();
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to update system configuration.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
+		}
+
+		try
+		{
+			$id = $obj->primaryKey;
+			if ( empty( $id ) )
+			{
+				error_log( "Failed to get primary key from created user.\n" . print_r( $obj, true ) );
+				throw new Exception( "Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR );
+			}
+
+			// after record create
+			$obj->setRelated( $record, $id );
+
+			$primaryKey = $obj->tableSchema->primaryKey;
+			if ( empty( $return_fields ) && empty( $extras ) )
+			{
+				$data = array( $primaryKey => $id );
+			}
+			else
+			{
+				// get returnables
+				$obj->refresh();
+				$return_fields = $obj->getRetrievableAttributes( $return_fields );
+				$data = $obj->getAttributes( $return_fields );
+				if ( !empty( $extras ) )
+				{
+					$relations = $obj->relations();
+					$relatedData = array();
+					foreach ( $extras as $extra )
+					{
+						$extraName = $extra['name'];
+						if ( !isset( $relations[$extraName] ) )
+						{
+							throw new Exception( "Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST );
+						}
+						$extraFields = $extra['fields'];
+						$relatedRecords = $obj->getRelated( $extraName, true );
+						if ( is_array( $relatedRecords ) )
+						{
+							// an array of records
+							$tempData = array();
+							if ( !empty( $relatedRecords ) )
+							{
+								$relatedFields = $relatedRecords[0]->getRetrievableAttributes( $extraFields );
+								foreach ( $relatedRecords as $relative )
+								{
+									$tempData[] = $relative->getAttributes( $relatedFields );
+								}
+							}
+						}
+						else
+						{
+							$tempData = null;
+							if ( isset( $relatedRecords ) )
+							{
+								$relatedFields = $relatedRecords->getRetrievableAttributes( $extraFields );
+								$tempData = $relatedRecords->getAttributes( $relatedFields );
+							}
+						}
+						$relatedData[$extraName] = $tempData;
+					}
+					if ( !empty( $relatedData ) )
+					{
+						$data = array_merge( $data, $relatedData );
+					}
+				}
+			}
+
+			return $data;
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
 
 	/**
 	 * @param        $table

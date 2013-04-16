@@ -26,6 +26,11 @@
  *
  * @property integer $id
  * @property string  $db_version
+ * @property integer $allow_open_registration
+ * @property integer $open_reg_role_id
+ * @property integer $allow_guest_user
+ * @property integer $guest_role_id
+ * @property string  $editable_profile_fields
  */
 class Config extends BaseDspSystemModel
 {
@@ -56,8 +61,23 @@ class Config extends BaseDspSystemModel
 	{
 		return array(
 			array( 'db_version', 'length', 'max' => 32 ),
-			array( 'id, db_version', 'safe', 'on' => 'search' ),
+			array( 'editable_profile_fields', 'length', 'max' => 255 ),
+			array( 'allow_open_registration, allow_guest_user, open_reg_role_id, guest_role_id', 'numerical', 'integerOnly' => true ),
+			array( 'id, db_version, editable_profile_fields', 'safe', 'on' => 'search' ),
 		);
+	}
+
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		$_relations = array(
+			'open_reg_role' => array( self::BELONGS_TO, 'Role', 'open_reg_role_id' ),
+			'guest_role'    => array( self::BELONGS_TO, 'Role', 'guest_role_id' ),
+		);
+
+		return array_merge( parent::relations(), $_relations );
 	}
 
 	/**
@@ -68,6 +88,11 @@ class Config extends BaseDspSystemModel
 		return array(
 			'id'         => 'Config Id',
 			'db_version' => 'Db Version',
+			'allow_open_registration' => 'Allow Open Registration',
+			'open_reg_role_id' => 'Open Registration Default Role Id',
+			'allow_guest_user' => 'Allow Guest User',
+			'guest_role_id' => 'Guest Role Id',
+			'editable_profile_fields' => 'Editable Profile Fields',
 		);
 	}
 
@@ -87,6 +112,79 @@ class Config extends BaseDspSystemModel
 			$this,
 			array(
 				 'criteria' => $_criteria,
+			)
+		);
+	}
+
+	/** {@InheritDoc} */
+	protected function beforeValidate()
+	{
+		$this->allow_open_registration = intval( Utilities::boolval( $this->allow_open_registration ) );
+		$this->allow_guest_user = intval( Utilities::boolval( $this->allow_guest_user ) );
+		if ( is_string( $this->open_reg_role_id ) )
+		{
+			if ( empty( $this->open_reg_role_id ))
+			{
+				$this->open_reg_role_id = null;
+			}
+			else
+			{
+				$this->open_reg_role_id = intval( $this->open_reg_role_id );
+			}
+		}
+		if ( is_string( $this->guest_role_id ) )
+		{
+			if ( empty( $this->guest_role_id ))
+			{
+				$this->guest_role_id = null;
+			}
+			else
+			{
+				$this->guest_role_id = intval( $this->guest_role_id );
+			}
+		}
+
+		return parent::beforeValidate();
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
+	public function afterFind()
+	{
+		parent::afterFind();
+
+		//	Correct data type
+		$this->allow_open_registration = intval( $this->allow_open_registration );
+		$this->allow_guest_user = intval( $this->allow_guest_user );
+	}
+
+	/**
+	 * @param string $requested
+	 * @param array  $columns
+	 * @param array  $hidden
+	 *
+	 * @return array
+	 */
+	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
+	{
+		return parent::getRetrievableAttributes(
+			$requested,
+			array_merge(
+				array(
+					 'db_version',
+					 'allow_open_registration',
+					 'open_reg_role_id',
+					 'allow_guest_user',
+					 'guest_role_id',
+					 'editable_profile_fields',
+				),
+				$columns
+			),
+			// hide these from the general public
+			array_merge(
+				array(),
+				$hidden
 			)
 		);
 	}
