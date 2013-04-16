@@ -22,21 +22,26 @@
  */
 use DreamFactory\Platform\Utility\DataCache;
 
-$_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
+$_basePath = dirname( __DIR__ );
+$_autoloader = require_once( $_basePath . '/vendor/autoload.php' );
 require_once __DIR__ . '/protected/components/Pii.php';
-\Pii::run( __DIR__ . '/../config', $_autoloader );
+
+//	Initialize app settings
+\Pii::run( __DIR__, $_autoloader );
 
 //	Main DSP web configuration
 if ( !( $_config = DataCache::load( $_key = $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_HOST'] . '.web' ) ) )
 {
-	DataCache::store( $_key, $_config = require __DIR__ . '/../config/web.php' );
+	DataCache::store( $_key, $_config = require $_basePath . '/config/web.php' );
 }
 
-require_once __DIR__ . '/../config/aliases.php';
+require_once $_basePath . '/config/aliases.php';
 
 //	Comment out the following lines in production
 //defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 //defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
 \Yii::createWebApplication( $_config );
+
+//	This initializes caching inside Pii
 \Pii::app()->run();

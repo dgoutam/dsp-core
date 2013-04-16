@@ -78,19 +78,18 @@ class Pii extends \CHtml
 	 */
 	public static function run( $docRoot, $autoloader = null )
 	{
+		$_basePath = dirname( $docRoot );
+
 		if ( null === $autoloader )
 		{
 			/** @noinspection PhpIncludeInspection */
-			$autoloader = require_once( dirname( $docRoot ) . '/vendor/autoload.php' );
+			$autoloader = require_once( $_basePath . '/vendor/autoload.php' );
 		}
 
 		$_dspName = null;
 
-		$_basePath = dirname( $docRoot );
 		$_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' );
-		$_class = ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' );
 		$_configPath = $_basePath . '/config';
-		$_configFile = $_configPath . '/' . $_appMode . '.php';
 		$_logPath = $_basePath . '/log';
 
 		$_dspName = static::_determineHostName();
@@ -114,7 +113,7 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.dsp_name', $_dspName );
 		\Kisma::set( 'platform.fabric_hosted', $_isFabric = file_exists( static::FABRIC_MARKER ) );
 
-		//	Just return the app if there is one...
+		//	Return the app object if there is one
 		return static::app();
 	}
 
@@ -177,7 +176,7 @@ class Pii extends \CHtml
 	/**
 	 * Shorthand version of Yii::app() with caching. Ya know, for speed!
 	 *
-	 * @param \CApplication|\CConsoleApplication|\CWebApplication|null $app
+	 * @param \CApplication|\CConsoleApplication|\CWebApplication|bool $app If "false", just returns $app without prejudice
 	 *
 	 * @return \CConsoleApplication|\CWebApplication
 	 */
@@ -185,6 +184,11 @@ class Pii extends \CHtml
 	{
 		/** @var $_thisApp \CApplication|\CWebApplication|\CConsoleApplication */
 		static $_thisApp = null;
+
+		if ( false === $app )
+		{
+			return $_thisApp;
+		}
 
 		if ( !empty( $_thisApp ) )
 		{
@@ -202,15 +206,15 @@ class Pii extends \CHtml
 		}
 
 		//	Non-CLI requests have clientScript and a user maybe
-		if ( 'cli' != PHP_SAPI && $_thisApp )
-		{
-			static::$_clientScript = $_thisApp->getClientScript();
-			static::$_thisUser = $_thisApp->getUser();
-		}
-
 		if ( $_thisApp )
 		{
-			static::$_thisRequest = $_thisApp->getRequest();
+			if ( 'cli' != PHP_SAPI )
+			{
+				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
+				static::$_thisUser = static::identity();
+			}
+
+			static::$_thisRequest = $_thisApp->getComponent( 'request', false );
 			static::$_appParameters = $_thisApp->getParams();
 		}
 
@@ -531,7 +535,7 @@ class Pii extends \CHtml
 	 */
 	public static function identity()
 	{
-		return static::component( 'user' );
+		return static::component( 'user', false );
 	}
 
 	/**
@@ -541,7 +545,7 @@ class Pii extends \CHtml
 	 */
 	public static function user()
 	{
-		return static::$_thisUser = static::app()->getUser();
+		return static::$_thisUser;
 	}
 
 	/**
