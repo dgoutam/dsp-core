@@ -262,6 +262,17 @@ class SystemManager implements iRestHandler
 					break;
 			}
 //            }
+			// clean up old unique index, temporary for upgrade
+			try
+			{
+				$command->reset();
+				$command->dropIndex( 'undx_df_sys_user_username', 'df_sys_user' );
+				$command->dropindex( 'ndx_df_sys_user_email', 'df_sys_user' );
+			}
+			catch ( Exception $_ex )
+			{
+				Log::error( 'Exception clearing username index: ' . $_ex->getMessage() );
+			}
 			// initialize config table if not already
 			try
 			{
@@ -280,7 +291,7 @@ class SystemManager implements iRestHandler
 					throw new Exception( "old_version: $oldVersion new_version: $version" );
 				}
 			}
-			catch ( CDbException $_ex )
+			catch ( Exception $_ex )
 			{
 				Log::error( 'Exception saving database version: ' . $_ex->getMessage() );
 			}
