@@ -137,10 +137,11 @@ class SystemManager implements iRestHandler
 				}
 				$version = Utilities::getArrayValue( 'version', $contents );
 				$oldVersion = '';
-				$config = Config::model()->find();
-				if ( isset( $config ) )
+				$command = Yii::app()->db->createCommand();
+				$result = $command->from( 'df_sys_config' )->queryRow();
+				if ( isset( $result['db_version'] ) )
 				{
-					$oldVersion = $config->getAttribute( 'db_version' );
+					$oldVersion = $result['db_version'];
 				}
 				if ( static::doesDbVersionRequireUpgrade( $oldVersion, $version ) )
 				{
@@ -199,14 +200,16 @@ class SystemManager implements iRestHandler
 			}
 			$contents = Utilities::jsonToArray( $contents );
 			$version = Utilities::getArrayValue( 'version', $contents );
+			$command = Yii::app()->db->createCommand();
 			$config = null;
 			$oldVersion = '';
 			if ( DbUtilities::doesTableExist( Yii::app()->db, static::SYSTEM_TABLE_PREFIX . 'config' ) )
 			{
-				$config = Config::model()->find();
-				if ( isset( $config ) )
+				$command->reset();
+				$config = $command->from( 'df_sys_config' )->queryRow();
+				if ( isset( $config['db_version'] ) )
 				{
-					$oldVersion = $config->getAttribute( 'db_version' );
+					$oldVersion = $config['db_version'];
 				}
 			}
 			// create system tables
@@ -218,13 +221,13 @@ class SystemManager implements iRestHandler
 			$result = DbUtilities::createTables( Yii::app()->db, $tables, true, false );
 
 			// setup session stored procedure
-			$command = Yii::app()->db->createCommand();
 //            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
 //                      WHERE ROUTINE_TYPE="PROCEDURE"
 //                          AND ROUTINE_SCHEMA="dreamfactory"
 //                          AND ROUTINE_NAME="UpdateOrInsertSession";';
 //            $result = $db->singleSqlQuery($query);
 //            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
+			$command->reset();
 			switch ( DbUtilities::getDbDriverType( Yii::app()->db ) )
 			{
 				case DbUtilities::DRV_SQLSRV:
@@ -262,20 +265,19 @@ class SystemManager implements iRestHandler
 			// initialize config table if not already
 			try
 			{
-				if ( !isset( $config ) )
+				$command->reset();
+				if ( empty( $config ) )
 				{
 					// first time is troublesome with session user id
-					$command->reset();
-					$rows = $command->insert( Config::tableNamePrefix() . 'config', array( 'db_version' => $version ) );
-					if ( 0 >= $rows )
-					{
-						throw new Exception( "Record insert failed." );
-					}
+					$rows = $command->insert( 'df_sys_config', array( 'db_version' => $version ) );
 				}
 				else
 				{
-					$config->db_version = $version;
-					$config->save();
+					$rows = $command->update( 'df_sys_config', array( 'db_version' => $version ) );
+				}
+				if ( 0 >= $rows )
+				{
+					throw new Exception( "old_version: $oldVersion new_version: $version" );
 				}
 			}
 			catch ( CDbException $_ex )
