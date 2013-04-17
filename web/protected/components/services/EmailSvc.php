@@ -69,8 +69,8 @@ class EmailSvc extends BaseService
 						array(
 							"httpMethod"     => "POST",
 							"summary"        => "Send an email created from posted data.",
-							"notes"          => "Post data as an array of parameters, or include them as url parameters.",
-							"responseClass"  => "array",
+							"notes"          => "Post email data as an array of parameters. If a standalone template is not used, include all required fields.",
+							"responseClass"  => "Response",
 							"nickname"       => "sendEmail",
 							"parameters"     => array(
 								array(
@@ -83,99 +83,87 @@ class EmailSvc extends BaseService
 								),
 								array(
 									"paramType"     => "body",
-									"name"          => "template",
-									"description"   => "Email Template to base email on.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "to_emails",
-									"description"   => "Comma-delimited list of receiver addresses.",
-									"dataType"      => "String",
-									"required"      => true,
-									"allowMultiple" => true
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "cc_emails",
-									"description"   => "Comma-delimited list of CC receiver addresses.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => true
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "bcc_emails",
-									"description"   => "Comma-delimited list of BCC receiver addresses.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => true
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "subject",
-									"description"   => "Text only subject line.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "body_text",
-									"description"   => "Text only version of the email body.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "body_html",
-									"description"   => "Escaped HTML version of the email body.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "from_name",
-									"description"   => "Name displayed for the sender.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "from_email",
-									"description"   => "Email displayed for the sender.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "reply_name",
-									"description"   => "Name displayed for the reply to.",
-									"dataType"      => "String",
-									"required"      => false,
-									"allowMultiple" => false
-								),
-								array(
-									"paramType"     => "body",
-									"name"          => "reply_email",
-									"description"   => "Email displayed for the reply to.",
-									"dataType"      => "String",
+									"name"          => "post_data",
+									"description"   => "Data containing name-value pairs used for provisioning emails.",
+									"dataType"      => "Email",
 									"required"      => false,
 									"allowMultiple" => false
 								)
 							),
-							"errorResponses" => array()
+							"errorResponses" => array(
+								array(
+									"code"   => 400,
+									"reason" => "Request is not complete or valid."
+								),
+								array(
+									"code"   => 404,
+									"reason" => "Email Template not found."
+								)
+							)
 						)
 					)
 				)
 			);
 			$result['apis'] = $resources;
+			$result['models'] = array(
+				"Email" => array(
+					"id" => "Email",
+					"properties" => array(
+						"template" => array(
+							"type" => "string",
+							"description" => "Email Template to base email on."
+						),
+						"to" => array(
+							"type" => "string",
+							"description" => "Comma-delimited list of receiver addresses."
+						),
+						"cc" => array(
+							"type" => "string",
+							"description" => "Comma-delimited list of CC receiver addresses."
+						),
+						"bcc" => array(
+							"type" => "string",
+							"description" => "Comma-delimited list of BCC receiver addresses."
+						),
+						"subject" => array(
+							"type" => "string",
+							"description" => "Text only subject line."
+						),
+						"body_text" => array(
+							"type" => "string",
+							"description" => "Text only version of the email body."
+						),
+						"body_html" => array(
+							"type" => "string",
+							"description" => "Escaped HTML version of the email body."
+						),
+						"from_name" => array(
+							"type" => "string",
+							"description" => "Name displayed for the sender."
+						),
+						"from_email" => array(
+							"type" => "string",
+							"description" => "Email displayed for the sender."
+						),
+						"reply_to_name" => array(
+							"type" => "string",
+							"description" => "Name displayed for the reply to."
+						),
+						"reply_to_email" => array(
+							"type" => "string",
+							"description" => "Email displayed for the reply to."
+						),
+					)
+				),
+				"Response" => array(
+					"id" => "Response",
+					"properties" => array(
+						"success" => array(
+							"type" => "boolean"
+						)
+					)
+				)
+			);
 
 			return $result;
 		}
@@ -246,20 +234,31 @@ class EmailSvc extends BaseService
 	{
 		// find template in system db
 		$record = EmailTemplate::model()->findByAttributes( array( 'name' => $template ) );
+		if ( empty( $record ) )
+		{
+			throw new Exception( "Email Template '$template' not found", ErrorCodes::NOT_FOUND );
+		}
+		$to = $record->getAttribute( 'to' );
+		$cc = $record->getAttribute( 'cc' );
+		$bcc = $record->getAttribute( 'bcc' );
 		$subject = $record->getAttribute( 'subject' );
 		$text = $record->getAttribute( 'body_text' );
 		$html = $record->getAttribute( 'body_html' );
+		$fromName = $record->getAttribute( 'from_name' );
+		$fromEmail = $record->getAttribute( 'from_email' );
+		$replyName = $record->getAttribute( 'reply_name' );
+		$replyEmail = $record->getAttribute( 'reply_email' );
 		$defaults = $record->getAttribute( 'defaults' );
 
 		// build email from template defaults overwritten by posted data
+		$to = Utilities::getArrayValue( 'to', $data, $to );
+		$cc = Utilities::getArrayValue( 'cc', $data, $cc );
+		$bcc = Utilities::getArrayValue( 'bcc', $data, $bcc );
+		$fromName = Utilities::getArrayValue( 'from_name', $data, $fromName );
+		$fromEmail = Utilities::getArrayValue( 'from_email', $data, $fromEmail );
+		$replyName = Utilities::getArrayValue( 'reply_name', $data, $replyName );
+		$replyEmail = Utilities::getArrayValue( 'reply_email', $data, $replyEmail );
 		$data = array_merge( $defaults, $data );
-		$to = Utilities::getArrayValue( 'to', $data );
-		$cc = Utilities::getArrayValue( 'cc', $data );
-		$bcc = Utilities::getArrayValue( 'bcc', $data );
-		$fromName = Utilities::getArrayValue( 'from_name', $data );
-		$fromEmail = Utilities::getArrayValue( 'from_email', $data );
-		$replyName = Utilities::getArrayValue( 'reply_name', $data );
-		$replyEmail = Utilities::getArrayValue( 'reply_email', $data );
 		$this->sendEmail( $to, $cc,	$bcc, $subject, $text, $html,
 						  $fromName, $fromEmail, $replyName, $replyEmail, $data );
 	}

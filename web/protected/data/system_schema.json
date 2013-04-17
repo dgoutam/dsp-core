@@ -1,5 +1,5 @@
 {
-    "version": "0.6.0",
+    "version": "0.6.1",
     "table": [
         {
             "name": "df_sys_config",
@@ -823,6 +823,21 @@
 					"type": "text"
 				},
 				{
+					"name": "to",
+					"type": "text",
+					"supports_multibyte": true
+				},
+				{
+					"name": "cc",
+					"type": "text",
+					"supports_multibyte": true
+				},
+				{
+					"name": "bcc",
+					"type": "text",
+					"supports_multibyte": true
+				},
+				{
 					"name": "subject",
 					"type": "string",
 					"supports_multibyte": true,
@@ -837,6 +852,30 @@
 					"name": "body_html",
 					"type": "text",
 					"supports_multibyte": true
+				},
+				{
+					"name": "from_name",
+					"type": "string",
+					"supports_multibyte": true,
+					"length": 80
+				},
+				{
+					"name": "from_email",
+					"type": "string",
+					"supports_multibyte": true,
+					"length": 255
+				},
+				{
+					"name": "reply_to_name",
+					"type": "string",
+					"supports_multibyte": true,
+					"length": 80
+				},
+				{
+					"name": "reply_to_email",
+					"type": "string",
+					"supports_multibyte": true,
+					"length": 255
 				},
 				{
 					"name": "defaults",
