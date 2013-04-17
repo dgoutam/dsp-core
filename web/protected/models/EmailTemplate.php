@@ -26,9 +26,16 @@
  * @property integer             $id
  * @property string              $name
  * @property string              $description
+ * @property string              $to
+ * @property string              $cc
+ * @property string              $bcc
  * @property string              $subject
  * @property string              $body_text
  * @property string              $body_html
+ * @property string              $from_name
+ * @property string              $from_email
+ * @property string              $reply_to_name
+ * @property string              $reply_to_email
  * @property string              $defaults
  *
  * Relations:
@@ -65,8 +72,9 @@ class EmailTemplate extends BaseDspSystemModel
 			array( 'name', 'required' ),
 			array( 'name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 			array( 'name', 'length', 'max' => 64 ),
-			array( 'subject', 'length', 'max' => 80 ),
-			array( 'description, body_text, body_html, defaults', 'safe' ),
+			array( 'subject, from_name, reply_to_name', 'length', 'max' => 80 ),
+			array( 'from_email, reply_to_email', 'length', 'max' => 255 ),
+			array( 'description, to, cc, bcc, body_text, body_html, defaults', 'safe' ),
 			array( 'id, name', 'safe', 'on' => 'search' ),
 		);
 
@@ -89,12 +97,19 @@ class EmailTemplate extends BaseDspSystemModel
 	public function attributeLabels()
 	{
 		$_labels = array(
-			'name'        => 'Name',
-			'description' => 'Description',
-			'subject'     => 'Subject',
-			'body_text'   => 'Body Text Format',
-			'body_html'   => 'Body HTML Format',
-			'defaults'    => 'Default Values',
+			'name'           => 'Name',
+			'description'    => 'Description',
+			'to'             => 'To Email List',
+			'cc'             => 'CC Email List',
+			'bcc'            => 'BCC Email List',
+			'subject'        => 'Subject',
+			'body_text'      => 'Body Text Format',
+			'body_html'      => 'Body HTML Format',
+			'from_name'      => 'From Name',
+			'from_email'     => 'From Email',
+			'reply_to_name'  => 'Reply To Name',
+			'reply_to_email' => 'Reply To Email',
+			'defaults'       => 'Default Values',
 		);
 
 		return array_merge( parent::attributeLabels(), $_labels );
@@ -170,9 +185,16 @@ class EmailTemplate extends BaseDspSystemModel
 				array(
 					 'name',
 					 'description',
+					 'to',
+					 'cc',
+					 'bcc',
 					 'subject',
 					 'body_text',
 					 'body_html',
+					 'from_name',
+					 'from_email',
+					 'reply_to_name',
+					 'reply_to_email',
 					 'defaults',
 				),
 				$columns

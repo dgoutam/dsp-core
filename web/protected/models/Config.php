@@ -31,6 +31,11 @@
  * @property integer $allow_guest_user
  * @property integer $guest_role_id
  * @property string  $editable_profile_fields
+ *
+ * Relations
+ *
+ * @property Role       $open_reg_role
+ * @property Role       $guest_role
  */
 class Config extends BaseDspSystemModel
 {
