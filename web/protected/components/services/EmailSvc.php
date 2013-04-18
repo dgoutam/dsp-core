@@ -199,8 +199,8 @@ class EmailSvc extends BaseService
 			$html = Utilities::getArrayValue( 'body_html', $data );
 			$fromName = Utilities::getArrayValue( 'from_name', $data );
 			$fromEmail = Utilities::getArrayValue( 'from_email', $data );
-			$replyName = Utilities::getArrayValue( 'reply_name', $data );
-			$replyEmail = Utilities::getArrayValue( 'reply_email', $data );
+			$replyName = Utilities::getArrayValue( 'reply_to_name', $data );
+			$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data );
 			$this->sendEmail( $to, $cc,	$bcc, $subject, $text, $html,
 							  $fromName, $fromEmail, $replyName, $replyEmail );
 		}
@@ -246,8 +246,8 @@ class EmailSvc extends BaseService
 		$html = $record->getAttribute( 'body_html' );
 		$fromName = $record->getAttribute( 'from_name' );
 		$fromEmail = $record->getAttribute( 'from_email' );
-		$replyName = $record->getAttribute( 'reply_name' );
-		$replyEmail = $record->getAttribute( 'reply_email' );
+		$replyName = $record->getAttribute( 'reply_to_name' );
+		$replyEmail = $record->getAttribute( 'reply_to_email' );
 		$defaults = $record->getAttribute( 'defaults' );
 
 		// build email from template defaults overwritten by posted data
@@ -256,8 +256,8 @@ class EmailSvc extends BaseService
 		$bcc = Utilities::getArrayValue( 'bcc', $data, $bcc );
 		$fromName = Utilities::getArrayValue( 'from_name', $data, $fromName );
 		$fromEmail = Utilities::getArrayValue( 'from_email', $data, $fromEmail );
-		$replyName = Utilities::getArrayValue( 'reply_name', $data, $replyName );
-		$replyEmail = Utilities::getArrayValue( 'reply_email', $data, $replyEmail );
+		$replyName = Utilities::getArrayValue( 'reply_to_name', $data, $replyName );
+		$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data, $replyEmail );
 		$data = array_merge( $defaults, $data );
 		$this->sendEmail( $to, $cc,	$bcc, $subject, $text, $html,
 						  $fromName, $fromEmail, $replyName, $replyEmail, $data );

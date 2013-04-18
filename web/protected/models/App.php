@@ -242,7 +242,7 @@ class App extends BaseDspSystemModel
 	 */
 	protected function beforeDelete()
 	{
-		$currApp = SessionManager::getCurrentAppName();
+		$currApp = SystemManager::getCurrentAppName();
 		// make sure you don't delete yourself
 		if ( $currApp == $this->api_name )
 		{

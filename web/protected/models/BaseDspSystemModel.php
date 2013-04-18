@@ -94,7 +94,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	{
 		try
 		{
-			$this->last_modified_by_id = $_userId = SessionManager::getCurrentUserId();
+			$this->last_modified_by_id = $_userId = UserManager::getCurrentUserId();
 
 			if ( $this->isNewRecord )
 			{

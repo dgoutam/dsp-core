@@ -235,7 +235,7 @@ class User extends BaseDspSystemModel
 		// make sure you don't delete yourself
 		try
 		{
-			if ( $_id != SessionManager::getCurrentUserId() )
+			if ( $_id != UserManager::getCurrentUserId() )
 			{
 				throw new StorageException( 'The currently logged in user may not be deleted.' );
 			}

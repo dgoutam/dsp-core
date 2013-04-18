@@ -98,7 +98,7 @@ abstract class BaseService implements iRestHandler
 	 */
 	protected function checkPermission( $request, $component = '' )
 	{
-		SessionManager::checkPermission( $request, $this->_apiName, $component );
+		UserManager::checkPermission( $request, $this->_apiName, $component );
 	}
 
 	/**

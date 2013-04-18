@@ -3,7 +3,7 @@ use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
 /**
- * UserIdentity.php
+ * DfUserIdentity.php
  * A model of a user identity. Contains the authentication method that checks if the provided
  * data can identify the user.
  *
@@ -26,7 +26,7 @@ use Kisma\Core\Utility\Option;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class UserIdentity extends CUserIdentity
+class DfUserIdentity extends CUserIdentity
 {
 	private $_id;
 
@@ -53,22 +53,9 @@ class UserIdentity extends CUserIdentity
 			$this->setState( 'first_name', Option::get( $record, 'first_name', $this->username ) );
 			$this->setState( 'last_name', Option::get( $record, 'last_name', $this->username ) );
 			$this->setState( 'display_name', Option::get( $record, 'display_name', $this->username ) );
+			$this->setState( 'df_authenticated', true );
 			$this->errorCode = self::ERROR_NONE;
 		}
-
-		/* not currently used
-		$record = User::model()->findByAttributes(array('username'=>$this->username));
-		if ($record === null)
-			$this->errorCode = self::ERROR_USERNAME_INVALID;
-		else if (!CPasswordHelper::verifyPassword($this->password, $record->password))
-			$this->errorCode = self::ERROR_PASSWORD_INVALID;
-		else
-		{
-			$this->_id = $record->id;
-			$this->setState('email', $record->email);
-			$this->errorCode = self::ERROR_NONE;
-		}
-		*/
 
 		return !$this->errorCode;
 	}

@@ -237,7 +237,7 @@ class DspUser extends BaseDspSystemModel
 		// make sure you don't delete yourself
 		try
 		{
-			if ( $_id != \SessionManager::getCurrentUserId() )
+			if ( $_id != \UserManager::getCurrentUserId() )
 			{
 				throw new \InvalidArgumentException( 'The currently logged in user may not be deleted.' );
 			}

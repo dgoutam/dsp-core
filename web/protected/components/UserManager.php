@@ -35,7 +35,17 @@ class UserManager implements iRestHandler
 	/**
 	 * @var string
 	 */
-	protected static $randKey;
+	protected static $_randKey;
+
+	/**
+	 * @var null
+	 */
+	private static $_userId = null;
+
+	/**
+	 * @var null
+	 */
+	private static $_cache = null;
 
 	/**
 	 * Create a new UserManager
@@ -44,7 +54,7 @@ class UserManager implements iRestHandler
 	public function __construct()
 	{
 		//For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
-		static::$randKey = 'M1kVi0kE9ouXxF9';
+		static::$_randKey = 'M1kVi0kE9ouXxF9';
 	}
 
 	/**
@@ -721,7 +731,7 @@ class UserManager implements iRestHandler
 	 */
 	protected function getResetPasswordCode( $email )
 	{
-		return substr( md5( $email . static::$randKey ), 0, 10 );
+		return substr( md5( $email . static::$_randKey ), 0, 10 );
 	}
 
 	/**
@@ -734,7 +744,7 @@ class UserManager implements iRestHandler
 		$randNo1 = rand();
 		$randNo2 = rand();
 
-		return md5( $conf_key . static::$randKey . $randNo1 . '' . $randNo2 );
+		return md5( $conf_key . static::$_randKey . $randNo1 . '' . $randNo2 );
 	}
 
 	/**
@@ -831,33 +841,32 @@ class UserManager implements iRestHandler
 
 		try
 		{
-			$theUser = User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->find( 'email=:email', array( ':email' => $email ) );
+			$identity = new DspUserIdentity( $email, $password );
+			if ( $identity->authenticate() )
+			{
+				Yii::app()->user->login( $identity );
+			}
+			else
+			{
+				throw new Exception( "The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED );
+			}
+
+			$theUser = $identity->getUser();
 			if ( null === $theUser )
 			{
-				// bad email
-				throw new Exception( "The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED );
+				// bad user object
+				throw new Exception( "The user session contains no data.", ErrorCodes::INTERNAL_SERVER_ERROR );
 			}
 			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
 			{
 				throw new Exception( "Login registration has not been confirmed." );
 			}
-			if ( !CPasswordHelper::verifyPassword( $password, $theUser->getAttribute( 'password' ) ) )
-			{
-				throw new Exception( "The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED );
-			}
 			$isSysAdmin = $theUser->getAttribute( 'is_sys_admin' );
-			$result = SessionManager::generateSessionData( null, $theUser );
+			$result = static::generateSessionDataFromUser( Yii::app()->user->getId() );
 
 			// write back login datetime
 			$theUser->last_login_date = new CDbExpression( 'NOW()' );
 			$theUser->save();
-
-			if ( !isset( $_SESSION ) )
-			{
-				session_start();
-			}
-			$_SESSION['public'] = Utilities::getArrayValue( 'public', $result, array() );
-			$GLOBALS['write_session'] = true;
 
 			// additional stuff for session - launchpad mainly
 			return static::addSessionExtras( $result, $isSysAdmin, true );
@@ -883,7 +892,7 @@ class UserManager implements iRestHandler
 		{
 			try
 			{
-				$userId = SessionManager::validateSession();
+				$userId = static::validateSession();
 			}
 			catch ( Exception $ex )
 			{
@@ -914,14 +923,7 @@ class UserManager implements iRestHandler
 				throw new Exception( "The user identified in the session or ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED );
 			}
 			$isSysAdmin = $theUser->getAttribute( 'is_sys_admin' );
-			$result = SessionManager::generateSessionData( null, $theUser );
-
-			if ( !isset( $_SESSION ) )
-			{
-				session_start();
-			}
-			$_SESSION['public'] = Utilities::getArrayValue( 'public', $result, array() );
-			$GLOBALS['write_session'] = true;
+			$result = static::generateSessionDataFromUser( null, $theUser );
 
 			// additional stuff for session - launchpad mainly
 			return static::addSessionExtras( $result, $isSysAdmin, true );
@@ -942,7 +944,7 @@ class UserManager implements iRestHandler
 	{
 		try
 		{
-			$userId = SessionManager::validateSession();
+			$userId = static::validateSession();
 		}
 		catch ( Exception $ex )
 		{
@@ -961,16 +963,7 @@ class UserManager implements iRestHandler
 	 */
 	public static function userLogout()
 	{
-		if ( !isset( $_SESSION ) )
-		{
-			session_start();
-		}
-		session_unset();
-		$_SESSION = array();
-		session_destroy();
-		session_write_close();
-		setcookie( session_name(), '', 0, '/' );
-		session_regenerate_id( true );
+		Yii::app()->user->logout();
 	}
 
 	/**
@@ -1211,7 +1204,7 @@ class UserManager implements iRestHandler
 		// check valid session,
 		// using userId from session, query with check for old password
 		// then update with new password
-		$userId = SessionManager::validateSession();
+		$userId = static::validateSession();
 
 		try
 		{
@@ -1247,7 +1240,7 @@ class UserManager implements iRestHandler
 	{
 		// check valid session,
 		// using userId from session, update with new profile elements
-		$userId = SessionManager::validateSession();
+		$userId = static::validateSession();
 
 		try
 		{
@@ -1293,7 +1286,7 @@ class UserManager implements iRestHandler
 	{
 		// check valid session,
 		// using userId from session, update with new profile elements
-		$userId = SessionManager::validateSession();
+		$userId = static::validateSession();
 
 		try
 		{
@@ -1322,5 +1315,434 @@ class UserManager implements iRestHandler
 		{
 			throw $ex;
 		}
+	}
+
+	/**
+	 * @param      $user_id
+	 * @param null $user
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	public static function generateSessionDataFromUser( $user_id, $user = null )
+	{
+		if ( !isset( $user ) )
+		{
+			$user = User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->findByPk( $user_id );
+		}
+		if ( null === $user )
+		{
+			throw new Exception( "The user with id $user_id does not exist in the system.", ErrorCodes::UNAUTHORIZED );
+		}
+		$email = $user->getAttribute( 'email' );
+		if ( !$user->getAttribute( 'is_active' ) )
+		{
+			throw new Exception( "The user with email '$email' is not currently active.", ErrorCodes::FORBIDDEN );
+		}
+
+		$isSysAdmin = $user->getAttribute( 'is_sys_admin' );
+		$defaultAppId = $user->getAttribute( 'default_app_id' );
+		$fields = array( 'id', 'display_name', 'first_name', 'last_name', 'email', 'is_sys_admin', 'last_login_date' );
+		$userInfo = $user->getAttributes( $fields );
+		$data = $userInfo; // reply data
+		$allowedApps = array();
+
+		if ( !$isSysAdmin )
+		{
+			$theRole = $user->getRelated( 'role' );
+			if ( !isset( $theRole ) )
+			{
+				throw new Exception( "The user '$email' has not been assigned a role.", ErrorCodes::FORBIDDEN );
+			}
+			if ( !$theRole->getAttribute( 'is_active' ) )
+			{
+				throw new Exception( "The role this user is assigned to is not currently active.", ErrorCodes::FORBIDDEN );
+			}
+
+			if ( !isset( $defaultAppId ) )
+			{
+				$defaultAppId = $theRole->getAttribute( 'default_app_id' );
+			}
+			$role = $theRole->attributes;
+			$theApps = $theRole->getRelated( 'apps' );
+			$roleApps = array();
+			if ( !empty( $theApps ) )
+			{
+				$appFields = array( 'id', 'api_name', 'is_active' );
+				foreach ( $theApps as $app )
+				{
+					$roleApps[] = $app->getAttributes( $appFields );
+					if ( $app->getAttribute( 'is_active' ) )
+					{
+						$allowedApps[] = $app;
+					}
+				}
+			}
+			$role['apps'] = $roleApps;
+			$permsFields = array( 'service_id', 'component', 'access' );
+			$thePerms = $theRole->getRelated( 'role_service_accesses' );
+			$theServices = $theRole->getRelated( 'services' );
+			$perms = array();
+			foreach ( $thePerms as $perm )
+			{
+				$permServiceId = $perm->getAttribute( 'service_id' );
+				$temp = $perm->getAttributes( $permsFields );
+				foreach ( $theServices as $service )
+				{
+					if ( $permServiceId == $service->getAttribute( 'id' ) )
+					{
+						$temp['service'] = $service->getAttribute( 'api_name' );
+					}
+				}
+				$perms[] = $temp;
+			}
+			$role['services'] = $perms;
+			$userInfo['role'] = $role;
+		}
+
+		return array(
+			'public'         => $userInfo,
+			'data'           => $data,
+			'allowed_apps'   => $allowedApps,
+			'default_app_id' => $defaultAppId
+		);
+	}
+
+	/**
+	 * @param      $role_id
+	 * @param null $role
+	 *
+	 * @throws Exception
+	 *
+	 * @return array
+	 */
+	public static function generateSessionDataFromRole( $role_id, $role = null )
+	{
+		if ( !isset( $role ) )
+		{
+			$role = Role::model()->with( 'role_service_accesses', 'apps', 'services' )->findByPk( $role_id );
+		}
+		if ( null === $role )
+		{
+			throw new Exception( "The user with id $role_id does not exist in the system.", ErrorCodes::UNAUTHORIZED );
+		}
+		$name = $role->getAttribute( 'name' );
+		if ( !$role->getAttribute( 'is_active' ) )
+		{
+			throw new Exception( "The role '$name' is not currently active.", ErrorCodes::FORBIDDEN );
+		}
+
+		$userInfo = array();
+		$data = array(); // reply data
+		$allowedApps = array();
+
+		$defaultAppId = $role->getAttribute( 'default_app_id' );
+		$roleData = $role->attributes;
+		$theApps = $role->getRelated( 'apps' );
+		$roleApps = array();
+		if ( !empty( $theApps ) )
+		{
+			$appFields = array( 'id', 'api_name', 'is_active' );
+			foreach ( $theApps as $app )
+			{
+				$roleApps[] = $app->getAttributes( $appFields );
+				if ( $app->getAttribute( 'is_active' ) )
+				{
+					$allowedApps[] = $app;
+				}
+			}
+		}
+		$roleData['apps'] = $roleApps;
+		$permsFields = array( 'service_id', 'component', 'access' );
+		$thePerms = $role->getRelated( 'role_service_accesses' );
+		$theServices = $role->getRelated( 'services' );
+		$perms = array();
+		foreach ( $thePerms as $perm )
+		{
+			$permServiceId = $perm->getAttribute( 'service_id' );
+			$temp = $perm->getAttributes( $permsFields );
+			foreach ( $theServices as $service )
+			{
+				if ( $permServiceId == $service->getAttribute( 'id' ) )
+				{
+					$temp['service'] = $service->getAttribute( 'api_name' );
+				}
+			}
+			$perms[] = $temp;
+		}
+		$roleData['services'] = $perms;
+		$userInfo['role'] = $roleData;
+
+		return array(
+			'public'         => $userInfo,
+			'data'           => $data,
+			'allowed_apps'   => $allowedApps,
+			'default_app_id' => $defaultAppId
+		);
+	}
+
+	/**
+	 * @return string
+	 * @throws Exception
+	 */
+	public static function validateSession()
+	{
+		if ( !Yii::app()->user->getIsGuest() &&
+			 !Yii::app()->user->getState( 'df_authenticated', false ) )
+		{
+			return Yii::app()->user->getId();
+		}
+
+		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+	}
+
+	/**
+	 * @param        $request
+	 * @param        $service
+	 * @param string $component
+	 *
+	 * @throws Exception
+	 */
+	public static function checkPermission( $request, $service, $component = '' )
+	{
+		if ( empty( static::$_cache ) )
+		{
+			if ( !Yii::app()->user->getIsGuest() )
+			{
+				static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
+			}
+			else
+			{
+				// special case for possible guest user
+				$theConfig = Config::model()->with(
+					'guest_role.role_service_accesses',
+					'guest_role.apps',
+					'guest_role.services'
+				)->find();
+
+				if ( empty( $theConfig ) )
+				{
+					throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+				}
+
+				static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
+			}
+		}
+		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
+		$admin = Utilities::getArrayValue( 'is_sys_admin', $_public, false );
+		if ( $admin )
+		{
+			return; // no need to check role
+		}
+		$roleInfo = Utilities::getArrayValue( 'role', $_public, array() );
+		if ( empty( $roleInfo ) )
+		{
+			// no role assigned, if not sys admin, denied service
+			throw new Exception( "A valid user role or system administrator is required to access services.", ErrorCodes::FORBIDDEN );
+		}
+
+		// check if app allowed in role
+		$appName = Utilities::getArrayValue( 'app_name', $GLOBALS, '' );
+		if ( empty( $appName ) )
+		{
+			throw new Exception( "A valid application name is required to access services.", ErrorCodes::BAD_REQUEST );
+		}
+
+		$apps = Utilities::getArrayValue( 'apps', $roleInfo, null );
+		if ( !is_array( $apps ) || empty( $apps ) )
+		{
+			throw new Exception( "Access to application '$appName' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
+		}
+		$found = false;
+		foreach ( $apps as $app )
+		{
+			$temp = Utilities::getArrayValue( 'api_name', $app );
+			if ( 0 == strcasecmp( $appName, $temp ) )
+			{
+				$found = true;
+			}
+		}
+		if ( !$found )
+		{
+			throw new Exception( "Access to application '$appName' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
+		}
+		/*
+			 // see if we need to deny access to this app
+			 $result = $db->retrieveSqlRecordsByIds('app', $appName, 'name', 'id,is_active');
+			 if ((0 >= count($result)) || empty($result[0])) {
+				 throw new Exception("The application '$appName' could not be found.");
+			 }
+			 if (!$result[0]['is_active']) {
+				 throw new Exception("The application '$appName' is not currently active.");
+			 }
+			 $appId = $result[0]['id'];
+			 // is this app part of the role's allowed apps
+			 if (!empty($allowedAppIds)) {
+				 if (!Utilities::isInList($allowedAppIds, $appId, ',')) {
+					 throw new Exception("The application '$appName' is not currently allowed by this role.");
+				 }
+			 }
+		 */
+
+		$services = Utilities::getArrayValue( 'services', $roleInfo, null );
+		if ( !is_array( $services ) || empty( $services ) )
+		{
+			throw new Exception( "Access to service '$service' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
+		}
+
+		$allAllowed = false;
+		$allFound = false;
+		$serviceAllowed = false;
+		$serviceFound = false;
+		foreach ( $services as $svcInfo )
+		{
+			$theService = Utilities::getArrayValue( 'service', $svcInfo );
+			$theAccess = Utilities::getArrayValue( 'access', $svcInfo, '' );
+			if ( 0 == strcasecmp( $service, $theService ) )
+			{
+				$theComponent = Utilities::getArrayValue( 'component', $svcInfo );
+				if ( !empty( $component ) )
+				{
+					if ( 0 == strcasecmp( $component, $theComponent ) )
+					{
+						if ( !static::isAllowed( $request, $theAccess ) )
+						{
+							$msg = ucfirst( $request ) . " access to component '$component' of service '$service' ";
+							$msg .= "is not allowed by this user's role.";
+							throw new Exception( $msg, ErrorCodes::FORBIDDEN );
+						}
+
+						return; // component specific found and allowed, so bail
+					}
+					elseif ( empty( $theComponent ) || ( '*' == $theComponent ) )
+					{
+						$serviceAllowed = static::isAllowed( $request, $theAccess );
+						$serviceFound = true;
+					}
+				}
+				else
+				{
+					if ( empty( $theComponent ) || ( '*' == $theComponent ) )
+					{
+						if ( !static::isAllowed( $request, $theAccess ) )
+						{
+							$msg = ucfirst( $request ) . " access to service '$service' ";
+							$msg .= "is not allowed by this user's role.";
+							throw new Exception( $msg, ErrorCodes::FORBIDDEN );
+						}
+
+						return; // service specific found and allowed, so bail
+					}
+				}
+			}
+			elseif ( empty( $theService ) || ( '*' == $theService ) )
+			{
+				$allAllowed = static::isAllowed( $request, $theAccess );
+				$allFound = true;
+			}
+		}
+
+		if ( $serviceFound )
+		{
+			if ( $serviceAllowed )
+			{
+				return; // service found and allowed, so bail
+			}
+		}
+		elseif ( $allFound )
+		{
+			if ( $allAllowed )
+			{
+				return; // all services found and allowed, so bail
+			}
+		}
+		$msg = ucfirst( $request ) . " access to ";
+		if ( !empty( $component ) )
+		{
+			$msg .= "component '$component' of ";
+		}
+		$msg .= "service '$service' is not allowed by this user's role.";
+		throw new Exception( $msg, ErrorCodes::FORBIDDEN );
+	}
+
+	/**
+	 * @param $request
+	 * @param $access
+	 *
+	 * @return bool
+	 */
+	protected static function isAllowed( $request, $access )
+	{
+		switch ( $request )
+		{
+			case 'read':
+				switch ( $access )
+				{
+					case 'Read Only':
+					case 'Read and Write':
+					case 'Full Access':
+						return true;
+				}
+				break;
+			case 'create':
+				switch ( $access )
+				{
+					case 'Write Only':
+					case 'Read and Write':
+					case 'Full Access':
+						return true;
+				}
+				break;
+			case 'update':
+				switch ( $access )
+				{
+					case 'Write Only':
+					case 'Read and Write':
+					case 'Full Access':
+						return true;
+				}
+				break;
+			case 'delete':
+				switch ( $access )
+				{
+					case 'Full Access':
+						return true;
+				}
+				break;
+			default:
+				break;
+		}
+		return false;
+	}
+
+	/**
+	 * @param $userId
+	 */
+	public static function setCurrentUserId( $userId )
+	{
+		static::$_userId = $userId;
+
+		return $userId;
+	}
+
+	/**
+	 * @return int|null
+	 */
+	public static function getCurrentUserId()
+	{
+		if ( isset( static::$_userId ) )
+		{
+			return static::$_userId;
+		}
+
+		if ( !Yii::app()->user->getIsGuest() )
+		{
+			if ( !Yii::app()->user->getState( 'df_authenticated', false ) )
+			{
+				return static::setCurrentUserId( Yii::app()->user->getId() );
+			}
+		}
+
+		return null;
 	}
 }

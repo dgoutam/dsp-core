@@ -220,48 +220,6 @@ class SystemManager implements iRestHandler
 			}
 			$result = DbUtilities::createTables( Yii::app()->db, $tables, true, false );
 
-			// setup session stored procedure
-//            $query = 'SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES
-//                      WHERE ROUTINE_TYPE="PROCEDURE"
-//                          AND ROUTINE_SCHEMA="dreamfactory"
-//                          AND ROUTINE_NAME="UpdateOrInsertSession";';
-//            $result = $db->singleSqlQuery($query);
-//            if ((empty($result)) || !isset($result[0]['ROUTINE_NAME'])) {
-			$command->reset();
-			switch ( DbUtilities::getDbDriverType( Yii::app()->db ) )
-			{
-				case DbUtilities::DRV_SQLSRV:
-					$contents = file_get_contents( Yii::app()->basePath . '/data/procedures.mssql.sql' );
-					if ( ( false === $contents ) || empty( $contents ) )
-					{
-						throw new \Exception( "Empty or no system db procedures file found." );
-					}
-					$query
-						= "IF ( OBJECT_ID('dbo.UpdateOrInsertSession') IS NOT NULL )
-                                  DROP PROCEDURE dbo.UpdateOrInsertSession";
-					$command->setText( $query );
-					$command->execute();
-					$command->reset();
-					$command->setText( $contents );
-					$command->execute();
-					break;
-				case DbUtilities::DRV_MYSQL:
-					$contents = file_get_contents( Yii::app()->basePath . '/data/procedures.mysql.sql' );
-					if ( ( false === $contents ) || empty( $contents ) )
-					{
-						throw new \Exception( "Empty or no system db procedures file found." );
-					}
-					$query = 'DROP PROCEDURE IF EXISTS `UpdateOrInsertSession`';
-					$command->setText( $query );
-					$command->execute();
-					$command->reset();
-					$command->setText( $contents );
-					$command->execute();
-					break;
-				default:
-					break;
-			}
-//            }
 			// clean up old unique index, temporary for upgrade
 			try
 			{
@@ -327,7 +285,8 @@ class SystemManager implements iRestHandler
 			$firstName = Utilities::getArrayValue( 'firstName', $data );
 			$lastName = Utilities::getArrayValue( 'lastName', $data );
 			$displayName = Utilities::getArrayValue( 'displayName', $data );
-			$displayName = ( empty( $displayName ) ? $firstName . ( empty( $lastName ) ? '' : ' ' . $lastName )
+			$displayName = ( empty( $displayName )
+				? $firstName . ( empty( $lastName ) ? '' : ' ' . $lastName )
 				: $displayName );
 			$pwd = Utilities::getArrayValue( 'password', $data, '' );
 			$fields = array(
@@ -352,28 +311,16 @@ class SystemManager implements iRestHandler
 			{
 				throw new Exception( "Failed to create a new user.\n{$ex->getMessage()}", ErrorCodes::BAD_REQUEST );
 			}
-			$userId = $user->getPrimaryKey();
-			// set session for first user
-			$result = SessionManager::generateSessionData( $userId );
-			$_SESSION = array( 'public' => Utilities::getArrayValue( 'public', $result, array() ) );
-			$GLOBALS['write_session'] = true;
-			$data = session_encode();
-			$sess_name = session_name();
-			if ( isset( $_COOKIE[$sess_name] ) )
+
+			// log in as this user for later configuration
+			$identity = new DspUserIdentity( $email, $pwd );
+			if ( $identity->authenticate() )
 			{
-				try
-				{
-					$sessHandler = new SessionManager();
-					SessionManager::write( $_COOKIE[$sess_name], $data );
-				}
-				catch ( Exception $ex )
-				{
-					error_log( "Failed to create session service.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
-				}
+				Yii::app()->user->login( $identity );
 			}
 			else
 			{
-				error_log( 'Failed to create first admin session in db.' );
+				throw new Exception( "Failed to login as initial admin user.", ErrorCodes::UNAUTHORIZED );
 			}
 		}
 		catch ( \Exception $ex )
@@ -402,7 +349,7 @@ class SystemManager implements iRestHandler
 			error_log( "Failed to retrieve user id.\n" . print_r( $theUser, true ) );
 			throw new \Exception( "Failed to retrieve user id." );
 		}
-		SessionManager::setCurrentUserId( $userId );
+		UserManager::setCurrentUserId( $userId );
 
 		// init with system required data
 		$contents = file_get_contents( Yii::app()->basePath . '/data/system_data.json' );
@@ -1243,7 +1190,7 @@ class SystemManager implements iRestHandler
 
 	public static function retrieveConfig( $return_fields = '', $include_schema = false, $extras = array() )
 	{
-		SessionManager::checkPermission( 'read', 'system', 'config' );
+		UserManager::checkPermission( 'read', 'system', 'config' );
 		$model = Config::model();
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -1315,7 +1262,7 @@ class SystemManager implements iRestHandler
 
 	protected static function updateConfig( $record, $fields, $extras )
 	{
-		SessionManager::checkPermission( 'update', 'system', 'config' );
+		UserManager::checkPermission( 'update', 'system', 'config' );
 
 		try
 		{
@@ -1541,7 +1488,7 @@ class SystemManager implements iRestHandler
 			// conversion from xml can pull single record out of array format
 			$records = array( $records );
 		}
-		SessionManager::checkPermission( 'create', 'system', $table );
+		UserManager::checkPermission( 'create', 'system', $table );
 		// todo implement rollback
 		$out = array();
 		foreach ( $records as $record )
@@ -1574,7 +1521,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'create', 'system', $table );
+		UserManager::checkPermission( 'create', 'system', $table );
 
 		return static::createRecordLow( $table, $record, $return_fields, $extras );
 	}
@@ -1608,46 +1555,6 @@ class SystemManager implements iRestHandler
 
 		$primaryKey = $obj->tableSchema->primaryKey;
 		$record = Utilities::removeOneFromArray( $primaryKey, $record );
-		$sessionAction = '';
-		switch ( strtolower( $table ) )
-		{
-			case 'user':
-				if ( $obj->is_active && isset( $record['is_active'] ) )
-				{
-					$isActive = Utilities::boolval( $record['is_active'] );
-					if ( Utilities::boolval( $obj->is_active ) !== $isActive )
-					{
-						$sessionAction = 'delete';
-					}
-				}
-				if ( isset( $record['is_sys_admin'] ) )
-				{
-					$isSysAdmin = Utilities::boolval( $record['is_sys_admin'] );
-					if ( Utilities::boolval( $obj->is_sys_admin ) !== $isSysAdmin )
-					{
-						$sessionAction = 'update';
-					}
-				}
-				if ( isset( $record['role_id'] ) )
-				{
-					$roleId = $record['role_id'];
-					if ( $obj->role_id !== $roleId )
-					{
-						$sessionAction = 'update';
-					}
-				}
-				break;
-			case 'role':
-				if ( $obj->is_active && isset( $record['is_active'] ) )
-				{
-					$isActive = Utilities::boolval( $record['is_active'] );
-					if ( Utilities::boolval( $obj->is_active ) !== $isActive )
-					{
-						$sessionAction = 'delete';
-					}
-				}
-				break;
-		}
 
 		try
 		{
@@ -1663,32 +1570,6 @@ class SystemManager implements iRestHandler
 		{
 			// after record create
 			$obj->setRelated( $record, $id );
-
-			switch ( strtolower( $table ) )
-			{
-				case 'role':
-					switch ( $sessionAction )
-					{
-						case 'delete':
-							SessionManager::deleteSessionsByRole( $id );
-							break;
-						case 'update':
-							SessionManager::updateSessionByRole( $id );
-							break;
-					}
-					break;
-				case 'user':
-					switch ( $sessionAction )
-					{
-						case 'delete':
-							SessionManager::deleteSessionsByUser( $id );
-							break;
-						case 'update':
-							SessionManager::updateSessionByUser( $id );
-							break;
-					}
-					break;
-			}
 
 			if ( empty( $return_fields ) && empty( $extras ) )
 			{
@@ -1777,7 +1658,7 @@ class SystemManager implements iRestHandler
 			// conversion from xml can pull single record out of array format
 			$records = array( $records );
 		}
-		SessionManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkPermission( 'update', 'system', $table );
 		$out = array();
 		foreach ( $records as $record )
 		{
@@ -1815,7 +1696,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkPermission( 'update', 'system', $table );
 		// todo this needs to use $model->getPrimaryKey()
 		$id = Utilities::getArrayValue( 'id', $record, '' );
 
@@ -1843,7 +1724,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkPermission( 'update', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$out = array();
 		foreach ( $ids as $id )
@@ -1881,7 +1762,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkPermission( 'update', 'system', $table );
 
 		return static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 	}
@@ -2048,7 +1929,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'delete', 'system', $table );
+		UserManager::checkPermission( 'delete', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$out = array();
 		foreach ( $ids as $id )
@@ -2081,7 +1962,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'delete', 'system', $table );
+		UserManager::checkPermission( 'delete', 'system', $table );
 
 		return static::deleteRecordLow( $table, $id, $return_fields, $extras );
 	}
@@ -2162,7 +2043,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'read', 'system', $table );
+		UserManager::checkPermission( 'read', 'system', $table );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -2280,7 +2161,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'read', 'system', $table );
+		UserManager::checkPermission( 'read', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
@@ -2378,7 +2259,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		SessionManager::checkPermission( 'read', 'system', $table );
+		UserManager::checkPermission( 'read', 'system', $table );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -2456,7 +2337,7 @@ class SystemManager implements iRestHandler
 											   $include_schema = false,
 											   $include_data = false )
 	{
-		SessionManager::checkPermission( 'read', 'system', 'app' );
+		UserManager::checkPermission( 'read', 'system', 'app' );
 		$model = App::model();
 		if ( $include_services || $include_schema )
 		{
@@ -2898,9 +2779,17 @@ class SystemManager implements iRestHandler
 	/**
 	 * @return string
 	 */
+	public static function getCurrentAppName()
+	{
+		return ( isset( $GLOBALS['app_name'] ) ) ? $GLOBALS['app_name'] : '';
+	}
+
+	/**
+	 * @return string
+	 */
 	public static function getCurrentAppId()
 	{
-		return static::getAppIdFromName( SessionManager::getCurrentAppName() );
+		return static::getAppIdFromName( static::getCurrentAppName() );
 	}
 
 }

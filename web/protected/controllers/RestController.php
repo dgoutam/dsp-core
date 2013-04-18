@@ -7,10 +7,9 @@ class RestController extends Controller
 	// Members
 
 	/**
-	 * Default response format
+	 * Default response format, either 'json' or 'xml'
 	 *
 	 * @var string
-	 * either 'json' or 'xml'
 	 */
 	private $format = 'json';
 
@@ -41,24 +40,6 @@ class RestController extends Controller
 	public function filters()
 	{
 		return array();
-	}
-
-	/**
-	 * Initializes the REST controller.
-	 * This method registers the session handler to manager the sessions.
-	 */
-	public function init()
-	{
-		// need this running at startup
-		try
-		{
-			$sessHandler = new SessionManager();
-		}
-		catch ( Exception $ex )
-		{
-			$ex = new Exception( "Failed to create session service.\n{$ex->getMessage()}", ErrorCodes::INTERNAL_SERVER_ERROR );
-			$this->handleErrors( $ex );
-		}
 	}
 
 	// Actions

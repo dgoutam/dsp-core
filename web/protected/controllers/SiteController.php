@@ -86,22 +86,52 @@ class SiteController extends Controller
 					break;
 
 				case 'init required':
+					if ( !Yii::app()->user->getIsGuest() &&
+						 !Yii::app()->user->getState( 'df_authenticated', false ) )
+					{
+						Yii::app()->user->logout();
+						$this->redirect( '/' );
+					}
 					$this->redirect( array( 'site/initSystem' ) );
 					break;
 
 				case 'admin required':
+					if ( !Yii::app()->user->getIsGuest() &&
+						 !Yii::app()->user->getState( 'df_authenticated', false ) )
+					{
+						Yii::app()->user->logout();
+						$this->redirect( '/' );
+					}
 					$this->redirect( array( 'site/initAdmin' ) );
 					break;
 
 				case 'schema required':
+					if ( !Yii::app()->user->getIsGuest() &&
+						 !Yii::app()->user->getState( 'df_authenticated', false ) )
+					{
+						Yii::app()->user->logout();
+						$this->redirect( '/' );
+					}
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
 				case 'upgrade required':
+					if ( !Yii::app()->user->getIsGuest() &&
+						 !Yii::app()->user->getState( 'df_authenticated', false ) )
+					{
+						Yii::app()->user->logout();
+						$this->redirect( '/' );
+					}
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
 				case 'data required':
+					if ( !Yii::app()->user->getIsGuest() &&
+						 !Yii::app()->user->getState( 'df_authenticated', false ) )
+					{
+						Yii::app()->user->logout();
+						$this->redirect( '/' );
+					}
 					$this->redirect( array( 'site/initData' ) );
 					break;
 			}
@@ -169,7 +199,7 @@ class SiteController extends Controller
 	 */
 	public function actionLogout()
 	{
-		Pii::user()->logout();
+		Yii::app()->user->logout();
 		Pii::redirect( '/' );
 	}
 
@@ -237,10 +267,10 @@ class SiteController extends Controller
 			$this->refresh();
 		}
 
-		$_model->email = Pii::getState( 'email' );
-		$_model->firstName = Pii::getState( 'first_name' );
-		$_model->lastName = Pii::getState( 'last_name' );
-		$_model->displayName = Pii::getState( 'display_name' );
+		$_model->email = Yii::app()->user->getState( 'email' );
+		$_model->firstName = Yii::app()->user->getState( 'first_name' );
+		$_model->lastName = Yii::app()->user->getState( 'last_name' );
+		$_model->displayName = Yii::app()->user->getState( 'display_name' );
 
 		$this->render( 'initAdmin', array( 'model' => $_model ) );
 	}

@@ -1,5 +1,5 @@
 {
-    "version": "0.6.1",
+    "version": "0.6.2",
     "table": [
         {
             "name": "df_sys_config",
@@ -70,47 +70,6 @@
                     "type": "user_id_on_update",
                     "allow_null": true,
                     "validation": "api_read_only"
-                }
-            ]
-        },
-        {
-            "name": "df_sys_session",
-            "field": [
-                {
-                    "name": "id",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 32,
-                    "allow_null": false,
-                    "is_primary_key": true
-                },
-                {
-                    "name": "start_time",
-                    "type": "integer",
-                    "allow_null": false
-                },
-                {
-                    "name": "user_id",
-                    "type": "reference",
-                    "ref_table": "df_sys_user",
-                    "ref_fields": "id",
-                    "ref_on_delete": "CASCADE",
-                    "allow_null": true
-                },
-                {
-                    "name": "role_id",
-                    "type": "reference",
-                    "ref_table": "df_sys_role",
-                    "ref_fields": "id",
-                    "ref_on_delete": "CASCADE",
-                    "allow_null": true
-                },
-                {
-                    "name": "data",
-                    "type": "string",
-                    "supports_multibyte": true,
-                    "length": 4000,
-                    "allow_null": false
                 }
             ]
         },
