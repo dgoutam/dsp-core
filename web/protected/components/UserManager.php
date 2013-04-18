@@ -322,7 +322,6 @@ class UserManager implements iRestHandler
 				{
 					throw new Exception( "Missing required fields 'new_password'.", ErrorCodes::BAD_REQUEST );
 				}
-				$result = $this->userConfirm( $code );
 				if ( !empty( $code ) )
 				{
 					$result = $this->passwordResetByCode( $code, $newPassword );
