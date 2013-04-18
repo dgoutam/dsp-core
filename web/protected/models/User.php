@@ -176,16 +176,16 @@ class User extends BaseDspSystemModel
 	/** {@InheritDoc} */
 	protected function beforeValidate()
 	{
+		if ( empty( $this->confirm_code ) && ( !empty( $this->password ) ) )
+		{
+			$this->confirm_code = 'y';
+		}
+
 		if ( $this->isNewRecord )
 		{
-			if ( empty( $this->confirm_code ) )
-			{
-				$this->confirm_code = 'y';
-			}
-
 			if ( empty( $this->first_name ) )
 			{
-				$temp = substr( $this->email, 0, strrpos( $this->email, '@' ) );
+				$temp = strstr( $this->email, '@', true );
 				$this->first_name = $temp;
 			}
 
@@ -274,6 +274,7 @@ class User extends BaseDspSystemModel
 	 */
 	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
+		$addConfirmCode = UserManager::isSystemAdmin();
 		return parent::getRetrievableAttributes(
 			$requested,
 			array_merge(
@@ -287,6 +288,7 @@ class User extends BaseDspSystemModel
 					 'is_sys_admin',
 					 'role_id',
 					 'default_app_id',
+					 ( $addConfirmCode ? 'confirm_code' : '')
 				),
 				$columns
 			),
@@ -294,7 +296,6 @@ class User extends BaseDspSystemModel
 			array_merge(
 				array(
 					 'password',
-					 'confirm_code',
 					 'security_question',
 					 'security_answer'
 				),

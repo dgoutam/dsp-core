@@ -308,7 +308,29 @@ class UserManager implements iRestHandler
 				{
 					$code = Utilities::getArrayValue( 'code', $data, '' );
 				}
+				$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
+				if ( empty( $email ) )
+				{
+					$email = Utilities::getArrayValue( 'email', $data, '' );
+				}
+				if ( empty( $email ) && !empty( $code ) )
+				{
+					throw new Exception( "Missing required email or code for invitation.", ErrorCodes::BAD_REQUEST );
+				}
+				$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
+				if ( empty( $newPassword ) )
+				{
+					throw new Exception( "Missing required fields 'new_password'.", ErrorCodes::BAD_REQUEST );
+				}
 				$result = $this->userConfirm( $code );
+				if ( !empty( $code ) )
+				{
+					$result = $this->passwordResetByCode( $code, $newPassword );
+				}
+				else
+				{
+					$result = $this->passwordResetByEmail( $email, $newPassword );
+				}
 				break;
 			case 'challenge':
 				$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
@@ -966,6 +988,43 @@ class UserManager implements iRestHandler
 		Yii::app()->user->logout();
 	}
 
+	public static function userInvite( $email )
+	{
+		if ( empty( $email ) )
+		{
+			throw new Exception( "The email field for invitation can not be empty.", ErrorCodes::BAD_REQUEST );
+		}
+		$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+		if ( empty( $theUser ) )
+		{
+			throw new Exception( "No user currently exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
+		}
+		$confirmCode = $theUser->getAttribute( 'confirm_code' );
+		if ( 'y' == $confirmCode )
+		{
+			throw new Exception( "User with email '$email' has already confirmed registration in the system.", ErrorCodes::BAD_REQUEST );
+		}
+		try
+		{
+			if ( empty( $confirmCode ) )
+			{
+				$confirmCode = static::makeConfirmationMd5( $email );
+				$record = array( 'confirm_code' => $confirmCode );
+				$theUser->setAttributes( $record );
+				$theUser->save();
+			}
+
+			// generate link
+			$link = Yii::app()->createAbsoluteUrl( 'public/launchpad/confirm.html' );
+			$link .= '?email=' . urlencode( $email ) . '&code=' . urlencode( $confirmCode );
+			return $link;
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to generate user invite!\n{$ex->getMessage()}", $ex->getCode() );
+		}
+	}
+
 	/**
 	 * @param        $email
 	 * @param string $password
@@ -1188,7 +1247,45 @@ class UserManager implements iRestHandler
 		}
 		catch ( Exception $ex )
 		{
-			throw new Exception( "Error processing security answer.\n{$ex->getMessage()}", $ex->getCode() );
+			throw new Exception( "Error processing password reset.\n{$ex->getMessage()}", $ex->getCode() );
+		}
+	}
+
+	/**
+	 * @param string $email
+	 * @param string $new_password
+	 *
+	 * @throws Exception
+	 * @return mixed
+	 */
+	public static function passwordResetByEmail( $email, $new_password )
+	{
+		try
+		{
+			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+			if ( null === $theUser )
+			{
+				// bad code
+				throw new Exception( "The supplied email was not found in the system." );
+			}
+			$confirmCode = $theUser->getAttribute( 'confirm_code' );
+			if ( empty( $confirmCode ) || ( 'y' == $confirmCode ) )
+			{
+				throw new Exception( "No invitation was found for the supplied email." );
+			}
+			$theUser->setAttribute( 'confirm_code', 'y' );
+			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );
+			$theUser->save();
+
+			$userId = $theUser->getPrimaryKey();
+			$timestamp = time();
+			$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
+
+			return static::userSession( $ticket );
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Error processing password reset.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
 
@@ -1494,6 +1591,21 @@ class UserManager implements iRestHandler
 		}
 
 		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+	}
+
+	public static function isSystemAdmin()
+	{
+		if ( empty( static::$_cache ) )
+		{
+			if ( Yii::app()->user->getIsGuest() )
+			{
+				return false;
+			}
+			static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
+		}
+		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
+
+		return Utilities::boolval( Utilities::getArrayValue( 'is_sys_admin', $_public, false ) );
 	}
 
 	/**

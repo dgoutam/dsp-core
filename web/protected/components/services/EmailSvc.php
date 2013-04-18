@@ -41,12 +41,17 @@ class EmailSvc extends BaseService
 		$parameters = Utilities::getArrayValue( 'parameters', $config, array() );
 
 		// Provide the from email address to display for all outgoing emails
-		$this->fromName = Utilities::getArrayValue( 'from_name', $parameters, $_SERVER['SERVER_NAME'] . 'Admin' );
-		$this->fromAddress = Utilities::getArrayValue( 'from_email', $parameters, 'admin@' . $_SERVER['SERVER_NAME'] );
+		$serverName = $_SERVER['SERVER_NAME'];
+		if (0 == strcasecmp( 'localhost', $serverName ) )
+		{
+			$serverName = 'dreamfactory.com';
+		}
+		$this->fromName = Utilities::getArrayValue( 'from_name', $parameters, $serverName . ' Admin' );
+		$this->fromAddress = Utilities::getArrayValue( 'from_email', $parameters, 'admin@' . $serverName );
 
 		// Provide the reply-to email address where you want users to reply to for support
-		$this->replyToName = Utilities::getArrayValue( 'reply_to_name', $parameters, $_SERVER['SERVER_NAME'] . 'Admin' );
-		$this->replyToAddress = Utilities::getArrayValue( 'reply_to_email', $parameters, 'admin@' . $_SERVER['SERVER_NAME'] );
+		$this->replyToName = Utilities::getArrayValue( 'reply_to_name', $parameters, $serverName . ' Admin' );
+		$this->replyToAddress = Utilities::getArrayValue( 'reply_to_email', $parameters, 'admin@' . $serverName );
 	}
 
 	// Controller based methods
@@ -202,7 +207,7 @@ class EmailSvc extends BaseService
 			$replyName = Utilities::getArrayValue( 'reply_to_name', $data );
 			$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data );
 			$this->sendEmail( $to, $cc,	$bcc, $subject, $text, $html,
-							  $fromName, $fromEmail, $replyName, $replyEmail );
+							  $fromName, $fromEmail, $replyName, $replyEmail, $data );
 		}
 
 		return array( 'success' => true );
@@ -210,22 +215,22 @@ class EmailSvc extends BaseService
 
 	public function actionPut()
 	{
-		throw new Exception( "PUT Request is not supported by this Email API." );
+		throw new Exception( "PUT Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
 	}
 
 	public function actionMerge()
 	{
-		throw new Exception( "MERGE Request is not supported by this Email API." );
+		throw new Exception( "MERGE Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
 	}
 
 	public function actionDelete()
 	{
-		throw new Exception( "DELETE Request is not supported by this Email API." );
+		throw new Exception( "DELETE Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
 	}
 
 	public function actionGet()
 	{
-		throw new Exception( "GET Request is not supported by this Email API." );
+		throw new Exception( "GET Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
 	}
 
 	//------- Email Methods ----------------------
@@ -352,6 +357,15 @@ class EmailSvc extends BaseService
 				$body_text = str_replace( '{'.$name.'}', $value, $body_text );
 				$body_html = str_replace( '{'.$name.'}', $value, $body_html );
 			}
+		}
+		// handle special case, like invite link
+		if ( false !== strpos( $body_text, '{_invite_url_}') ||
+			 false !== strpos( $body_html, '{_invite_url_}') )
+		{
+			// generate link for user, to email should always be the user
+			$inviteLink = UserManager::userInvite( $to_emails );
+			$body_text = str_replace( '{_invite_url_}', $inviteLink, $body_text );
+			$body_html = str_replace( '{_invite_url_}', $inviteLink, $body_html );
 		}
 		if ( empty( $body_html ) )
 		{
