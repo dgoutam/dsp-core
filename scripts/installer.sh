@@ -160,10 +160,10 @@ fi
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${USER}:${WEB_USER} * .git* >/dev/null 2>&1
+chown -R ${USER} * .git* >/dev/null 2>&1
 find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
-find ./ -name '*.sh' -exec chmod 0770 {}  >/dev/null 2>&1 \;
+find ./ -name '*.sh' -exec chmod 0750 {}  >/dev/null 2>&1 \;
 rm -rf ~${HOME}/.composer/
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
@@ -241,6 +241,11 @@ cd - >/dev/null 2>&1
 ## make owned by user
 ##
 chown -R ${USER}:${WEB_USER} * .git*  >/dev/null 2>&1
+
+##
+## make writable by web server
+##
+chmod -R 0777 log/ web/public/assets/ >/dev/null 2>&1
 
 ##
 ## Restart non-essential services
