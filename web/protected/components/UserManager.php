@@ -1205,11 +1205,7 @@ class UserManager implements iRestHandler
 			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );
 			$theUser->save();
 
-			$userId = $theUser->getPrimaryKey();
-			$timestamp = time();
-			$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
-
-			return static::userSession( $ticket );
+			return static::userLogin( $email, $new_password );
 		}
 		catch ( Exception $ex )
 		{
@@ -1237,16 +1233,19 @@ class UserManager implements iRestHandler
 			$theUser->setAttribute( 'confirm_code', 'y' );
 			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );
 			$theUser->save();
-
-			$userId = $theUser->getPrimaryKey();
-			$timestamp = time();
-			$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
-
-			return static::userSession( $ticket );
 		}
 		catch ( Exception $ex )
 		{
 			throw new Exception( "Error processing password reset.\n{$ex->getMessage()}", $ex->getCode() );
+		}
+
+		try
+		{
+			return static::userLogin( $theUser->getAttribute( 'email' ), $new_password );
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Password set, but failed to create a session.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
 
@@ -1275,16 +1274,19 @@ class UserManager implements iRestHandler
 			$theUser->setAttribute( 'confirm_code', 'y' );
 			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );
 			$theUser->save();
-
-			$userId = $theUser->getPrimaryKey();
-			$timestamp = time();
-			$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
-
-			return static::userSession( $ticket );
 		}
 		catch ( Exception $ex )
 		{
 			throw new Exception( "Error processing password reset.\n{$ex->getMessage()}", $ex->getCode() );
+		}
+
+		try
+		{
+			return static::userLogin( $email, $new_password );
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Password set, but failed to create a session.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
 
@@ -1516,11 +1518,15 @@ class UserManager implements iRestHandler
 	{
 		if ( !isset( $role ) )
 		{
+			if ( empty( $role_id ) )
+			{
+				throw new Exception( "No valid role is assigned for guest users.", ErrorCodes::UNAUTHORIZED );
+			}
 			$role = Role::model()->with( 'role_service_accesses', 'apps', 'services' )->findByPk( $role_id );
 		}
 		if ( null === $role )
 		{
-			throw new Exception( "The user with id $role_id does not exist in the system.", ErrorCodes::UNAUTHORIZED );
+			throw new Exception( "The role with id $role_id does not exist in the system.", ErrorCodes::UNAUTHORIZED );
 		}
 		$name = $role->getAttribute( 'name' );
 		if ( !$role->getAttribute( 'is_active' ) )
@@ -1618,7 +1624,8 @@ class UserManager implements iRestHandler
 	{
 		if ( empty( static::$_cache ) )
 		{
-			if ( !Yii::app()->user->getIsGuest() )
+			if ( !Yii::app()->user->getIsGuest() &&
+				 !Yii::app()->user->getState( 'df_authenticated' ) )
 			{
 				static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
 			}
@@ -1635,7 +1642,10 @@ class UserManager implements iRestHandler
 				{
 					throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 				}
-
+				if ( !Utilities::boolval( $theConfig->getAttribute( 'allow_guest_user' ) ) )
+				{
+					throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+				}
 				static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
 			}
 		}
