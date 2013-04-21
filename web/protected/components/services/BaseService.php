@@ -1,6 +1,4 @@
 <?php
-use Kisma\Core\SeedBag;
-
 /**
  * BaseService.php
  * A base service class to handle services accessed through the REST API.
