@@ -1179,7 +1179,8 @@ class SystemManager implements iRestHandler
 
 	public static function retrieveConfig( $return_fields = '', $include_schema = false, $extras = array() )
 	{
-		UserManager::checkPermission( 'read', 'system', 'config' );
+		// currently allow everyone to query config, long term this needs to hide certain fields
+//		UserManager::checkPermission( 'read', 'system', 'config' );
 		$model = Config::model();
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
