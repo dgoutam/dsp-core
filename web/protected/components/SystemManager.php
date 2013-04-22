@@ -220,16 +220,19 @@ class SystemManager implements iRestHandler
 			}
 			$result = DbUtilities::createTables( Yii::app()->db, $tables, true, false );
 
-			// clean up old unique index, temporary for upgrade
-			try
+			if ( !empty( $oldVersion ) )
 			{
-				$command->reset();
-				$command->dropIndex( 'undx_df_sys_user_username', 'df_sys_user' );
-				$command->dropindex( 'ndx_df_sys_user_email', 'df_sys_user' );
-			}
-			catch ( Exception $_ex )
-			{
-				Log::error( 'Exception clearing username index: ' . $_ex->getMessage() );
+				// clean up old unique index, temporary for upgrade
+				try
+				{
+					$command->reset();
+					$command->dropIndex( 'undx_df_sys_user_username', 'df_sys_user' );
+					$command->dropindex( 'ndx_df_sys_user_email', 'df_sys_user' );
+				}
+				catch ( Exception $_ex )
+				{
+					Log::error( 'Exception clearing username index: ' . $_ex->getMessage() );
+				}
 			}
 			// initialize config table if not already
 			try
@@ -312,6 +315,8 @@ class SystemManager implements iRestHandler
 				throw new Exception( "Failed to create a new user.\n{$ex->getMessage()}", ErrorCodes::BAD_REQUEST );
 			}
 
+			// log out from df authenticated account
+			Yii::app()->user->logout();
 			// log in as this user for later configuration
 			$identity = new DspUserIdentity( $email, $pwd );
 			if ( $identity->authenticate() )
@@ -337,20 +342,6 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initData()
 	{
-		// for now use the first admin we find
-		$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
-		if ( null === $theUser )
-		{
-			throw new \Exception( "Failed to retrieve admin user." );
-		}
-		$userId = $theUser->getPrimaryKey();
-		if ( empty( $userId ) )
-		{
-			error_log( "Failed to retrieve user id.\n" . print_r( $theUser, true ) );
-			throw new \Exception( "Failed to retrieve user id." );
-		}
-		UserManager::setCurrentUserId( $userId );
-
 		// init with system required data
 		$contents = file_get_contents( Yii::app()->basePath . '/data/system_data.json' );
 		if ( empty( $contents ) )
