@@ -1065,18 +1065,18 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "Failed to register new user!\n{$ex->getMessage()}", $ex->getCode() );
 		}
-		try
-		{
-            static::sendUserConfirmationEmail( $email, $confirmCode, $fullName );
-		}
-		catch ( Exception $ex )
-		{
-			// need to remove from database here, otherwise they can't register again
-			$user->delete();
-			throw new Exception( "Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR );
-		}
-
-        static::sendAdminIntimationEmail( $email, $fullName );
+//		try
+//		{
+//            static::sendUserConfirmationEmail( $email, $confirmCode, $fullName );
+//		}
+//		catch ( Exception $ex )
+//		{
+//			// need to remove from database here, otherwise they can't register again
+//			$user->delete();
+//			throw new Exception( "Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR );
+//		}
+//
+//        static::sendAdminIntimationEmail( $email, $fullName );
 
 		unset( $fields['password'] );
 
@@ -1105,16 +1105,16 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "Error validating confirmation.\n{$ex->getMessage()}", $ex->getCode() );
 		}
-		try
-		{
-			$fullName = $theUser->display_name;
-			$email = $theUser->email;
-            static::sendUserWelcomeEmail( $email, $fullName );
-            static::sendAdminIntimationOnRegComplete( $email, $fullName );
-		}
-		catch ( Exception $ex )
-		{
-		}
+//		try
+//		{
+//			$fullName = $theUser->display_name;
+//			$email = $theUser->email;
+//            static::sendUserWelcomeEmail( $email, $fullName );
+//            static::sendAdminIntimationOnRegComplete( $email, $fullName );
+//		}
+//		catch ( Exception $ex )
+//		{
+//		}
 
 		return array();
 	}
