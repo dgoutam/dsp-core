@@ -172,24 +172,24 @@ class SystemManager implements iRestHandler
 	/**
 	 * Configures the system.
 	 *
-	 * @param array $data
-	 *
 	 * @return null
 	 */
-	public static function initSystem( $data = array() )
+	public static function initSystem()
 	{
-		static::initSchema();
-		static::initAdmin( $data );
+		static::initSchema( true );
+		static::initAdmin();
 		static::initData();
 	}
 
 	/**
 	 * Configures the system schema.
 	 *
+	 * @param bool $init
+	 *
 	 * @throws Exception
 	 * @return null
 	 */
-	public static function initSchema()
+	public static function initSchema( $init = false )
 	{
 		try
 		{
@@ -263,74 +263,72 @@ class SystemManager implements iRestHandler
 		{
 			throw $ex;
 		}
+
+		if ( !$init )
+		{
+			// clean up session
+			static::initAdmin();
+		}
 	}
 
 	/**
 	 * Configures the system.
 	 *
-	 * @param array $data
-	 *
 	 * @throws Exception
 	 * @return null
 	 */
-	public static function initAdmin( $data = array() )
+	public static function initAdmin()
 	{
 		try
 		{
 			// create and login first admin user
 			// fill out the user fields for creation
-			$email = Utilities::getArrayValue( 'email', $data );
+			$email = Yii::app()->user->getState( 'email' );
+			$pwd = Yii::app()->user->getState( 'password' );
 			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
-			if ( null !== $theUser )
+			if ( empty( $theUser ) )
 			{
-				throw new Exception( "A user already exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
-			}
-			$firstName = Utilities::getArrayValue( 'firstName', $data );
-			$lastName = Utilities::getArrayValue( 'lastName', $data );
-			$displayName = Utilities::getArrayValue( 'displayName', $data );
-			$displayName = ( empty( $displayName )
-				? $firstName . ( empty( $lastName ) ? '' : ' ' . $lastName )
-				: $displayName );
-			$pwd = Utilities::getArrayValue( 'password', $data, '' );
-			$fields = array(
-				'email'        => $email,
-				'password'     => $pwd,
-				'first_name'   => $firstName,
-				'last_name'    => $lastName,
-				'display_name' => $displayName,
-				'is_active'    => true,
-				'is_sys_admin' => true,
-				'confirm_code' => 'y'
-			);
-			try
-			{
-				$user = new User();
-				$user->setAttributes( $fields );
-				// write back login datetime
-				$user->last_login_date = new CDbExpression( 'NOW()' );
-				$user->save();
-			}
-			catch ( Exception $ex )
-			{
-				throw new Exception( "Failed to create a new user.\n{$ex->getMessage()}", ErrorCodes::BAD_REQUEST );
-			}
-
-			// log out from df authenticated account
-			Yii::app()->user->logout();
-			// log in as this user for later configuration
-			$identity = new DspUserIdentity( $email, $pwd );
-			if ( $identity->authenticate() )
-			{
-				Yii::app()->user->login( $identity );
+				$theUser = new User();
+				$firstName = Yii::app()->user->getState( 'first_name' );
+				$lastName = Yii::app()->user->getState( 'last_name' );
+				$displayName = Yii::app()->user->getState( 'display_name' );
+				$displayName = ( empty( $displayName )
+					? $firstName . ( empty( $lastName ) ? '' : ' ' . $lastName )
+					: $displayName );
+				$fields = array(
+					'email'        => $email,
+					'password'     => $pwd,
+					'first_name'   => $firstName,
+					'last_name'    => $lastName,
+					'display_name' => $displayName,
+					'is_active'    => true,
+					'is_sys_admin' => true,
+					'confirm_code' => 'y'
+				);
 			}
 			else
 			{
-				throw new Exception( "Failed to login as initial admin user.", ErrorCodes::UNAUTHORIZED );
+				// in case something is messed up
+				$fields = array(
+					'is_active'    => true,
+					'is_sys_admin' => true,
+					'confirm_code' => 'y'
+				);
 			}
+
+			$theUser->setAttributes( $fields );
+			// write back login datetime
+			$theUser->last_login_date = new CDbExpression( 'NOW()' );
+			$theUser->save();
+			$id = $theUser->primaryKey;
+			// update session with current real user
+			Yii::app()->user->setId( $id );
+			Yii::app()->user->setState( 'df_authenticated', false ); // removes catch
+			Yii::app()->user->setState( 'password', $pwd, $pwd ); // removes password
 		}
 		catch ( \Exception $ex )
 		{
-			throw $ex;
+			throw new Exception( "Failed to create a new user.\n{$ex->getMessage()}", ErrorCodes::BAD_REQUEST );
 		}
 	}
 

@@ -1625,7 +1625,7 @@ class UserManager implements iRestHandler
 		if ( empty( static::$_cache ) )
 		{
 			if ( !Yii::app()->user->getIsGuest() &&
-				 !Yii::app()->user->getState( 'df_authenticated' ) )
+				 !Yii::app()->user->getState( 'df_authenticated', false ) )
 			{
 				static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
 			}

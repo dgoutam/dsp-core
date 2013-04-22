@@ -22,11 +22,11 @@ class LoginForm extends CFormModel
 	{
 		return array(
 			// username and password are required
-			array('username, password', 'required'),
+			array( 'username, password', 'required' ),
 			// rememberMe needs to be a boolean
-			array('rememberMe', 'boolean'),
+			array( 'rememberMe', 'boolean' ),
 			// password needs to be authenticated
-			array('password', 'authenticate'),
+			array( 'password', 'authenticate' ),
 		);
 	}
 
@@ -36,8 +36,8 @@ class LoginForm extends CFormModel
 	public function attributeLabels()
 	{
 		return array(
-            'username'=>'Email Address',
-			'rememberMe'=>'Keep me logged in',
+			'username'   => 'Email Address',
+			'rememberMe' => 'Keep me logged in',
 		);
 	}
 
@@ -45,34 +45,40 @@ class LoginForm extends CFormModel
 	 * Authenticates the password.
 	 * This is the 'authenticate' validator as declared in rules().
 	 */
-	public function authenticate($attribute, $params)
+	public function authenticate( $attribute, $params )
 	{
-		if(!$this->hasErrors())
+		if ( !$this->hasErrors() )
 		{
-			$this->_identity=new DfUserIdentity($this->username, $this->password);
-			if(!$this->_identity->authenticate())
-				$this->addError('password','Incorrect email or password.');
+			$this->_identity = new DspUserIdentity( $this->username, $this->password, true );
+			if ( !$this->_identity->authenticate() )
+			{
+				$this->addError( 'password', 'Incorrect email or password.' );
+			}
 		}
 	}
 
 	/**
 	 * Logs in the user using the given username and password in the model.
+	 *
 	 * @return boolean whether login is successful
 	 */
 	public function login()
 	{
-		if($this->_identity===null)
+		if ( $this->_identity === null )
 		{
-			$this->_identity=new DfUserIdentity($this->username, $this->password);
+			$this->_identity = new DspUserIdentity( $this->username, $this->password, true );
 			$this->_identity->authenticate();
 		}
-		if($this->_identity->errorCode == DfUserIdentity::ERROR_NONE)
+		if ( $this->_identity->errorCode == DspUserIdentity::ERROR_NONE )
 		{
-			$duration=$this->rememberMe ? 3600*24*30 : 0; // 30 days
-			Yii::app()->user->login($this->_identity, $duration);
+			$duration = $this->rememberMe ? 3600 * 24 * 30 : 0; // 30 days
+			Yii::app()->user->login( $this->_identity, $duration );
+
 			return true;
 		}
 		else
+		{
 			return false;
+		}
 	}
 }

@@ -86,52 +86,22 @@ class SiteController extends Controller
 					break;
 
 				case 'init required':
-					if ( !Yii::app()->user->getIsGuest() &&
-						 !Yii::app()->user->getState( 'df_authenticated', false ) )
-					{
-						Yii::app()->user->logout();
-						$this->redirect( '/' );
-					}
 					$this->redirect( array( 'site/initSystem' ) );
 					break;
 
 				case 'admin required':
-					if ( !Yii::app()->user->getIsGuest() &&
-						 !Yii::app()->user->getState( 'df_authenticated', false ) )
-					{
-						Yii::app()->user->logout();
-						$this->redirect( '/' );
-					}
 					$this->redirect( array( 'site/initAdmin' ) );
 					break;
 
 				case 'schema required':
-					if ( !Yii::app()->user->getIsGuest() &&
-						 !Yii::app()->user->getState( 'df_authenticated', false ) )
-					{
-						Yii::app()->user->logout();
-						$this->redirect( '/' );
-					}
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
 				case 'upgrade required':
-					if ( !Yii::app()->user->getIsGuest() &&
-						 !Yii::app()->user->getState( 'df_authenticated', false ) )
-					{
-						Yii::app()->user->logout();
-						$this->redirect( '/' );
-					}
 					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
 				case 'data required':
-					if ( !Yii::app()->user->getIsGuest() &&
-						 !Yii::app()->user->getState( 'df_authenticated', false ) )
-					{
-						Yii::app()->user->logout();
-						$this->redirect( '/' );
-					}
 					$this->redirect( array( 'site/initData' ) );
 					break;
 			}
@@ -200,7 +170,16 @@ class SiteController extends Controller
 	public function actionLogout()
 	{
 		Yii::app()->user->logout();
-		Pii::redirect( '/' );
+		$this->redirect( '/' );
+	}
+
+	/**
+	 * Activates the system
+	 */
+	public function actionInitSystem()
+	{
+		SystemManager::initSystem();
+		$this->redirect( '/' );
 	}
 
 	/**
@@ -232,47 +211,12 @@ class SiteController extends Controller
 	}
 
 	/**
-	 * Displays the system init admin page
+	 * Adds the first admin, based on DF authenticated login
 	 */
-	public function actionInitSystem()
+	public function actionInitAdmin()
 	{
-		$this->actionInitAdmin( true );
-	}
-
-	/**
-	 * Displays the system init admin page
-	 */
-	public function actionInitAdmin( $initSystem = false )
-	{
-		$_model = new InitAdminForm();
-
-		if ( isset( $_POST, $_POST['InitAdminForm'] ) )
-		{
-			$_model->attributes = $_POST['InitAdminForm'];
-
-			if ( $_model->validate() )
-			{
-				if ( $initSystem )
-				{
-					SystemManager::initSystem( $_model->attributes );
-				}
-				else
-				{
-					SystemManager::initAdmin( $_model->attributes );
-				}
-
-				$this->redirect( '/' );
-			}
-
-			$this->refresh();
-		}
-
-		$_model->email = Yii::app()->user->getState( 'email' );
-		$_model->firstName = Yii::app()->user->getState( 'first_name' );
-		$_model->lastName = Yii::app()->user->getState( 'last_name' );
-		$_model->displayName = Yii::app()->user->getState( 'display_name' );
-
-		$this->render( 'initAdmin', array( 'model' => $_model ) );
+		SystemManager::initAdmin();
+		$this->redirect( '/' );
 	}
 
 	/**

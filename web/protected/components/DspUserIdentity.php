@@ -32,11 +32,55 @@ class DspUserIdentity extends CUserIdentity
 
 	private $_user = null;
 
+	public $df_authenticate = false;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param string $username username
+	 * @param string $password password
+	 * @param bool   $df_authenticate
+	 */
+	public function __construct( $username, $password, $df_authenticate = false )
+	{
+		parent::__construct( $username, $password );
+
+		$this->df_authenticate = $df_authenticate;
+	}
+
 	/**
 	 * @return bool
 	 */
 	public function authenticate()
 	{
+		if ( $this->df_authenticate )
+		{
+			$record = Drupal::authenticateUser( $this->username, $this->password );
+
+			if ( false === $record )
+			{
+				$this->errorCode = self::ERROR_USERNAME_INVALID;
+			}
+			else
+			{
+				if ( !isset( $record->drupal_id ) )
+				{
+					Log::warning( 'suspicious post to auth: ' . print_r( $record, true ) );
+				}
+
+				$this->_id = Option::get( $record, 'drupal_id' );
+				$this->setState( 'email', $this->username );
+				$this->setState( 'first_name', Option::get( $record, 'first_name', $this->username ) );
+				$this->setState( 'last_name', Option::get( $record, 'last_name', $this->username ) );
+				$this->setState( 'display_name', Option::get( $record, 'display_name', $this->username ) );
+				$this->setState( 'password', $this->password );
+				$this->setState( 'df_authenticated', true );
+				$this->errorCode = self::ERROR_NONE;
+			}
+
+			return !$this->errorCode;
+		}
+
 		$this->_user = User::model()
 			->with( 'role.role_service_accesses', 'role.apps', 'role.services' )
 			->findByAttributes( array( 'email' => $this->username ) );
