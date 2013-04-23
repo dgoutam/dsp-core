@@ -28,6 +28,56 @@ class SwaggerUtilities
 		if ( !empty( $service ) )
 		{
 			$swagger['resourcePath'] = '/' . $service;
+			$swagger['apis'] = array(
+				array(
+					'path'        => '/' . $service,
+					'description' => "Operations available for this service",
+					'operations'  => array(
+						array(
+							"httpMethod"     => "GET",
+							"summary"        => "List resources available for this service",
+							"notes"          => "See listed operations for each resource available.",
+							"responseClass"  => "Resources",
+							"nickname"       => "getResources",
+							"parameters"     => array(),
+							"errorResponses" => array(
+								array(
+									"code"   => 401,
+									"reason" => "Unauthorized Access - No currently valid session available."
+								)
+							)
+						)
+					)
+				),
+			);
+			$swagger['models'] = array(
+				"Resources" => array(
+					"id" => "Resources",
+					"properties" => array(
+						"resource" => array(
+							"type" => "array",
+							"description" => "Resources available for this service",
+							"items" => array( '$ref' => "Resource")
+						)
+					)
+				),
+				"Resource" => array(
+					"id" => "Resource",
+					"properties" => array(
+						"name" => array(
+							"type" => "string"
+						)
+					)
+				),
+				"Success" => array(
+					"id" => "Success",
+					"properties" => array(
+						"success" => array(
+							"type" => "boolean"
+						)
+					)
+				),
+			);
 		}
 
 		return $swagger;

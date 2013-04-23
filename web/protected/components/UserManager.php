@@ -99,27 +99,7 @@ class UserManager implements iRestHandler
 	{
 		$this->detectCommonParams();
 		$result = SwaggerUtilities::swaggerBaseInfo( 'user' );
-		$resources = array(
-			array(
-				'path'        => '/user',
-				'description' => "Operations on the user service",
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List resources available in the user service",
-						"notes"          => "Use these resources to maintain session, update profile and change password.",
-						"responseClass"  => "Resources",
-						"nickname"       => "getResources",
-						"parameters"     => array(),
-						"errorResponses" => array(
-							array(
-								"code"   => 401,
-								"reason" => "Unauthorized Access - No currently valid session available."
-							)
-						)
-					)
-				)
-			),
+		$apis = array(
 			array(
 				'path'        => '/user/session',
 				'description' => "Operations on a user's session",
@@ -339,8 +319,7 @@ class UserManager implements iRestHandler
 				'operations'  => array()
 			)
 		);
-		$result['apis'] = $resources;
-		$result['models'] = array(
+		$models = array(
 			"Session" => array(
 				"id" => "Session",
 				"properties" => array(
@@ -453,24 +432,6 @@ class UserManager implements iRestHandler
 					)
 				)
 			),
-			"Resources" => array(
-				"id" => "Resources",
-				"properties" => array(
-					"resource" => array(
-						"type" => "array",
-						"description" => "Resources available for this service",
-						"items" => array( '$ref' => "Resource")
-					)
-				)
-			),
-			"Resource" => array(
-				"id" => "Resource",
-				"properties" => array(
-					"name" => array(
-						"type" => "string"
-					)
-				)
-			),
 			"Login" => array(
 				"id" => "Login",
 				"properties" => array(
@@ -493,15 +454,9 @@ class UserManager implements iRestHandler
 					)
 				)
 			),
-			"Success" => array(
-				"id" => "Success",
-				"properties" => array(
-					"success" => array(
-						"type" => "boolean"
-					)
-				)
-			),
 		);
+		$result['apis'] = array_merge( $result['apis'], $apis );
+		$result['models'] = array_merge( $result['models'], $models );
 
 		return $result;
 	}
@@ -1318,7 +1273,7 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "A User already exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
 		}
-		$config = SystemManager::retrieveConfig( 'allow_open_registration, open_reg_role_id' );
+		$config = SystemManager::retrieveConfig( 'allow_open_registration,open_reg_role_id' );
 		if ( !Utilities::boolval( Utilities::getArrayValue( 'allow_open_registration', $config, false ) ) )
 		{
 			throw new Exception( "Open registration for user accounts is not currently active for this system.", ErrorCodes::BAD_REQUEST );
@@ -1348,7 +1303,7 @@ class UserManager implements iRestHandler
 			throw new Exception( "Failed to register new user!\n{$ex->getMessage()}", $ex->getCode() );
 		}
 
-		return $fields;
+		return array( 'success' => true );
 	}
 
 	/**
@@ -1374,7 +1329,7 @@ class UserManager implements iRestHandler
 			throw new Exception( "Error validating confirmation.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 
-		return array();
+		return array( 'success' => true );
 	}
 
 	/**
