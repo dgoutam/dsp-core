@@ -298,9 +298,7 @@ class UserManager implements iRestHandler
 				$lastName = Utilities::getArrayValue( 'last_name', $data, '' );
 				$displayName = Utilities::getArrayValue( 'display_name', $data, '' );
 				$email = Utilities::getArrayValue( 'email', $data, '' );
-				$password = Utilities::getArrayValue( 'password', $data, '' );
-				//$password = Utilities::decryptPassword($password);
-				$result = $this->userRegister( $email, $password, $firstName, $lastName, $displayName );
+				$result = $this->userRegister( $email, $firstName, $lastName, $displayName );
 				break;
 			case 'confirm':
 				$code = Utilities::getArrayValue( 'code', $_REQUEST, '' );
@@ -475,36 +473,36 @@ class UserManager implements iRestHandler
 
 	//------- Email Helpers ----------------------
 
-    public static function sendUserEmail( $template, $data )
-    {
-        $to = Utilities::getArrayValue('to', $data);
-        $cc = Utilities::getArrayValue('cc', $data);
-        $bcc = Utilities::getArrayValue('bcc', $data);
-        $subject = Utilities::getArrayValue('subject', $template);
-        $content = Utilities::getArrayValue('content', $template);
-        $bodyText = Utilities::getArrayValue('text', $content);
-        $bodyHtml = Utilities::getArrayValue('html', $content);
-        try
-        {
-            $svc = ServiceHandler::getServiceObject( 'email' );
-            $result = ( $svc ) ? $svc->sendEmail( $to, $cc, $bcc, $subject, $bodyText, $bodyHtml ) : false;
-            if ( !filter_var( $result, FILTER_VALIDATE_BOOLEAN ) )
-            {
-                $msg = "Error: Failed to send user email.";
-                if ( is_string( $result ) )
-                {
-                    $msg .= "\n$result";
-                }
-                throw new Exception( $msg );
-            }
-        }
-        catch ( Exception $ex )
-        {
-            throw $ex;
-        }
-    }
+	public static function sendUserEmail( $template, $data )
+	{
+		$to = Utilities::getArrayValue( 'to', $data );
+		$cc = Utilities::getArrayValue( 'cc', $data );
+		$bcc = Utilities::getArrayValue( 'bcc', $data );
+		$subject = Utilities::getArrayValue( 'subject', $template );
+		$content = Utilities::getArrayValue( 'content', $template );
+		$bodyText = Utilities::getArrayValue( 'text', $content );
+		$bodyHtml = Utilities::getArrayValue( 'html', $content );
+		try
+		{
+			$svc = ServiceHandler::getServiceObject( 'email' );
+			$result = ( $svc ) ? $svc->sendEmail( $to, $cc, $bcc, $subject, $bodyText, $bodyHtml ) : false;
+			if ( !filter_var( $result, FILTER_VALIDATE_BOOLEAN ) )
+			{
+				$msg = "Error: Failed to send user email.";
+				if ( is_string( $result ) )
+				{
+					$msg .= "\n$result";
+				}
+				throw new Exception( $msg );
+			}
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
 
-    /**
+	/**
 	 * @param $email
 	 * @param $fullname
 	 *
@@ -931,7 +929,7 @@ class UserManager implements iRestHandler
 			$lapse = $curTime - $timestamp;
 			if ( empty( $userId ) || ( $lapse > 300 ) )
 			{ // only lasts 5 minutes
-                static::userLogout();
+				static::userLogout();
 				throw new Exception( "Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED );
 			}
 		}
@@ -969,7 +967,7 @@ class UserManager implements iRestHandler
 		}
 		catch ( Exception $ex )
 		{
-            static::userLogout();
+			static::userLogout();
 			throw $ex;
 		}
 		// regenerate new timed ticket
@@ -1016,6 +1014,7 @@ class UserManager implements iRestHandler
 			// generate link
 			$link = Yii::app()->createAbsoluteUrl( 'public/launchpad/confirm.html' );
 			$link .= '?email=' . urlencode( $email ) . '&code=' . urlencode( $confirmCode );
+
 			return $link;
 		}
 		catch ( Exception $ex )
@@ -1026,26 +1025,16 @@ class UserManager implements iRestHandler
 
 	/**
 	 * @param        $email
-	 * @param string $password
 	 * @param string $first_name
 	 * @param string $last_name
 	 * @param string $display_name
 	 *
 	 * @throws Exception
+	 * @internal param string $password
 	 * @return array
 	 */
-	public static function userRegister( $email, $password = '', $first_name = '', $last_name = '', $display_name = '' )
+	public static function userRegister( $email, $first_name = '', $last_name = '', $display_name = '' )
 	{
-		$confirmCode = static::makeConfirmationMd5( $email );
-		// fill out the user fields for creation
-		$fields = array( 'email' => $email, 'password' => $password );
-		$temp = substr( $email, 0, strrpos( $email, '@' ) );
-		$fields['first_name'] = ( !empty( $first_name ) ) ? $first_name : $temp;
-		$fields['last_name'] = ( !empty( $last_name ) ) ? $last_name : $temp;
-		$fullName = ( !empty( $first_name ) && !empty( $last_name ) ) ? $first_name . ' ' . $last_name : $temp;
-		$fields['display_name'] = $fullName;
-		$fields['confirm_code'] = $confirmCode;
-		$record = Utilities::array_key_lower( $fields );
 		if ( empty( $email ) )
 		{
 			throw new Exception( "The email field for User can not be empty.", ErrorCodes::BAD_REQUEST );
@@ -1055,30 +1044,35 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "A User already exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
 		}
+		$config = SystemManager::retrieveConfig( 'allow_open_registration, open_reg_role_id' );
+		if ( !Utilities::boolval( Utilities::getArrayValue( 'allow_open_registration', $config, false ) ) )
+		{
+			throw new Exception( "Open registration for user accounts is not currently active for this system.", ErrorCodes::BAD_REQUEST );
+		}
+		$roleId = Utilities::getArrayValue( 'open_reg_role_id', $config, null );
+		$confirmCode = static::makeConfirmationMd5( $email );
+		// fill out the user fields for creation
+		$temp = substr( $email, 0, strrpos( $email, '@' ) );
+		$fields = array(
+			'email'        => $email,
+			'first_name'   => ( !empty( $first_name ) ) ? $first_name : $temp,
+			'last_name'    => ( !empty( $last_name ) ) ? $last_name : $temp,
+			'display_name' => ( !empty( $last_name ) )
+				? $display_name
+				: ( !empty( $first_name ) && !empty( $last_name ) ) ? $first_name . ' ' . $last_name : $temp,
+			'role_id'      => $roleId,
+			'confirm_code' => $confirmCode
+		);
 		try
 		{
 			$user = new User();
-			$user->setAttributes( $record );
+			$user->setAttributes( $fields );
 			$user->save();
 		}
 		catch ( Exception $ex )
 		{
 			throw new Exception( "Failed to register new user!\n{$ex->getMessage()}", $ex->getCode() );
 		}
-//		try
-//		{
-//            static::sendUserConfirmationEmail( $email, $confirmCode, $fullName );
-//		}
-//		catch ( Exception $ex )
-//		{
-//			// need to remove from database here, otherwise they can't register again
-//			$user->delete();
-//			throw new Exception( "Failed to register new user!\nError sending registration email.", ErrorCodes::INTERNAL_SERVER_ERROR );
-//		}
-//
-//        static::sendAdminIntimationEmail( $email, $fullName );
-
-		unset( $fields['password'] );
 
 		return $fields;
 	}
@@ -1105,16 +1099,6 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "Error validating confirmation.\n{$ex->getMessage()}", $ex->getCode() );
 		}
-//		try
-//		{
-//			$fullName = $theUser->display_name;
-//			$email = $theUser->email;
-//            static::sendUserWelcomeEmail( $email, $fullName );
-//            static::sendAdminIntimationOnRegComplete( $email, $fullName );
-//		}
-//		catch ( Exception $ex )
-//		{
-//		}
 
 		return array();
 	}
@@ -1146,7 +1130,7 @@ class UserManager implements iRestHandler
 				$fullName = $theUser->getAttribute( 'display_name' );
 				if ( !empty( $email ) && !empty( $fullName ) )
 				{
-                    static::sendResetPasswordLink( $email, $fullName );
+					static::sendResetPasswordLink( $email, $fullName );
 
 					return array( 'success' => true );
 				}
@@ -1590,7 +1574,8 @@ class UserManager implements iRestHandler
 	public static function validateSession()
 	{
 		if ( !Yii::app()->user->getIsGuest() &&
-			 !Yii::app()->user->getState( 'df_authenticated', false ) )
+			 !Yii::app()->user->getState( 'df_authenticated', false )
+		)
 		{
 			return Yii::app()->user->getId();
 		}
@@ -1625,7 +1610,8 @@ class UserManager implements iRestHandler
 		if ( empty( static::$_cache ) )
 		{
 			if ( !Yii::app()->user->getIsGuest() &&
-				 !Yii::app()->user->getState( 'df_authenticated', false ) )
+				 !Yii::app()->user->getState( 'df_authenticated', false )
+			)
 			{
 				static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
 			}
