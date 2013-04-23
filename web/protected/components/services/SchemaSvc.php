@@ -766,10 +766,11 @@ class SchemaSvc extends BaseService
 	}
 
 	/**
-	 * @param $tables
+	 * @param      $tables
+	 * @param bool $allow_merge
 	 *
-	 * @return array
 	 * @throws Exception
+	 * @return array
 	 */
 	public function createTables( $tables, $allow_merge = false )
 	{
@@ -844,7 +845,8 @@ class SchemaSvc extends BaseService
 		$this->checkPermission( 'create', $table );
 		try
 		{
-			return DbUtilities::createFields( $this->_sqlConn, $table, $fields );
+			$names = DbUtilities::createFields( $this->_sqlConn, $table, $fields );
+			return DbUtilities::describeFields( $this->_sqlConn, $table, $names );
 		}
 		catch ( Exception $ex )
 		{
@@ -945,7 +947,8 @@ class SchemaSvc extends BaseService
 		$this->checkPermission( 'update', $table );
 		try
 		{
-			return DbUtilities::createFields( $this->_sqlConn, $table, $fields, true );
+			$names = DbUtilities::createFields( $this->_sqlConn, $table, $fields, true );
+			return DbUtilities::describeFields( $this->_sqlConn, $table, $names );
 		}
 		catch ( Exception $ex )
 		{

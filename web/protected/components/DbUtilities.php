@@ -351,6 +351,51 @@ class DbUtilities
 
 	/**
 	 * @param CDbConnection $db
+	 * @param string        $table_name
+	 * @param array	        $field_names
+	 *
+	 * @throws Exception
+	 * @return array
+	 */
+	public static function describeFields( $db, $table_name, $field_names )
+	{
+		$table_name = static::correctTableName( $db, $table_name );
+		$table = $db->schema->getTable( $table_name );
+		if ( !$table )
+		{
+			throw new Exception( "Table '$table_name' does not exist in the database.", ErrorCodes::NOT_FOUND );
+		}
+		$field = array();
+		try
+		{
+			foreach ( $table->columns as $column )
+			{
+				if ( false === array_search( $column->name, $field_names ) )
+				{
+					continue;
+				}
+				$query = $db->quoteColumnName( 'table' ) . ' = :tn and ' . $db->quoteColumnName( 'field' ) . ' = :fn';
+				$labels = static::getLabels( $query, array( ':tn' => $table_name, ':fn' => $column->name ) );
+				$labelInfo = Utilities::getArrayValue( 0, $labels, array() );
+				$field[] = static::describeFieldInternal( $column, $table->foreignKeys, $labelInfo );
+				break;
+			}
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Failed to query table schema.\n{$ex->getMessage()}" );
+		}
+
+		if ( empty( $field ) )
+		{
+			throw new Exception( "No fields not found in table '$table_name'.", ErrorCodes::NOT_FOUND );
+		}
+
+		return $field;
+	}
+
+	/**
+	 * @param CDbConnection $db
 	 * @param               $table_name
 	 * @param               $field_name
 	 *
@@ -1012,7 +1057,7 @@ class DbUtilities
 			}
 
 			// additional properties
-			if ( !$allowNull )
+			if ( !Utilities::boolval( $allowNull ) )
 			{
 				$definition .= ' NOT NULL';
 			}
@@ -1417,6 +1462,7 @@ class DbUtilities
 		$schema = $db->schema->getTable( $table_name );
 		try
 		{
+			$names = array();
 			$results = static::buildTableFields( $table_name, $fields, $allow_update, $schema );
 			$command = $db->createCommand();
 			$columns = Utilities::getArrayValue( 'columns', $results, array() );
@@ -1424,19 +1470,21 @@ class DbUtilities
 			{
 				$command->reset();
 				$command->addColumn( $table_name, $name, $definition );
+				$names[] = $name;
 			}
 			$columns = Utilities::getArrayValue( 'alter_columns', $results, array() );
 			foreach ( $columns as $name => $definition )
 			{
 				$command->reset();
 				$command->alterColumn( $table_name, $name, $definition );
+				$names[] = $name;
 			}
 			static::createFieldExtras( $db, $results );
 
 			// refresh the schema that we just added
 			$db->schema->refresh();
 
-			return array( 'name' => $table_name );
+			return $names;
 		}
 		catch ( Exception $ex )
 		{
