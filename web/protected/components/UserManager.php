@@ -1145,6 +1145,26 @@ class UserManager implements iRestHandler
 			catch ( Exception $ex )
 			{
 				static::userLogout();
+
+				// special case for possible guest user
+				$theConfig = Config::model()->with(
+					'guest_role.role_service_accesses',
+					'guest_role.apps',
+					'guest_role.services'
+				)->find();
+
+				if ( !empty( $theConfig ) )
+				{
+					if ( Utilities::boolval( $theConfig->getAttribute( 'allow_guest_user' ) ) )
+					{
+						$result = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
+
+						// additional stuff for session - launchpad mainly
+						return static::addSessionExtras( $result, false, true );
+					}
+				}
+
+				// otherwise throw original exception
 				throw $ex;
 			}
 		}

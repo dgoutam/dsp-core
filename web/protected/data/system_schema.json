@@ -1,5 +1,5 @@
 {
-    "version": "0.6.2",
+    "version": "0.6.3",
     "table": [
         {
             "name": "df_sys_config",
@@ -25,7 +25,7 @@
 					"type": "reference",
 					"ref_table": "df_sys_role",
 					"ref_fields": "id",
-					"ref_on_delete": "CASCADE",
+					"ref_on_delete": "SET NULL",
 					"allow_null": true
 				},
 				{
@@ -39,7 +39,7 @@
 					"type": "reference",
 					"ref_table": "df_sys_role",
 					"ref_fields": "id",
-					"ref_on_delete": "CASCADE",
+					"ref_on_delete": "SET NULL",
 					"allow_null": true
 				},
 				{
