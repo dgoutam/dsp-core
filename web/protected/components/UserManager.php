@@ -108,10 +108,15 @@ class UserManager implements iRestHandler
 						"httpMethod"     => "GET",
 						"summary"        => "List resources available in the user service",
 						"notes"          => "Use these resources to maintain session, update profile and change password.",
-						"responseClass"  => "array",
+						"responseClass"  => "Resources",
 						"nickname"       => "getResources",
 						"parameters"     => array(),
-						"errorResponses" => array()
+						"errorResponses" => array(
+							array(
+								"code"   => 401,
+								"reason" => "Unauthorized Access - No currently valid session available."
+							)
+						)
 					)
 				)
 			),
@@ -122,26 +127,49 @@ class UserManager implements iRestHandler
 					array(
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve the current user session information",
-						"notes"          => "Calling this refreshes the current session.",
-						"responseClass"  => "array",
+						"notes"          => "Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.",
+						"responseClass"  => "Session",
 						"nickname"       => "getSession",
 						"parameters"     => array(),
-						"errorResponses" => array()
+						"errorResponses" => array(
+							array(
+								"code"   => 401,
+								"reason" => "Unauthorized Access - No currently valid session available."
+							)
+						)
 					),
 					array(
 						"httpMethod"     => "POST",
 						"summary"        => "Login and create a new user session",
 						"notes"          => "Calling this creates a new session and logs in the user.",
-						"responseClass"  => "array",
+						"responseClass"  => "Session",
 						"nickname"       => "login",
-						"parameters"     => array(),
-						"errorResponses" => array()
+						"parameters"     => array(
+							array(
+								"paramType"     => "body",
+								"name"          => "credentials",
+								"description"   => "Data containing name-value pairs used for logging into the system.",
+								"dataType"      => "Login",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => array(
+							array(
+								"code"   => 400,
+								"reason" => "Request is not complete or valid."
+							),
+							array(
+								"code"   => 401,
+								"reason" => "Unauthorized Access - No currently valid session available."
+							)
+						)
 					),
 					array(
 						"httpMethod"     => "DELETE",
 						"summary"        => "Logout and destroy the current user session",
 						"notes"          => "Calling this deletes the current session and logs out the user.",
-						"responseClass"  => "array",
+						"responseClass"  => "Success",
 						"nickname"       => "logout",
 						"parameters"     => array(),
 						"errorResponses" => array()
@@ -156,7 +184,7 @@ class UserManager implements iRestHandler
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve the current user's profile information",
 						"notes"          => "This profile, along with password, is the only things that the user can directly change.",
-						"responseClass"  => "array",
+						"responseClass"  => "Profile",
 						"nickname"       => "getProfile",
 						"parameters"     => array(),
 						"errorResponses" => array()
@@ -165,10 +193,28 @@ class UserManager implements iRestHandler
 						"httpMethod"     => "POST",
 						"summary"        => "Update the current user's profile information",
 						"notes"          => "Update the security question and answer through this api, as well as, display name, email, etc.",
-						"responseClass"  => "array",
+						"responseClass"  => "Success",
 						"nickname"       => "changeProfile",
-						"parameters"     => array(),
-						"errorResponses" => array()
+						"parameters"     => array(
+							array(
+								"paramType"     => "body",
+								"name"          => "profile",
+								"description"   => "Data containing name-value pairs of the user profile.",
+								"dataType"      => "Profile",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => array(
+							array(
+								"code"   => 400,
+								"reason" => "Request is not complete or valid."
+							),
+							array(
+								"code"   => 401,
+								"reason" => "Unauthorized Access - No currently valid session available."
+							)
+						)
 					),
 				)
 			),
@@ -180,10 +226,28 @@ class UserManager implements iRestHandler
 						"httpMethod"     => "POST",
 						"summary"        => "Update the current user's password",
 						"notes"          => "A valid session is required to change the password through this API.",
-						"responseClass"  => "array",
+						"responseClass"  => "Success",
 						"nickname"       => "changePassword",
-						"parameters"     => array(),
-						"errorResponses" => array()
+						"parameters"     => array(
+							array(
+								"paramType"     => "body",
+								"name"          => "credentials",
+								"description"   => "Data containing name-value pairs for password change.",
+								"dataType"      => "Password",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => array(
+							array(
+								"code"   => 400,
+								"reason" => "Request is not complete or valid."
+							),
+							array(
+								"code"   => 401,
+								"reason" => "Unauthorized Access - No currently valid session available."
+							)
+						)
 					),
 				)
 			),
@@ -214,12 +278,60 @@ class UserManager implements iRestHandler
 			array(
 				'path'        => '/user/register',
 				'description' => '',
-				'operations'  => array()
+				'operations'  => array(
+					array(
+						"httpMethod"     => "POST",
+						"summary"        => "Register a new user in the system.",
+						"notes"          => "The new user is created and sent an email for confirmation.",
+						"responseClass"  => "Success",
+						"nickname"       => "registerUser",
+						"parameters"     => array(
+							array(
+								"paramType"     => "body",
+								"name"          => "registration",
+								"description"   => "Data containing name-value pairs for new user registration.",
+								"dataType"      => "Register",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => array(
+							array(
+								"code"   => 400,
+								"reason" => "Request is not complete or valid."
+							)
+						)
+					),
+				)
 			),
 			array(
 				'path'        => '/user/confirm',
 				'description' => '',
-				'operations'  => array()
+				'operations'  => array(
+					array(
+						"httpMethod"     => "POST",
+						"summary"        => "Confirm a new user registration or password change request.",
+						"notes"          => "The new user is confirmed and assumes the role given by system admin.",
+						"responseClass"  => "Success",
+						"nickname"       => "confirmUser",
+						"parameters"     => array(
+							array(
+								"paramType"     => "body",
+								"name"          => "confirmation",
+								"description"   => "Data containing name-value pairs for new user confirmation.",
+								"dataType"      => "Confirm",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => array(
+							array(
+								"code"   => 400,
+								"reason" => "Request is not complete or valid."
+							)
+						)
+					),
+				)
 			),
 			array(
 				'path'        => '/user/ticket',
@@ -228,6 +340,168 @@ class UserManager implements iRestHandler
 			)
 		);
 		$result['apis'] = $resources;
+		$result['models'] = array(
+			"Session" => array(
+				"id" => "Session",
+				"properties" => array(
+					"id" => array(
+						"type" => "string",
+						"description" => "Identifier for the current user."
+					),
+					"email" => array(
+						"type" => "string",
+						"description" => "Email address of the current user."
+					),
+					"first_name" => array(
+						"type" => "string",
+						"description" => "First name of the current user."
+					),
+					"last_name" => array(
+						"type" => "string",
+						"description" => "Last name of the current user."
+					),
+					"display_name" => array(
+						"type" => "string",
+						"description" => "Full display name of the current user."
+					),
+					"is_sys_admin" => array(
+						"type" => "boolean",
+						"description" => "Is the current user a system administrator."
+					),
+					"last_login_date" => array(
+						"type" => "string",
+						"description" => "Date and time of the last login for the current user."
+					),
+					"app_groups" => array(
+						"type" => "array",
+						"description" => "App groups and the containing apps."
+					),
+					"no_group_apps" => array(
+						"type" => "array",
+						"description" => "Apps that are not in any app groups."
+					),
+					"ticket" => array(
+						"type" => "string",
+						"description" => "Timed ticket that can be used to start a separate session."
+					),
+					"ticket_expiry" => array(
+						"type" => "string",
+						"description" => "Expiration time for the given ticket."
+					),
+				)
+			),
+			"Profile" => array(
+				"id" => "Profile",
+				"properties" => array(
+					"email" => array(
+						"type" => "string"
+					),
+					"first_name" => array(
+						"type" => "string",
+						"description" => "First name of the current user."
+					),
+					"last_name" => array(
+						"type" => "string",
+						"description" => "Last name of the current user."
+					),
+					"display_name" => array(
+						"type" => "string",
+						"description" => "Full display name of the current user."
+					),
+					"phone" => array(
+						"type" => "string",
+						"description" => "First name of the current user."
+					),
+					"security_question" => array(
+						"type" => "string",
+						"description" => "Question to be answered to initiate password reset."
+					),
+					"default_app_id" => array(
+						"type" => "integer",
+						"description" => "Id of the application to be launched at login."
+					),
+				)
+			),
+			"Register" => array(
+				"id" => "Register",
+				"properties" => array(
+					"email" => array(
+						"type" => "string"
+					),
+					"first_name" => array(
+						"type" => "string",
+						"description" => "First name of the current user."
+					),
+					"last_name" => array(
+						"type" => "string",
+						"description" => "Last name of the current user."
+					),
+					"display_name" => array(
+						"type" => "string",
+						"description" => "Full display name of the current user."
+					),
+				)
+			),
+			"Confirm" => array(
+				"id" => "Confirm",
+				"properties" => array(
+					"email" => array(
+						"type" => "string"
+					),
+					"new_password" => array(
+						"type" => "string"
+					)
+				)
+			),
+			"Resources" => array(
+				"id" => "Resources",
+				"properties" => array(
+					"resource" => array(
+						"type" => "array",
+						"description" => "Resources available for this service",
+						"items" => array( '$ref' => "Resource")
+					)
+				)
+			),
+			"Resource" => array(
+				"id" => "Resource",
+				"properties" => array(
+					"name" => array(
+						"type" => "string"
+					)
+				)
+			),
+			"Login" => array(
+				"id" => "Login",
+				"properties" => array(
+					"email" => array(
+						"type" => "string"
+					),
+					"password" => array(
+						"type" => "string"
+					)
+				)
+			),
+			"Password" => array(
+				"id" => "Password",
+				"properties" => array(
+					"old_password" => array(
+						"type" => "string"
+					),
+					"new_password" => array(
+						"type" => "string"
+					)
+				)
+			),
+			"Success" => array(
+				"id" => "Success",
+				"properties" => array(
+					"success" => array(
+						"type" => "boolean"
+					)
+				)
+			),
+		);
 
 		return $result;
 	}
@@ -450,7 +724,7 @@ class UserManager implements iRestHandler
 		{
 			case 'session':
 				$this->userLogout();
-				$result = array( 'success' => 'true' );
+				$result = array( 'success' => true );
 				break;
 			default:
 				// unsupported GET request
@@ -1057,7 +1331,7 @@ class UserManager implements iRestHandler
 			'email'        => $email,
 			'first_name'   => ( !empty( $first_name ) ) ? $first_name : $temp,
 			'last_name'    => ( !empty( $last_name ) ) ? $last_name : $temp,
-			'display_name' => ( !empty( $last_name ) )
+			'display_name' => ( !empty( $display_name ) )
 				? $display_name
 				: ( !empty( $first_name ) && !empty( $last_name ) ) ? $first_name . ' ' . $last_name : $temp,
 			'role_id'      => $roleId,

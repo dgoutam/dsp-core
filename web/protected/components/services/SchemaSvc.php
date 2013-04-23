@@ -617,15 +617,15 @@ class SchemaSvc extends BaseService
 		{
 			if ( !empty( $this->fieldName ) )
 			{
-				$result = $this->deleteField( $this->tableName, $this->fieldName );
+				$this->deleteField( $this->tableName, $this->fieldName );
 
-				return array( 'field' => $result );
+				return array( 'field' => $this->fieldName );
 			}
 			else
 			{
-				$result = $this->deleteTable( $this->tableName );
+				$this->deleteTable( $this->tableName );
 
-				return array( 'table' => $result );
+				return array( 'table' => $this->tableName );
 			}
 		}
 		else
@@ -978,7 +978,6 @@ class SchemaSvc extends BaseService
 	/**
 	 * @param $table
 	 *
-	 * @return array
 	 * @throws Exception
 	 */
 	public function deleteTable( $table )
@@ -997,8 +996,7 @@ class SchemaSvc extends BaseService
 			}
 		}
 		$this->checkPermission( 'delete', $table );
-
-		return DbUtilities::dropTable( $this->_sqlConn, $table );
+		DbUtilities::dropTable( $this->_sqlConn, $table );
 	}
 
 	/**
@@ -1006,7 +1004,6 @@ class SchemaSvc extends BaseService
 	 * @param $field
 	 *
 	 * @throws Exception
-	 * @return array
 	 */
 	public function deleteField( $table, $field )
 	{
@@ -1024,8 +1021,7 @@ class SchemaSvc extends BaseService
 			}
 		}
 		$this->checkPermission( 'delete', $table );
-
-		return DbUtilities::dropField( $this->_sqlConn, $table, $field );
+		DbUtilities::dropField( $this->_sqlConn, $table, $field );
 	}
 
 }

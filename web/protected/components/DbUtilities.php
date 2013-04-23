@@ -153,11 +153,11 @@ class DbUtilities
 
 	/**
 	 * @param CDbConnection $db
-	 * @param string        $include
-	 * @param string        $exclude
+	 * @param string        $include_prefix
+	 * @param string        $exclude_prefix
 	 *
-	 * @return array
 	 * @throws Exception
+	 * @return array
 	 */
 	public static function describeDatabase( $db, $include_prefix = '', $exclude_prefix = '' )
 	{
@@ -1793,7 +1793,6 @@ class DbUtilities
 	 * @param string        $table_name
 	 *
 	 * @throws Exception
-	 * @return array
 	 */
 	public static function dropTable( $db, $table_name )
 	{
@@ -1815,8 +1814,6 @@ class DbUtilities
 
 			// refresh the schema that we just added
 			$db->schema->refresh();
-
-			return array( 'name' => $table_name );
 		}
 		catch ( Exception $ex )
 		{
@@ -1831,7 +1828,6 @@ class DbUtilities
 	 * @param string        $field_name
 	 *
 	 * @throws Exception
-	 * @return array
 	 */
 	public static function dropField( $db, $table_name, $field_name )
 	{
@@ -1854,8 +1850,6 @@ class DbUtilities
 
 			// refresh the schema that we just added
 			$db->schema->refresh();
-
-			return array( 'name' => $table_name );
 		}
 		catch ( Exception $ex )
 		{
