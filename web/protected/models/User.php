@@ -233,21 +233,16 @@ class User extends BaseDspSystemModel
 		$_id = $this->getPrimaryKey();
 
 		// make sure you don't delete yourself
-		try
+		if ( $_id == UserManager::getCurrentUserId() )
 		{
-			if ( $_id == UserManager::getCurrentUserId() )
-			{
-				throw new StorageException( 'The currently logged in user may not be deleted.' );
-			}
-
-			//	Check and make sure this is not the last admin user
-			if ( !static::model()->count( 'is_sys_admin = :is_sys_admin AND id = :id', array( ':is_sys_admin' => 1, ':id' => $_id ) ) )
-			{
-				throw new StorageException( 'There must be at least one administrative account. This one may not be deleted.' );
-			}
+			throw new StorageException( 'The currently logged in user may not be deleted.' );
 		}
-		catch ( Exception $_ex )
+
+		//	Check and make sure this is not the last admin user
+		if ( $this->is_sys_admin &&
+			 !static::model()->count( 'is_sys_admin = :is AND id != :id', array( ':is' => 1, ':id' => $_id ) ) )
 		{
+			throw new StorageException( 'There must be at least one administrative account. This one may not be deleted.' );
 		}
 
 		return parent::beforeDelete();
