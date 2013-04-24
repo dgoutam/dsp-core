@@ -756,7 +756,7 @@ class DbUtilities
 	{
 		if ( empty( $field ) )
 		{
-			throw new Exception( "No field given." );
+			throw new Exception( "No field given.", ErrorCodes::BAD_REQUEST );
 		}
 
 		try
@@ -770,7 +770,7 @@ class DbUtilities
 			$type = Utilities::getArrayValue( 'type', $field, '' );
 			if ( empty( $type ) )
 			{
-				throw new Exception( "Invalid schema detected - no type element." );
+				throw new Exception( "Invalid schema detected - no type element.", ErrorCodes::BAD_REQUEST );
 			}
 			/* abstract types handled by yii directly for each driver type
 
@@ -866,7 +866,7 @@ class DbUtilities
 							 ( ( DbUtilities::DRV_SQLSRV == $driver_type ) && ( $length > 38 ) )
 						)
 						{
-							throw new Exception( "Decimal precision '$length' is out of valid range." );
+							throw new Exception( "Decimal precision '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 						}
 						$scale = Utilities::getArrayValue( 'scale', $field, null );
 						if ( empty( $scale ) )
@@ -880,7 +880,7 @@ class DbUtilities
 								 ( $scale > $length )
 							)
 							{
-								throw new Exception( "Decimal scale '$scale' is out of valid range." );
+								throw new Exception( "Decimal scale '$scale' is out of valid range.", ErrorCodes::BAD_REQUEST );
 							}
 							$definition .= "($length,$scale)";
 						}
@@ -906,7 +906,7 @@ class DbUtilities
 							 ( ( DbUtilities::DRV_SQLSRV == $driver_type ) && ( $length > 38 ) )
 						)
 						{
-							throw new Exception( "Decimal precision '$length' is out of valid range." );
+							throw new Exception( "Decimal precision '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 						}
 						$scale = Utilities::getArrayValue( 'scale', $field, null );
 						if ( empty( $scale ) )
@@ -919,7 +919,7 @@ class DbUtilities
 								 ( $scale > $length )
 							)
 							{
-								throw new Exception( "Decimal scale '$scale' is out of valid range." );
+								throw new Exception( "Decimal scale '$scale' is out of valid range.", ErrorCodes::BAD_REQUEST );
 							}
 							$definition .= "($length,$scale)";
 						}
@@ -985,7 +985,7 @@ class DbUtilities
 								if ( ( DbUtilities::DRV_MYSQL == $driver_type ) && ( $length > 65535 ) )
 								{
 									// max allowed is really dependent number of string columns
-									throw new Exception( "String length '$length' is out of valid range." );
+									throw new Exception( "String length '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 								}
 								$definition .= "($length)";
 							}
@@ -997,11 +997,11 @@ class DbUtilities
 								$length = intval( $length );
 								if ( ( DbUtilities::DRV_SQLSRV == $driver_type ) && ( $length > 8000 ) )
 								{
-									throw new Exception( "String length '$length' is out of valid range." );
+									throw new Exception( "String length '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 								}
 								if ( ( DbUtilities::DRV_MYSQL == $driver_type ) && ( $length > 255 ) )
 								{
-									throw new Exception( "String length '$length' is out of valid range." );
+									throw new Exception( "String length '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 								}
 								$definition .= "($length)";
 							}
@@ -1017,7 +1017,7 @@ class DbUtilities
 								if ( ( DbUtilities::DRV_MYSQL == $driver_type ) && ( $length > 65535 ) )
 								{
 									// max allowed is really dependent number of string columns
-									throw new Exception( "String length '$length' is out of valid range." );
+									throw new Exception( "String length '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 								}
 								$definition .= "($length)";
 							}
@@ -1028,11 +1028,11 @@ class DbUtilities
 								$length = intval( $length );
 								if ( ( DbUtilities::DRV_SQLSRV == $driver_type ) && ( $length > 4000 ) )
 								{
-									throw new Exception( "String length '$length' is out of valid range." );
+									throw new Exception( "String length '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 								}
 								if ( ( DbUtilities::DRV_MYSQL == $driver_type ) && ( $length > 255 ) )
 								{
-									throw new Exception( "String length '$length' is out of valid range." );
+									throw new Exception( "String length '$length' is out of valid range.", ErrorCodes::BAD_REQUEST );
 								}
 								$definition .= "($length)";
 							}
@@ -1095,7 +1095,7 @@ class DbUtilities
 	{
 		if ( empty( $fields ) )
 		{
-			throw new Exception( "No fields given." );
+			throw new Exception( "No fields given.", ErrorCodes::BAD_REQUEST );
 		}
 		$columns = array();
 		$alter_columns = array();
@@ -1118,7 +1118,7 @@ class DbUtilities
 				$name = Utilities::getArrayValue( 'name', $field, '' );
 				if ( empty( $name ) )
 				{
-					throw new Exception( "Invalid schema detected - no name element." );
+					throw new Exception( "Invalid schema detected - no name element.", ErrorCodes::BAD_REQUEST );
 				}
 				$type = Utilities::getArrayValue( 'type', $field, '' );
 				$colSchema = ( isset( $schema ) ) ? $schema->getColumn( $name ) : null;
@@ -1127,7 +1127,7 @@ class DbUtilities
 				{
 					if ( !$allow_update )
 					{
-						throw new Exception( "Field '$name' already exists in table '$table_name'." );
+						throw new Exception( "Field '$name' already exists in table '$table_name'.", ErrorCodes::BAD_REQUEST );
 					}
 					if ( ( ( 0 == strcasecmp( 'id', $type ) ) || ( 0 == strcasecmp( 'pk', $type ) ) ||
 						   Utilities::boolval( Utilities::getArrayValue( 'is_primary_key', $field, false ) ) ) &&
@@ -1172,7 +1172,7 @@ class DbUtilities
 				{
 					if ( !empty( $primaryKey ) && ( 0 != strcasecmp( $primaryKey, $name ) ) )
 					{
-						throw new Exception( "Designating more than one column as a primary key is not allowed." );
+						throw new Exception( "Designating more than one column as a primary key is not allowed.", ErrorCodes::BAD_REQUEST );
 					}
 					$primaryKey = $name;
 				}
@@ -1180,7 +1180,7 @@ class DbUtilities
 				{
 					if ( !empty( $primaryKey ) && ( 0 != strcasecmp( $primaryKey, $name ) ) )
 					{
-						throw new Exception( "Designating more than one column as a primary key is not allowed." );
+						throw new Exception( "Designating more than one column as a primary key is not allowed.", ErrorCodes::BAD_REQUEST );
 					}
 					$primaryKey = $name;
 				}
@@ -1192,7 +1192,7 @@ class DbUtilities
 					$refTable = Utilities::getArrayValue( 'ref_table', $field, '' );
 					if ( empty( $refTable ) )
 					{
-						throw new Exception( "Invalid schema detected - no table element for reference type of $name." );
+						throw new Exception( "Invalid schema detected - no table element for reference type of $name.", ErrorCodes::BAD_REQUEST );
 					}
 					$refColumns = Utilities::getArrayValue( 'ref_fields', $field, 'id' );
 					$refOnDelete = Utilities::getArrayValue( 'ref_on_delete', $field, null );
@@ -1456,7 +1456,7 @@ class DbUtilities
 		// does it already exist
 		if ( !static::doesTableExist( $db, $table_name ) )
 		{
-			throw new Exception( "Update schema called on a table with name '$table_name' that does not exist in the database." );
+			throw new Exception( "Update schema called on a table with name '$table_name' that does not exist in the database.", ErrorCodes::NOT_FOUND );
 		}
 
 		$schema = $db->schema->getTable( $table_name );
@@ -1687,7 +1687,7 @@ class DbUtilities
 					$name = Utilities::getArrayValue( 'name', $table, '' );
 					if ( empty( $name ) )
 					{
-						throw new Exception( "Table schema received does not have a valid name.", 400 );
+						throw new Exception( "Table schema received does not have a valid name.", ErrorCodes::BAD_REQUEST );
 					}
 					// does it already exist
 					if ( static::doesTableExist( $db, $name ) )
@@ -1698,7 +1698,7 @@ class DbUtilities
 						}
 						else
 						{
-							throw new Exception( "A table with name '$name' already exist in the database.", 400 );
+							throw new Exception( "A table with name '$name' already exist in the database.", ErrorCodes::BAD_REQUEST );
 						}
 					}
 					else
@@ -1743,7 +1743,7 @@ class DbUtilities
 				$name = Utilities::getArrayValue( 'name', $tables, '' );
 				if ( empty( $name ) )
 				{
-					throw new Exception( "Table schema received does not have a valid name.", 400 );
+					throw new Exception( "Table schema received does not have a valid name.", ErrorCodes::BAD_REQUEST );
 				}
 				// does it already exist
 				if ( static::doesTableExist( $db, $name ) )
@@ -1754,31 +1754,18 @@ class DbUtilities
 					}
 					else
 					{
-						throw new Exception( "A table with name '$name' already exist in the database.", 400 );
+						throw new Exception( "A table with name '$name' already exist in the database.", ErrorCodes::BAD_REQUEST );
 					}
 				}
 				else
 				{
 					$results = static::createTable( $db, $name, $tables, false );
-					if ( $rollback )
-					{
-						$created[] = $name;
-					}
 				}
-				$out[$count] = $results;
+				$out[] = $results;
 			}
 			catch ( Exception $ex )
 			{
-				if ( $rollback )
-				{
-					throw $ex;
-				}
-				$out[$count] = array(
-					'error' => array(
-						'message' => $ex->getMessage(),
-						'code'    => $ex->getCode()
-					)
-				);
+				throw $ex;
 			}
 		}
 
