@@ -177,7 +177,7 @@ class Service extends BaseDspSystemModel
 				throw new StorageException( 'Service type currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
 			}
 
-			if ( ( 0 == strcasecmp( 'app', $this->api_name ) || 0 == strcasecmp( 'lib', $this->api_name ) ) && isset( $values['api_name'] ) )
+			if ( ( 0 == strcasecmp( 'app', $this->api_name ) ) && isset( $values['api_name'] ) )
 			{
 				if ( 0 != strcasecmp( $this->api_name, $values['api_name'] ) )
 				{
@@ -250,16 +250,11 @@ class Service extends BaseDspSystemModel
 			case 'Local SQL DB':
 			case 'Local SQL DB Schema':
 				throw new StorageException( 'System generated database services can not be deleted.', ErrorCodes::BAD_REQUEST );
-
-			case 'Local Email Service':
-				throw new StorageException( 'System generated email service can not be deleted.', ErrorCodes::BAD_REQUEST );
-
 			case 'Local File Storage':
 				switch ( $this->api_name )
 				{
 					case 'app':
-					case 'lib':
-						throw new StorageException( 'System generated storage service can not be deleted.', ErrorCodes::BAD_REQUEST );
+						throw new StorageException( 'System generated application storage service can not be deleted.', ErrorCodes::BAD_REQUEST );
 				}
 				break;
 		}
@@ -282,15 +277,14 @@ class Service extends BaseDspSystemModel
 		{
 			case 'Local SQL DB':
 			case 'Local SQL DB Schema':
-			case 'Local Email Service':
 				$this->is_system = true;
 				break;
 
 			case 'Local File Storage':
+			case 'Remote File Storage':
 				switch ( $this->api_name )
 				{
 					case 'app':
-					case 'lib':
 						$this->is_system = true;
 						break;
 				}

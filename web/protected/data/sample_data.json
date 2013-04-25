@@ -1,15 +1,30 @@
 {
 	"df_sys_service": [
 		{
-			"api_name":     "doc",
-			"name":         "Document Storage",
-			"is_active":    1,
-			"type":         "Local File Storage",
+			"api_name": "email",
+			"name": "Email Service",
+			"is_active": 1,
+			"type": "Local Email Service",
+			"description": "Default system email utility access"
+		},
+		{
+			"api_name": "lib",
+			"name": "Library Storage",
+			"is_active": 1,
+			"type": "Local File Storage",
+			"storage_name": "libraries",
+			"description": "Storage for library files shared by applications"
+		},
+		{
+			"api_name": "doc",
+			"name": "Document Storage",
+			"is_active": 1,
+			"type": "Local File Storage",
 			"storage_name": "documents",
-			"description":  "Default storage for documents"
+			"description": "Default storage for documents"
 		}
 	],
-	"app_package":    [
+	"app_package": [
 		{
 			"url": "https://github.com/dreamfactorysoftware/app-helloworld/raw/master/helloworld.dfpkg"
 		},

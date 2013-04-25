@@ -176,8 +176,10 @@ class ServiceHandler
 							$service = new SchemaSvc( $record, false );
 							break;
 						case 'Local Email Service':
+							$service = new EmailSvc( $record, true );
+							break;
 						case 'Remote Email Service':
-							$service = new EmailSvc( $record );
+							$service = new EmailSvc( $record, false );
 							break;
 						default:
 							throw new Exception( "Failed to launch service, unknown type value '$type' in service record." );
