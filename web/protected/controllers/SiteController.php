@@ -1,4 +1,7 @@
 <?php
+use DreamFactory\Yii\Utility\Pii;
+use Kisma\Core\Interfaces\HttpResponse;
+use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 
 /**
@@ -54,13 +57,13 @@ class SiteController extends Controller
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData' ),
-				'users'   => array( '@' ),
+				'actions' => array('initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics'),
+				'users'   => array('@'),
 			),
 			//	Deny all others access to init commands
 			array(
 				'deny',
-				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData' ),
+				'actions' => array('initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics'),
 			),
 		);
 	}
@@ -86,23 +89,23 @@ class SiteController extends Controller
 					break;
 
 				case 'init required':
-					$this->redirect( array( 'site/initSystem' ) );
+					$this->redirect( array('site/initSystem') );
 					break;
 
 				case 'admin required':
-					$this->redirect( array( 'site/initAdmin' ) );
+					$this->redirect( array('site/initAdmin') );
 					break;
 
 				case 'schema required':
-					$this->redirect( array( 'site/upgradeSchema' ) );
+					$this->redirect( array('site/upgradeSchema') );
 					break;
 
 				case 'upgrade required':
-					$this->redirect( array( 'site/upgradeSchema' ) );
+					$this->redirect( array('site/upgradeSchema') );
 					break;
 
 				case 'data required':
-					$this->redirect( array( 'site/initData' ) );
+					$this->redirect( array('site/initData') );
 					break;
 			}
 		}
@@ -159,7 +162,7 @@ class SiteController extends Controller
 		$this->render(
 			'login',
 			array(
-				 'model' => $_model
+				'model' => $_model
 			)
 		);
 	}
@@ -205,7 +208,7 @@ class SiteController extends Controller
 		$this->render(
 			'initSchema',
 			array(
-				 'model' => $_model
+				'model' => $_model
 			)
 		);
 	}
@@ -242,7 +245,7 @@ class SiteController extends Controller
 		$this->render(
 			'initData',
 			array(
-				 'model' => $_model
+				'model' => $_model
 			)
 		);
 	}
@@ -297,5 +300,29 @@ class SiteController extends Controller
 
 		echo json_encode( $_data );
 		Pii::end();
+	}
+
+	/**
+	 * Get DSP metrics
+	 */
+	public function actionMetrics()
+	{
+		$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
+
+		if ( Fabric::fabricHosted() )
+		{
+			Curl::setDecodeToArray( true );
+			$_stats = Curl::get( $_endpoint );
+
+			if ( empty( $_stats ) )
+			{
+				throw new CHttpException( HttpResponse::NotFound );
+			}
+
+			$this->layout = false;
+			header( 'Content-type: application/json' );
+
+			echo json_encode( $_stats );
+		}
 	}
 }

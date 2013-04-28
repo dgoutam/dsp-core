@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Platform\Services;
 
+use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
@@ -27,7 +28,7 @@ use Kisma\Core\Utility\Option;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class SystemDatabase extends BaseResourceService
+class SystemDatabase extends BaseResourceService implements PlatformStates
 {
 	//*************************************************************************
 	//* Constants
@@ -74,7 +75,7 @@ class SystemDatabase extends BaseResourceService
 
 			if ( empty( $_tables ) || !in_array( $_tables, 'df_sys_cache' ) )
 			{
-				return 'init required';
+				return static::INIT_REQUIRED;
 			}
 
 			// need to check for db upgrade, based on tables or version
@@ -107,7 +108,7 @@ class SystemDatabase extends BaseResourceService
 			}
 
 			// check for at least one system admin user
-			$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
+			$theUser = User::model()->find( 'is_sys_admin=:is', array(':is' => 1) );
 			if ( null === $theUser )
 			{
 				return 'admin required';
@@ -255,7 +256,7 @@ class SystemDatabase extends BaseResourceService
 			// create and login first admin user
 			// fill out the user fields for creation
 			$username = Utilities::getArrayValue( 'username', $data );
-			$theUser = User::model()->find( 'username=:un', array( ':un' => $username ) );
+			$theUser = User::model()->find( 'username=:un', array(':un' => $username) );
 			if ( null !== $theUser )
 			{
 				throw new Exception( "A user already exists with the username '$username'.", ErrorCodes::BAD_REQUEST );
@@ -296,7 +297,7 @@ class SystemDatabase extends BaseResourceService
 			$userId = $user->getPrimaryKey();
 			// set session for first user
 			$result = SessionManager::generateSessionData( $userId );
-			$_SESSION = array( 'public' => Utilities::getArrayValue( 'public', $result, array() ) );
+			$_SESSION = array('public' => Utilities::getArrayValue( 'public', $result, array() ));
 			$GLOBALS['write_session'] = true;
 			$data = session_encode();
 			$sess_name = session_name();
@@ -326,7 +327,7 @@ class SystemDatabase extends BaseResourceService
 		try
 		{
 			// for now use the first admin we find
-			$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
+			$theUser = User::model()->find( 'is_sys_admin=:is', array(':is' => 1) );
 			if ( null === $theUser )
 			{
 				throw new \Exception( "Failed to retrieve admin user." );
@@ -467,14 +468,14 @@ class SystemDatabase extends BaseResourceService
 			{
 				case '':
 					$result = array(
-						array( 'name' => 'app', 'label' => 'Application' ),
-						array( 'name' => 'app_group', 'label' => 'Application Group' ),
-						array( 'name' => 'config', 'label' => 'Configuration' ),
-						array( 'name' => 'role', 'label' => 'Role' ),
-						array( 'name' => 'service', 'label' => 'Service' ),
-						array( 'name' => 'user', 'label' => 'User' )
+						array('name' => 'app', 'label' => 'Application'),
+						array('name' => 'app_group', 'label' => 'Application Group'),
+						array('name' => 'config', 'label' => 'Configuration'),
+						array('name' => 'role', 'label' => 'Role'),
+						array('name' => 'service', 'label' => 'Service'),
+						array('name' => 'user', 'label' => 'User')
 					);
-					$result = array( 'resource' => $result );
+					$result = array('resource' => $result);
 					break;
 				case 'app':
 				case 'app_group':
@@ -492,7 +493,7 @@ class SystemDatabase extends BaseResourceService
 						{
 							$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 							$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-							$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+							$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
 						}
 					}
 
@@ -610,7 +611,7 @@ class SystemDatabase extends BaseResourceService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
 				}
 			}
 			switch ( $this->_modelName )
@@ -681,7 +682,7 @@ class SystemDatabase extends BaseResourceService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
 				}
 			}
 			switch ( $this->_modelName )
@@ -771,7 +772,7 @@ class SystemDatabase extends BaseResourceService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
 				}
 			}
 			switch ( $this->_modelName )
@@ -860,7 +861,7 @@ class SystemDatabase extends BaseResourceService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
 				}
 			}
 			switch ( $this->_modelName )
@@ -1053,7 +1054,7 @@ class SystemDatabase extends BaseResourceService
 			$primaryKey = $obj->tableSchema->primaryKey;
 			if ( empty( $return_fields ) && empty( $extras ) )
 			{
-				$data = array( $primaryKey => $id );
+				$data = array($primaryKey => $id);
 			}
 			else
 			{
@@ -1141,7 +1142,7 @@ class SystemDatabase extends BaseResourceService
 		if ( !isset( $records[0] ) )
 		{ // isArrayNumeric($records)
 			// conversion from xml can pull single record out of array format
-			$records = array( $records );
+			$records = array($records);
 		}
 		SessionManager::checkPermission( 'create', 'system', $table );
 		// todo implement rollback
@@ -1154,11 +1155,11 @@ class SystemDatabase extends BaseResourceService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
+				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
 			}
 		}
 
-		return array( 'record' => $out );
+		return array('record' => $out);
 	}
 
 	/**
@@ -1297,7 +1298,7 @@ class SystemDatabase extends BaseResourceService
 
 			if ( empty( $return_fields ) && empty( $extras ) )
 			{
-				$data = array( $primaryKey => $id );
+				$data = array($primaryKey => $id);
 			}
 			else
 			{
@@ -1380,7 +1381,7 @@ class SystemDatabase extends BaseResourceService
 		if ( !isset( $records[0] ) )
 		{
 			// conversion from xml can pull single record out of array format
-			$records = array( $records );
+			$records = array($records);
 		}
 		SessionManager::checkPermission( 'update', 'system', $table );
 		$out = array();
@@ -1394,11 +1395,11 @@ class SystemDatabase extends BaseResourceService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
+				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
 			}
 		}
 
-		return array( 'record' => $out );
+		return array('record' => $out);
 	}
 
 	/**
@@ -1459,11 +1460,11 @@ class SystemDatabase extends BaseResourceService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
+				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
 			}
 		}
 
-		return array( 'record' => $out );
+		return array('record' => $out);
 	}
 
 	/**
@@ -1600,7 +1601,7 @@ class SystemDatabase extends BaseResourceService
 		if ( !isset( $records[0] ) )
 		{
 			// conversion from xml can pull single record out of array format
-			$records = array( $records );
+			$records = array($records);
 		}
 		$out = array();
 		foreach ( $records as $record )
@@ -1616,11 +1617,11 @@ class SystemDatabase extends BaseResourceService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
+				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
 			}
 		}
 
-		return array( 'record' => $out );
+		return array('record' => $out);
 	}
 
 	/**
@@ -1669,11 +1670,11 @@ class SystemDatabase extends BaseResourceService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
+				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
 			}
 		}
 
-		return array( 'record' => $out );
+		return array('record' => $out);
 	}
 
 	/**
@@ -1851,7 +1852,7 @@ class SystemDatabase extends BaseResourceService
 				$out[] = $data;
 			}
 
-			$results = array( 'record' => $out );
+			$results = array('record' => $out);
 			if ( $include_count || $include_schema )
 			{
 				// count total records
@@ -1961,11 +1962,11 @@ class SystemDatabase extends BaseResourceService
 				if ( !is_array( $id ) )
 				{
 					$message = "A $table resource with id '$id' could not be found.";
-					$ids[$key] = array( 'error' => array( 'message' => $message, 'code' => ErrorCodes::NOT_FOUND ) );
+					$ids[$key] = array('error' => array('message' => $message, 'code' => ErrorCodes::NOT_FOUND));
 				}
 			}
 
-			return array( 'record' => $ids );
+			return array('record' => $ids);
 		}
 		catch ( Exception $ex )
 		{
@@ -2091,7 +2092,7 @@ class SystemDatabase extends BaseResourceService
 		{
 			try
 			{
-				$app = App::model()->find( 'name=:name', array( ':name' => $name ) );
+				$app = App::model()->find( 'name=:name', array(':name' => $name) );
 				if ( isset( $app ) )
 				{
 					return $app->getPrimaryKey();
@@ -2113,5 +2114,4 @@ class SystemDatabase extends BaseResourceService
 	{
 		return $this->getAppIdFromName( SessionManager::getCurrentAppName() );
 	}
-
 }

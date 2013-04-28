@@ -48,18 +48,16 @@ class Controller extends \CController
 	 */
 	protected function beforeAction( $action )
 	{
-		$_host = Pii::getParam( 'dsp_name' );
+		$_host = $_SERVER['HTTP_HOST'];
 
 		//	Get the additional data ready
 		$_logInfo = array(
-			'short_message' => $action->id . ' from: ' . $_host,
-			'full_message'  => $action->id . ' from: ' . $_host,
+			'short_message' => 'DSP <--- "' . $action->id . '"',
+			'full_message'  => 'Inbound DSP request from "' . $_host . '": ' . $action->id,
 			'level'         => GraylogLevels::Info,
-			'facility'      => 'dsp/api',
-			'source'        => 'web',
-			'payload'       => $_REQUEST,
-			'instance_name' => $_host,
-			'verb'          => $action->id,
+			'facility'      => Graylog::DefaultFacility . '/api',
+			'_source'       => $_SERVER['REMOTE_ADDR'],
+			'_payload'      => $_REQUEST,
 		);
 
 		GelfLogger::logMessage( $_logInfo );

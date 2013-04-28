@@ -4,7 +4,7 @@ use DreamFactory\Platform\Interfaces\PlatformStates;
 \Yii::import( 'DreamFactory.Platform.Interfaces.PlatformStates' );
 
 /**
- * BaseController.php
+ * BasePlatformController.php
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
@@ -25,7 +25,7 @@ use DreamFactory\Platform\Interfaces\PlatformStates;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class BaseController extends \CController implements PlatformStates
+class BasePlatformController extends \CController implements PlatformStates
 {
 	//*************************************************************************
 	//* Members
@@ -45,19 +45,13 @@ class BaseController extends \CController implements PlatformStates
 	//*************************************************************************
 
 	/**
-	 * Declares class-based actions.
+	 * {@InheritDoc}
 	 */
-	public function actions()
+	public function init()
 	{
-		return array(
-			'captcha' => array(
-				'class'     => 'CCaptchaAction',
-				'backColor' => 0xFFFFFF,
-			),
-			'page'    => array(
-				'class' => 'CViewAction',
-			),
-		);
+		parent::init();
+
+		$this->layout = false;
 	}
 
 	/**
@@ -73,11 +67,11 @@ class BaseController extends \CController implements PlatformStates
 
 		//	Get the additional data ready
 		$_logInfo = array(
-			'short_message' => 'dsp request from "' . $_host . '": ' . $action->id,
-			'full_message'  => 'dsp request from "' . $_host . '": ' . $action->id,
+			'short_message' => 'DSP <--- "' . $action->id . '"',
+			'full_message'  => 'Inbound DSP request to DSP from "' . $_host . '": ' . $action->id,
 			'level'         => GraylogLevels::Info,
-			'facility'      => 'dsp/api',
-			'source'        => 'web',
+			'facility'      => 'platform/api',
+			'source'        => $_SERVER['REMOTE_ADDR'],
 			'payload'       => $_REQUEST,
 		);
 
@@ -109,7 +103,7 @@ class BaseController extends \CController implements PlatformStates
 			/** @var $_node \SplFileInfo */
 			foreach ( $_objects as $_name => $_node )
 			{
-				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
+				if ( $_node->isDir() || $_node->isLink() || ' . ' == $_name || ' ..' == $_name )
 				{
 					continue;
 				}
@@ -118,7 +112,7 @@ class BaseController extends \CController implements PlatformStates
 
 				if ( empty( $_cleanPath ) )
 				{
-					$_cleanPath = '/';
+					$_cleanPath = ' / ';
 				}
 
 				$_data[$_cleanPath][] = basename( $_name );

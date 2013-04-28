@@ -83,18 +83,20 @@ class Pii extends \CHtml
 	 */
 	public static function run( $docRoot, $autoloader = null )
 	{
+		$_basePath = dirname( $docRoot );
+
 		if ( null === $autoloader )
 		{
 			/** @noinspection PhpIncludeInspection */
-			$autoloader = require_once( dirname( $docRoot ) . '/vendor/autoload.php' );
+			$autoloader = require_once( $_basePath . '/vendor/autoload.php' );
 		}
 
 		$_dspName = null;
 
-		$_basePath = dirname( $docRoot );
 		$_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' );
 		$_configPath = $_basePath . '/config';
 		$_logPath = $_basePath . '/log';
+
 		$_dspName = static::_determineHostName();
 
 		$_logName = $_appMode . '.' . $_dspName . '.log';
@@ -167,7 +169,7 @@ class Pii extends \CHtml
 			throw new \InvalidArgumentException( 'The parameter "$size" must be between 1 and 512.' );
 		}
 
-		if ( !in_array( $rating, array( 'g', 'pg', 'r', 'x' ) ) )
+		if ( !in_array( $rating, array('g', 'pg', 'r', 'x') ) )
 		{
 			throw new \InvalidArgumentException( 'The parameter "$rating" may only be "G", "PG", "R", or "X".' );
 		}
@@ -197,24 +199,20 @@ class Pii extends \CHtml
 		}
 
 		//	Set other dependencies
-		if ( null !== $app )
-		{
-			$_thisApp = $app;
-		}
-		else
-		{
-			$_thisApp = \Yii::app();
-		}
+		$_thisApp = $app ? : \Yii::app();
 
 		//	Non-CLI requests have clientScript and a user maybe
-		if ( 'cli' != PHP_SAPI )
+		if ( $_thisApp )
 		{
-			static::$_clientScript = $_thisApp->getClientScript();
-			static::$_thisUser = $_thisApp->getUser();
-		}
+			if ( 'cli' != PHP_SAPI )
+			{
+				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
+				static::$_thisUser = static::identity();
+			}
 
-		static::$_thisRequest = $_thisApp->getRequest();
-		static::$_appParameters = $_thisApp->getParams();
+			static::$_thisRequest = $_thisApp->getComponent( 'request', false );
+			static::$_appParameters = $_thisApp->getParams();
+		}
 
 		return $_thisApp;
 	}
@@ -223,7 +221,7 @@ class Pii extends \CHtml
 	 * @param string $prefix      If specified, only parameters with this prefix will be returned
 	 * @param bool   $regex       If true, $prefix will be treated as a regex pattern
 	 *
-	 * @return array
+	 * @return \CAttributeCollection|array
 	 */
 	public static function params( $prefix = null, $regex = false )
 	{
@@ -533,7 +531,7 @@ class Pii extends \CHtml
 	 */
 	public static function identity()
 	{
-		return static::component( 'user' );
+		return static::component( 'user', false );
 	}
 
 	/**
@@ -566,7 +564,12 @@ class Pii extends \CHtml
 	 */
 	public static function getParam( $paramName, $defaultValue = null )
 	{
-		if ( static::$_appParameters && static::$_appParameters->contains( $paramName ) )
+		if ( empty( static::$_appParameters ) )
+		{
+			static::$_appParameters = static::app()->getParams();
+		}
+
+		if ( !empty( static::$_appParameters ) && static::$_appParameters->contains( $paramName ) )
 		{
 			return static::$_appParameters->itemAt( $paramName );
 		}
@@ -763,7 +766,7 @@ class Pii extends \CHtml
 		//	Convert to an array
 		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
 		{
-			$columnsToSort = array( $columnsToSort );
+			$columnsToSort = array($columnsToSort);
 		}
 
 		//	Any fields?
@@ -898,7 +901,7 @@ class Pii extends \CHtml
 	 */
 	public static function getState( $name, $defaultValue = null )
 	{
-		return static::$_thisUser->getState( $name, $defaultValue );
+		return static::$_thisUser ? static::$_thisUser->getState( $name, $defaultValue ) : false;
 	}
 
 	/**
@@ -908,7 +911,10 @@ class Pii extends \CHtml
 	 */
 	public static function setState( $name, $value, $defaultValue = null )
 	{
-		static::$_thisUser->setState( $name, $value, $defaultValue );
+		if ( static::$_thisUser )
+		{
+			static::$_thisUser->setState( $name, $value, $defaultValue );
+		}
 	}
 
 	/**
@@ -967,13 +973,13 @@ class Pii extends \CHtml
 					}
 				}
 			}
-
-			if ( empty( $_dspName ) )
-			{
-				$_dspName = str_replace( '.dreamfactory.com', null, gethostname() );
-			}
-
-			return $_dspName;
 		}
+
+		if ( empty( $_dspName ) )
+		{
+			$_dspName = str_replace( '.dreamfactory.com', null, gethostname() );
+		}
+
+		return $_dspName;
 	}
 }

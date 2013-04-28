@@ -102,6 +102,7 @@ class Pii extends \CHtml
 
 		//	Create an alias for our configuration directory
 		static::alias( 'application.config', $_configPath );
+		static::alias( 'application.log', $_logPath );
 
 		\Kisma::set( 'app.app_path', $_basePath . '/web' );
 		\Kisma::set( 'app.config_path', $_configPath );
@@ -112,8 +113,10 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.dsp_name', $_dspName );
 		\Kisma::set( 'platform.fabric_hosted', $_isFabric = file_exists( static::FABRIC_MARKER ) );
+		\Kisma::set( 'app.app_class', ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
+		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
-		//	Return the app object if there is one
+		//	Just return the app if there is one...
 		return static::app();
 	}
 
@@ -161,7 +164,7 @@ class Pii extends \CHtml
 			throw new \InvalidArgumentException( 'The parameter "$size" must be between 1 and 512.' );
 		}
 
-		if ( !in_array( $rating, array( 'g', 'pg', 'r', 'x' ) ) )
+		if ( !in_array( $rating, array('g', 'pg', 'r', 'x') ) )
 		{
 			throw new \InvalidArgumentException( 'The parameter "$rating" may only be "G", "PG", "R", or "X".' );
 		}
@@ -176,7 +179,7 @@ class Pii extends \CHtml
 	/**
 	 * Shorthand version of Yii::app() with caching. Ya know, for speed!
 	 *
-	 * @param \CApplication|\CConsoleApplication|\CWebApplication|bool $app If "false", just returns $app without prejudice
+	 * @param \CApplication|\CConsoleApplication|\CWebApplication|null $app
 	 *
 	 * @return \CConsoleApplication|\CWebApplication
 	 */
@@ -770,7 +773,7 @@ class Pii extends \CHtml
 		//	Convert to an array
 		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
 		{
-			$columnsToSort = array( $columnsToSort );
+			$columnsToSort = array($columnsToSort);
 		}
 
 		//	Any fields?

@@ -24,7 +24,6 @@
  */
 global $_dbName, $_blobConfig, $_instance, $_dspName;
 
-
 //*************************************************************************
 //* Set fabric-hosted storage paths here...
 //*************************************************************************
@@ -58,10 +57,12 @@ else
 return array_merge(
 	$_instanceSettings,
 	array(
-		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
-		 'adminEmail'            => 'developer-support@dreamfactory.com',
-		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
-		 'allowOpenRegistration' => 'true',
-		 'dsp.version'           => '0.6.1',
+		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
+		'adminEmail'            => 'developer-support@dreamfactory.com',
+		'companyLabel'          => 'DreamFactory Services Platform(tm)',
+		'allowOpenRegistration' => 'true',
+		'dsp.version'           => '1.0.0-beta',
+		'dsp.name'              => $_instanceSettings['dsp_name'],
+		'cloud.endpoint'        => 'http://api.cloud.dreamfactory.com',
 	)
 );

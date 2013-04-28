@@ -58,6 +58,5 @@ interface Graylog
 	/**
 	 * @const string Default facility value for messages
 	 */
-	const DefaultFacility = 'dsp';
-
+	const DefaultFacility = 'platform';
 }

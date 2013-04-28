@@ -98,7 +98,7 @@ class GelfLogger extends SeedBag implements Graylog
 
 		if ( strlen( $_gzJsonData ) <= self::MaximumChunkSize )
 		{
-			return array( $_gzJsonData );
+			return array($_gzJsonData);
 		}
 
 		$_prepared = array();
