@@ -19,11 +19,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Yii\Behaviors;
+
+use Kisma\Core\Utility\Option;
+
 /**
- * console.config.php
- * This is the main configuration file all CLI applications
+ * BaseDspModelBehavior.php
+ * A base class for AR behaviors
  */
-if ( 'cli' == PHP_SAPI )
+class BaseDspModelBehavior extends \CActiveRecordBehavior
 {
-//	throw new Exception( 'Console mode not supported.' );
+	//********************************************************************************
+	//* Methods
+	//********************************************************************************
+
+	/**
+	 * Constructor
+	 */
+	function __construct( $settings = array() )
+	{
+		if ( !empty( $settings ) )
+		{
+			foreach ( Option::clean( $settings ) as $_key => $_value )
+			{
+				if ( $this->hasProperty( $_key ) )
+				{
+					$this->__set( $_key, $_value );
+				}
+			}
+		}
+	}
 }

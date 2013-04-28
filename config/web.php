@@ -1,26 +1,27 @@
 <?php
 /**
- * web.php
- * This is the main configuration file for the DreamFactory Services Platform server application.
+ * BE AWARE...
  *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * web.php
+ * This is the main configuration file for the DreamFactory Services Platform server application.
  */
 
 //.........................................................................
@@ -81,7 +82,7 @@ return array(
 	'basePath'    => $_basePath . '/web/protected',
 	'name'        => $_appName,
 	'runtimePath' => $_logFilePath,
-	'preload'     => array( 'log' ),
+	'preload'     => array('log'),
 	'import'      => array(
 		'system.utils.*',
 		'application.behaviors.*',
@@ -123,17 +124,17 @@ return array(
 			'showScriptName' => false,
 			'rules'          => array(
 				// REST patterns
-				array( 'rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
-				array( 'rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
-				array( 'rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
-				array( 'rest/merge', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE' ),
-				array( 'rest/delete', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE' ),
+				array('rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
+				array('rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST'),
+				array('rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT'),
+				array('rest/merge', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE'),
+				array('rest/delete', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE'),
 				// Other controllers
 				'<controller:\w+>/<id:\d+>'              => '<controller>/view',
 				'<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'          => '<controller>/<action>',
 				// fall through to storage services for direct access
-				array( 'storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
+				array('storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
 			),
 		),
 		//	User configuration

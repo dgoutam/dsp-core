@@ -19,11 +19,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Yii\Interfaces;
+
 /**
- * console.config.php
- * This is the main configuration file all CLI applications
+ * PageLocation.php
  */
-if ( 'cli' == PHP_SAPI )
+interface PageLocation
 {
-//	throw new Exception( 'Console mode not supported.' );
+	//**************************************************************************
+	//* Constants
+	//**************************************************************************
+
+	/**
+	 * @var int Within the <HEAD> section
+	 */
+	const HEAD = 0;
+	/**
+	 * @var int After the <BODY> tag
+	 */
+	const AFTER_BODY_START = 1;
+	/**
+	 * @var int Before the </BODY> tag
+	 */
+	const BEFORE_END_BODY = 2;
+	/**
+	 * @var int The window's "onload" function
+	 */
+	const WINDOW_ON_LOAD = 3;
+	/**
+	 * @var int Inside the jQuery doc-ready function
+	 */
+	const DOCUMENT_READY = 4;
 }

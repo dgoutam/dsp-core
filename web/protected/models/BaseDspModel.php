@@ -1,25 +1,29 @@
 <?php
+/**
+ * BE AWARE...
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
 
 /**
  * BaseDspModel.php
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Defines two "built-in" behaviors: DataFormat and TimeStamp
  *  - DataFormat automatically formats date/time values for the target database platform (MySQL, Oracle, etc.)
@@ -99,13 +103,13 @@ class BaseDspModel extends \CActiveRecord
 		return $_cache = array_merge(
 			parent::attributeLabels(),
 			array(
-				 'id'                  => 'ID',
-				 'create_date'         => 'Created Date',
-				 'created_date'        => 'Created Date',
-				 'last_modified_date'  => 'Last Modified Date',
-				 'lmod_date'           => 'Last Modified Date',
-				 'created_by_id'       => 'Created By',
-				 'last_modified_by_id' => 'Last Modified By',
+				'id'                  => 'ID',
+				'create_date'         => 'Created Date',
+				'created_date'        => 'Created Date',
+				'last_modified_date'  => 'Last Modified Date',
+				'lmod_date'           => 'Last Modified Date',
+				'created_by_id'       => 'Created By',
+				'last_modified_by_id' => 'Last Modified By',
 			)
 		);
 	}
@@ -178,18 +182,18 @@ class BaseDspModel extends \CActiveRecord
 		return array_merge(
 			parent::behaviors(),
 			array(
-				 //	Data formatter
-				 'base_model.data_format_behavior' => array(
-					 'class' => 'DreamFactory\\Yii\\Behaviors\\DataFormatBehavior',
-				 ),
-				 //	Timestamper
-				 'base_model.timestamp_behavior'   => array(
-					 'class'              => 'DreamFactory\\Yii\\Behaviors\\TimestampBehavior',
-					 'createdColumn'      => 'created_date',
+				//	Data formatter
+				'base_model.data_format_behavior' => array(
+					'class' => 'Platform\\Yii\\Behaviors\\DataFormatBehavior',
+				),
+				//	Timestamper
+				'base_model.timestamp_behavior'   => array(
+					'class'              => 'Platform\\Yii\\Behaviors\\TimestampBehavior',
+					'createdColumn'      => 'created_date',
 //					 'createdByColumn'      => 'created_by_id',
-					 'lastModifiedColumn' => 'last_modified_date',
+					'lastModifiedColumn' => 'last_modified_date',
 //					 'lastModifiedByColumn' => 'last_modified_by_id',
-				 ),
+				),
 			)
 		);
 	}
@@ -238,7 +242,7 @@ class BaseDspModel extends \CActiveRecord
 		return true;
 	}
 
-    /**
+	/**
 	 * A mo-betta CActiveRecord update method. Pass in column => value to update.
 	 * NB: validation is not performed in this method. You may call {@link validate} to perform the validation.
 	 *
@@ -275,23 +279,23 @@ class BaseDspModel extends \CActiveRecord
 		return parent::update( $_columns );
 	}
 
-    /**
-     * Forces an exception on failed delete
-     *
-     * @throws CDbException
-     * @return bool
-     */
-    public function delete( )
-    {
-        if ( !parent::delete( ) )
-        {
-            throw new \CDbException( $this->getErrorsForLogging() );
-        }
+	/**
+	 * Forces an exception on failed delete
+	 *
+	 * @throws CDbException
+	 * @return bool
+	 */
+	public function delete()
+	{
+		if ( !parent::delete() )
+		{
+			throw new \CDbException( $this->getErrorsForLogging() );
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
+	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
 	 * @return bool the data provider that can return the models based on the search/filter conditions.
@@ -307,7 +311,7 @@ class BaseDspModel extends \CActiveRecord
 		return new \CActiveDataProvider(
 			$this,
 			array(
-				 'criteria' => $_criteria,
+				'criteria' => $_criteria,
 			)
 		);
 	}

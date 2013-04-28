@@ -19,11 +19,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
+
 /**
- * console.config.php
- * This is the main configuration file all CLI applications
+ * RestLike
+ * Controllers that can talk REST
  */
-if ( 'cli' == PHP_SAPI )
+interface RestLike extends ControllerLike
 {
-//	throw new Exception( 'Console mode not supported.' );
+	/**
+	 * @return mixed
+	 */
+	public function restGet();
+
+	/**
+	 * @return mixed
+	 */
+	public function restPost();
+
+	/**
+	 * @return mixed
+	 */
+	public function restPatch();
+
+	/**
+	 * @return mixed
+	 */
+	public function restPut();
+
+	/**
+	 * @return mixed
+	 */
+	public function restMerge();
+
+	/**
+	 * @return mixed
+	 */
+	public function restDelete();
 }
