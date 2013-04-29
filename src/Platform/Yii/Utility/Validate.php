@@ -19,10 +19,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Yii\Utility;
+
 use Kisma\Core\Utility\Option;
+use Platform\Interfaces\PageLocation;
 
 /**
  * Validate.php
+ * A jQuery Validation (http://docs.jquery.com/Plugins/Validation) helper.
  */
 class Validate implements PageLocation
 {
@@ -105,8 +109,8 @@ JS;
 		//	Register the jquery plugin
 		Pii::scriptFile(
 			array(
-				 self::Cdn . 'jquery.validate.min.js',
-				 self::Cdn . 'additional-methods.min.js',
+				self::Cdn . 'jquery.validate.min.js',
+				self::Cdn . 'additional-methods.min.js',
 			),
 			self::End
 		);

@@ -1,5 +1,25 @@
 <?php
 /**
+ * BE AWARE...
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
  * REST API router and controller
  */
 class RestController extends Controller
@@ -55,17 +75,17 @@ class RestController extends Controller
 			if ( $this->swagger )
 			{
 				$services = array(
-					array( 'path' => '/user', 'description' => 'User Login' ),
-					array( 'path' => '/system', 'description' => 'System Configuration' )
+					array('path' => '/user', 'description' => 'User Login'),
+					array('path' => '/system', 'description' => 'System Configuration')
 				);
 				$command->select( 'api_name,description' )
-					->from( 'df_sys_service' )
-					->order( 'api_name' )
-					->where( 'type != :t', array( ':t' => 'Remote Web Service' ) );
+				->from( 'df_sys_service' )
+				->order( 'api_name' )
+				->where( 'type != :t', array(':t' => 'Remote Web Service') );
 				$result = $command->queryAll();
 				foreach ( $result as $service )
 				{
-					$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
+					$services[] = array('path' => '/' . $service['api_name'], 'description' => $service['description']);
 				}
 				$result = SwaggerUtilities::swaggerBaseInfo();
 				$result['apis'] = $services;
@@ -74,11 +94,11 @@ class RestController extends Controller
 			{
 				// add non-service managers
 				$services = array(
-					array( 'api_name' => 'user', 'name' => 'User Login' ),
-					array( 'api_name' => 'system', 'name' => 'System Configuration' )
+					array('api_name' => 'user', 'name' => 'User Login'),
+					array('api_name' => 'system', 'name' => 'System Configuration')
 				);
 				$result = $command->select( 'api_name,name' )->from( 'df_sys_service' )->order( 'api_name' )->queryAll();
-				$result = array( 'resources' => array_merge( $services, $result ) );
+				$result = array('resources' => array_merge( $services, $result ));
 			}
 			$this->handleResults( $result );
 		}

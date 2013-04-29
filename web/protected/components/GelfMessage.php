@@ -1,29 +1,30 @@
 <?php
+/**
+ * BE AWARE...
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
 
 /**
  * GelfMessage.php
  * Encapsulation of a graylog packet
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class GelfMessage implements Graylog
 {
@@ -44,8 +45,9 @@ class GelfMessage implements Graylog
 			'host',
 			'timestamp',
 			'id',
-			//	Don't allow the additional field _id, it could override the MongoDB key field.
+			//	Don't allow the additional field _id and _key, it could override the MongoDB key field.
 			'_id',
+			'_key',
 		);
 	/**
 	 * @var array GELF v1.0 standard fields {@link https://github.com/Graylog2/graylog2-docs/wiki/GELF}
@@ -132,6 +134,57 @@ class GelfMessage implements Graylog
 
 		return new $_class( $data );
 	}
+
+	//**********************************************************************
+	//* Protected Methods
+	//**********************************************************************
+
+	/**
+	 * @param string $key   Name of field to update
+	 * @param mixed  $value Value to update field with; null to unset
+	 *
+	 * @return \GelfMessage
+	 */
+	protected function _setData( $key, $value )
+	{
+		Option::set( $this->_data, $key, $value );
+
+		return $this;
+	}
+
+	/**
+	 * Static method for verifying that required GELF data fields exist
+	 *
+	 * @param array $data Associative array of GELF data
+	 *
+	 * @throws \InvalidArgumentException
+	 * @return boolean True if all required fields are populated; else false
+	 */
+	protected function _validateData( $data )
+	{
+		foreach ( $data as $_key => $_value )
+		{
+			if ( in_array( $_key, static::$_readOnlyFields ) )
+			{
+				throw new \InvalidArgumentException( "Setting value of '{$_key}' is not permitted" );
+			}
+
+			if ( in_array( $_key, static::$_standardFields ) )
+			{
+				call_user_func( array($this, 'set' . Inflector::tag( $_key )), $_value );
+				continue;
+			}
+
+			//	Otherwise...
+			$this->addAdditionalField( $_key, $_value );
+		}
+
+		return true;
+	}
+
+	//**********************************************************************
+	//* Properties
+	//**********************************************************************
 
 	/**
 	 * @param string $key If specified, return value of specific field
@@ -288,69 +341,39 @@ class GelfMessage implements Graylog
 	}
 
 	/**
-	 * @param string $key     The key of the additional field (w/o underscore)
+	 * @param string $field The key of the additional field (w/o underscore)
 	 *
-	 * @throws \InvalidArgumentException
 	 * @return string
 	 */
-	public function getAdditionalField( $key )
+	public function getAdditionalField( $field )
 	{
-		return $this->getData( '_' . $key );
-	}
-
-	/**
-	 * @param string $key     The key of the additional field
-	 * @param string $value   The value of the additional field; null to unset
-	 *
-	 * @throws \InvalidArgumentException
-	 * @return GelfMessage
-	 */
-	public function setAdditionalField( $key, $value )
-	{
-		return $this->_setData( '_' . $key, $value );
-	}
-
-	/**
-	 * @param string $key   Name of field to update
-	 * @param mixed  $value Value to update field with; null to unset
-	 *
-	 * @return Message
-	 */
-	protected function _setData( $key, $value )
-	{
-		Option::set( $this->_data, $key, $value );
-
-		return $this;
-	}
-
-	/**
-	 * Static method for verifying that required GELF data fields exist
-	 *
-	 * @param array $data Associative array of GELF data
-	 *
-	 * @throws \InvalidArgumentException
-	 * @return boolean True if all required fields are populated; else false
-	 */
-	protected function _validateData( $data )
-	{
-		foreach ( $data as $_key => $_value )
+		if ( '_' != $field[0] )
 		{
-			if ( in_array( $_key, static::$_readOnlyFields ) )
-			{
-				throw new \InvalidArgumentException( "Setting value of '{$_key}' is not permitted" );
-			}
-
-			if ( in_array( $_key, static::$_standardFields ) )
-			{
-				call_user_func( array( $this, 'set' . Inflector::tag( $_key ) ), $_value );
-				continue;
-			}
-
-			//	Otherwise...
-			$this->setAdditionalField( $_key, $_value );
+			$field = '_' . $field;
 		}
 
-		return true;
+		return $this->getData( $field );
 	}
 
+	/**
+	 * @param string $field   The key of the additional field
+	 * @param string $value   The value of the additional field; null to unset
+	 *
+	 * @throws InvalidArgumentException
+	 * @return \GelfMessage
+	 */
+	public function addAdditionalField( $field, $value )
+	{
+		if ( '_' != $field[0] )
+		{
+			$field = '_' . $field;
+		}
+
+		if ( '_id' == $field || '_key' == $field )
+		{
+			throw new \InvalidArgumentException( 'Additional fields may not be called "_id" or "_key".' );
+		}
+
+		return $this->_setData( $field, $value );
+	}
 }

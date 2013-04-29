@@ -19,11 +19,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
+
+use Kisma\Core\Interfaces\SeedLike;
+
 /**
- * console.config.php
- * This is the main configuration file all CLI applications
+ * ControllerLike
+ * Things that act like controllers
  */
-if ( 'cli' == PHP_SAPI )
+interface ControllerLike extends SeedLike
 {
-//	throw new Exception( 'Console mode not supported.' );
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const PreProcess = 'platform.yii.controller_like.pre_process';
+	/**
+	 * @var string
+	 */
+	const PostProcess = 'platform.yii.controller_like.post_process';
 }

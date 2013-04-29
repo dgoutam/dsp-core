@@ -19,11 +19,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
+
 /**
- * console.config.php
- * This is the main configuration file all CLI applications
+ * PlatformStates
+ * Defines the various states in which a platforms may exist
  */
-if ( 'cli' == PHP_SAPI )
+interface PlatformStates
 {
-//	throw new Exception( 'Console mode not supported.' );
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const READY = 'ready';
+	/**
+	 * @var string
+	 */
+	const INIT_REQUIRED = 'init required';
+	/**
+	 * @var string
+	 */
+	const ADMIN_REQUIRED = 'admin required';
+	/**
+	 * @var string
+	 */
+	const SCHEMA_REQUIRED = 'schema required';
+	/**
+	 * @var string
+	 */
+	const UPGRADE_REQUIRED = 'upgrade required';
+	/**
+	 * @var string
+	 */
+	const DATA_REQUIRED = 'data required';
 }

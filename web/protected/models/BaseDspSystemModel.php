@@ -1,25 +1,29 @@
 <?php
+/**
+ * BE AWARE...
+ *
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use Kisma\Core\Exceptions\StorageException;
 
 /**
  * BaseDspSystemModel.php
  * A base class for DSP system models
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Base Columns:
  *
@@ -49,7 +53,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 */
 	public function rules()
 	{
-		return array(//array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
+		return array( //array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
 		);
 	}
 
@@ -59,8 +63,8 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	public function relations()
 	{
 		return array(
-			'created_by'       => array( self::BELONGS_TO, 'User', 'created_by_id' ),
-			'last_modified_by' => array( self::BELONGS_TO, 'User', 'last_modified_by_id' ),
+			'created_by'       => array(self::BELONGS_TO, 'User', 'created_by_id'),
+			'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
 		);
 	}
 
@@ -82,7 +86,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		return new CActiveDataProvider(
 			$this,
 			array(
-				 'criteria' => $_criteria,
+				'criteria' => $_criteria,
 			)
 		);
 	}
@@ -122,18 +126,18 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		if ( empty( $requested ) )
 		{
 			// primary keys only
-			return array( 'id' );
+			return array('id');
 		}
 
 		if ( static::ALL_ATTRIBUTES == $requested )
 		{
 			return array_merge(
 				array(
-					 'id',
-					 'created_date',
-					 'created_by_id',
-					 'last_modified_date',
-					 'last_modified_by_id'
+					'id',
+					'created_date',
+					'created_by_id',
+					'last_modified_date',
+					'last_modified_by_id'
 				),
 				$columns
 			);
@@ -210,7 +214,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$command->select( "$pkField,$many_field" );
 			$command->from( $many_table );
 			$command->where( "$many_field = :oid" );
-			$maps = $command->queryAll( true, array( ':oid' => $one_id ) );
+			$maps = $command->queryAll( true, array(':oid' => $one_id) );
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
@@ -237,7 +241,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			{
 				// simple update to null request
 				$command->reset();
-				$rows = $command->update( $many_table, array( $many_field => null ), array( 'in', $pkField, $toDelete ) );
+				$rows = $command->update( $many_table, array($many_field => null), array('in', $pkField, $toDelete) );
 				if ( 0 >= $rows )
 				{
 //					throw new Exception( "Record update failed for table '$many_table'." );
@@ -258,7 +262,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 				{
 					// simple update to null request
 					$command->reset();
-					$rows = $command->update( $many_table, array( $many_field => $one_id ), array( 'in', $pkField, $toAdd ) );
+					$rows = $command->update( $many_table, array($many_field => $one_id), array('in', $pkField, $toAdd) );
 					if ( 0 >= $rows )
 					{
 //						throw new Exception( "Record update failed for table '$many_table'." );
@@ -300,7 +304,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$command->select( $pkMapField . ',' . $many_field );
 			$command->from( $map_table );
 			$command->where( "$one_field = :id" );
-			$maps = $command->queryAll( true, array( ':id' => $one_id ) );
+			$maps = $command->queryAll( true, array(':id' => $one_id) );
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
@@ -328,7 +332,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			{
 				// simple delete request
 				$command->reset();
-				$rows = $command->delete( $map_table, array( 'in', $pkMapField, $toDelete ) );
+				$rows = $command->delete( $map_table, array('in', $pkMapField, $toDelete) );
 				if ( 0 >= $rows )
 				{
 //					throw new Exception( "Record delete failed for table '$map_table'." );
@@ -339,7 +343,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 				foreach ( $many_records as $item )
 				{
 					$itemId = Utilities::getArrayValue( $pkManyField, $item, '' );
-					$record = array( $many_field => $itemId, $one_field => $one_id );
+					$record = array($many_field => $itemId, $one_field => $one_id);
 					// simple update request
 					$command->reset();
 					$rows = $command->insert( $map_table, $record );
