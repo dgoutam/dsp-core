@@ -19,7 +19,6 @@
  */
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use Platform\Yii\Utility\Pii;
 
 /**
  * DbUtilities
@@ -133,7 +132,7 @@ class DbUtilities
 			throw new InvalidArgumentException( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
 
-		$tables = Pii::db()->getSchema()->getTableNames();
+		$tables = \Pii::db()->getSchema()->getTableNames();
 
 		//	make search case insensitive
 		foreach ( $tables as $table )

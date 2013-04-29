@@ -19,7 +19,6 @@
  */
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
-use Platform\Yii\Utility\Pii;
 
 /**
  * SystemManager.php
@@ -98,7 +97,7 @@ class SystemManager implements iRestHandler
 	public static function getSystemState()
 	{
 		//	Refresh the schema that we just added
-		$_db = Pii::db();
+		$_db = \Pii::db();
 		$_schema = $_db->getSchema();
 
 		$tables = $_schema->getTableNames();
@@ -109,7 +108,7 @@ class SystemManager implements iRestHandler
 		}
 
 		// need to check for db upgrade, based on tables or version
-		$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+		$contents = file_get_contents( \Pii::basePath() . '/data/system_schema.json' );
 
 		if ( !empty( $contents ) )
 		{
@@ -128,7 +127,7 @@ class SystemManager implements iRestHandler
 			}
 
 			//	Compare database versions
-			$oldVersion = Sql::scalar( 'SELECT db_version FROM df_sys_config ORDER BY id DESC LIMIT 1', 0, null, Pii::pdo() );
+			$oldVersion = Sql::scalar( 'SELECT db_version FROM df_sys_config ORDER BY id DESC LIMIT 1', 0, null, \Pii::pdo() );
 
 			if ( static::doesDbVersionRequireUpgrade( $oldVersion, Utilities::getArrayValue( 'version', $contents ) ) )
 			{
@@ -137,12 +136,12 @@ class SystemManager implements iRestHandler
 		}
 
 		//	Check for at least one system admin user
-		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_user', 0, null, Pii::pdo() ) )
+		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_user', 0, null, \Pii::pdo() ) )
 		{
 			return PlatformStates::ADMIN_REQUIRED;
 		}
 
-		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_service', 0, null, Pii::pdo() ) )
+		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_service', 0, null, \Pii::pdo() ) )
 		{
 			return PlatformStates::DATA_REQUIRED;
 		}
@@ -172,7 +171,7 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initSchema( $init = false )
 	{
-		$_db = Pii::db();
+		$_db = \Pii::db();
 
 		try
 		{
@@ -268,7 +267,7 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initAdmin()
 	{
-		$_user = Pii::user();
+		$_user = \Pii::user();
 
 		try
 		{
@@ -1260,8 +1259,8 @@ class SystemManager implements iRestHandler
 
 			$obj->setAttributes( $record );
 
-			$obj->storage_id = Pii::getParam( 'dsp.storage_id' );
-			$obj->private_storage_id = Pii::getParam( 'dsp.private_storage_id' );
+			$obj->storage_id = \Pii::getParam( 'dsp.storage_id' );
+			$obj->private_storage_id = \Pii::getParam( 'dsp.private_storage_id' );
 
 			$obj->save();
 		}
