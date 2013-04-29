@@ -1,24 +1,28 @@
 <?php
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+use Kisma\Core\Utility\Sql;
+use Platform\Interfaces\UsageStats;
 
 /**
  * UserManager.php
  * DSP user manager
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class UserManager implements iRestHandler
 {
@@ -320,111 +324,111 @@ class UserManager implements iRestHandler
 			)
 		);
 		$models = array(
-			"Session" => array(
-				"id" => "Session",
+			"Session"  => array(
+				"id"         => "Session",
 				"properties" => array(
-					"id" => array(
-						"type" => "string",
+					"id"              => array(
+						"type"        => "string",
 						"description" => "Identifier for the current user."
 					),
-					"email" => array(
-						"type" => "string",
+					"email"           => array(
+						"type"        => "string",
 						"description" => "Email address of the current user."
 					),
-					"first_name" => array(
-						"type" => "string",
+					"first_name"      => array(
+						"type"        => "string",
 						"description" => "First name of the current user."
 					),
-					"last_name" => array(
-						"type" => "string",
+					"last_name"       => array(
+						"type"        => "string",
 						"description" => "Last name of the current user."
 					),
-					"display_name" => array(
-						"type" => "string",
+					"display_name"    => array(
+						"type"        => "string",
 						"description" => "Full display name of the current user."
 					),
-					"is_sys_admin" => array(
-						"type" => "boolean",
+					"is_sys_admin"    => array(
+						"type"        => "boolean",
 						"description" => "Is the current user a system administrator."
 					),
 					"last_login_date" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "Date and time of the last login for the current user."
 					),
-					"app_groups" => array(
-						"type" => "array",
+					"app_groups"      => array(
+						"type"        => "array",
 						"description" => "App groups and the containing apps."
 					),
-					"no_group_apps" => array(
-						"type" => "array",
+					"no_group_apps"   => array(
+						"type"        => "array",
 						"description" => "Apps that are not in any app groups."
 					),
-					"ticket" => array(
-						"type" => "string",
+					"ticket"          => array(
+						"type"        => "string",
 						"description" => "Timed ticket that can be used to start a separate session."
 					),
-					"ticket_expiry" => array(
-						"type" => "string",
+					"ticket_expiry"   => array(
+						"type"        => "string",
 						"description" => "Expiration time for the given ticket."
 					),
 				)
 			),
-			"Profile" => array(
-				"id" => "Profile",
+			"Profile"  => array(
+				"id"         => "Profile",
 				"properties" => array(
-					"email" => array(
+					"email"             => array(
 						"type" => "string"
 					),
-					"first_name" => array(
-						"type" => "string",
+					"first_name"        => array(
+						"type"        => "string",
 						"description" => "First name of the current user."
 					),
-					"last_name" => array(
-						"type" => "string",
+					"last_name"         => array(
+						"type"        => "string",
 						"description" => "Last name of the current user."
 					),
-					"display_name" => array(
-						"type" => "string",
+					"display_name"      => array(
+						"type"        => "string",
 						"description" => "Full display name of the current user."
 					),
-					"phone" => array(
-						"type" => "string",
+					"phone"             => array(
+						"type"        => "string",
 						"description" => "First name of the current user."
 					),
 					"security_question" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "Question to be answered to initiate password reset."
 					),
-					"default_app_id" => array(
-						"type" => "integer",
+					"default_app_id"    => array(
+						"type"        => "integer",
 						"description" => "Id of the application to be launched at login."
 					),
 				)
 			),
 			"Register" => array(
-				"id" => "Register",
+				"id"         => "Register",
 				"properties" => array(
-					"email" => array(
+					"email"        => array(
 						"type" => "string"
 					),
-					"first_name" => array(
-						"type" => "string",
+					"first_name"   => array(
+						"type"        => "string",
 						"description" => "First name of the current user."
 					),
-					"last_name" => array(
-						"type" => "string",
+					"last_name"    => array(
+						"type"        => "string",
 						"description" => "Last name of the current user."
 					),
 					"display_name" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "Full display name of the current user."
 					),
 				)
 			),
-			"Confirm" => array(
-				"id" => "Confirm",
+			"Confirm"  => array(
+				"id"         => "Confirm",
 				"properties" => array(
-					"email" => array(
+					"email"        => array(
 						"type" => "string"
 					),
 					"new_password" => array(
@@ -432,10 +436,10 @@ class UserManager implements iRestHandler
 					)
 				)
 			),
-			"Login" => array(
-				"id" => "Login",
+			"Login"    => array(
+				"id"         => "Login",
 				"properties" => array(
-					"email" => array(
+					"email"    => array(
 						"type" => "string"
 					),
 					"password" => array(
@@ -444,7 +448,7 @@ class UserManager implements iRestHandler
 				)
 			),
 			"Password" => array(
-				"id" => "Password",
+				"id"         => "Password",
 				"properties" => array(
 					"old_password" => array(
 						"type" => "string"
@@ -1026,18 +1030,18 @@ class UserManager implements iRestHandler
 			$defaultAppId = Utilities::getArrayValue( 'default_app_id', $session, null );
 			foreach ( $theApps as $app )
 			{
-				$appId = $app->getAttribute( 'id' );
+				$appId = $app->id;
 				$tempGroups = $app->getRelated( 'app_groups' );
 				$appData = $app->getAttributes( explode( ',', $appFields ) );
 				$appData['is_default'] = ( $defaultAppId === $appId );
 				$found = false;
 				foreach ( $theGroups as $g_key => $group )
 				{
-					$groupId = $group->getAttribute( 'id' );
+					$groupId = $group->id;
 					$groupData = ( isset( $appGroups[$g_key] ) ) ? $appGroups[$g_key] : $group->getAttributes( array( 'id', 'name', 'description' ) );
 					foreach ( $tempGroups as $tempGroup )
 					{
-						if ( $tempGroup->getAttribute( 'id' ) === $groupId )
+						if ( $tempGroup->id === $groupId )
 						{
 							$found = true;
 							$temp = Utilities::getArrayValue( 'apps', $groupData, array() );
@@ -1082,6 +1086,7 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "Login request is missing required email.", ErrorCodes::BAD_REQUEST );
 		}
+
 		if ( empty( $password ) )
 		{
 			throw new Exception( "Login request is missing required password.", ErrorCodes::BAD_REQUEST );
@@ -1090,6 +1095,7 @@ class UserManager implements iRestHandler
 		try
 		{
 			$identity = new DspUserIdentity( $email, $password );
+
 			if ( $identity->authenticate() )
 			{
 				Yii::app()->user->login( $identity );
@@ -1099,22 +1105,35 @@ class UserManager implements iRestHandler
 				throw new Exception( "The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED );
 			}
 
+			/** @var User $theUser */
 			$theUser = $identity->getUser();
+
 			if ( null === $theUser )
 			{
 				// bad user object
 				throw new Exception( "The user session contains no data.", ErrorCodes::INTERNAL_SERVER_ERROR );
 			}
-			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
+
+			if ( 'y' !== $theUser->confirm_code )
 			{
 				throw new Exception( "Login registration has not been confirmed." );
 			}
-			$isSysAdmin = $theUser->getAttribute( 'is_sys_admin' );
+
+			$isSysAdmin = $theUser->is_sys_admin;
 			$result = static::generateSessionDataFromUser( Yii::app()->user->getId() );
 
 			// write back login datetime
-			$theUser->last_login_date = new CDbExpression( 'NOW()' );
+			$theUser->last_login_date = date( 'c' );
 			$theUser->save();
+
+			static::$_userId = $theUser->id;
+
+			//	Create entry in stat table...
+			static::_logStats(
+				UsageStats::TYPE_LOGIN,
+				$theUser->id,
+				json_encode( $_SESSION )
+			);
 
 			// additional stuff for session - launchpad mainly
 			return static::addSessionExtras( $result, $isSysAdmin, true );
@@ -1148,14 +1167,14 @@ class UserManager implements iRestHandler
 
 				// special case for possible guest user
 				$theConfig = Config::model()->with(
-					'guest_role.role_service_accesses',
-					'guest_role.apps',
-					'guest_role.services'
-				)->find();
+								 'guest_role.role_service_accesses',
+								 'guest_role.apps',
+								 'guest_role.services'
+							 )->find();
 
 				if ( !empty( $theConfig ) )
 				{
-					if ( Utilities::boolval( $theConfig->getAttribute( 'allow_guest_user' ) ) )
+					if ( Utilities::boolval( $theConfig->allow_guest_user ) )
 					{
 						$result = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
 
@@ -1190,7 +1209,7 @@ class UserManager implements iRestHandler
 			{
 				throw new Exception( "The user identified in the session or ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED );
 			}
-			$isSysAdmin = $theUser->getAttribute( 'is_sys_admin' );
+			$isSysAdmin = $theUser->is_sys_admin;
 			$result = static::generateSessionDataFromUser( null, $theUser );
 
 			// additional stuff for session - launchpad mainly
@@ -1245,7 +1264,7 @@ class UserManager implements iRestHandler
 		{
 			throw new Exception( "No user currently exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
 		}
-		$confirmCode = $theUser->getAttribute( 'confirm_code' );
+		$confirmCode = $theUser->confirm_code;
 		if ( 'y' == $confirmCode )
 		{
 			throw new Exception( "User with email '$email' has already confirmed registration in the system.", ErrorCodes::BAD_REQUEST );
@@ -1369,14 +1388,14 @@ class UserManager implements iRestHandler
 				// bad email
 				throw new Exception( "The supplied email was not found in the system." );
 			}
-			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
+			if ( 'y' !== $theUser->confirm_code )
 			{
 				throw new Exception( "Login registration has not been confirmed." );
 			}
 			if ( $send_email )
 			{
-				$email = $theUser->getAttribute( 'email' );
-				$fullName = $theUser->getAttribute( 'display_name' );
+				$email = $theUser->email;
+				$fullName = $theUser->display_name;
 				if ( !empty( $email ) && !empty( $fullName ) )
 				{
 					static::sendResetPasswordLink( $email, $fullName );
@@ -1390,7 +1409,7 @@ class UserManager implements iRestHandler
 			}
 			else
 			{
-				$question = $theUser->getAttribute( 'security_question' );
+				$question = $theUser->security_question;
 				if ( !empty( $question ) )
 				{
 					return array( 'security_question' => $question );
@@ -1426,12 +1445,12 @@ class UserManager implements iRestHandler
 				// bad email
 				throw new Exception( "The supplied email was not found in the system." );
 			}
-			if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
+			if ( 'y' !== $theUser->confirm_code )
 			{
 				throw new Exception( "Login registration has not been confirmed." );
 			}
 			// validate answer
-			if ( !CPasswordHelper::verifyPassword( $answer, $theUser->getAttribute( 'security_answer' ) ) )
+			if ( !CPasswordHelper::verifyPassword( $answer, $theUser->security_answer ) )
 			{
 				throw new Exception( "The challenge response supplied does not match system records.", ErrorCodes::UNAUTHORIZED );
 			}
@@ -1474,7 +1493,7 @@ class UserManager implements iRestHandler
 
 		try
 		{
-			return static::userLogin( $theUser->getAttribute( 'email' ), $new_password );
+			return static::userLogin( $theUser->email, $new_password );
 		}
 		catch ( Exception $ex )
 		{
@@ -1499,7 +1518,7 @@ class UserManager implements iRestHandler
 				// bad code
 				throw new Exception( "The supplied email was not found in the system." );
 			}
-			$confirmCode = $theUser->getAttribute( 'confirm_code' );
+			$confirmCode = $theUser->confirm_code;
 			if ( empty( $confirmCode ) || ( 'y' == $confirmCode ) )
 			{
 				throw new Exception( "No invitation was found for the supplied email." );
@@ -1546,7 +1565,7 @@ class UserManager implements iRestHandler
 				throw new Exception( "The user for the current session was not found in the system." );
 			}
 			// validate answer
-			if ( !CPasswordHelper::verifyPassword( $old_password, $theUser->getAttribute( 'password' ) ) )
+			if ( !CPasswordHelper::verifyPassword( $old_password, $theUser->password ) )
 			{
 				throw new Exception( "The password supplied does not match.", ErrorCodes::BAD_REQUEST );
 			}
@@ -1868,10 +1887,10 @@ class UserManager implements iRestHandler
 			{
 				// special case for possible guest user
 				$theConfig = Config::model()->with(
-					'guest_role.role_service_accesses',
-					'guest_role.apps',
-					'guest_role.services'
-				)->find();
+								 'guest_role.role_service_accesses',
+								 'guest_role.apps',
+								 'guest_role.services'
+							 )->find();
 
 				if ( empty( $theConfig ) )
 				{
@@ -2086,7 +2105,7 @@ class UserManager implements iRestHandler
 	 */
 	public static function getCurrentUserId()
 	{
-		if ( isset( static::$_userId ) )
+		if ( !empty( static::$_userId ) )
 		{
 			return static::$_userId;
 		}
@@ -2100,5 +2119,43 @@ class UserManager implements iRestHandler
 		}
 
 		return null;
+	}
+
+	/**
+	 * @param int    $type
+	 * @param int    $userId
+	 * @param string $data
+	 * @param string $date
+	 *
+	 * @return int
+	 */
+	protected static function _logStats( $type, $userId, $data, $date = null )
+	{
+		$_sql
+			= <<<SQL
+INSERT INTO df_sys_stat
+(
+	type,
+	user_id,
+	stat_date,
+	stat_data
+)
+VALUES
+(
+	:type,
+	:user_id,
+	:stat_date,
+	:stat_data
+)
+SQL;
+
+		$_params = array(
+			':type'      => $type,
+			':user_id'   => $userId,
+			':stat_date' => $date ? : date( 'c' ),
+			':stat_data' => $data,
+		);
+
+		return Sql::execute( $_sql, $_params, Pii::pdo() );
 	}
 }

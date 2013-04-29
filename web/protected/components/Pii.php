@@ -163,7 +163,7 @@ class Pii extends \CHtml
 			throw new \InvalidArgumentException( 'The parameter "$size" must be between 1 and 512.' );
 		}
 
-		if ( !in_array( $rating, array('g', 'pg', 'r', 'x') ) )
+		if ( !in_array( $rating, array( 'g', 'pg', 'r', 'x' ) ) )
 		{
 			throw new \InvalidArgumentException( 'The parameter "$rating" may only be "G", "PG", "R", or "X".' );
 		}
@@ -194,6 +194,12 @@ class Pii extends \CHtml
 
 		if ( !empty( $_thisApp ) )
 		{
+			if ( 'cli' != PHP_SAPI && null === static::$_thisUser && null === static::$_clientScript )
+			{
+				static::$_thisUser = $_thisApp->getComponent( 'user', false );
+				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
+			}
+
 			return $_thisApp;
 		}
 
@@ -772,7 +778,7 @@ class Pii extends \CHtml
 		//	Convert to an array
 		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
 		{
-			$columnsToSort = array($columnsToSort);
+			$columnsToSort = array( $columnsToSort );
 		}
 
 		//	Any fields?

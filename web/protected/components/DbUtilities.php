@@ -18,7 +18,13 @@
  * limitations under the License.
  */
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
+use Platform\Yii\Utility\Pii;
 
+/**
+ * DbUtilities
+ * Generic database utilities
+ */
 class DbUtilities
 {
 	// constants
@@ -126,8 +132,10 @@ class DbUtilities
 		{
 			throw new InvalidArgumentException( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		$tables = $db->schema->getTableNames();
-		// make search case insensitive
+
+		$tables = Pii::db()->getSchema()->getTableNames();
+
+		//	make search case insensitive
 		foreach ( $tables as $table )
 		{
 			if ( 0 == strcasecmp( $table, $name ) )
@@ -136,7 +144,7 @@ class DbUtilities
 			}
 		}
 
-		error_log( print_r( $tables, true ) );
+		Log::notice( 'Table "' . $name . '" does not exist.' );
 
 		return false;
 	}
@@ -1524,7 +1532,7 @@ class DbUtilities
 		}
 		catch ( Exception $ex )
 		{
-			error_log( $ex->getMessage() );
+			Log::error( 'Exception creating fields: ' . $ex->getMessage() );
 			throw $ex;
 		}
 	}
@@ -1538,38 +1546,46 @@ class DbUtilities
 	 * @throws Exception
 	 * @return array
 	 */
-	public static function createTable( $db, $table_name, $data, $return_labels_refs = false )
+	public static function createTable( $db, $table_name, $data, $return_labels_refs = false, $checkExist = true )
 	{
 		if ( empty( $table_name ) )
 		{
 			throw new Exception( "Table schema received does not have a valid name.", ErrorCodes::BAD_REQUEST );
 		}
+
 		// does it already exist
-		if ( static::doesTableExist( $db, $table_name ) )
+		if ( true === $checkExist && static::doesTableExist( $db, $table_name ) )
 		{
 			throw new Exception( "A table with name '$table_name' already exist in the database.", ErrorCodes::BAD_REQUEST );
 		}
+
 		$fields = Utilities::getArrayValue( 'field', $data, array() );
+
 		if ( empty( $fields ) )
 		{
 			$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : array();
 		}
+
 		if ( empty( $fields ) )
 		{
 			throw new Exception( "No valid fields exist in the received table schema.", ErrorCodes::BAD_REQUEST );
 		}
+
 		if ( !isset( $fields[0] ) )
 		{
 			$fields = array( $fields );
 		}
+
 		try
 		{
 			$results = static::buildTableFields( $table_name, $fields );
 			$columns = Utilities::getArrayValue( 'columns', $results, array() );
+
 			if ( empty( $columns ) )
 			{
 				throw new Exception( "No valid fields exist in the received table schema.", ErrorCodes::BAD_REQUEST );
 			}
+
 			$command = $db->createCommand();
 			$command->createTable( $table_name, $columns );
 
@@ -1598,7 +1614,7 @@ class DbUtilities
 		}
 		catch ( Exception $ex )
 		{
-			error_log( $ex->getMessage() );
+			Log::error( 'Exception creating table: ' . $ex->getMessage() );
 			throw $ex;
 		}
 	}
@@ -1689,7 +1705,7 @@ class DbUtilities
 		}
 		catch ( Exception $ex )
 		{
-			error_log( $ex->getMessage() );
+			Log::error( 'Exception updating table: ' . $ex->getMessage() );
 			throw $ex;
 		}
 	}
@@ -1714,18 +1730,18 @@ class DbUtilities
 		$count = 0;
 		$created = array();
 
-		if ( isset( $tables[0] ) )
+		if ( !empty( $tables ) && is_array( $tables ) )
 		{
 			foreach ( $tables as $table )
 			{
 				try
 				{
-					$name = Utilities::getArrayValue( 'name', $table, '' );
-					if ( empty( $name ) )
+					if ( null === ( $name = Option::get( $table, 'name' ) ) )
 					{
 						throw new Exception( "Table schema received does not have a valid name.", ErrorCodes::BAD_REQUEST );
 					}
-					// does it already exist
+
+					//	Does it already exist
 					if ( static::doesTableExist( $db, $name ) )
 					{
 						if ( $allow_merge )
@@ -1739,7 +1755,8 @@ class DbUtilities
 					}
 					else
 					{
-						$results = static::createTable( $db, $name, $table, true );
+						$results = static::createTable( $db, $name, $table, true, false );
+
 						if ( $rollback )
 						{
 							$created[] = $name;
@@ -1840,7 +1857,7 @@ class DbUtilities
 		}
 		catch ( Exception $ex )
 		{
-			error_log( $ex->getMessage() );
+			Log::error( 'Exception dropping table: ' . $ex->getMessage() );
 			throw $ex;
 		}
 	}

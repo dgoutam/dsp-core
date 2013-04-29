@@ -128,7 +128,7 @@ class SystemManager implements iRestHandler
 			}
 
 			//	Compare database versions
-			$oldVersion = Sql::scalar( 'SELECT db_version FROM df_sys_config ORDER BY id DESC LIMIT 1' );
+			$oldVersion = Sql::scalar( 'SELECT db_version FROM df_sys_config ORDER BY id DESC LIMIT 1', 0, null, Pii::pdo() );
 
 			if ( static::doesDbVersionRequireUpgrade( $oldVersion, Utilities::getArrayValue( 'version', $contents ) ) )
 			{
@@ -137,12 +137,12 @@ class SystemManager implements iRestHandler
 		}
 
 		//	Check for at least one system admin user
-		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_user' ) )
+		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_user', 0, null, Pii::pdo() ) )
 		{
 			return PlatformStates::ADMIN_REQUIRED;
 		}
 
-		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_service' ) )
+		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_service', 0, null, Pii::pdo() ) )
 		{
 			return PlatformStates::DATA_REQUIRED;
 		}
@@ -198,6 +198,7 @@ class SystemManager implements iRestHandler
 					$oldVersion = $config['db_version'];
 				}
 			}
+
 			// create system tables
 			$tables = Utilities::getArrayValue( 'table', $contents );
 			if ( empty( $tables ) )
@@ -267,11 +268,12 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initAdmin()
 	{
-		$_user = Pii::user();
+		/** @var DspUserIdentity $_user */
+		$_user = Yii::app()->user;
+
 		try
 		{
-			// create and login first admin user
-			// fill out the user fields for creation
+			//	Create and login first admin user
 			$email = $_user->getState( 'email' );
 			$pwd = $_user->getState( 'password' );
 

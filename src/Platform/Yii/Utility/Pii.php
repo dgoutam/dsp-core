@@ -114,7 +114,9 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.vendor_path', $_basePath . '/vendor' );
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.dsp_name', $_dspName );
-		\Kisma::set( 'platform.fabric_hosted', $_isFabric = file_exists( ( class_exists( '\\Fabric', false ) ? \Fabric::FABRIC_MARKER : static::FABRIC_MARKER ) ) );
+		\Kisma::set( 'platform.fabric_hosted',
+					 $_isFabric = file_exists( ( class_exists( '\\Fabric', false ) ? \Fabric::FABRIC_MARKER : static::FABRIC_MARKER ) )
+		);
 		\Kisma::set( 'app.app_class', ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
 		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
@@ -169,6 +171,12 @@ class Pii extends \CHtml
 
 		if ( !empty( $_thisApp ) )
 		{
+			if ( 'cli' != PHP_SAPI && null === static::$_thisUser && null === static::$_clientScript )
+			{
+				static::$_thisUser = $_thisApp->getComponent( 'user', false );
+				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
+			}
+
 			return $_thisApp;
 		}
 
@@ -188,7 +196,7 @@ class Pii extends \CHtml
 			if ( 'cli' != PHP_SAPI )
 			{
 				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
-				static::$_thisUser = static::identity();
+				static::$_thisUser = $_thisApp->getComponent( 'user', false );
 			}
 
 			static::$_thisRequest = $_thisApp->getComponent( 'request', false );
@@ -522,7 +530,7 @@ class Pii extends \CHtml
 	 */
 	public static function user()
 	{
-		return static::$_thisUser;
+		return static::app()->getUser();
 	}
 
 	/**
@@ -747,7 +755,7 @@ class Pii extends \CHtml
 		//	Convert to an array
 		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
 		{
-			$columnsToSort = array($columnsToSort);
+			$columnsToSort = array( $columnsToSort );
 		}
 
 		//	Any fields?

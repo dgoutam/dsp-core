@@ -903,16 +903,6 @@
 					"name":       "last_modified_date",
 					"type":       "timestamp_on_update",
 					"validation": "api_read_only"
-				},
-				{
-					"name":       "created_by_id",
-					"type":       "user_id_on_create",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "last_modified_by_id",
-					"type":       "user_id_on_update",
-					"validation": "api_read_only"
 				}
 			]
 		}
