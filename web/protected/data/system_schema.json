@@ -43,14 +43,6 @@
 					"allow_null":    true
 				},
 				{
-					"name":          "guest_role_id",
-					"type":          "reference",
-					"ref_table":     "df_sys_role",
-					"ref_fields":    "id",
-					"ref_on_delete": "SET NULL",
-					"allow_null":    true
-				},
-				{
 					"name":       "editable_profile_fields",
 					"type":       "string",
 					"default":    "email,display_name,first_name,last_name,phone,default_app_id,security_question,security_answer",
