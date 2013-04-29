@@ -21,7 +21,8 @@ use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
 /**
- * Pii.php
+ * Pii
+ * A Yii helper
  */
 class Pii extends \CHtml
 {
@@ -111,7 +112,9 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.vendor_path', $_basePath . '/vendor' );
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.dsp_name', $_dspName );
-		\Kisma::set( 'platform.fabric_hosted', $_isFabric = file_exists( static::FABRIC_MARKER ) );
+		\Kisma::set( 'platform.fabric_hosted',
+					 $_isFabric = file_exists( ( class_exists( '\\Fabric', false ) ? \Fabric::FABRIC_MARKER : static::FABRIC_MARKER ) )
+		);
 		\Kisma::set( 'app.app_class', ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
 		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
@@ -141,34 +144,6 @@ class Pii extends \CHtml
 	public static function isEmpty( $value )
 	{
 		return empty( $value );
-	}
-
-	/**
-	 * Go out and pull the {@link http://gravatar.com/ gravatar} url for the specified email address.
-	 *
-	 * @param string  $email
-	 * @param integer $size   The size of the image to return from 1px to 512px. Defaults to 80
-	 * @param string  $rating The rating of the image to return: G, PG, R, or X. Defaults to G
-	 *
-	 * @throws \InvalidArgumentException
-	 * @return string
-	 */
-	public static function getGravatarUrl( $email, $size = 80, $rating = 'g' )
-	{
-		$rating = strtolower( $rating[0] );
-		$size = intval( $size );
-
-		if ( $size < 1 || $size > 512 )
-		{
-			throw new \InvalidArgumentException( 'The parameter "$size" must be between 1 and 512.' );
-		}
-
-		if ( !in_array( $rating, array( 'g', 'pg', 'r', 'x' ) ) )
-		{
-			throw new \InvalidArgumentException( 'The parameter "$rating" may only be "G", "PG", "R", or "X".' );
-		}
-
-		return 'http://www.gravatar.com/avatar/' . md5( strtolower( $email ) ) . '.jpg?s=' . $size . '&r=' . $rating;
 	}
 
 	//********************************************************************************
@@ -219,7 +194,7 @@ class Pii extends \CHtml
 			if ( 'cli' != PHP_SAPI )
 			{
 				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
-				static::$_thisUser = static::identity();
+				static::$_thisUser = $_thisApp->getComponent( 'user', false );
 			}
 
 			static::$_thisRequest = $_thisApp->getComponent( 'request', false );
@@ -283,7 +258,7 @@ class Pii extends \CHtml
 	/**
 	 * Shorthand version of Yii::app()->getController()
 	 *
-	 * @return \CController|\CBaseController|BaseDreamController
+	 * @return \CController|\CBaseController
 	 */
 	public static function controller()
 	{
@@ -553,7 +528,7 @@ class Pii extends \CHtml
 	 */
 	public static function user()
 	{
-		return static::$_thisUser;
+		return static::app()->getUser();
 	}
 
 	/**
