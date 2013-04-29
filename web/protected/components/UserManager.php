@@ -17,8 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
-use Platform\Interfaces\UsageStats;
+use Platform\Interfaces\PermissionTypes;
 
 /**
  * UserManager.php
@@ -47,9 +48,9 @@ class UserManager implements iRestHandler
 	private static $_userId = null;
 
 	/**
-	 * @var null
+	 * @var array
 	 */
-	private static $_cache = null;
+	protected static $_cache = null;
 
 	/**
 	 * Create a new UserManager
@@ -57,7 +58,6 @@ class UserManager implements iRestHandler
 	 */
 	public function __construct()
 	{
-		//For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
 		static::$_randKey = 'M1kVi0kE9ouXxF9';
 	}
 
@@ -820,7 +820,7 @@ class UserManager implements iRestHandler
 //        $to = "$full_name <$email>";
 		$to = $email;
 		$subject = "Your reset password request at " . $this->siteName;
-		$link = Yii::app()->homeUrl . '?code=' . urlencode( $this->getResetPasswordCode( $email ) );
+		$link = Pii::app()->getHomeUrl() . '?code=' . urlencode( $this->getResetPasswordCode( $email ) );
 
 		$body = "Hello " . $full_name . ",\r\n\r\n" .
 				"There was a request to reset your password at " . $this->siteName . "\r\n" .
@@ -1098,7 +1098,7 @@ class UserManager implements iRestHandler
 
 			if ( $identity->authenticate() )
 			{
-				Yii::app()->user->login( $identity );
+				Pii::user()->login( $identity );
 			}
 			else
 			{
@@ -1120,20 +1120,13 @@ class UserManager implements iRestHandler
 			}
 
 			$isSysAdmin = $theUser->is_sys_admin;
-			$result = static::generateSessionDataFromUser( Yii::app()->user->getId() );
+			$result = static::generateSessionDataFromUser( Pii::user()->getId() );
 
 			// write back login datetime
 			$theUser->last_login_date = date( 'c' );
 			$theUser->save();
 
 			static::$_userId = $theUser->id;
-
-			//	Create entry in stat table...
-			static::_logStats(
-				UsageStats::TYPE_LOGIN,
-				$theUser->id,
-				json_encode( $_SESSION )
-			);
 
 			// additional stuff for session - launchpad mainly
 			return static::addSessionExtras( $result, $isSysAdmin, true );
@@ -1250,7 +1243,7 @@ class UserManager implements iRestHandler
 	 */
 	public static function userLogout()
 	{
-		Yii::app()->user->logout();
+		Pii::user()->logout();
 	}
 
 	public static function userInvite( $email )
@@ -1280,7 +1273,7 @@ class UserManager implements iRestHandler
 			}
 
 			// generate link
-			$link = Yii::app()->createAbsoluteUrl( 'public/launchpad/confirm.html' );
+			$link = Pii::app()->createAbsoluteUrl( 'public/launchpad/confirm.html' );
 			$link .= '?email=' . urlencode( $email ) . '&code=' . urlencode( $confirmCode );
 
 			return $link;
@@ -1841,29 +1834,22 @@ class UserManager implements iRestHandler
 	 */
 	public static function validateSession()
 	{
-		if ( !Yii::app()->user->getIsGuest() &&
-			 !Yii::app()->user->getState( 'df_authenticated', false )
-		)
+		if ( !Pii::guest() && !Pii::getState( 'df_authenticated', false ) )
 		{
-			return Yii::app()->user->getId();
+			return Pii::user()->getId();
 		}
 
 		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 	}
 
+	/**
+	 * @return bool
+	 */
 	public static function isSystemAdmin()
 	{
-		if ( empty( static::$_cache ) )
-		{
-			if ( Yii::app()->user->getIsGuest() )
-			{
-				return false;
-			}
-			static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
-		}
-		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
+		static::_checkCache();
 
-		return Utilities::boolval( Utilities::getArrayValue( 'is_sys_admin', $_public, false ) );
+		return Utilities::boolval( Option::getDeep( static::$_cache, 'public', 'is_sys_admin', false ) );
 	}
 
 	/**
@@ -1875,41 +1861,38 @@ class UserManager implements iRestHandler
 	 */
 	public static function checkPermission( $request, $service, $component = '' )
 	{
+		static::_checkCache();
+
 		if ( empty( static::$_cache ) )
 		{
-			if ( !Yii::app()->user->getIsGuest() &&
-				 !Yii::app()->user->getState( 'df_authenticated', false )
-			)
-			{
-				static::$_cache = static::generateSessionDataFromUser( Yii::app()->user->getId() );
-			}
-			else
-			{
-				// special case for possible guest user
-				$theConfig = Config::model()->with(
-								 'guest_role.role_service_accesses',
-								 'guest_role.apps',
-								 'guest_role.services'
-							 )->find();
+			// special case for possible guest user
+			$theConfig = Config::model()->with(
+							 'guest_role.role_service_accesses',
+							 'guest_role.apps',
+							 'guest_role.services'
+						 )->find();
 
-				if ( empty( $theConfig ) )
-				{
-					throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
-				}
-				if ( !Utilities::boolval( $theConfig->getAttribute( 'allow_guest_user' ) ) )
-				{
-					throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
-				}
-				static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
+			if ( empty( $theConfig ) )
+			{
+				throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 			}
+
+			if ( !Utilities::boolval( $theConfig->getAttribute( 'allow_guest_user' ) ) )
+			{
+				throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+			}
+
+			static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
 		}
-		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
-		$admin = Utilities::getArrayValue( 'is_sys_admin', $_public, false );
-		if ( $admin )
+
+		$_public = Option::get( static::$_cache, 'public', array() );
+
+		if ( Option::get( $_public, 'is_sys_admin', false ) )
 		{
 			return; // no need to check role
 		}
-		$roleInfo = Utilities::getArrayValue( 'role', $_public, array() );
+
+		$roleInfo = Option::get( $_public, 'role', array() );
 		if ( empty( $roleInfo ) )
 		{
 			// no role assigned, if not sys admin, denied service
@@ -1917,49 +1900,38 @@ class UserManager implements iRestHandler
 		}
 
 		// check if app allowed in role
-		$appName = Utilities::getArrayValue( 'app_name', $GLOBALS, '' );
+		$appName = Option::get( $GLOBALS, 'app_name' );
 		if ( empty( $appName ) )
 		{
 			throw new Exception( "A valid application name is required to access services.", ErrorCodes::BAD_REQUEST );
 		}
 
-		$apps = Utilities::getArrayValue( 'apps', $roleInfo, null );
+		$apps = Option::get( $roleInfo, 'apps' );
 		if ( !is_array( $apps ) || empty( $apps ) )
 		{
 			throw new Exception( "Access to application '$appName' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
 		}
+
 		$found = false;
+
 		foreach ( $apps as $app )
 		{
-			$temp = Utilities::getArrayValue( 'api_name', $app );
+			$temp = Option::get( $app, 'api_name' );
+
 			if ( 0 == strcasecmp( $appName, $temp ) )
 			{
 				$found = true;
+				break;
 			}
 		}
+
 		if ( !$found )
 		{
 			throw new Exception( "Access to application '$appName' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
 		}
-		/*
-			 // see if we need to deny access to this app
-			 $result = $db->retrieveSqlRecordsByIds('app', $appName, 'name', 'id,is_active');
-			 if ((0 >= count($result)) || empty($result[0])) {
-				 throw new Exception("The application '$appName' could not be found.");
-			 }
-			 if (!$result[0]['is_active']) {
-				 throw new Exception("The application '$appName' is not currently active.");
-			 }
-			 $appId = $result[0]['id'];
-			 // is this app part of the role's allowed apps
-			 if (!empty($allowedAppIds)) {
-				 if (!Utilities::isInList($allowedAppIds, $appId, ',')) {
-					 throw new Exception("The application '$appName' is not currently allowed by this role.");
-				 }
-			 }
-		 */
 
 		$services = Utilities::getArrayValue( 'services', $roleInfo, null );
+
 		if ( !is_array( $services ) || empty( $services ) )
 		{
 			throw new Exception( "Access to service '$service' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
@@ -1969,10 +1941,12 @@ class UserManager implements iRestHandler
 		$allFound = false;
 		$serviceAllowed = false;
 		$serviceFound = false;
+
 		foreach ( $services as $svcInfo )
 		{
 			$theService = Utilities::getArrayValue( 'service', $svcInfo );
 			$theAccess = Utilities::getArrayValue( 'access', $svcInfo, '' );
+
 			if ( 0 == strcasecmp( $service, $theService ) )
 			{
 				$theComponent = Utilities::getArrayValue( 'component', $svcInfo );
@@ -2031,12 +2005,15 @@ class UserManager implements iRestHandler
 				return; // all services found and allowed, so bail
 			}
 		}
+
 		$msg = ucfirst( $request ) . " access to ";
 		if ( !empty( $component ) )
 		{
 			$msg .= "component '$component' of ";
 		}
+
 		$msg .= "service '$service' is not allowed by this user's role.";
+
 		throw new Exception( $msg, ErrorCodes::FORBIDDEN );
 	}
 
@@ -2053,40 +2030,33 @@ class UserManager implements iRestHandler
 			case 'read':
 				switch ( $access )
 				{
-					case 'Read Only':
-					case 'Read and Write':
-					case 'Full Access':
+					case PermissionTypes::READ_ONLY:
+					case PermissionTypes::READ_WRITE:
+					case PermissionTypes::FULL_ACCESS:
 						return true;
 				}
 				break;
+
 			case 'create':
-				switch ( $access )
-				{
-					case 'Write Only':
-					case 'Read and Write':
-					case 'Full Access':
-						return true;
-				}
-				break;
 			case 'update':
 				switch ( $access )
 				{
-					case 'Write Only':
-					case 'Read and Write':
-					case 'Full Access':
+					case PermissionTypes::WRITE_ONLY:
+					case PermissionTypes::READ_WRITE:
+					case PermissionTypes::FULL_ACCESS:
 						return true;
 				}
 				break;
+
 			case 'delete':
 				switch ( $access )
 				{
-					case 'Full Access':
+					case PermissionTypes::FULL_ACCESS:
 						return true;
 				}
 				break;
-			default:
-				break;
 		}
+
 		return false;
 	}
 
@@ -2110,11 +2080,11 @@ class UserManager implements iRestHandler
 			return static::$_userId;
 		}
 
-		if ( !Yii::app()->user->getIsGuest() )
+		if ( !Pii::guest() )
 		{
-			if ( !Yii::app()->user->getState( 'df_authenticated', false ) )
+			if ( !Pii::getState( 'df_authenticated', false ) )
 			{
-				return static::setCurrentUserId( Yii::app()->user->getId() );
+				return static::setCurrentUserId( Pii::user()->getId() );
 			}
 		}
 
@@ -2122,40 +2092,16 @@ class UserManager implements iRestHandler
 	}
 
 	/**
-	 * @param int    $type
-	 * @param int    $userId
-	 * @param string $data
-	 * @param string $date
-	 *
-	 * @return int
+	 * @throws Exception
 	 */
-	protected static function _logStats( $type, $userId, $data, $date = null )
+	protected function _checkCache()
 	{
-		$_sql
-			= <<<SQL
-INSERT INTO df_sys_stat
-(
-	type,
-	user_id,
-	stat_date,
-	stat_data
-)
-VALUES
-(
-	:type,
-	:user_id,
-	:stat_date,
-	:stat_data
-)
-SQL;
-
-		$_params = array(
-			':type'      => $type,
-			':user_id'   => $userId,
-			':stat_date' => $date ? : date( 'c' ),
-			':stat_data' => $data,
-		);
-
-		return Sql::execute( $_sql, $_params, Pii::pdo() );
+		if ( empty( static::$_cache ) )
+		{
+			if ( !Pii::guest() && !Pii::getState( 'df_authenticated', false ) )
+			{
+				static::$_cache = static::generateSessionDataFromUser( Pii::user()->getId() );
+			}
+		}
 	}
 }

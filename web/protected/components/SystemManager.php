@@ -268,8 +268,7 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initAdmin()
 	{
-		/** @var DspUserIdentity $_user */
-		$_user = Yii::app()->user;
+		$_user = Pii::user();
 
 		try
 		{
@@ -1258,7 +1257,12 @@ class SystemManager implements iRestHandler
 				// create DB record
 				$obj = new Config();
 			}
+
 			$obj->setAttributes( $record );
+
+			$obj->storage_id = Pii::getParam( 'dsp.storage_id' );
+			$obj->private_storage_id = Pii::getParam( 'dsp.private_storage_id' );
+
 			$obj->save();
 		}
 		catch ( Exception $ex )

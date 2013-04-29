@@ -150,6 +150,7 @@ class Fabric extends SeedUtility
 			\Kisma::set( 'platform.private_path', $_privatePath = $_cache->private_path );
 			$_privateKey = basename( dirname( $_privatePath ) );
 			\Kisma::set( 'platform.storage_key', $_instance->storage_key );
+			\Kisma::set( 'platform.private_storage_key', $_privateKey );
 			\Kisma::set( 'platform.db_config_file', $_privatePath . '/' . $_dbConfigFileName );
 
 			//	File should be there from provisioning... If not, tenemos un problema!
@@ -185,7 +186,7 @@ class Fabric extends SeedUtility
 	protected static function _checkCache( $host )
 	{
 		//	Create a hash
-		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . sha1( $host . $_SERVER['REMOTE_ADDR'] ) . '.dsp.config.php';
+		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/.dsp-' . sha1( $host . $_SERVER['REMOTE_ADDR'] );
 
 		if ( file_exists( $_tmpConfig ) )
 		{
@@ -211,7 +212,7 @@ class Fabric extends SeedUtility
 
 			if ( false !== ( $_data = json_decode( file_get_contents( $_tmpConfig ), true ) ) )
 			{
-				return array($_data['settings'], $_data['instance']);
+				return array( $_data['settings'], $_data['instance'] );
 			}
 		}
 
@@ -225,15 +226,13 @@ class Fabric extends SeedUtility
 	 */
 	protected static function _cacheSettings( $host, $settings, $instance )
 	{
-		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/' . sha1( $host . $_SERVER['REMOTE_ADDR'] ) . '.dsp.config.php';
+		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/.dsp-' . sha1( $host . $_SERVER['REMOTE_ADDR'] );
 		$_data = array(
 			'settings' => $settings,
 			'instance' => $instance,
 		);
 
 		file_put_contents( $_tmpConfig, json_encode( $_data ) );
-
-//		Log::debug( 'tmp store: ' . $_tmpConfig );
 
 		return $settings;
 	}

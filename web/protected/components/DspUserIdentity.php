@@ -82,8 +82,8 @@ class DspUserIdentity extends CUserIdentity
 		}
 
 		$this->_user = User::model()
-			->with( 'role.role_service_accesses', 'role.apps', 'role.services' )
-			->findByAttributes( array( 'email' => $this->username ) );
+					   ->with( 'role.role_service_accesses', 'role.apps', 'role.services' )
+					   ->findByAttributes( array( 'email' => $this->username ) );
 		if ( $this->_user === null )
 		{
 			$this->errorCode = static::ERROR_USERNAME_INVALID;
@@ -97,6 +97,13 @@ class DspUserIdentity extends CUserIdentity
 			$this->_id = $this->_user->id;
 			$this->setState( 'display_name', $this->_user->display_name );
 			$this->errorCode = static::ERROR_NONE;
+
+			//	Create entry in stat table...
+			Stat::create(
+				Stat::TYPE_LOCAL_AUTH,
+				$this->_user->id,
+				isset( $_SESSION ) ? $_SESSION : $this->_user->getAttributes()
+			);
 		}
 
 		return !$this->errorCode;

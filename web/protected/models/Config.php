@@ -24,13 +24,15 @@
  *
  * Columns
  *
- * @property integer $id
- * @property string  $db_version
- * @property integer $allow_open_registration
- * @property integer $open_reg_role_id
- * @property integer $allow_guest_user
- * @property integer $guest_role_id
- * @property string  $editable_profile_fields
+ * @property integer    $id
+ * @property string     $db_version
+ * @property integer    $allow_open_registration
+ * @property integer    $open_reg_role_id
+ * @property integer    $allow_guest_user
+ * @property integer    $guest_role_id
+ * @property string     $editable_profile_fields
+ * @property string     $storage_id
+ * @property string     $private_storage_id
  *
  * Relations
  *
@@ -91,12 +93,12 @@ class Config extends BaseDspSystemModel
 	public function attributeLabels()
 	{
 		return array(
-			'id'         => 'Config Id',
-			'db_version' => 'Db Version',
+			'id'                      => 'Config Id',
+			'db_version'              => 'Db Version',
 			'allow_open_registration' => 'Allow Open Registration',
-			'open_reg_role_id' => 'Open Registration Default Role Id',
-			'allow_guest_user' => 'Allow Guest User',
-			'guest_role_id' => 'Guest Role Id',
+			'open_reg_role_id'        => 'Open Registration Default Role Id',
+			'allow_guest_user'        => 'Allow Guest User',
+			'guest_role_id'           => 'Guest Role Id',
 			'editable_profile_fields' => 'Editable Profile Fields',
 		);
 	}
@@ -128,7 +130,7 @@ class Config extends BaseDspSystemModel
 		$this->allow_guest_user = intval( Utilities::boolval( $this->allow_guest_user ) );
 		if ( is_string( $this->open_reg_role_id ) )
 		{
-			if ( empty( $this->open_reg_role_id ))
+			if ( empty( $this->open_reg_role_id ) )
 			{
 				$this->open_reg_role_id = null;
 			}
@@ -139,7 +141,7 @@ class Config extends BaseDspSystemModel
 		}
 		if ( is_string( $this->guest_role_id ) )
 		{
-			if ( empty( $this->guest_role_id ))
+			if ( empty( $this->guest_role_id ) )
 			{
 				$this->guest_role_id = null;
 			}

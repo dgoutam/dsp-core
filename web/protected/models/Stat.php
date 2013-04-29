@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Sql;
+
 /**
  * Stats.php
  * DSP usage stats
@@ -30,6 +32,27 @@
  */
 class Stat extends BaseDspSystemModel
 {
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var int
+	 */
+	const TYPE_LOCAL_AUTH = 0;
+	/**
+	 * @var int
+	 */
+	const TYPE_DRUPAL_AUTH = 1;
+	/**
+	 * @var int
+	 */
+	const TYPE_ASGARD = 2;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
+
 	/**
 	 * Returns the static model of the specified AR class.
 	 *
@@ -48,5 +71,60 @@ class Stat extends BaseDspSystemModel
 	public function tableName()
 	{
 		return static::tableNamePrefix() . 'stat';
+	}
+
+	/**
+	 * @param int    $type
+	 * @param int    $userId
+	 * @param string $statData
+	 * @param string $date
+	 *
+	 * @return int
+	 */
+	public static function create( $type, $userId, $statData, $date = null )
+	{
+		$_sql
+			= <<<SQL
+INSERT INTO df_sys_stat
+(
+	type,
+	user_id,
+	stat_date,
+	stat_data,
+	created_date,
+	last_modified_date
+)
+VALUES
+(
+	:type,
+	:user_id,
+	:stat_date,
+	:stat_data,
+	:created_date,
+	:last_modified_date
+)
+SQL;
+
+		//	Make sure we have a json string in the db...
+		if ( !is_string( $statData ) )
+		{
+			if ( false === ( $_data = json_encode( $statData ) ) )
+			{
+				return false;
+			}
+
+			$statData = $_data;
+		}
+
+		$_params = array(
+			':type'               => $type,
+			':user_id'            => $userId,
+			':stat_date'          => $date ? : date( 'c' ),
+			':stat_data'          => $statData,
+			':created_date'       => date( 'c' ),
+			':last_modified_date' => date( 'c' ),
+		);
+
+		return Sql::execute( $_sql, $_params, Pii::pdo() );
 	}
 }

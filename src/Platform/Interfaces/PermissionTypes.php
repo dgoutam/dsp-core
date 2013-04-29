@@ -19,23 +19,25 @@
  */
 namespace Platform\Interfaces;
 
-use Kisma\Core\Interfaces\SeedLike;
-
 /**
- * UsageStats
+ * PermissionTypes
  */
-interface UsageStats extends SeedLike
+interface PermissionTypes
 {
-	//*************************************************************************
-	//* Constants
-	//*************************************************************************
-
-	/**
-	 * @var int
-	 */
-	const TYPE_LOGIN = 0;
 	/**
 	 * @var string
 	 */
-	const TYPE_ASGARD = 1;
+	const READ_ONLY = 'Read Only';
+	/**
+	 * @var string
+	 */
+	const WRITE_ONLY = 'Write Only';
+	/**
+	 * @var string
+	 */
+	const READ_WRITE = 'Read and Write';
+	/**
+	 * @var string
+	 */
+	const FULL_ACCESS = 'Full Access';
 }

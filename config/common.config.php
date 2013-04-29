@@ -35,21 +35,25 @@ if ( Fabric::fabricHosted() && !empty( $_instance ) )
 	}
 
 	$_instanceSettings = array(
-		'storage_base_path' => $_instance['storage_path'],
-		'private_path'      => $_instance['private_path'],
-		'storage_path'      => $_instance['blob_storage_path'],
-		'snapshot_path'     => $_instance['snapshot_path'],
-		'dsp_name'          => $_instance['instance']->instance_name_text,
+		'storage_base_path'      => $_instance['storage_path'],
+		'private_path'           => $_instance['private_path'],
+		'storage_path'           => $_instance['blob_storage_path'],
+		'snapshot_path'          => $_instance['snapshot_path'],
+		'dsp_name'               => $_instance['instance']->instance_name_text,
+		'dsp.storage_id'         => $_instance['storage_key'],
+		'dsp.private_storage_id' => $_instance['private_storage_key'],
 	);
 }
 else
 {
 	$_instanceSettings = array(
-		'storage_base_path' => __DIR__ . '/../storage',
-		'private_path'      => __DIR__ . '/../storage/.private',
-		'storage_path'      => __DIR__ . '/../storage',
-		'snapshot_path'     => __DIR__ . '/../storage/.private/snapshots',
-		'dsp_name'          => gethostname(),
+		'storage_base_path'      => __DIR__ . '/../storage',
+		'private_path'           => __DIR__ . '/../storage/.private',
+		'storage_path'           => __DIR__ . '/../storage',
+		'snapshot_path'          => __DIR__ . '/../storage/.private/snapshots',
+		'dsp_name'               => gethostname(),
+		'dsp.storage_id'         => null,
+		'dsp.private_storage_id' => null,
 	);
 }
 
