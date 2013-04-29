@@ -1,24 +1,51 @@
 <?php
-
 /**
- * @category   DreamFactory
- * @package    DreamFactory
- * @subpackage Utilities
- * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
- * @license    http://www.dreamfactory.com/license
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+use Kisma\Core\Utility\Log;
 
 class DbUtilities
 {
-
 	// constants
 
-	// DB driver types
+	/**
+	 * @var int
+	 */
 	const DRV_OTHER = 0;
+	/**
+	 * @var int
+	 */
 	const DRV_SQLSRV = 1;
+	/**
+	 * @var int
+	 */
 	const DRV_MYSQL = 2;
+	/**
+	 * @var int
+	 */
 	const DRV_SQLITE = 3;
+	/**
+	 * @var int
+	 */
 	const DRV_PGSQL = 4;
+	/**
+	 * @var int
+	 */
 	const DRV_OCSQL = 5;
 
 	/**
@@ -33,19 +60,24 @@ class DbUtilities
 			case 'mssql':
 			case 'dblib':
 			case 'sqlsrv':
-				return self::DRV_SQLSRV;
+				return static::DRV_SQLSRV;
+
 			case 'mysqli':
 			case 'mysql':
-				return self::DRV_MYSQL;
+				return static::DRV_MYSQL;
+
 			case 'sqlite':
 			case 'sqlite2':
-				return self::DRV_SQLITE;
+				return static::DRV_SQLITE;
+
 			case 'oci':
-				return self::DRV_OCSQL;
+				return static::DRV_OCSQL;
+
 			case 'pgsql':
-				return self::DRV_PGSQL;
+				return static::DRV_PGSQL;
+
 			default:
-				return self::DRV_OTHER;
+				return static::DRV_OTHER;
 		}
 	}
 
@@ -63,7 +95,9 @@ class DbUtilities
 		{
 			throw new InvalidArgumentException( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
+
 		$tables = $db->schema->getTableNames();
+
 		// make search case insensitive
 		foreach ( $tables as $table )
 		{
@@ -72,7 +106,9 @@ class DbUtilities
 				return $table;
 			}
 		}
-		error_log( print_r( $tables, true ) );
+
+		Log::error( 'Unknown table "' . $name . '" requested.' );
+
 		throw new Exception( "Table '$name' does not exist in the database.", ErrorCodes::NOT_FOUND );
 	}
 
@@ -352,7 +388,7 @@ class DbUtilities
 	/**
 	 * @param CDbConnection $db
 	 * @param string        $table_name
-	 * @param array	        $field_names
+	 * @param array         $field_names
 	 *
 	 * @throws Exception
 	 * @return array

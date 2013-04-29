@@ -1,7 +1,5 @@
 <?php
 /**
- * BE AWARE...
- *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>

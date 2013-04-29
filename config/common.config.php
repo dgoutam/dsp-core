@@ -1,7 +1,5 @@
 <?php
 /**
- * BE AWARE...
- *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
@@ -58,12 +56,18 @@ else
 return array_merge(
 	$_instanceSettings,
 	array(
-		'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
-		'adminEmail'            => 'developer-support@dreamfactory.com',
-		'companyLabel'          => 'DreamFactory Services Platform(tm)',
-		'allowOpenRegistration' => 'true',
-		'dsp.version'           => '1.0.0-beta',
-		'dsp.name'              => $_instanceSettings['dsp_name'],
-		'cloud.endpoint'        => 'http://api.cloud.dreamfactory.com',
+		 /**
+		  * DSP Information
+		  */
+		 'dsp.version'           => '1.0.0-beta',
+		 'dsp.name'              => $_instanceSettings['dsp_name'],
+		 'cloud.endpoint'        => 'http://api.cloud.dreamfactory.com',
+		 /**
+		  * User data
+		  */
+		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
+		 'adminEmail'            => 'developer-support@dreamfactory.com',
+		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
+		 'allowOpenRegistration' => 'true',
 	)
 );

@@ -1,72 +1,53 @@
 <?php
-
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Sql;
+use Platform\Yii\Utility\Pii;
 
 /**
  * SystemManager.php
  * DSP system administration manager
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class SystemManager implements iRestHandler
 {
-
-	// constants
 	/**
-	 *
+	 * @var string
 	 */
 	const SYSTEM_TABLE_PREFIX = 'df_sys_';
 
-	// Members
-
 	/**
-	 * @var SystemManager
+	 * @var \SystemManager
 	 */
 	private static $_instance = null;
-
 	/**
-	 * @var
+	 * @var string
 	 */
 	protected $modelName;
-
 	/**
-	 * @var
+	 * @var int
 	 */
 	protected $modelId;
-
 	/**
-	 * @var
+	 * @var string
 	 */
 	protected $relatedModelName;
-
-	/**
-	 * Creates a new SystemManager instance
-	 *
-	 */
-	public function __construct()
-	{
-	}
-
-	/**
-	 * Object destructor
-	 */
-	public function __destruct()
-	{
-	}
 
 	/**
 	 * Gets the static instance of this class.
@@ -75,12 +56,12 @@ class SystemManager implements iRestHandler
 	 */
 	public static function getInstance()
 	{
-		if ( !isset( self::$_instance ) )
+		if ( !isset( static::$_instance ) )
 		{
-			self::$_instance = new SystemManager();
+			static::$_instance = new SystemManager();
 		}
 
-		return self::$_instance;
+		return static::$_instance;
 	}
 
 	/**
@@ -94,14 +75,20 @@ class SystemManager implements iRestHandler
 	}
 
 	/**
-	 * @param $old
-	 * @param $new
+	 * @param string $old
+	 * @param string $new
+	 * @param bool   $useVersionCompare If true, built-in "version_compare" will be used
+	 * @param null   $operator          Operator to pass to version_compare
 	 *
-	 * @return bool
+	 * @return bool|mixed
 	 */
-	public static function doesDbVersionRequireUpgrade( $old, $new )
+	public static function doesDbVersionRequireUpgrade( $old, $new, $useVersionCompare = false, $operator = null )
 	{
-		// todo need to be fancier here
+		if ( false !== $useVersionCompare )
+		{
+			return version_compare( $old, $new, $operator );
+		}
+
 		return ( 0 !== strcasecmp( $old, $new ) );
 	}
 
@@ -110,63 +97,57 @@ class SystemManager implements iRestHandler
 	 */
 	public static function getSystemState()
 	{
-		try
+		//	Refresh the schema that we just added
+		$_db = Pii::db();
+		$_schema = $_db->getSchema();
+
+		$tables = $_schema->getTableNames();
+
+		if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
 		{
-			// refresh the schema that we just added
-			Yii::app()->db->schema->refresh();
-			$tables = Yii::app()->db->schema->getTableNames();
-			if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
-			{
-				return 'init required';
-			}
-
-			// need to check for db upgrade, based on tables or version
-			$contents = file_get_contents( Yii::app()->basePath . '/data/system_schema.json' );
-			if ( !empty( $contents ) )
-			{
-				$contents = Utilities::jsonToArray( $contents );
-				// check for any missing necessary tables
-				$needed = Utilities::getArrayValue( 'table', $contents, array() );
-				foreach ( $needed as $table )
-				{
-					$name = Utilities::getArrayValue( 'name', $table, '' );
-					if ( !empty( $name ) && !in_array( $name, $tables ) )
-					{
-						return 'schema required';
-					}
-				}
-				$version = Utilities::getArrayValue( 'version', $contents );
-				$oldVersion = '';
-				$command = Yii::app()->db->createCommand();
-				$result = $command->from( 'df_sys_config' )->queryRow();
-				if ( isset( $result['db_version'] ) )
-				{
-					$oldVersion = $result['db_version'];
-				}
-				if ( static::doesDbVersionRequireUpgrade( $oldVersion, $version ) )
-				{
-					return 'schema required';
-				}
-			}
-
-			// check for at least one system admin user
-			$theUser = User::model()->find( 'is_sys_admin=:is', array( ':is' => 1 ) );
-			if ( null === $theUser )
-			{
-				return 'admin required';
-			}
-			$result = Service::model()->findAll();
-			if ( empty( $result ) )
-			{
-				return 'data required';
-			}
-
-			return 'ready';
+			return PlatformStates::INIT_REQUIRED;
 		}
-		catch ( \Exception $ex )
+
+		// need to check for db upgrade, based on tables or version
+		$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+
+		if ( !empty( $contents ) )
 		{
-			throw $ex;
+			$contents = Utilities::jsonToArray( $contents );
+
+			// check for any missing necessary tables
+			$needed = Utilities::getArrayValue( 'table', $contents, array() );
+
+			foreach ( $needed as $table )
+			{
+				$name = Utilities::getArrayValue( 'name', $table, '' );
+				if ( !empty( $name ) && !in_array( $name, $tables ) )
+				{
+					return PlatformStates::SCHEMA_REQUIRED;
+				}
+			}
+
+			//	Compare database versions
+			$oldVersion = Sql::scalar( 'SELECT db_version FROM df_sys_config ORDER BY id DESC LIMIT 1' );
+
+			if ( static::doesDbVersionRequireUpgrade( $oldVersion, Utilities::getArrayValue( 'version', $contents ) ) )
+			{
+				return PlatformStates::SCHEMA_REQUIRED;
+			}
 		}
+
+		//	Check for at least one system admin user
+		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_user' ) )
+		{
+			return PlatformStates::ADMIN_REQUIRED;
+		}
+
+		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_service' ) )
+		{
+			return PlatformStates::DATA_REQUIRED;
+		}
+
+		return PlatformStates::READY;
 	}
 
 	/**
@@ -191,19 +172,24 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initSchema( $init = false )
 	{
+		$_db = Pii::db();
+
 		try
 		{
 			$contents = file_get_contents( Yii::app()->basePath . '/data/system_schema.json' );
+
 			if ( empty( $contents ) )
 			{
 				throw new \Exception( "Empty or no system schema file found." );
 			}
+
 			$contents = Utilities::jsonToArray( $contents );
 			$version = Utilities::getArrayValue( 'version', $contents );
-			$command = Yii::app()->db->createCommand();
+			$command = $_db->createCommand();
 			$config = null;
 			$oldVersion = '';
-			if ( DbUtilities::doesTableExist( Yii::app()->db, static::SYSTEM_TABLE_PREFIX . 'config' ) )
+
+			if ( DbUtilities::doesTableExist( $_db, static::SYSTEM_TABLE_PREFIX . 'config' ) )
 			{
 				$command->reset();
 				$config = $command->from( 'df_sys_config' )->queryRow();
@@ -218,7 +204,8 @@ class SystemManager implements iRestHandler
 			{
 				throw new \Exception( "No default system schema found." );
 			}
-			$result = DbUtilities::createTables( Yii::app()->db, $tables, true, false );
+
+			$result = DbUtilities::createTables( $_db, $tables, true, false );
 
 			if ( !empty( $oldVersion ) )
 			{
@@ -256,8 +243,9 @@ class SystemManager implements iRestHandler
 			{
 				Log::error( 'Exception saving database version: ' . $_ex->getMessage() );
 			}
-			// refresh the schema that we just added
-			Yii::app()->db->schema->refresh();
+
+			//	Refresh the schema that we just added
+			$_db->getSchema()->refresh();
 		}
 		catch ( \Exception $ex )
 		{
@@ -279,19 +267,22 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initAdmin()
 	{
+		$_user = Pii::user();
 		try
 		{
 			// create and login first admin user
 			// fill out the user fields for creation
-			$email = Yii::app()->user->getState( 'email' );
-			$pwd = Yii::app()->user->getState( 'password' );
-			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+			$email = $_user->getState( 'email' );
+			$pwd = $_user->getState( 'password' );
+
+			$theUser = User::model()->find( 'email = :email', array( ':email' => $email ) );
+
 			if ( empty( $theUser ) )
 			{
 				$theUser = new User();
-				$firstName = Yii::app()->user->getState( 'first_name' );
-				$lastName = Yii::app()->user->getState( 'last_name' );
-				$displayName = Yii::app()->user->getState( 'display_name' );
+				$firstName = $_user->getState( 'first_name' );
+				$lastName = $_user->getState( 'last_name' );
+				$displayName = $_user->getState( 'display_name' );
 				$displayName = ( empty( $displayName )
 					? $firstName . ( empty( $lastName ) ? '' : ' ' . $lastName )
 					: $displayName );
@@ -317,14 +308,15 @@ class SystemManager implements iRestHandler
 			}
 
 			$theUser->setAttributes( $fields );
+
 			// write back login datetime
-			$theUser->last_login_date = new CDbExpression( 'NOW()' );
+			$theUser->last_login_date = date( 'c' );
 			$theUser->save();
-			$id = $theUser->primaryKey;
+
 			// update session with current real user
-			Yii::app()->user->setId( $id );
-			Yii::app()->user->setState( 'df_authenticated', false ); // removes catch
-			Yii::app()->user->setState( 'password', $pwd, $pwd ); // removes password
+			$_user->setId( $theUser->primaryKey );
+			$_user->setState( 'df_authenticated', false ); // removes catch
+			$_user->setState( 'password', $pwd, $pwd ); // removes password
 		}
 		catch ( \Exception $ex )
 		{
@@ -762,6 +754,7 @@ class SystemManager implements iRestHandler
 							}
 						}
 					}
+				//	intentionally fall through...
 
 				case 'app_group':
 				case 'role':
@@ -1276,7 +1269,7 @@ class SystemManager implements iRestHandler
 			$id = $obj->primaryKey;
 			if ( empty( $id ) )
 			{
-				error_log( "Failed to get primary key from created user.\n" . print_r( $obj, true ) );
+				Log::error( 'Failed to get primary key from created user: ' . print_r( $obj, true ) );
 				throw new Exception( "Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR );
 			}
 
@@ -1378,7 +1371,7 @@ class SystemManager implements iRestHandler
 			$id = $obj->primaryKey;
 			if ( empty( $id ) )
 			{
-				error_log( "Failed to get primary key from created user.\n" . print_r( $obj, true ) );
+				Log::error( 'Failed to get primary key from created user: ' . print_r( $obj, true ) );
 				throw new Exception( "Failed to get primary key from created user.", ErrorCodes::INTERNAL_SERVER_ERROR );
 			}
 
@@ -2781,5 +2774,4 @@ class SystemManager implements iRestHandler
 	{
 		return static::getAppIdFromName( static::getCurrentAppName() );
 	}
-
 }

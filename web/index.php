@@ -1,7 +1,5 @@
 <?php
 /**
- * BE AWARE...
- *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
@@ -22,11 +20,12 @@
 /**
  * index.php
  */
-use Platform\Utility\DataCache;
-
 $_basePath = dirname( __DIR__ );
 $_autoloader = require_once( $_basePath . '/vendor/autoload.php' );
 require_once __DIR__ . '/protected/components/Pii.php';
+require_once $_basePath . '/src/Platform/Utility/DataCache.php';
+
+use Platform\Utility\DataCache;
 
 //	Initialize app settings
 \Pii::run( __DIR__, $_autoloader );
