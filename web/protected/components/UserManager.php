@@ -2094,7 +2094,7 @@ class UserManager implements iRestHandler
 	/**
 	 * @throws Exception
 	 */
-	protected function _checkCache()
+	protected static function _checkCache()
 	{
 		if ( empty( static::$_cache ) )
 		{
