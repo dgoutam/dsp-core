@@ -1,26 +1,28 @@
 <?php
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
- * SchemaSvc.php
+ * SchemaSvc
  * A service to handle SQL database schema-related services accessed through the REST API.
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class SchemaSvc extends BaseService
+class SchemaSvc extends RestService
 {
 
 	// Members
@@ -159,66 +161,6 @@ class SchemaSvc extends BaseService
 						"allowMultiple" => false
 					);
 					break;
-				case 'id':
-					$swagger[] = array(
-						"paramType"     => "path",
-						"name"          => $param,
-						"description"   => "Identifier of the resource to retrieve.",
-						"dataType"      => "String",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'ids':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Comma-delimited list of the identifiers of the resources to retrieve.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'filter':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "SQL-like filter to limit the resources to retrieve.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'order':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "SQL-like order containing field and direction for filter results.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'limit':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Set to limit the filter results.",
-						"dataType"      => "int",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'include_count':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Include the total number of filter results.",
-						"dataType"      => "boolean",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
 				case 'include_schema':
 					$swagger[] = array(
 						"paramType"     => "query",
@@ -229,34 +171,34 @@ class SchemaSvc extends BaseService
 						"allowMultiple" => false
 					);
 					break;
-				case 'fields':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Comma-delimited list of field names to retrieve for each record.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'related':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Comma-delimited list of related names to retrieve for each record.",
-						"dataType"      => "string",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'table':
+				case 'tables':
 					$swagger[] = array(
 						"paramType"     => "body",
 						"name"          => $param,
-						"description"   => "Array of table properties.",
-						"dataType"      => "array",
+						"description"   => "Array of table definitions.",
+						"dataType"      => "Tables",
 						"required"      => true,
-						"allowMultiple" => true
+						"allowMultiple" => false
+					);
+					break;
+				case 'fields':
+					$swagger[] = array(
+						"paramType"     => "body",
+						"name"          => $param,
+						"description"   => "Array of field definitions.",
+						"dataType"      => "Fields",
+						"required"      => true,
+						"allowMultiple" => false
+					);
+					break;
+				case 'field_props':
+					$swagger[] = array(
+						"paramType"     => "body",
+						"name"          => $param,
+						"description"   => "Array of field properties.",
+						"dataType"      => "FieldSchema",
+						"required"      => true,
+						"allowMultiple" => false
 					);
 					break;
 			}
@@ -265,35 +207,26 @@ class SchemaSvc extends BaseService
 		return $swagger;
 	}
 
+	// Controller based methods
+
 	/**
-	 * @param string $service
-	 * @param string $description
-	 *
 	 * @return array
+	 * @throws Exception
 	 */
-	public static function swaggerPerSchema( $service, $description = '' )
+	public function getSwaggerApis()
 	{
-		$swagger = array(
+		$apis = array(
 			array(
-				'path'        => '/' . $service,
-				'description' => $description,
+				'path'        => '/' . $this->_apiName,
+				'description' => $this->_description,
 				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List tables available to the schema service",
-						"notes"          => "Use the table names in available schema operations.",
-						"responseClass"  => "array",
-						"nickname"       => "getTables",
-						"parameters"     => static::swaggerParameters( array() ),
-						"errorResponses" => array()
-					),
 					array(
 						"httpMethod"     => "POST",
 						"summary"        => "Create one or more tables",
 						"notes"          => "Post data should be a single table definition or an array of table definitions",
 						"responseClass"  => "array",
 						"nickname"       => "createTables",
-						"parameters"     => static::swaggerParameters( array() ),
+						"parameters"     => static::swaggerParameters( array('tables') ),
 						"errorResponses" => array()
 					),
 					array(
@@ -302,20 +235,20 @@ class SchemaSvc extends BaseService
 						"notes"          => "Post data should be a single table definition or an array of table definitions",
 						"responseClass"  => "array",
 						"nickname"       => "updateTables",
-						"parameters"     => static::swaggerParameters( array() ),
+						"parameters"     => static::swaggerParameters( array('tables') ),
 						"errorResponses" => array()
 					),
 				)
 			),
 			array(
-				'path'        => '/' . $service . '/{table_name}',
+				'path'        => '/' . $this->_apiName . '/{table_name}',
 				'description' => 'Operations for per table administration.',
 				'operations'  => array(
 					array(
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve table definition for the given table",
 						"notes"          => "This describes the table, its fields and relations to other tables.",
-						"responseClass"  => "array",
+						"responseClass"  => "TableSchema",
 						"nickname"       => "describeTable",
 						"parameters"     => static::swaggerParameters( array( 'table_name' ) ),
 						"errorResponses" => array()
@@ -326,7 +259,7 @@ class SchemaSvc extends BaseService
 						"notes"          => "Post data should be an array of field properties for a single record or an array of fields",
 						"responseClass"  => "array",
 						"nickname"       => "createFields",
-						"parameters"     => static::swaggerParameters( array( 'table_name' ) ),
+						"parameters"     => static::swaggerParameters( array( 'table_name','fields' ) ),
 						"errorResponses" => array()
 					),
 					array(
@@ -335,7 +268,7 @@ class SchemaSvc extends BaseService
 						"notes"          => "Post data should be an array of field properties for a single record or an array of fields",
 						"responseClass"  => "array",
 						"nickname"       => "updateFields",
-						"parameters"     => static::swaggerParameters( array( 'table_name' ) ),
+						"parameters"     => static::swaggerParameters( array( 'table_name','fields' ) ),
 						"errorResponses" => array()
 					),
 					array(
@@ -350,14 +283,14 @@ class SchemaSvc extends BaseService
 				)
 			),
 			array(
-				'path'        => '/' . $service . '/{table_name}/{field_name}',
+				'path'        => '/' . $this->_apiName . '/{table_name}/{field_name}',
 				'description' => 'Operations for single record administration.',
 				'operations'  => array(
 					array(
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve the definition of the given field for the given table",
 						"notes"          => "This describes the field and its properties.",
-						"responseClass"  => "array",
+						"responseClass"  => "FieldSchema",
 						"nickname"       => "describeField",
 						"parameters"     => static::swaggerParameters( array( 'table_name', 'field_name' ) ),
 						"errorResponses" => array()
@@ -368,7 +301,7 @@ class SchemaSvc extends BaseService
 						"notes"          => "Post data should be an array of field properties for the given field",
 						"responseClass"  => "array",
 						"nickname"       => "updateField",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'field_name' ) ),
+						"parameters"     => static::swaggerParameters( array( 'table_name', 'field_name', 'field_props' ) ),
 						"errorResponses" => array()
 					),
 					array(
@@ -383,32 +316,184 @@ class SchemaSvc extends BaseService
 				)
 			),
 		);
+		$apis = array_merge( parent::getSwaggerApis(), $apis );
 
-		return $swagger;
+		return $apis;
 	}
 
-	// Controller based methods
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionSwagger()
+	public function getSwaggerModels()
 	{
-		try
-		{
-			$this->detectCommonParams();
+		$models = array(
+			"Tables" => array(
+				"id" => "Tables",
+				"properties" => array(
+					"table" => array(
+						"type" => "array",
+						"items" => array( '$ref' => "TableSchema"),
+						"description" => "An array of table definitions."
+					),
+				)
+			),
+			"TableSchema" => array(
+				"id" => "TableSchema",
+				"properties" => array(
+					"name" => array(
+						"type" => "string",
+						"description" => "Identifier/Name for the table."
+					),
+					"label" => array(
+						"type" => "string",
+						"description" => "Displayable singular name for the table."
+					),
+					"plural" => array(
+						"type" => "string",
+						"description" => "Displayable plural name for the table."
+					),
+					"primary_key" => array(
+						"type" => "string",
+						"description" => "Field(s), if any, that represent the primary key of each record."
+					),
+					"name_field" => array(
+						"type" => "string",
+						"description" => "Field(s), if any, that represent the name of each record."
+					),
+					"field" => array(
+						"type" => "array",
+						"items" => array( '$ref' => "FieldSchema"),
+						"description" => "An array of available fields in each record."
+					),
+					"related" => array(
+						"type" => "array",
+						"items" => array( '$ref' => "Related"),
+						"description" => "An array of available relationships to other tables."
+					),
+				)
+			),
+			"Fields" => array(
+				"id" => "Fields",
+				"properties" => array(
+					"field" => array(
+						"type" => "array",
+						"items" => array( '$ref' => "FieldSchema"),
+						"description" => "An array of field definitions."
+					),
+				)
+			),
+			"FieldSchema" => array(
+				"id" => "FieldSchema",
+				"properties" => array(
+					"name" => array(
+						"type" => "string",
+						"description" => "The API name of the field."
+					),
+					"label" => array(
+						"type" => "string",
+						"description" => "The displayable label for the field."
+					),
+					"type" => array(
+						"type" => "string",
+						"description" => "The DSP abstract data type for this field."
+					),
+					"db_type" => array(
+						"type" => "string",
+						"description" => "The native database type used for this field."
+					),
+					"length" => array(
+						"type" => "integer",
+						"description" => "The maximum length allowed (in characters for string, displayed for numbers)."
+					),
+					"precision" => array(
+						"type" => "integer",
+						"description" => "Total number of places for numbers."
+					),
+					"scale" => array(
+						"type" => "integer",
+						"description" => "Number of decimal places allowed for numbers."
+					),
+					"default" => array(
+						"type" => "string",
+						"description" => "Default value for this field."
+					),
+					"required" => array(
+						"type" => "boolean",
+						"description" => "Is a value required for record creation."
+					),
+					"allow_null" => array(
+						"type" => "boolean",
+						"description" => "Is null allowed as a value."
+					),
+					"fixed_length" => array(
+						"type" => "boolean",
+						"description" => "Is the length fixed (not variable)."
+					),
+					"supports_multibyte" => array(
+						"type" => "boolean",
+						"description" => "Does the data type support multibyte characters."
+					),
+					"auto_increment" => array(
+						"type" => "boolean",
+						"description" => "Does the integer field value increment upon new record creation."
+					),
+					"is_primary_key" => array(
+						"type" => "boolean",
+						"description" => "Is this field used as/part of the primary key."
+					),
+					"is_foreign_key" => array(
+						"type" => "boolean",
+						"description" => "Is this field used as a foreign key."
+					),
+					"ref_table" => array(
+						"type" => "string",
+						"description" => "For foreign keys, the referenced table name."
+					),
+					"ref_fields" => array(
+						"type" => "string",
+						"description" => "For foreign keys, the referenced table field name."
+					),
+					"validation" => array(
+						"type" => "string",
+						"description" => "Comma-delimited list of validations to be performed on this field."
+					),
+					"values" => array(
+						"type" => "array",
+						"item" => array( '$ref' => "string"),
+						"description" => "Selectable string values for picklist validation."
+					),
+				)
+			),
+			"Related" => array(
+				"id" => "Related",
+				"properties" => array(
+					"name" => array(
+						"type" => "string",
+						"description" => "Name of the relationship."
+					),
+					"type" => array(
+						"type" => "string",
+						"description" => "Relationship type - belongs_to, has_many, many_many."
+					),
+					"ref_table" => array(
+						"type" => "string",
+						"description" => "The table name that is referenced by the relationship."
+					),
+					"ref_field" => array(
+						"type" => "string",
+						"description" => "The field name that is referenced by the relationship."
+					),
+					"join" => array(
+						"type" => "string",
+						"description" => "The intermediate joining table used for many_many relationships."
+					),
+					"field" => array(
+						"type" => "string",
+						"description" => "The current table field that is used in the relationship."
+					),
+				)
+			),
+		);
+		$models = array_merge( parent::getSwaggerModels(), $models );
 
-			$result = parent::actionSwagger();
-			$resources = static::swaggerPerSchema( $this->_apiName, $this->_description );
-			$result['apis'] = $resources;
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
+		return $models;
 	}
 
 	/**

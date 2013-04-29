@@ -17,7 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
+ * RestController
  * REST API router and controller
  */
 class RestController extends Controller
@@ -73,17 +75,17 @@ class RestController extends Controller
 			if ( $this->swagger )
 			{
 				$services = array(
-					array('path' => '/user', 'description' => 'User Login'),
-					array('path' => '/system', 'description' => 'System Configuration')
+					array( 'path' => '/user', 'description' => 'User Login' ),
+					array( 'path' => '/system', 'description' => 'System Configuration' )
 				);
 				$command->select( 'api_name,description' )
-				->from( 'df_sys_service' )
-				->order( 'api_name' )
-				->where( 'type != :t', array(':t' => 'Remote Web Service') );
+					->from( 'df_sys_service' )
+					->order( 'api_name' )
+					->where( 'type != :t', array( ':t' => 'Remote Web Service' ) );
 				$result = $command->queryAll();
 				foreach ( $result as $service )
 				{
-					$services[] = array('path' => '/' . $service['api_name'], 'description' => $service['description']);
+					$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
 				}
 				$result = SwaggerUtilities::swaggerBaseInfo();
 				$result['apis'] = $services;
@@ -92,11 +94,11 @@ class RestController extends Controller
 			{
 				// add non-service managers
 				$services = array(
-					array('api_name' => 'user', 'name' => 'User Login'),
-					array('api_name' => 'system', 'name' => 'System Configuration')
+					array( 'api_name' => 'user', 'name' => 'User Login' ),
+					array( 'api_name' => 'system', 'name' => 'System Configuration' )
 				);
 				$result = $command->select( 'api_name,name' )->from( 'df_sys_service' )->order( 'api_name' )->queryAll();
-				$result = array('resources' => array_merge( $services, $result ));
+				$result = array( 'resources' => array_merge( $services, $result ) );
 			}
 			$this->handleResults( $result );
 		}
@@ -127,7 +129,7 @@ class RestController extends Controller
 			}
 			if ( $this->swagger )
 			{
-				$result = $svcObj->actionSwagger();
+				$result = $svcObj->getSwagger();
 			}
 			else
 			{

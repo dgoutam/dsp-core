@@ -21,32 +21,55 @@ use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 
 /**
- * SystemManager.php
+ * SystemManager
  * DSP system administration manager
  */
-class SystemManager implements iRestHandler
+class SystemManager extends RestService
 {
+
+	// constants
 	/**
 	 * @var string
 	 */
 	const SYSTEM_TABLE_PREFIX = 'df_sys_';
 
+	// Members
+
 	/**
 	 * @var \SystemManager
 	 */
 	private static $_instance = null;
+
 	/**
 	 * @var string
 	 */
 	protected $modelName;
+
 	/**
 	 * @var int
 	 */
 	protected $modelId;
+
 	/**
 	 * @var string
 	 */
 	protected $relatedModelName;
+
+	/**
+	 * Creates a new SystemManager instance
+	 *
+	 */
+	public function __construct()
+	{
+		$config = array(
+			'name' => 'System Configuration Management',
+			'api_name' => 'system',
+			'type' => 'System',
+			'description' => 'Service for system administration.',
+			'is_active' => true,
+		);
+		parent::__construct($config);
+	}
 
 	/**
 	 * Gets the static instance of this class.
@@ -63,14 +86,36 @@ class SystemManager implements iRestHandler
 		return static::$_instance;
 	}
 
-	/**
-	 * For compatibility with CommonServices
-	 *
-	 * @return string
-	 */
-	public static function getType()
+	// Service interface implementation
+
+	public function setApiName( $apiName )
 	{
-		return 'System';
+		throw new Exception('SystemManager API name can not be changed.');
+	}
+
+	public function setType( $type )
+	{
+		throw new Exception('SystemManager type can not be changed.');
+	}
+
+	public function setDescription( $description )
+	{
+		throw new Exception('SystemManager description can not be changed.');
+	}
+
+	public function setIsActive( $isActive )
+	{
+		throw new Exception('SystemManager active flag can not be changed.');
+	}
+
+	public function setName( $name )
+	{
+		throw new Exception('SystemManager name can not be changed.');
+	}
+
+	public function setNativeFormat( $nativeFormat )
+	{
+		throw new Exception('SystemManager native format can not be changed.');
 	}
 
 	/**
@@ -96,8 +141,8 @@ class SystemManager implements iRestHandler
 	 */
 	public static function getSystemState()
 	{
-		//	Refresh the schema that we just added
-		$_db = \Pii::db();
+		// Refresh the schema that we just added
+		$_db = Pii::db();
 		$_schema = $_db->getSchema();
 
 		$tables = $_schema->getTableNames();
@@ -108,7 +153,7 @@ class SystemManager implements iRestHandler
 		}
 
 		// need to check for db upgrade, based on tables or version
-		$contents = file_get_contents( \Pii::basePath() . '/data/system_schema.json' );
+		$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
 
 		if ( !empty( $contents ) )
 		{
@@ -126,22 +171,29 @@ class SystemManager implements iRestHandler
 				}
 			}
 
-			//	Compare database versions
-			$oldVersion = Sql::scalar( 'SELECT db_version FROM df_sys_config ORDER BY id DESC LIMIT 1', 0, null, \Pii::pdo() );
-
-			if ( static::doesDbVersionRequireUpgrade( $oldVersion, Utilities::getArrayValue( 'version', $contents ) ) )
+			$version = Utilities::getArrayValue( 'version', $contents );
+			$oldVersion = $_db->createCommand()
+				->select( 'db_version' )->from( 'df_sys_config' )
+				->order( 'id DESC' )->limit( 1 )
+				->queryScalar();
+			if ( static::doesDbVersionRequireUpgrade( $oldVersion, $version ) )
 			{
 				return PlatformStates::SCHEMA_REQUIRED;
 			}
 		}
 
-		//	Check for at least one system admin user
-		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_user', 0, null, \Pii::pdo() ) )
+		// Check for at least one system admin user
+		$command = $_db->createCommand()
+			->select( '(COUNT(*))' )->from( 'df_sys_user' )->where( 'is_sys_admin=:is' );
+		if ( 0 == $command->queryScalar( array( ':is' => 1 ) ) )
 		{
 			return PlatformStates::ADMIN_REQUIRED;
 		}
 
-		if ( 0 == Sql::scalar( 'SELECT count(id) FROM df_sys_service', 0, null, \Pii::pdo() ) )
+		// Need to check for the default services
+		$command = $_db->createCommand()
+			->select( '(COUNT(*))' )->from( 'df_sys_service' );
+		if ( 0 == $command->queryScalar() )
 		{
 			return PlatformStates::DATA_REQUIRED;
 		}
@@ -171,11 +223,11 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initSchema( $init = false )
 	{
-		$_db = \Pii::db();
+		$_db = Pii::db();
 
 		try
 		{
-			$contents = file_get_contents( Yii::app()->basePath . '/data/system_schema.json' );
+			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
 
 			if ( empty( $contents ) )
 			{
@@ -184,18 +236,13 @@ class SystemManager implements iRestHandler
 
 			$contents = Utilities::jsonToArray( $contents );
 			$version = Utilities::getArrayValue( 'version', $contents );
-			$command = $_db->createCommand();
-			$config = null;
-			$oldVersion = '';
 
+			$command = $_db->createCommand();
+			$oldVersion = '';
 			if ( DbUtilities::doesTableExist( $_db, static::SYSTEM_TABLE_PREFIX . 'config' ) )
 			{
 				$command->reset();
-				$config = $command->from( 'df_sys_config' )->queryRow();
-				if ( isset( $config['db_version'] ) )
-				{
-					$oldVersion = $config['db_version'];
-				}
+				$oldVersion = $command->select( 'db_version' )->from( 'df_sys_config' )->queryScalar();
 			}
 
 			// create system tables
@@ -225,7 +272,7 @@ class SystemManager implements iRestHandler
 			try
 			{
 				$command->reset();
-				if ( empty( $config ) )
+				if ( empty( $oldVersion ) )
 				{
 					// first time is troublesome with session user id
 					$rows = $command->insert( 'df_sys_config', array( 'db_version' => $version ) );
@@ -267,11 +314,11 @@ class SystemManager implements iRestHandler
 	 */
 	public static function initAdmin()
 	{
-		$_user = \Pii::user();
+		$_user = Pii::user();
 
 		try
 		{
-			//	Create and login first admin user
+			// Create and login first admin user
 			$email = $_user->getState( 'email' );
 			$pwd = $_user->getState( 'password' );
 
@@ -333,7 +380,7 @@ class SystemManager implements iRestHandler
 	public static function initData()
 	{
 		// init with system required data
-		$contents = file_get_contents( Yii::app()->basePath . '/data/system_data.json' );
+		$contents = file_get_contents( Pii::basePath() . '/data/system_data.json' );
 		if ( empty( $contents ) )
 		{
 			throw new \Exception( "Empty or no system data file found." );
@@ -426,54 +473,40 @@ class SystemManager implements iRestHandler
 		}
 	}
 
-	// Controller based methods
+	// Swagger interface implementation
 
 	/**
 	 * @return array
 	 * @throws Exception
 	 */
-	public function actionSwagger()
+	public function getSwaggerApis()
 	{
-		try
-		{
-			$this->detectCommonParams();
+		$apis = array_merge(
+			parent::getSwaggerApis(),
+			SwaggerUtilities::swaggerPerResource( 'system', 'app' ),
+			SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
+			SwaggerUtilities::swaggerPerResource( 'system', 'role' ),
+			SwaggerUtilities::swaggerPerResource( 'system', 'service' ),
+			SwaggerUtilities::swaggerPerResource( 'system', 'user' ),
+			SwaggerUtilities::swaggerPerResource( 'system', 'email_template' )
+		);
 
-			$result = SwaggerUtilities::swaggerBaseInfo( 'system' );
-			$resources = array(
-				array(
-					'path'        => '/system',
-					'description' => '',
-					'operations'  => array(
-						array(
-							"httpMethod"     => "GET",
-							"summary"        => "List resources available in the system service",
-							"notes"          => "Use these resources for system administration.",
-							"responseClass"  => "array",
-							"nickname"       => "getResources",
-							"parameters"     => array(),
-							"errorResponses" => array()
-						),
-					)
-				)
-			);
-			$resources = array_merge(
-				$resources,
-				SwaggerUtilities::swaggerPerResource( 'system', 'app' ),
-				SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
-				SwaggerUtilities::swaggerPerResource( 'system', 'role' ),
-				SwaggerUtilities::swaggerPerResource( 'system', 'service' ),
-				SwaggerUtilities::swaggerPerResource( 'system', 'user' ),
-				SwaggerUtilities::swaggerPerResource( 'system', 'email_template' )
-			);
-			$result['apis'] = $resources;
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
+		return $apis;
 	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function getSwaggerModels()
+	{
+		$models = array();
+		$models = array_merge( parent::getSwaggerModels(), $models );
+
+		return $models;
+	}
+
+	// REST interface implementation
 
 	/**
 	 * @return array
@@ -1173,7 +1206,7 @@ class SystemManager implements iRestHandler
 	public static function retrieveConfig( $return_fields = '', $include_schema = false, $extras = array() )
 	{
 		// currently allow everyone to query config, long term this needs to hide certain fields
-//		UserManager::checkPermission( 'read', 'system', 'config' );
+//		UserManager::checkSessionPermission( 'read', 'system', 'config' );
 		$model = Config::model();
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -1235,6 +1268,8 @@ class SystemManager implements iRestHandler
 				$results['meta']['schema'] = DbUtilities::describeTable( Yii::app()->db, $model->tableName(), static::SYSTEM_TABLE_PREFIX );
 			}
 
+			$results['dsp_version'] = Pii::getParam( 'dsp.version' );
+
 			return $results;
 		}
 		catch ( Exception $ex )
@@ -1245,7 +1280,7 @@ class SystemManager implements iRestHandler
 
 	protected static function updateConfig( $record, $fields, $extras )
 	{
-		UserManager::checkPermission( 'update', 'system', 'config' );
+		UserManager::checkSessionPermission( 'update', 'system', 'config' );
 
 		try
 		{
@@ -1259,8 +1294,8 @@ class SystemManager implements iRestHandler
 
 			$obj->setAttributes( $record );
 
-			$obj->storage_id = \Pii::getParam( 'dsp.storage_id' );
-			$obj->private_storage_id = \Pii::getParam( 'dsp.private_storage_id' );
+			$obj->storage_id = Pii::getParam( 'dsp.storage_id' );
+			$obj->private_storage_id = Pii::getParam( 'dsp.private_storage_id' );
 
 			$obj->save();
 		}
@@ -1476,7 +1511,7 @@ class SystemManager implements iRestHandler
 			// conversion from xml can pull single record out of array format
 			$records = array( $records );
 		}
-		UserManager::checkPermission( 'create', 'system', $table );
+		UserManager::checkSessionPermission( 'create', 'system', $table );
 		// todo implement rollback
 		$out = array();
 		foreach ( $records as $record )
@@ -1509,7 +1544,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'create', 'system', $table );
+		UserManager::checkSessionPermission( 'create', 'system', $table );
 
 		return static::createRecordLow( $table, $record, $return_fields, $extras );
 	}
@@ -1646,7 +1681,7 @@ class SystemManager implements iRestHandler
 			// conversion from xml can pull single record out of array format
 			$records = array( $records );
 		}
-		UserManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkSessionPermission( 'update', 'system', $table );
 		$out = array();
 		foreach ( $records as $record )
 		{
@@ -1684,7 +1719,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkSessionPermission( 'update', 'system', $table );
 		// todo this needs to use $model->getPrimaryKey()
 		$id = Utilities::getArrayValue( 'id', $record, '' );
 
@@ -1712,7 +1747,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkSessionPermission( 'update', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$out = array();
 		foreach ( $ids as $id )
@@ -1750,7 +1785,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'update', 'system', $table );
+		UserManager::checkSessionPermission( 'update', 'system', $table );
 
 		return static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 	}
@@ -1917,7 +1952,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'delete', 'system', $table );
+		UserManager::checkSessionPermission( 'delete', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$out = array();
 		foreach ( $ids as $id )
@@ -1950,7 +1985,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'delete', 'system', $table );
+		UserManager::checkSessionPermission( 'delete', 'system', $table );
 
 		return static::deleteRecordLow( $table, $id, $return_fields, $extras );
 	}
@@ -2031,7 +2066,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'read', 'system', $table );
+		UserManager::checkSessionPermission( 'read', 'system', $table );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -2149,7 +2184,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'read', 'system', $table );
+		UserManager::checkSessionPermission( 'read', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
@@ -2247,7 +2282,7 @@ class SystemManager implements iRestHandler
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkPermission( 'read', 'system', $table );
+		UserManager::checkSessionPermission( 'read', 'system', $table );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -2325,7 +2360,7 @@ class SystemManager implements iRestHandler
 											   $include_schema = false,
 											   $include_data = false )
 	{
-		UserManager::checkPermission( 'read', 'system', 'app' );
+		UserManager::checkSessionPermission( 'read', 'system', 'app' );
 		$model = App::model();
 		if ( $include_services || $include_schema )
 		{

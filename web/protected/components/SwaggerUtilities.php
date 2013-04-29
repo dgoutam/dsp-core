@@ -1,13 +1,27 @@
 <?php
-
 /**
- * @category   DreamFactory
- * @package    DreamFactory
- * @subpackage Utilities
- * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
- * @license    http://www.dreamfactory.com/license
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
+/**
+ * SwaggerUtilities
+ * A utilities class to handle swagger documentation of the REST API.
+ */
 class SwaggerUtilities
 {
 
@@ -28,59 +42,83 @@ class SwaggerUtilities
 		if ( !empty( $service ) )
 		{
 			$swagger['resourcePath'] = '/' . $service;
-			$swagger['apis'] = array(
-				array(
-					'path'        => '/' . $service,
-					'description' => "Operations available for this service",
-					'operations'  => array(
-						array(
-							"httpMethod"     => "GET",
-							"summary"        => "List resources available for this service",
-							"notes"          => "See listed operations for each resource available.",
-							"responseClass"  => "Resources",
-							"nickname"       => "getResources",
-							"parameters"     => array(),
-							"errorResponses" => array(
-								array(
-									"code"   => 401,
-									"reason" => "Unauthorized Access - No currently valid session available."
-								)
-							)
-						)
-					)
-				),
-			);
-			$swagger['models'] = array(
-				"Resources" => array(
-					"id" => "Resources",
-					"properties" => array(
-						"resource" => array(
-							"type" => "array",
-							"description" => "Resources available for this service",
-							"items" => array( '$ref' => "Resource")
-						)
-					)
-				),
-				"Resource" => array(
-					"id" => "Resource",
-					"properties" => array(
-						"name" => array(
-							"type" => "string"
-						)
-					)
-				),
-				"Success" => array(
-					"id" => "Success",
-					"properties" => array(
-						"success" => array(
-							"type" => "boolean"
-						)
-					)
-				),
-			);
 		}
 
 		return $swagger;
+	}
+
+	/**
+	 * Swagger base APIs used by Swagger-UI
+	 *
+	 * @param string $service
+	 *
+	 * @return array
+	 */
+	public static function swaggerBaseApis( $service )
+	{
+		$apis = array(
+			array(
+				'path'        => '/' . $service,
+				'description' => "Operations available for this service",
+				'operations'  => array(
+					array(
+						"httpMethod"     => "GET",
+						"summary"        => "List resources available for this service",
+						"notes"          => "See listed operations for each resource available.",
+						"responseClass"  => "Resources",
+						"nickname"       => "getResources",
+						"parameters"     => array(),
+						"errorResponses" => array(
+							array(
+								"code"   => 401,
+								"reason" => "Unauthorized Access - No currently valid session available."
+							)
+						)
+					)
+				)
+			),
+		);
+
+		return $apis;
+	}
+
+	/**
+	 * Swagger base models used by Swagger-UI
+	 *
+	 * @return array
+	 */
+	public static function swaggerBaseModels()
+	{
+		$models = array(
+			"Resources" => array(
+				"id" => "Resources",
+				"properties" => array(
+					"resource" => array(
+						"type" => "array",
+						"description" => "Resources available for this service",
+						"items" => array( '$ref' => "Resource")
+					)
+				)
+			),
+			"Resource" => array(
+				"id" => "Resource",
+				"properties" => array(
+					"name" => array(
+						"type" => "string"
+					)
+				)
+			),
+			"Success" => array(
+				"id" => "Success",
+				"properties" => array(
+					"success" => array(
+						"type" => "boolean"
+					)
+				)
+			),
+		);
+
+		return $models;
 	}
 
 	/**

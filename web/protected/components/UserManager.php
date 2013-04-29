@@ -22,10 +22,10 @@ use Kisma\Core\Utility\Sql;
 use Platform\Interfaces\PermissionTypes;
 
 /**
- * UserManager.php
+ * UserManager
  * DSP user manager
  */
-class UserManager implements iRestHandler
+class UserManager extends RestService
 {
 	/**
 	 * @var UserManager
@@ -58,14 +58,17 @@ class UserManager implements iRestHandler
 	 */
 	public function __construct()
 	{
-		static::$_randKey = 'M1kVi0kE9ouXxF9';
-	}
+		$config = array(
+			'name'        => 'User Session Management',
+			'api_name'    => 'user',
+			'type'        => 'User',
+			'description' => 'Service for a user to manage their session, profile and password.',
+			'is_active'   => true,
+		);
+		parent::__construct( $config );
 
-	/**
-	 * Object destructor
-	 */
-	public function __destruct()
-	{
+		//For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
+		static::$_randKey = 'M1kVi0kE9ouXxF9';
 	}
 
 	/**
@@ -83,26 +86,46 @@ class UserManager implements iRestHandler
 		return self::$_instance;
 	}
 
-	/**
-	 * For compatibility with BaseService
-	 *
-	 * @return string
-	 */
-	public static function getType()
+	// Service interface implementation
+
+	public function setApiName( $apiName )
 	{
-		return 'User';
+		throw new Exception( 'UserManager API name can not be changed.' );
 	}
 
-	// Controller based methods
+	public function setType( $type )
+	{
+		throw new Exception( 'UserManager type can not be changed.' );
+	}
+
+	public function setDescription( $description )
+	{
+		throw new Exception( 'UserManager description can not be changed.' );
+	}
+
+	public function setIsActive( $isActive )
+	{
+		throw new Exception( 'UserManager active flag can not be changed.' );
+	}
+
+	public function setName( $name )
+	{
+		throw new Exception( 'UserManager name can not be changed.' );
+	}
+
+	public function setNativeFormat( $nativeFormat )
+	{
+		throw new Exception( 'UserManager native format can not be changed.' );
+	}
+
+	// Swagger interface implementation
 
 	/**
 	 * @return array
 	 * @throws Exception
 	 */
-	public function actionSwagger()
+	public function getSwaggerApis()
 	{
-		$this->detectCommonParams();
-		$result = SwaggerUtilities::swaggerBaseInfo( 'user' );
 		$apis = array(
 			array(
 				'path'        => '/user/session',
@@ -323,6 +346,17 @@ class UserManager implements iRestHandler
 				'operations'  => array()
 			)
 		);
+		$apis = array_merge( parent::getSwaggerApis(), $apis );
+
+		return $apis;
+	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function getSwaggerModels()
+	{
 		$models = array(
 			"Session"  => array(
 				"id"         => "Session",
@@ -459,11 +493,12 @@ class UserManager implements iRestHandler
 				)
 			),
 		);
-		$result['apis'] = array_merge( $result['apis'], $apis );
-		$result['models'] = array_merge( $result['models'], $models );
+		$models = array_merge( parent::getSwaggerModels(), $models );
 
-		return $result;
+		return $models;
 	}
+
+	// REST interface implementation
 
 	/**
 	 * @return array
@@ -1842,14 +1877,13 @@ class UserManager implements iRestHandler
 		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function isSystemAdmin()
 	{
 		static::_checkCache();
 
-		return Utilities::boolval( Option::getDeep( static::$_cache, 'public', 'is_sys_admin', false ) );
+		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
+
+		return Utilities::boolval( Utilities::getArrayValue( 'is_sys_admin', $_public, false ) );
 	}
 
 	/**
@@ -1859,7 +1893,7 @@ class UserManager implements iRestHandler
 	 *
 	 * @throws Exception
 	 */
-	public static function checkPermission( $request, $service, $component = '' )
+	public static function checkSessionPermission( $request, $service, $component = '' )
 	{
 		static::_checkCache();
 
@@ -1885,14 +1919,14 @@ class UserManager implements iRestHandler
 			static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
 		}
 
-		$_public = Option::get( static::$_cache, 'public', array() );
+		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
 
-		if ( Option::get( $_public, 'is_sys_admin', false ) )
+		$admin = Utilities::getArrayValue( 'is_sys_admin', $_public, false );
+		if ( $admin )
 		{
 			return; // no need to check role
 		}
-
-		$roleInfo = Option::get( $_public, 'role', array() );
+		$roleInfo = Utilities::getArrayValue( 'role', $_public, array() );
 		if ( empty( $roleInfo ) )
 		{
 			// no role assigned, if not sys admin, denied service
@@ -1900,13 +1934,13 @@ class UserManager implements iRestHandler
 		}
 
 		// check if app allowed in role
-		$appName = Option::get( $GLOBALS, 'app_name' );
+		$appName = Utilities::getArrayValue( 'app_name', $GLOBALS, '' );
 		if ( empty( $appName ) )
 		{
 			throw new Exception( "A valid application name is required to access services.", ErrorCodes::BAD_REQUEST );
 		}
 
-		$apps = Option::get( $roleInfo, 'apps' );
+		$apps = Utilities::getArrayValue( 'apps', $roleInfo, null );
 		if ( !is_array( $apps ) || empty( $apps ) )
 		{
 			throw new Exception( "Access to application '$appName' is not provisioned for this user's role.", ErrorCodes::FORBIDDEN );
@@ -1916,7 +1950,7 @@ class UserManager implements iRestHandler
 
 		foreach ( $apps as $app )
 		{
-			$temp = Option::get( $app, 'api_name' );
+			$temp = Utilities::getArrayValue( 'api_name', $app );
 
 			if ( 0 == strcasecmp( $appName, $temp ) )
 			{

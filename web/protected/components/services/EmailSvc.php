@@ -1,32 +1,28 @@
 <?php
-
-//	Load up SwiftMailer
-$_vendorPath = Yii::app()->basePath . '/../../vendor';
-require_once $_vendorPath . '/swiftmailer/swiftmailer/lib/classes/Swift.php';
-Yii::registerAutoloader( array( 'Swift', 'autoload' ) );
-require_once $_vendorPath . '/swiftmailer/swiftmailer/lib/swift_required.php';
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
- * EmailSvc.php
+ * EmailSvc
  * A service to handle email services accessed through the REST API.
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-class EmailSvc extends BaseService
+class EmailSvc extends RestService
 {
 	/**
 	 * @var boolean
@@ -72,55 +68,9 @@ class EmailSvc extends BaseService
 
 		$this->_isNative = $native;
 		$transportType = Utilities::getArrayValue( 'storage_type', $config, '' );
+		$credentials = Utilities::getArrayValue( 'credentials', $config, array() );
 		// Create the Transport
-		if ( $native )
-		{
-			if ( !empty( $transportType ) )
-			{
-				if ( 0 == strcasecmp( 'smtp', $transportType ) ) // local support?
-				{
-					$this->_transport = Swift_SmtpTransport::newInstance();
-				}
-				else
-				{
-					// sendmail, exim, postscript, etc
-					$this->_transport = Swift_SendmailTransport::newInstance( $transportType );
-				}
-			}
-			else
-			{
-				// mail()
-				$this->_transport = Swift_MailTransport::newInstance();
-			}
-		}
-		else
-		{
-			switch ( $transportType )
-			{
-				case 'smtp': // for now only protocol supported
-				default:
-					// SMTP
-					$credentials = Utilities::getArrayValue( 'credentials', $config, array() );
-					// Validate other parameters
-					$host = Utilities::getArrayValue( 'host', $credentials, 'localhost' );
-					if ( empty( $host ) )
-					{
-						throw new InvalidArgumentException( 'SMTP host name can not be empty.', ErrorCodes::BAD_REQUEST );
-					}
-					$port = Utilities::getArrayValue( 'port', $credentials, 25 );
-					$security = Utilities::getArrayValue( 'security', $credentials, null );
-					$security = ( !empty( $security ) ) ? strtolower($security) : null;
-					$this->_transport = Swift_SmtpTransport::newInstance( $host, $port, $security );
-					$user = Utilities::getArrayValue( 'user', $credentials, '' );
-					$pwd = Utilities::getArrayValue( 'pwd', $credentials, '' );
-					if ( !empty( $user ) && !empty( $pwd ) )
-					{
-						$this->_transport->setUsername( $user );
-						$this->_transport->setPassword( $pwd );
-					}
-					break;
-			}
-		}
+		$this->_transport = EmailUtilities::createTransport($transportType, $credentials);
 
 		$parameters = Utilities::getArrayValue( 'parameters', $config, array() );
 		foreach ($parameters as $param)
@@ -152,10 +102,9 @@ class EmailSvc extends BaseService
 	 * @return array
 	 * @throws Exception
 	 */
-	public function actionSwagger()
+	public function getSwaggerApis()
 	{
-		$result = parent::actionSwagger();
-		$resources = array(
+		$apis = array(
 			array(
 				'path'        => '/' . $this->_apiName,
 				'description' => $this->_description,
@@ -163,14 +112,15 @@ class EmailSvc extends BaseService
 					array(
 						"httpMethod"     => "POST",
 						"summary"        => "Send an email created from posted data.",
-						"notes"          => "Post email data as an array of parameters. If a standalone template is not used, include all required fields.",
+						"notes"          => "If a template is not used with all required fields, then they must be included in the request." .
+											" If the 'from' address is not provisioned in the service, then it must be included in the request.",
 						"responseClass"  => "Response",
 						"nickname"       => "sendEmail",
 						"parameters"     => array(
 							array(
 								"paramType"     => "query",
 								"name"          => "template",
-								"description"   => "Email Template to base email on.",
+								"description"   => "Optional template to base email on.",
 								"dataType"      => "String",
 								"required"      => false,
 								"allowMultiple" => false
@@ -192,14 +142,23 @@ class EmailSvc extends BaseService
 							array(
 								"code"   => 404,
 								"reason" => "Email Template not found."
+							),
+							array(
+								"code"   => 500,
+								"reason" => "Failure to send emails."
 							)
 						)
 					)
 				)
 			)
 		);
-		$result['apis'] = $resources;
-		$result['models'] = array(
+
+		return $apis;
+	}
+
+	public function getSwaggerModels()
+	{
+		$models = array(
 			"Email"    => array(
 				"id"         => "Email",
 				"properties" => array(
@@ -208,16 +167,19 @@ class EmailSvc extends BaseService
 						"description" => "Email Template to base email on."
 					),
 					"to"             => array(
-						"type"        => "string",
-						"description" => "Comma-delimited list of receiver addresses."
+						"type"       => "array",
+						"items"      => array('$ref' => "Address"),
+						"description" => "Required single or multiple receiver addresses."
 					),
 					"cc"             => array(
-						"type"        => "string",
-						"description" => "Comma-delimited list of CC receiver addresses."
+						"type"       => "array",
+						"items"      => array('$ref' => "Address"),
+						"description" => "Optional CC receiver addresses."
 					),
 					"bcc"            => array(
-						"type"        => "string",
-						"description" => "Comma-delimited list of BCC receiver addresses."
+						"type"       => "array",
+						"items"      => array('$ref' => "Address"),
+						"description" => "Optional BCC receiver addresses."
 					),
 					"subject"        => array(
 						"type"        => "string",
@@ -225,41 +187,56 @@ class EmailSvc extends BaseService
 					),
 					"body_text"      => array(
 						"type"        => "string",
-						"description" => "Text only version of the email body."
+						"description" => "Text only version of the body."
 					),
 					"body_html"      => array(
 						"type"        => "string",
-						"description" => "Escaped HTML version of the email body."
+						"description" => "Escaped HTML version of the body."
 					),
 					"from_name"      => array(
 						"type"        => "string",
-						"description" => "Name displayed for the sender."
+						"description" => "Optional sender displayed name."
 					),
 					"from_email"     => array(
 						"type"        => "string",
-						"description" => "Email displayed for the sender."
+						"description" => "Required email of the sender."
 					),
 					"reply_to_name"  => array(
 						"type"        => "string",
-						"description" => "Name displayed for the reply to."
+						"description" => "Optional reply to displayed name."
 					),
 					"reply_to_email" => array(
 						"type"        => "string",
-						"description" => "Email displayed for the reply to."
+						"description" => "Optional reply to email."
 					),
+				)
+			),
+			"Address" => array(
+				"id"         => "Address",
+				"properties" => array(
+					"name" => array(
+						"type" => "string",
+						"description" => "Optional name displayed along with the email address."
+					),
+					"email" => array(
+						"type" => "string",
+						"description" => "Required email address."
+					)
 				)
 			),
 			"Response" => array(
 				"id"         => "Response",
 				"properties" => array(
 					"count" => array(
-						"type" => "integer"
+						"type" => "integer",
+						"description" => "Number of emails successfully sent."
 					)
 				)
 			)
 		);
+		$models = array_merge( parent::getSwaggerModels(), $models );
 
-		return $result;
+		return $models;
 	}
 
 	public function actionPost()
@@ -306,26 +283,6 @@ class EmailSvc extends BaseService
 		}
 
 		return array( 'count' => $count );
-	}
-
-	public function actionPut()
-	{
-		throw new Exception( "PUT Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
-	}
-
-	public function actionMerge()
-	{
-		throw new Exception( "MERGE Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
-	}
-
-	public function actionDelete()
-	{
-		throw new Exception( "DELETE Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
-	}
-
-	public function actionGet()
-	{
-		throw new Exception( "GET Request is not supported by this Email API.", ErrorCodes::BAD_REQUEST );
 	}
 
 	//------- Email Methods ----------------------
@@ -422,20 +379,20 @@ class EmailSvc extends BaseService
 			}
 		}
 
-		$to_emails = static::sanitizeAndValidateEmails( $to_emails, 'swift' );
+		$to_emails = EmailUtilities::sanitizeAndValidateEmails( $to_emails, 'swift' );
 		if ( !empty( $cc_emails ) )
 		{
-			$cc_emails = static::sanitizeAndValidateEmails( $cc_emails, 'swift' );
+			$cc_emails = EmailUtilities::sanitizeAndValidateEmails( $cc_emails, 'swift' );
 		}
 		if ( !empty( $bcc_emails ) )
 		{
-			$bcc_emails = static::sanitizeAndValidateEmails( $bcc_emails, 'swift' );
+			$bcc_emails = EmailUtilities::sanitizeAndValidateEmails( $bcc_emails, 'swift' );
 		}
 
-		$from_email = static::sanitizeAndValidateEmails( $from_email, 'swift' );
+		$from_email = EmailUtilities::sanitizeAndValidateEmails( $from_email, 'swift' );
 		if ( !empty( $reply_email ) )
 		{
-			$reply_email = static::sanitizeAndValidateEmails( $reply_email, 'swift' );
+			$reply_email = EmailUtilities::sanitizeAndValidateEmails( $reply_email, 'swift' );
 		}
 
 		// do template field replacement
@@ -468,7 +425,7 @@ class EmailSvc extends BaseService
 			$body_html = str_replace( "\r\n", "<br />", $body_text );
 		}
 
-		return $this->sendBySwiftMailer(
+		$message = EmailUtilities::createMessage(
 			$to_emails,
 			$cc_emails,
 			$bcc_emails,
@@ -480,182 +437,7 @@ class EmailSvc extends BaseService
 			$reply_name,
 			$reply_email
 		);
-	}
 
-	/**
-	 * Email Web Service Send Email API
-	 *
-	 * @param string $to_emails   comma-delimited list of receiver addresses
-	 * @param string $cc_emails   comma-delimited list of CC'd addresses
-	 * @param string $bcc_emails  comma-delimited list of BCC'd addresses
-	 * @param string $subject     Text only subject line
-	 * @param string $body_text   Text only version of the email body
-	 * @param string $body_html   Escaped HTML version of the email body
-	 * @param string $from_name   Name displayed for the sender
-	 * @param string $from_email  Email displayed for the sender
-	 * @param string $reply_name  Name displayed for the reply to
-	 * @param string $reply_email Email used for the sender reply to
-	 *
-	 * @throws Exception
-	 * @return int
-	 */
-	private function sendBySwiftMailer( $to_emails, $cc_emails, $bcc_emails, $subject, $body_text,
-										$body_html = '', $from_name = '', $from_email = '',
-										$reply_name = '', $reply_email = '' )
-	{
-		// Create the message
-		$message = Swift_Message::newInstance()
-			->setSubject( $subject )
-			->setTo( $to_emails ) // array('receiver@domain.org', 'other@domain.org' => 'A name')
-			->setFrom( $from_email, $from_name ); // can be multiple
-		if ( !empty( $reply_email ) )
-		{
-			$message->setSender( $reply_email, $reply_name ); // single address
-		}
-//			$message->setReturnPath('bounces@address.tld') // bounce back notification
-		if ( !empty( $cc_emails ) )
-		{
-			$message->setCc( $cc_emails );
-		}
-		if ( !empty( $bcc_emails ) )
-		{
-			$message->setBcc( $bcc_emails );
-		}
-		$message->setBody( $body_text );
-		// And optionally an alternative body
-		$message->addPart( $body_html, 'text/html' ); // Optionally add any attachments
-//			$message->attach(Swift_Attachment::fromPath('my-document.pdf'))
-		;
-
-		// Send the message
-		// Create the Mailer using your created Transport
-		$count = Swift_Mailer::newInstance( $this->_transport )
-			->send( $message, $failures );
-		if ( !empty( $failures ) )
-		{
-			throw new Exception( 'Failed to send to the following addresses:' . print_r( $failures, true ), ErrorCodes::BAD_REQUEST );
-		}
-
-		return $count;
-	}
-
-	// Email helpers - Received Format Options
-	/*
-	{
-		"email_single": "lee@dreamfactory.com",
-		"email_single_personal": {
-			"name": "Lee Hicks",
-			"email": "lee@dreamfactory.com"
-		},
-		"email_multiple": [
-			"lee@dreamfactory.com",
-			{
-				"email": "lee@dreamfactory.com"
-			},
-			"lee@dreamfactory.com"
-			{
-				"name": "Lee Hicks",
-				"email": "lee@dreamfactory.com"
-			}
-		]
-	}
-	 */
-	private static function sanitizeAndValidateEmails( $emails, $return_format = '' )
-	{
-		if ( is_array( $emails ) )
-		{
-			if ( isset( $emails[0] ) ) // multiple
-			{
-				$out = array();
-				foreach ($emails as $info)
-				{
-					if ( is_array( $info ) )
-					{
-						$email = Utilities::getArrayValue('email', $info );
-						$email = filter_var( $email, FILTER_SANITIZE_EMAIL );
-						if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) )
-						{
-							throw new Exception( "Invalid email - '$email'.", ErrorCodes::BAD_REQUEST );
-						}
-						if (empty($email))
-						{
-							throw new Exception('Email can not be empty.', ErrorCodes::BAD_REQUEST );
-						}
-						$name = Utilities::getArrayValue('name', $emails );
-						if ( empty($name))
-						{
-							$out[] = $email;
-						}
-						else
-						{
-							switch ($return_format)
-							{
-								case 'swift':
-									$out[$email] = $name;
-									break;
-								case 'wrapped': // rfc2822
-									$out[] = $name . '<' . $email .'>';
-									break;
-								default:
-									$out[] = $info;
-							}
-						}
-					}
-					else // simple email addresses
-					{
-						$info = filter_var( $info, FILTER_SANITIZE_EMAIL );
-						if ( false === filter_var( $info, FILTER_VALIDATE_EMAIL ) )
-						{
-							throw new Exception( "Invalid email - '$info'.", ErrorCodes::BAD_REQUEST );
-						}
-						$out[] = $info;
-					}
-				}
-			}
-			else // single pair
-			{
-				$email = Utilities::getArrayValue('email', $emails );
-				$email = filter_var( $email, FILTER_SANITIZE_EMAIL );
-				if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) )
-				{
-					throw new Exception( "Invalid email - '$email'.", ErrorCodes::BAD_REQUEST );
-				}
-				if (empty($email))
-				{
-					throw new Exception('Email can not be empty.', ErrorCodes::BAD_REQUEST );
-				}
-				$name = Utilities::getArrayValue('name', $emails );
-				if ( empty($name))
-				{
-					$out = $email;
-				}
-				else
-				{
-					switch ($return_format)
-					{
-						case 'swift':
-							$out = array($email => $name);
-							break;
-						case 'wrapped': // rfc2822
-							$out = $name . '<' . $email .'>';
-							break;
-						default:
-							$out = $emails;
-					}
-				}
-			}
-		}
-		else
-		{
-			// simple single email
-			$emails = filter_var( $emails, FILTER_SANITIZE_EMAIL );
-			if ( false === filter_var( $emails, FILTER_VALIDATE_EMAIL ) )
-			{
-				throw new Exception( "Invalid email - '$emails'.", ErrorCodes::BAD_REQUEST );
-			}
-			$out = $emails;
-		}
-
-		return $out;
+		return EmailUtilities::sendMessage($this->_transport, $message);
 	}
 }
