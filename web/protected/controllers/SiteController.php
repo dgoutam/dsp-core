@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Platform\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
@@ -57,13 +56,13 @@ class SiteController extends Controller
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'actions' => array('initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics'),
-				'users'   => array('@'),
+				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics' ),
+				'users'   => array( '@' ),
 			),
 			//	Deny all others access to init commands
 			array(
 				'deny',
-				'actions' => array('initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics'),
+				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics' ),
 			),
 		);
 	}
@@ -77,7 +76,7 @@ class SiteController extends Controller
 		{
 			switch ( SystemManager::getSystemState() )
 			{
-				case 'ready':
+				case PlatformStates::READY:
 					// try local launchpad
 					if ( is_file( './public/launchpad/index.html' ) )
 					{
@@ -88,24 +87,24 @@ class SiteController extends Controller
 					$this->render( 'index' );
 					break;
 
-				case 'init required':
-					$this->redirect( array('site/initSystem') );
+				case PlatformStates::INIT_REQUIRED:
+					$this->redirect( array( 'site/initSystem' ) );
 					break;
 
-				case 'admin required':
-					$this->redirect( array('site/initAdmin') );
+				case PlatformStates::ADMIN_REQUIRED:
+					$this->redirect( array( 'site/initAdmin' ) );
 					break;
 
-				case 'schema required':
-					$this->redirect( array('site/upgradeSchema') );
+				case PlatformStates::SCHEMA_REQUIRED:
+					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
-				case 'upgrade required':
-					$this->redirect( array('site/upgradeSchema') );
+				case PlatformStates::UPGRADE_REQUIRED:
+					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
-				case 'data required':
-					$this->redirect( array('site/initData') );
+				case PlatformStates::DATA_REQUIRED:
+					$this->redirect( array( 'site/initData' ) );
 					break;
 			}
 		}
@@ -120,7 +119,7 @@ class SiteController extends Controller
 	 */
 	public function actionError()
 	{
-		if ( null !== ( $_error = Pii::error() ) )
+		if ( null !== ( $_error = Pii::currentError() ) )
 		{
 			if ( Pii::ajaxRequest() )
 			{
@@ -162,7 +161,7 @@ class SiteController extends Controller
 		$this->render(
 			'login',
 			array(
-				'model' => $_model
+				 'model' => $_model
 			)
 		);
 	}
@@ -208,7 +207,7 @@ class SiteController extends Controller
 		$this->render(
 			'initSchema',
 			array(
-				'model' => $_model
+				 'model' => $_model
 			)
 		);
 	}
@@ -245,7 +244,7 @@ class SiteController extends Controller
 		$this->render(
 			'initData',
 			array(
-				'model' => $_model
+				 'model' => $_model
 			)
 		);
 	}
@@ -307,22 +306,27 @@ class SiteController extends Controller
 	 */
 	public function actionMetrics()
 	{
-		$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
-
-		if ( Fabric::fabricHosted() )
+		if ( !Fabric::fabricHosted() )
 		{
+			$_stats = AsgardService::getStats();
+		}
+		else
+		{
+			$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
+
 			Curl::setDecodeToArray( true );
 			$_stats = Curl::get( $_endpoint );
-
-			if ( empty( $_stats ) )
-			{
-				throw new CHttpException( HttpResponse::NotFound );
-			}
-
-			$this->layout = false;
-			header( 'Content-type: application/json' );
-
-			echo json_encode( $_stats );
 		}
+
+		if ( empty( $_stats ) )
+		{
+			throw new \CHttpException( HttpResponse::NotFound );
+		}
+
+		$this->layout = false;
+		header( 'Content-type: application/json' );
+
+		echo json_encode( $_stats );
+		Pii::end();
 	}
 }

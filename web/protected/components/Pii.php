@@ -627,7 +627,7 @@ class Pii extends \CHtml
 	 *
 	 * @return array the error details. Null if there is no error.
 	 */
-	public static function error()
+	public static function currentError()
 	{
 		return static::app()->getErrorHandler()->getError();
 	}

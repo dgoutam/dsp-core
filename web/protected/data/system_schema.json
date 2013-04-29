@@ -907,6 +907,13 @@
 					"supports_multibyte": true
 				},
 				{
+					"name":       "reported_ind",
+					"type":       "integer",
+					"allow_null": false,
+					"length":     1,
+					"default":    0
+				},
+				{
 					"name":       "created_date",
 					"type":       "timestamp_on_create",
 					"validation": "api_read_only"
