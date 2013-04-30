@@ -71,7 +71,5 @@ return array_merge(
 		  */
 		 'blobStorageConfig'     => file_exists( $_blobConfig ) ? require( $_blobConfig ) : array(),
 		 'adminEmail'            => 'developer-support@dreamfactory.com',
-		 'companyLabel'          => 'DreamFactory Services Platform(tm)',
-		 'allowOpenRegistration' => 'true',
 	)
 );

@@ -87,7 +87,7 @@ class RestController extends Controller
 				{
 					$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
 				}
-				$result = SwaggerUtilities::swaggerBaseInfo();
+				$result = SwaggerUtilities::getBaseInfo();
 				$result['apis'] = $services;
 			}
 			else

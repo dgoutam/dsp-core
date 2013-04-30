@@ -62,13 +62,13 @@ class SystemManager extends RestService
 	public function __construct()
 	{
 		$config = array(
-			'name' => 'System Configuration Management',
-			'api_name' => 'system',
-			'type' => 'System',
+			'name'        => 'System Configuration Management',
+			'api_name'    => 'system',
+			'type'        => 'System',
 			'description' => 'Service for system administration.',
-			'is_active' => true,
+			'is_active'   => true,
 		);
-		parent::__construct($config);
+		parent::__construct( $config );
 	}
 
 	/**
@@ -90,32 +90,32 @@ class SystemManager extends RestService
 
 	public function setApiName( $apiName )
 	{
-		throw new Exception('SystemManager API name can not be changed.');
+		throw new Exception( 'SystemManager API name can not be changed.' );
 	}
 
 	public function setType( $type )
 	{
-		throw new Exception('SystemManager type can not be changed.');
+		throw new Exception( 'SystemManager type can not be changed.' );
 	}
 
 	public function setDescription( $description )
 	{
-		throw new Exception('SystemManager description can not be changed.');
+		throw new Exception( 'SystemManager description can not be changed.' );
 	}
 
 	public function setIsActive( $isActive )
 	{
-		throw new Exception('SystemManager active flag can not be changed.');
+		throw new Exception( 'SystemManager active flag can not be changed.' );
 	}
 
 	public function setName( $name )
 	{
-		throw new Exception('SystemManager name can not be changed.');
+		throw new Exception( 'SystemManager name can not be changed.' );
 	}
 
 	public function setNativeFormat( $nativeFormat )
 	{
-		throw new Exception('SystemManager native format can not be changed.');
+		throw new Exception( 'SystemManager native format can not be changed.' );
 	}
 
 	/**
@@ -485,10 +485,10 @@ class SystemManager extends RestService
 			parent::getSwaggerApis(),
 			SwaggerUtilities::swaggerPerResource( 'system', 'app' ),
 			SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
+			SwaggerUtilities::swaggerPerResource( 'system', 'email_template' ),
 			SwaggerUtilities::swaggerPerResource( 'system', 'role' ),
 			SwaggerUtilities::swaggerPerResource( 'system', 'service' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'user' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'email_template' )
+			SwaggerUtilities::swaggerPerResource( 'system', 'user' )
 		);
 
 		return $apis;
@@ -500,7 +500,59 @@ class SystemManager extends RestService
 	 */
 	public function getSwaggerModels()
 	{
-		$models = array();
+		$models = array(
+			"Records"  => array(
+				"id"         => "Records",
+				"properties" => array(
+					"record" => array(
+						"type"        => "array",
+						"items"       => array( '$ref' => 'Record' ),
+						"description" => "Array of system records of the given type."
+					),
+				)
+			),
+			"Record"   => array(
+				"id"         => "Record",
+				"properties" => array(
+					"id"                  => array(
+						"type" => "string",
+						"description" => "Identifier for this record."
+					),
+					"created_date"        => array(
+						"type"        => "string",
+						"description" => "Date this record was created."
+					),
+					"created_by_id"       => array(
+						"type"        => "integer",
+						"description" => "User Id of who created this record."
+					),
+					"last_modified_date"  => array(
+						"type"        => "string",
+						"description" => "Date this record was last modified."
+					),
+					"last_modified_by_id" => array(
+						"type"        => "integer",
+						"description" => "User Id of who last modified this record."
+					),
+					"name"                => array(
+						"type"        => "string",
+						"description" => "Displayable name of this resource."
+					),
+					"api_name"            => array(
+						"type"        => "string",
+						"description" => "Name of the resource to use in API transactions."
+					),
+					"description"         => array(
+						"type"        => "string",
+						"description" => "Description of this resource."
+					),
+					"is_active"           => array(
+						"type"        => "boolean",
+						"description" => "Is this system resource active for use."
+					),
+				)
+			),
+		);
 		$models = array_merge( parent::getSwaggerModels(), $models );
 
 		return $models;

@@ -32,7 +32,7 @@ class SwaggerUtilities
 	 *
 	 * @return array
 	 */
-	public static function swaggerBaseInfo( $service = '' )
+	public static function getBaseInfo( $service = '' )
 	{
 		$swagger = array(
 			'apiVersion'     => Versions::API_VERSION,
@@ -54,7 +54,7 @@ class SwaggerUtilities
 	 *
 	 * @return array
 	 */
-	public static function swaggerBaseApis( $service )
+	public static function getBaseApis( $service )
 	{
 		$apis = array(
 			array(
@@ -68,12 +68,7 @@ class SwaggerUtilities
 						"responseClass"  => "Resources",
 						"nickname"       => "getResources",
 						"parameters"     => array(),
-						"errorResponses" => array(
-							array(
-								"code"   => 401,
-								"reason" => "Unauthorized Access - No currently valid session available."
-							)
-						)
+						"errorResponses" => static::getErrors( array( ErrorCodes::UNAUTHORIZED ) )
 					)
 				)
 			),
@@ -87,7 +82,7 @@ class SwaggerUtilities
 	 *
 	 * @return array
 	 */
-	public static function swaggerBaseModels()
+	public static function getBaseModels()
 	{
 		$models = array(
 			"Resources" => array(
@@ -122,6 +117,80 @@ class SwaggerUtilities
 	}
 
 	/**
+	 * Swagger output for common error responses
+	 *
+	 * @param array   $codes
+	 * @param boolean $include_common
+	 *
+	 * @return array
+	 */
+	public static function getErrors( $codes = array(), $include_common = true )
+	{
+		$swagger = array();
+
+		if ( $include_common )
+		{
+			$swagger[] = array(
+				"code"   => ErrorCodes::UNAUTHORIZED,
+				"reason" => "Unauthorized Access - No currently valid session available."
+			);
+			$swagger[] = array(
+				"code"   => ErrorCodes::INTERNAL_SERVER_ERROR,
+				"reason" => "System Error - Specific reason is included in the error message."
+			);
+		}
+
+		foreach ( $codes as $code )
+		{
+			switch ( $code )
+			{
+				case ErrorCodes::BAD_REQUEST:
+					$swagger[] = array(
+						"code"   => ErrorCodes::BAD_REQUEST,
+						"reason" => "Invalid Request - Specific reason is included in the error message."
+					);
+					break;
+				case ErrorCodes::UNAUTHORIZED:
+					$swagger[] = array(
+						"code"   => ErrorCodes::UNAUTHORIZED,
+						"reason" => "Unauthorized Access - No currently valid session available."
+					);
+					break;
+				case ErrorCodes::FORBIDDEN:
+					$swagger[] = array(
+						"code"   => ErrorCodes::FORBIDDEN,
+						"reason" => "Forbidden Access - The current session denies permission for this action."
+					);
+					break;
+				case ErrorCodes::NOT_FOUND:
+					$swagger[] = array(
+						"code"   => ErrorCodes::NOT_FOUND,
+						"reason" => "Resource Not Found - No resource matching the identifiers given exist in the system."
+					);
+					break;
+				case ErrorCodes::METHOD_NOT_ALLOWED:
+					$swagger[] = array(
+						"code"   => ErrorCodes::METHOD_NOT_ALLOWED,
+						"reason" => "Action Not Allowed - This action is not allowed on this server."
+					);
+					break;
+				case ErrorCodes::INTERNAL_SERVER_ERROR:
+					$swagger[] = array(
+						"code"   => ErrorCodes::INTERNAL_SERVER_ERROR,
+						"reason" => "System Error - Specific reason is included in the error message."
+					);
+					break;
+				case ErrorCodes::NOT_IMPLEMENTED:
+					$swagger[] = array(
+						"code"   => ErrorCodes::NOT_IMPLEMENTED,
+						"reason" => "Not Implemented - This resource or action is not currently implemented."
+					);
+					break;
+			}
+		}
+	}
+
+	/**
 	 * Swagger output for common api parameters
 	 *
 	 * @param        $parameters
@@ -129,7 +198,7 @@ class SwaggerUtilities
 	 *
 	 * @return array
 	 */
-	public static function swaggerParameters( $parameters, $method = '' )
+	public static function getParameters( $parameters, $method = '' )
 	{
 		$swagger = array();
 		foreach ( $parameters as $param )
@@ -336,9 +405,9 @@ class SwaggerUtilities
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve multiple $plural",
 						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
-						"responseClass"  => "array",
+						"responseClass"  => "Records",
 						"nickname"       => "get" . ucfirst( $plural ),
-						"parameters"     => static::swaggerParameters(
+						"parameters"     => static::getParameters(
 							array(
 								 'ids',
 								 'filter',
@@ -351,7 +420,7 @@ class SwaggerUtilities
 								 'related'
 							)
 						),
-						"errorResponses" => array()
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "POST",
@@ -359,8 +428,8 @@ class SwaggerUtilities
 						"notes"          => "Post data should be an array of fields for a single $resource or a record array of $plural",
 						"responseClass"  => "array",
 						"nickname"       => "create" . ucfirst( $plural ),
-						"parameters"     => static::swaggerParameters( array( 'fields', 'related', ( ( 'app' == $resource ) ? 'url' : '' ) ) ),
-						"errorResponses" => array()
+						"parameters"     => static::getParameters( array( 'fields', 'related', ( ( 'app' == $resource ) ? 'url' : '' ) ) ),
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "PUT",
@@ -368,8 +437,8 @@ class SwaggerUtilities
 						"notes"          => "Post data should be an array of fields for a single $resource or a record array of $plural",
 						"responseClass"  => "array",
 						"nickname"       => "update" . ucfirst( $plural ),
-						"parameters"     => static::swaggerParameters( array( 'fields', 'related' ) ),
-						"errorResponses" => array()
+						"parameters"     => static::getParameters( array( 'fields', 'related' ) ),
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "DELETE",
@@ -377,8 +446,8 @@ class SwaggerUtilities
 						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
 						"responseClass"  => "array",
 						"nickname"       => "delete" . ucfirst( $plural ),
-						"parameters"     => static::swaggerParameters( array( 'fields', 'related' ) ),
-						"errorResponses" => array()
+						"parameters"     => static::getParameters( array( 'fields', 'related' ) ),
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 				)
 			),
@@ -392,8 +461,8 @@ class SwaggerUtilities
 						"notes"          => "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
 						"responseClass"  => "array",
 						"nickname"       => "get" . ucfirst( $label ),
-						"parameters"     => static::swaggerParameters( array( 'id', 'fields', 'related', ( ( 'app' == $resource ) ? 'pkg' : '' ) ) ),
-						"errorResponses" => array()
+						"parameters"     => static::getParameters( array( 'id', 'fields', 'related', ( ( 'app' == $resource ) ? 'pkg' : '' ) ) ),
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "PUT",
@@ -401,8 +470,8 @@ class SwaggerUtilities
 						"notes"          => "Post data should be an array of fields for a single $resource",
 						"responseClass"  => "array",
 						"nickname"       => "update" . ucfirst( $label ),
-						"parameters"     => static::swaggerParameters( array( 'id', 'fields', 'related' ) ),
-						"errorResponses" => array()
+						"parameters"     => static::getParameters( array( 'id', 'fields', 'related' ) ),
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "DELETE",
@@ -410,8 +479,8 @@ class SwaggerUtilities
 						"notes"          => "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
 						"responseClass"  => "array",
 						"nickname"       => "delete" . ucfirst( $label ),
-						"parameters"     => static::swaggerParameters( array( 'id', 'fields', 'related' ) ),
-						"errorResponses" => array()
+						"parameters"     => static::getParameters( array( 'id', 'fields', 'related' ) ),
+						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 				)
 			),

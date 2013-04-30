@@ -21,7 +21,8 @@
  * blob.config.php
  * This is the main configuration file for blob services
  */
-return array( //    'type'        => 'WindowsAzureBlob',
+return array(
+//    'type'        => 'WindowsAzureBlob',
 //    'accountName' => 'youraccountname',
 //    'accountKey'  => 'youraccountkey',
 );

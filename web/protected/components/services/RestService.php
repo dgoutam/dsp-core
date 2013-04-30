@@ -77,7 +77,7 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 	 */
 	public function getSwagger()
 	{
-		$swagger = SwaggerUtilities::swaggerBaseInfo( $this->_apiName );
+		$swagger = SwaggerUtilities::getBaseInfo( $this->_apiName );
 		$swagger['apis'] = $this->getSwaggerApis();
 		$swagger['models'] = $this->getSwaggerModels();
 		return $swagger;
@@ -89,7 +89,7 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 	 */
 	public function getSwaggerApis()
 	{
-		$swagger = SwaggerUtilities::swaggerBaseApis( $this->_apiName );
+		$swagger = SwaggerUtilities::getBaseApis( $this->_apiName );
 		return $swagger;
 	}
 
@@ -99,7 +99,7 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 	 */
 	public function getSwaggerModels()
 	{
-		$swagger = SwaggerUtilities::swaggerBaseModels();
+		$swagger = SwaggerUtilities::getBaseModels();
 		return $swagger;
 	}
 }
