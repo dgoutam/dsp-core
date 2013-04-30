@@ -483,6 +483,41 @@ class SystemManager extends RestService
 	{
 		$apis = array_merge(
 			parent::getSwaggerApis(),
+			array(
+				 array(
+					 'path'        => '/system/config',
+					 'description' => 'Operations for system configuration options.',
+					 'operations'  => array(
+						 array(
+							 "httpMethod"     => "GET",
+							 "summary"        => "Retrieve system configuration options",
+							 "notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
+							 "responseClass"  => "Config",
+							 "nickname"       => "getConfig",
+							 "parameters"     => array(),
+							 "errorResponses" => array()
+						 ),
+						 array(
+							 "httpMethod"     => "PUT",
+							 "summary"        => "Update one or more system configuration properties.",
+							 "notes"          => "Post data should be an array of properties.",
+							 "responseClass"  => "Success",
+							 "nickname"       => "updateConfig",
+							 "parameters"     => array(
+								 $swagger[] = array(
+									 "paramType"     => "body",
+									 "name"          => "config",
+									 "description"   => "Properties to set.",
+									 "dataType"      => "Config",
+									 "required"      => true,
+									 "allowMultiple" => false
+								 )
+							 ),
+							 "errorResponses" => SwaggerUtilities::getErrors( array( ErrorCodes::BAD_REQUEST ) )
+						 ),
+					 )
+				 ),
+			),
 			SwaggerUtilities::swaggerPerResource( 'system', 'app' ),
 			SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
 			SwaggerUtilities::swaggerPerResource( 'system', 'email_template' ),
@@ -501,7 +536,7 @@ class SystemManager extends RestService
 	public function getSwaggerModels()
 	{
 		$models = array(
-			"Records"  => array(
+			"Records" => array(
 				"id"         => "Records",
 				"properties" => array(
 					"record" => array(
@@ -511,13 +546,9 @@ class SystemManager extends RestService
 					),
 				)
 			),
-			"Record"   => array(
+			"Record"  => array(
 				"id"         => "Record",
 				"properties" => array(
-					"id"                  => array(
-						"type" => "string",
-						"description" => "Identifier for this record."
-					),
 					"created_date"        => array(
 						"type"        => "string",
 						"description" => "Date this record was created."
@@ -549,6 +580,59 @@ class SystemManager extends RestService
 					"is_active"           => array(
 						"type"        => "boolean",
 						"description" => "Is this system resource active for use."
+					),
+				)
+			),
+			"Config"  => array(
+				"id"         => "Config",
+				"properties" => array(
+					"id"                      => array(
+						"type"        => "string",
+						"description" => "Identifier for this record."
+					),
+					"created_date"            => array(
+						"type"        => "string",
+						"description" => "Date this record was created."
+					),
+					"created_by_id"           => array(
+						"type"        => "integer",
+						"description" => "User Id of who created this record."
+					),
+					"last_modified_date"      => array(
+						"type"        => "string",
+						"description" => "Date this record was last modified."
+					),
+					"last_modified_by_id"     => array(
+						"type"        => "integer",
+						"description" => "User Id of who last modified this record."
+					),
+					"dsp_version"             => array(
+						"type"        => "string",
+						"description" => "Version of the DSP software."
+					),
+					"db_version"              => array(
+						"type"        => "string",
+						"description" => "Version of the database schema."
+					),
+					"allow_open_registration" => array(
+						"type"        => "boolean",
+						"description" => "Allow guests to register for a user account."
+					),
+					"open_reg_role_id"        => array(
+						"type"        => "integer",
+						"description" => "Default Role Id assigned to newly registered users."
+					),
+					"allow_guest_user"        => array(
+						"type"        => "boolean",
+						"description" => "Allow app access for non-authenticated users."
+					),
+					"guest_role_id"           => array(
+						"type"        => "integer",
+						"description" => "Role Id assigned for all guest sessions."
+					),
+					"editable_profile_fields" => array(
+						"type"        => "string",
+						"description" => "Comma-delimited list of fields the user is allowed to edit."
 					),
 				)
 			),
