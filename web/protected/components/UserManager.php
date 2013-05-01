@@ -138,12 +138,7 @@ class UserManager extends RestService
 						"responseClass"  => "Session",
 						"nickname"       => "getSession",
 						"parameters"     => array(),
-						"errorResponses" => array(
-							array(
-								"code"   => 401,
-								"reason" => "Unauthorized Access - No currently valid session available."
-							)
-						)
+						"errorResponses" => SwaggerUtilities::getErrors(),
 					),
 					array(
 						"httpMethod"     => "POST",
@@ -161,15 +156,9 @@ class UserManager extends RestService
 								"allowMultiple" => false
 							)
 						),
-						"errorResponses" => array(
-							array(
-								"code"   => 400,
-								"reason" => "Request is not complete or valid."
-							),
-							array(
-								"code"   => 401,
-								"reason" => "Unauthorized Access - No currently valid session available."
-							)
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::BAD_REQUEST, ErrorCodes::FORBIDDEN, ErrorCodes::INTERNAL_SERVER_ERROR ),
+							false
 						)
 					),
 					array(
@@ -179,7 +168,10 @@ class UserManager extends RestService
 						"responseClass"  => "Success",
 						"nickname"       => "logout",
 						"parameters"     => array(),
-						"errorResponses" => array()
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::INTERNAL_SERVER_ERROR ),
+							false
+						)
 					),
 				)
 			),
@@ -194,7 +186,7 @@ class UserManager extends RestService
 						"responseClass"  => "Profile",
 						"nickname"       => "getProfile",
 						"parameters"     => array(),
-						"errorResponses" => array()
+						"errorResponses" => SwaggerUtilities::getErrors(),
 					),
 					array(
 						"httpMethod"     => "POST",
@@ -212,15 +204,8 @@ class UserManager extends RestService
 								"allowMultiple" => false
 							)
 						),
-						"errorResponses" => array(
-							array(
-								"code"   => 400,
-								"reason" => "Request is not complete or valid."
-							),
-							array(
-								"code"   => 401,
-								"reason" => "Unauthorized Access - No currently valid session available."
-							)
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::BAD_REQUEST, ErrorCodes::FORBIDDEN )
 						)
 					),
 				)
@@ -245,15 +230,8 @@ class UserManager extends RestService
 								"allowMultiple" => false
 							)
 						),
-						"errorResponses" => array(
-							array(
-								"code"   => 400,
-								"reason" => "Request is not complete or valid."
-							),
-							array(
-								"code"   => 401,
-								"reason" => "Unauthorized Access - No currently valid session available."
-							)
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::BAD_REQUEST, ErrorCodes::FORBIDDEN )
 						)
 					),
 				)
@@ -265,20 +243,40 @@ class UserManager extends RestService
 					array(
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve the security challenge question for the given user",
-						"notes"          => "Use this to retrieve the challenge question to present to the user.",
-						"responseClass"  => "array",
+						"notes"          => "Use this question to challenge the user.",
+						"responseClass"  => "Question",
 						"nickname"       => "getChallenge",
-						"parameters"     => array(),
-						"errorResponses" => array()
+						"parameters"     => array(
+							array(
+								"paramType"     => "query",
+								"name"          => "email",
+								"description"   => "User email used to request security question.",
+								"dataType"      => "string",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => SwaggerUtilities::getErrors(),
 					),
 					array(
 						"httpMethod"     => "POST",
 						"summary"        => "Answer the security challenge question for the given user",
 						"notes"          => "Use this to gain temporary access to change password.",
-						"responseClass"  => "array",
+						"responseClass"  => "Session",
 						"nickname"       => "answerChallenge",
-						"parameters"     => array(),
-						"errorResponses" => array()
+						"parameters"     => array(
+							array(
+								"paramType"     => "body",
+								"name"          => "answer",
+								"description"   => "Answer to the security question.",
+								"dataType"      => "Answer",
+								"required"      => true,
+								"allowMultiple" => false
+							)
+						),
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::BAD_REQUEST, ErrorCodes::FORBIDDEN )
+						)
 					),
 				)
 			),
@@ -302,11 +300,9 @@ class UserManager extends RestService
 								"allowMultiple" => false
 							)
 						),
-						"errorResponses" => array(
-							array(
-								"code"   => 400,
-								"reason" => "Request is not complete or valid."
-							)
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::BAD_REQUEST, ErrorCodes::FORBIDDEN, ErrorCodes::INTERNAL_SERVER_ERROR ),
+							false
 						)
 					),
 				)
@@ -331,11 +327,9 @@ class UserManager extends RestService
 								"allowMultiple" => false
 							)
 						),
-						"errorResponses" => array(
-							array(
-								"code"   => 400,
-								"reason" => "Request is not complete or valid."
-							)
+						"errorResponses" => SwaggerUtilities::getErrors(
+							array( ErrorCodes::BAD_REQUEST, ErrorCodes::INTERNAL_SERVER_ERROR ),
+							false
 						)
 					),
 				)
@@ -492,6 +486,25 @@ class UserManager extends RestService
 					)
 				)
 			),
+			"Question" => array(
+				"id"         => "Question",
+				"properties" => array(
+					"security_question" => array(
+						"type" => "string"
+					)
+				)
+			),
+			"Answer" => array(
+				"id"         => "Answer",
+				"properties" => array(
+					"email"    => array(
+						"type" => "string"
+					),
+					"security_answer" => array(
+						"type" => "string"
+					)
+				)
+			),
 		);
 		$models = array_merge( parent::getSwaggerModels(), $models );
 
@@ -523,8 +536,7 @@ class UserManager extends RestService
 				break;
 			case 'challenge':
 				$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
-				$send_email = Utilities::getArrayValue( 'send_email', $_REQUEST, false );
-				$result = $this->forgotPassword( $email, $send_email );
+				$result = $this->getChallenge( $email );
 				break;
 			case 'profile':
 				$result = $this->getProfile();
@@ -598,11 +610,6 @@ class UserManager extends RestService
 				}
 				break;
 			case 'challenge':
-				$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
-				if ( empty( $newPassword ) )
-				{
-					throw new Exception( "Missing required fields 'new_password'.", ErrorCodes::BAD_REQUEST );
-				}
 				$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
 				if ( empty( $email ) )
 				{
@@ -611,23 +618,11 @@ class UserManager extends RestService
 				$answer = Utilities::getArrayValue( 'security_answer', $data, '' );
 				if ( !empty( $email ) && !empty( $answer ) )
 				{
-					$result = $this->passwordResetBySecurityAnswer( $email, $answer, $newPassword );
+					$result = $this->userSecurityAnswer( $email, $answer );
 				}
 				else
 				{
-					$code = Utilities::getArrayValue( 'code', $_REQUEST, '' );
-					if ( empty( $code ) )
-					{
-						$code = Utilities::getArrayValue( 'code', $data, '' );
-					}
-					if ( !empty( $code ) )
-					{
-						$result = $this->passwordResetByCode( $code, $newPassword );
-					}
-					else
-					{
-						throw new Exception( "Missing required fields 'email' and 'security_answer'.", ErrorCodes::BAD_REQUEST );
-					}
+					throw new Exception( "Missing required fields 'email' and 'security_answer'.", ErrorCodes::BAD_REQUEST );
 				}
 				break;
 			case 'password':
@@ -641,7 +636,7 @@ class UserManager extends RestService
 				$result = $this->changeProfile( $data );
 				break;
 			default:
-				// unsupported GET request
+				// unsupported POST request
 				throw new Exception( "POST Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST );
 				break;
 		}
@@ -656,21 +651,14 @@ class UserManager extends RestService
 	public function actionPut()
 	{
 		$this->detectCommonParams();
-		$data = Utilities::getPostDataAsArray();
 		switch ( $this->command )
 		{
 			case 'password':
-				$oldPassword = Utilities::getArrayValue( 'old_password', $data, '' );
-				//$oldPassword = Utilities::decryptPassword($oldPassword);
-				$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
-				//$newPassword = Utilities::decryptPassword($newPassword);
-				$result = $this->changePassword( $oldPassword, $newPassword );
-				break;
 			case 'profile':
-				$result = $this->changeProfile( $data );
+				$result = $this->actionPost();
 				break;
 			default:
-				// unsupported GET request
+				// unsupported PUT request
 				throw new Exception( "PUT Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST );
 				break;
 		}
@@ -685,21 +673,14 @@ class UserManager extends RestService
 	public function actionMerge()
 	{
 		$this->detectCommonParams();
-		$data = Utilities::getPostDataAsArray();
 		switch ( $this->command )
 		{
 			case 'password':
-				$oldPassword = Utilities::getArrayValue( 'old_password', $data, '' );
-				//$oldPassword = Utilities::decryptPassword($oldPassword);
-				$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
-				//$newPassword = Utilities::decryptPassword($newPassword);
-				$result = $this->changePassword( $oldPassword, $newPassword );
-				break;
 			case 'profile':
-				$result = $this->changeProfile( $data );
+				$result = $this->actionPost();
 				break;
 			default:
-				// unsupported GET request
+				// unsupported MERGE request
 				throw new Exception( "MERGE Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST );
 				break;
 		}
@@ -721,7 +702,7 @@ class UserManager extends RestService
 				$result = array('success' => true);
 				break;
 			default:
-				// unsupported GET request
+				// unsupported DELETE request
 				throw new Exception( "DELETE Request command '$this->command' is not currently supported by this User API.", ErrorCodes::BAD_REQUEST );
 				break;
 		}
@@ -1148,8 +1129,13 @@ class UserManager extends RestService
 			throw new Exception( "Login registration has not been confirmed." );
 		}
 
+<<<<<<< HEAD
 		$isSysAdmin = $theUser->is_sys_admin;
 		$result = static::generateSessionDataFromUser( $theUser->id, $theUser );
+=======
+			$isSysAdmin = $theUser->is_sys_admin;
+			$result = static::generateSessionDataFromUser( null, $theUser );
+>>>>>>> 1af3dc46841af24e8cb3005955e49d6b9ef7941a
 
 		// write back login datetime
 		$theUser->update( array('last_login_date' => date( 'c' )) );
@@ -1389,6 +1375,35 @@ class UserManager extends RestService
 
 	/**
 	 * @param      $email
+	 *
+	 * @throws Exception
+	 * @return string
+	 */
+	public static function getChallenge( $email )
+	{
+		$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+		if ( null === $theUser )
+		{
+			// bad email
+			throw new Exception( "The supplied email was not found in the system.", ErrorCodes::NOT_FOUND );
+		}
+		if ( 'y' !== $theUser->getAttribute( 'confirm_code' ) )
+		{
+			throw new Exception( "Login registration has not been confirmed.", ErrorCodes::FORBIDDEN );
+		}
+		$question = $theUser->getAttribute( 'security_question' );
+		if ( !empty( $question ) )
+		{
+			return array( 'security_question' => $question );
+		}
+		else
+		{
+			throw new Exception( 'No valid security question provisioned for this user.', ErrorCodes::NOT_FOUND );
+		}
+	}
+
+	/**
+	 * @param      $email
 	 * @param bool $send_email
 	 *
 	 * @throws Exception
@@ -1414,7 +1429,7 @@ class UserManager extends RestService
 				$fullName = $theUser->display_name;
 				if ( !empty( $email ) && !empty( $fullName ) )
 				{
-					static::sendResetPasswordLink( $email, $fullName );
+//					static::sendResetPasswordLink( $email, $fullName );
 
 					return array('success' => true);
 				}
@@ -1450,7 +1465,7 @@ class UserManager extends RestService
 	 * @throws Exception
 	 * @return mixed
 	 */
-	public static function passwordResetBySecurityAnswer( $email, $answer, $new_password )
+	public static function userSecurityAnswer( $email, $answer )
 	{
 		try
 		{
@@ -1469,10 +1484,19 @@ class UserManager extends RestService
 			{
 				throw new Exception( "The challenge response supplied does not match system records.", ErrorCodes::UNAUTHORIZED );
 			}
-			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );
+
+			Pii::user()->setId( $theUser->id );
+			$isSysAdmin = $theUser->is_sys_admin;
+			$result = static::generateSessionDataFromUser( null, $theUser );
+
+			// write back login datetime
+			$theUser->last_login_date = date( 'c' );
 			$theUser->save();
 
-			return static::userLogin( $email, $new_password );
+			static::$_userId = $theUser->id;
+
+			// additional stuff for session - launchpad mainly
+			return static::addSessionExtras( $result, $isSysAdmin, true );
 		}
 		catch ( Exception $ex )
 		{
