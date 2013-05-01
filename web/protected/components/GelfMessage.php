@@ -21,10 +21,10 @@ use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
 
 /**
- * GelfMessage.php
+ * GelfMessage
  * Encapsulation of a graylog packet
  */
-class GelfMessage implements Graylog
+class GelfMessage implements \Platform\Interfaces\Graylog
 {
 	//**********************************************************************
 	//* Members
@@ -77,19 +77,9 @@ class GelfMessage implements Graylog
 	//**********************************************************************
 
 	/**
-	 * Constructor. Can take a single parameter which is an associative
-	 * array with the following values:
+	 * Constructor
 	 *
-	 * short_message: a short descriptive message (string); required
-	 * full_message: a long message that can i.e. contain a backtrace and
-	 *               environment variables (string); optional
-	 * level: the message level (integer); optional, defaults to informational
-	 * facility: name of the facility the message pertains to (string);
-	 *           optional, defaults to 'dsp'
-	 * _[additional field]: any other field prefixed with an underscore
-	 *                      will be treated as an additional field
-	 *
-	 * @param array $data The message data as described above
+	 * @param array $data
 	 *
 	 * @throws InvalidArgumentException
 	 */
@@ -133,10 +123,6 @@ class GelfMessage implements Graylog
 		return new $_class( $data );
 	}
 
-	//**********************************************************************
-	//* Protected Methods
-	//**********************************************************************
-
 	/**
 	 * @param string $key   Name of field to update
 	 * @param mixed  $value Value to update field with; null to unset
@@ -169,7 +155,7 @@ class GelfMessage implements Graylog
 
 			if ( in_array( $_key, static::$_standardFields ) )
 			{
-				call_user_func( array($this, 'set' . Inflector::tag( $_key )), $_value );
+				call_user_func( array( $this, 'set' . Inflector::tag( $_key ) ), $_value );
 				continue;
 			}
 
@@ -179,10 +165,6 @@ class GelfMessage implements Graylog
 
 		return true;
 	}
-
-	//**********************************************************************
-	//* Properties
-	//**********************************************************************
 
 	/**
 	 * @param string $key If specified, return value of specific field

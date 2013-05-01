@@ -20,18 +20,16 @@
 use Kisma\Core\SeedBag;
 
 /**
- * GelfLogger.php
+ * GelfLogger
  */
-class GelfLogger extends SeedBag implements Graylog
+class GelfLogger extends SeedBag implements \Platform\Interfaces\Graylog
 {
 	//**********************************************************************
 	//* Methods
 	//**********************************************************************
 
 	/**
-	 * Static method for sending a GELF message to graylog2
-	 * Expects a single parameter which is a Graylog\Message or an
-	 * array to pass to the Graylog\Message constructor
+	 * Logs a message
 	 *
 	 * @param array|GelfMessage $message The GELF message to log
 	 *
@@ -75,7 +73,7 @@ class GelfLogger extends SeedBag implements Graylog
 	//**********************************************************************
 
 	/**
-	 * Static method for preparing GELF data to be written to UDP socket
+	 * Prepare GELF data to be written to UDP socket
 	 *
 	 * @param array $data
 	 *
@@ -97,7 +95,7 @@ class GelfLogger extends SeedBag implements Graylog
 
 		if ( strlen( $_gzJsonData ) <= self::MaximumChunkSize )
 		{
-			return array($_gzJsonData);
+			return array( $_gzJsonData );
 		}
 
 		$_prepared = array();
@@ -122,7 +120,7 @@ class GelfLogger extends SeedBag implements Graylog
 	}
 
 	/**
-	 * Static method for packing a chunk of GELF data
+	 * Pack a chunk of GELF data
 	 *
 	 * @param string  $chunk  The chunk of gzipped JSON GELF data to prepare
 	 * @param string  $msgId  The 8-byte message id, same for entire chunk set

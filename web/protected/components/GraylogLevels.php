@@ -17,10 +17,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Enums\SeedEnum;
+use Platform\Interfaces\Graylog;
+
 /**
  * GraylogLevels
  */
-class GraylogLevels extends \Kisma\Core\Enums\SeedEnum implements Graylog
+class GraylogLevels extends SeedEnum implements Graylog
 {
 	//*************************************************************************
 	//* Constants

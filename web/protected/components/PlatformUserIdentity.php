@@ -80,7 +80,7 @@ class PlatformUserIdentity extends \CUserIdentity
 		$this->setState( 'last_name', $_user->last_name );
 		$this->setState( 'display_name', $_user->display_name );
 		$this->setState( 'password', $_user->password );
-		$this->setState( 'df_authenticated', true );
+		$this->setState( 'df_authenticated', false );
 
 		return true;
 	}

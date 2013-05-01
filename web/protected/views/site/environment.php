@@ -38,7 +38,6 @@ echo "<br /><br />";
 echo 'Session Env: ' . print_r( $_SESSION, true );
 echo "<br /><br />";
 echo 'API Version: ' . Versions::API_VERSION . "<br />";
-echo 'DSP SQL Schema Version: ' . Versions::SYSTEM_DB_VERSION . "<br />";
 echo 'SQL DB Data Source Name: ' . Yii::app()->db->connectionString . "<br />";
 echo 'Blob Storage Type: ' . Yii::app()->params['BlobStorageStorageType'] . "<br />";
 echo "<br /><br />";

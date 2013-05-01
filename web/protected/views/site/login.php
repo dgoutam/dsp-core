@@ -22,13 +22,14 @@
  * @var $model LoginForm
  */
 use Kisma\Core\Utility\Bootstrap;
+use Platform\Yii\Utility\Validate;
 
 Validate::register(
 	'form#login-form',
 	array(
-		'ignoreTitle'    => true,
-		'errorClass'     => 'error',
-		'errorPlacement' => 'function(error,element){error.appendTo(element.parent("div"));error.css("margin","-10px 0 0");}',
+		 'ignoreTitle'    => true,
+		 'errorClass'     => 'error',
+		 'errorPlacement' => 'function(error,element){error.appendTo(element.parent("div"));error.css("margin","-10px 0 0");}',
 	)
 );
 ?>
@@ -41,12 +42,12 @@ Validate::register(
 <div class="spacer"></div>
 <form id="login-form" method="POST">
 	<?php
-	echo '<div class="control-group">' . Bootstrap::label( array('for' => 'LoginForm_username'), 'Email Address' );
-	echo '<div class="controls">' . Bootstrap::text( array('id' => 'LoginForm_username', 'name' => 'LoginForm[username]', 'class' => 'email required') ) .
-		'</div></div>';
-	echo '<div class="control-group">' . Bootstrap::label( array('for' => 'LoginForm_password'), 'Password' );
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'Email Address' );
+	echo '<div class="controls">' . Bootstrap::text( array( 'id' => 'LoginForm_username', 'name' => 'LoginForm[username]', 'class' => 'email required' ) ) .
+		 '</div></div>';
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_password' ), 'Password' );
 	echo '<div class="controls">' .
-		Bootstrap::password( array('id' => 'LoginForm_password', 'name' => 'LoginForm[password]', 'class' => 'password required') ) . '</div></div>';
+		 Bootstrap::password( array( 'id' => 'LoginForm_password', 'name' => 'LoginForm[password]', 'class' => 'password required' ) ) . '</div></div>';
 	?>
 
 	<div class="form-actions">

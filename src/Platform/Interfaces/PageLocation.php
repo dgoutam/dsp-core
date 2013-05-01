@@ -18,44 +18,33 @@
  * limitations under the License.
  */
 /**
- * Graylog.php
+ * PageLocation.php
+ * The various places within a web page
  */
-interface Graylog
+interface PageLocation
 {
 	//**************************************************************************
 	//* Constants
 	//**************************************************************************
 
 	/**
-	 * @var string Hostname of graylog2 server
+	 * @var int Within the <HEAD> section
 	 */
-	const DefaultHost = 'graylog.fabric.dreamfactory.com';
+	const Head = 0;
 	/**
-	 * @const integer Port that graylog2 server listens on
+	 * @var int After the <BODY> tag
 	 */
-	const DefaultPort = 12201;
+	const Begin = 1;
 	/**
-	 * @const integer Maximum message size before splitting into chunks
+	 * @var int Before the </BODY> tag
 	 */
-	const MaximumChunkSize = 8154;
+	const End = 2;
 	/**
-	 * @const integer Maximum message size before splitting into chunks
+	 * @var int The window's "onload" function
 	 */
-	const MaximumChunkSizeWan = 1420;
+	const Load = 3;
 	/**
-	 * @const integer Maximum number of chunks allowed by GELF
+	 * @var int Inside the jQuery doc-ready function
 	 */
-	const MaximumChunksAllowed = 128;
-	/**
-	 * @const string GELF version
-	 */
-	const GelfVersion = '1.0';
-	/**
-	 * @const integer Default GELF message level
-	 */
-	const DefaultLevel = GraylogLevels::Alert;
-	/**
-	 * @const string Default facility value for messages
-	 */
-	const DefaultFacility = 'platform';
+	const DocReady = 4;
 }

@@ -1,20 +1,43 @@
 <?php
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the 'License');
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an 'AS IS' BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+use Kisma\Core\Utility\FilterInput;
 
 /**
- * @category   DreamFactory
- * @package    DreamFactory
- * @subpackage Utilities
- * @copyright  Copyright (c) 2009 - 2012, DreamFactory (http://www.dreamfactory.com)
- * @license    http://www.dreamfactory.com/license
+ * Utilities
  */
-
 class Utilities
 {
-
-	// constants
-
+	/**
+	 * @var int
+	 */
 	private static $_userId = null;
 
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
+
+	/**
+	 * @param $vector
+	 *
+	 * @return array
+	 */
 	public static function reorgFilePostArray( $vector )
 	{
 		$result = array();
@@ -60,8 +83,9 @@ class Utilities
 		//Get the XML parser of PHP - PHP must have this module for the parser to work
 		$parser = xml_parser_create( '' );
 		xml_parser_set_option( $parser,
-			XML_OPTION_TARGET_ENCODING,
-			"UTF-8" ); # http://minutillo.com/steve/weblog/2004/6/17/php-xml-and-character-encodings-a-tale-of-sadness-rage-and-data-loss
+							   XML_OPTION_TARGET_ENCODING,
+							   "UTF-8"
+		); # http://minutillo.com/steve/weblog/2004/6/17/php-xml-and-character-encodings-a-tale-of-sadness-rage-and-data-loss
 		xml_parser_set_option( $parser, XML_OPTION_CASE_FOLDING, 0 );
 		xml_parser_set_option( $parser, XML_OPTION_SKIP_WHITE, 1 );
 		xml_parse_into_struct( $parser, trim( $contents ), $xml_values );
@@ -122,6 +146,9 @@ class Utilities
 			}
 
 			//See tag status and do the needed.
+			/** @var string $type */
+			/** @var string $tag */
+			/** @var string $level */
 			if ( $type == "open" )
 			{ //The starting of the tag '<tag>'
 				$parent[$level - 1] = & $current;
@@ -146,8 +173,8 @@ class Utilities
 					}
 					else
 					{ //This section will make the value an array if multiple tags with the same name appear together
-						$current[$tag] =
-							array( $current[$tag], $result ); //This will combine the existing item and the new item together to make an array
+						$current[$tag]
+							= array( $current[$tag], $result ); //This will combine the existing item and the new item together to make an array
 						$repeated_tag_index[$tag . '_' . $level] = 2;
 
 						if ( isset( $current[$tag . '_attr'] ) )
@@ -243,6 +270,12 @@ class Utilities
 		return $input;
 	}
 
+	/**
+	 * @param      $array
+	 * @param bool $suppress_empty
+	 *
+	 * @return string
+	 */
 	public static function simpleArrayToXml( $array, $suppress_empty = false )
 	{
 		if ( !is_bool( $suppress_empty ) )
@@ -271,6 +304,11 @@ class Utilities
 		return $xml;
 	}
 
+	/**
+	 * @param $array
+	 *
+	 * @return bool
+	 */
 	public static function isArrayNumeric( $array )
 	{
 		if ( is_array( $array ) )
@@ -284,6 +322,12 @@ class Utilities
 		return false;
 	}
 
+	/**
+	 * @param      $array
+	 * @param bool $strict
+	 *
+	 * @return bool
+	 */
 	public static function isArrayAssociative( $array, $strict = true )
 	{
 		if ( is_array( $array ) )
@@ -304,6 +348,11 @@ class Utilities
 		return false;
 	}
 
+	/**
+	 * @param $name
+	 *
+	 * @return string
+	 */
 	public static function labelize( $name )
 	{
 		return ucwords( str_replace( '_', ' ', $name ) );
@@ -318,7 +367,7 @@ class Utilities
 	 * @since     0.1
 	 * @version   $Revision 0.1 $
 	 *
-	 * @access public
+	 * @access    public
 	 * @static
 	 *
 	 * @param    string $word    English noun to pluralize
@@ -387,6 +436,14 @@ class Utilities
 		return false;
 	}
 
+	/**
+	 * @param      $root
+	 * @param      $array
+	 * @param int  $level
+	 * @param bool $format
+	 *
+	 * @return string
+	 */
 	public static function arrayToXml( $root, $array, $level = 1, $format = true )
 	{
 		$xml = '';
@@ -480,6 +537,12 @@ class Utilities
 		return $xml;
 	}
 
+	/**
+	 * @param $xmlstring
+	 *
+	 * @return string
+	 * @throws Exception
+	 */
 	public static function xmlToJson( $xmlstring )
 	{
 		libxml_use_internal_errors( true );
@@ -499,6 +562,13 @@ class Utilities
 		return json_encode( (array)$xml );
 	}
 
+	/**
+	 * @param        $key
+	 * @param        $array
+	 * @param string $if_not_found
+	 *
+	 * @return array|string
+	 */
 	public static function getArrayValue( $key, $array, $if_not_found = '' )
 	{
 		$val = $if_not_found;
@@ -532,6 +602,13 @@ class Utilities
 		return $val;
 	}
 
+	/**
+	 * @param      $key
+	 * @param      $array
+	 * @param bool $strict
+	 *
+	 * @return mixed
+	 */
 	public static function removeOneFromArray( $key, $array, $strict = false )
 	{
 		$keys = array_keys( $array );
@@ -547,16 +624,40 @@ class Utilities
 		return $array;
 	}
 
+	/**
+	 * @param        $list
+	 * @param        $find
+	 * @param string $delim
+	 * @param bool   $strict
+	 *
+	 * @return bool
+	 */
 	public static function isInList( $list, $find, $delim = ',', $strict = false )
 	{
 		return ( false !== array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict ) );
 	}
 
+	/**
+	 * @param        $list
+	 * @param        $find
+	 * @param string $delim
+	 * @param bool   $strict
+	 *
+	 * @return mixed
+	 */
 	public static function findInList( $list, $find, $delim = ',', $strict = false )
 	{
 		return array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict );
 	}
 
+	/**
+	 * @param        $list
+	 * @param        $find
+	 * @param string $delim
+	 * @param bool   $strict
+	 *
+	 * @return string
+	 */
 	public static function addOnceToList( $list, $find, $delim = ',', $strict = false )
 	{
 		if ( empty( $list ) )
@@ -576,6 +677,14 @@ class Utilities
 		return implode( $delim, array_values( $fieldarr ) );
 	}
 
+	/**
+	 * @param        $list
+	 * @param        $find
+	 * @param string $delim
+	 * @param bool   $strict
+	 *
+	 * @return string
+	 */
 	public static function removeOneFromList( $list, $find, $delim = ',', $strict = false )
 	{
 		$pos = array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict );
@@ -641,6 +750,11 @@ class Utilities
 		return $out;
 	}
 
+	/**
+	 * @param $iv_len
+	 *
+	 * @return string
+	 */
 	private static function get_rnd_iv( $iv_len )
 	{
 		$iv = '';
@@ -652,6 +766,13 @@ class Utilities
 		return $iv;
 	}
 
+	/**
+	 * @param     $plain_text
+	 * @param     $password
+	 * @param int $iv_len
+	 *
+	 * @return string
+	 */
 	public static function encryptCreds( $plain_text, $password, $iv_len = 16 )
 	{
 		$plain_text .= "\x13";
@@ -674,6 +795,13 @@ class Utilities
 		return strtr( base64_encode( $enc_text ), '+/=', '-_,' );
 	}
 
+	/**
+	 * @param     $enc_text
+	 * @param     $password
+	 * @param int $iv_len
+	 *
+	 * @return mixed
+	 */
 	public static function decryptCreds( $enc_text, $password, $iv_len = 16 )
 	{
 		$enc_text = base64_decode( strtr( $enc_text, '-_,', '+/=' ) );
@@ -692,6 +820,11 @@ class Utilities
 		return preg_replace( '/\\x13\\x00*$/', '', $plain_text );
 	}
 
+	/**
+	 * @param $enc_text
+	 *
+	 * @return string
+	 */
 	public static function decryptPassword( $enc_text )
 	{
 		$enc_text = base64_decode( strtr( $enc_text, '-_,', '+/=' ) );
@@ -782,29 +915,73 @@ class Utilities
 			else
 			{
 				// Otherwise, bad request
-				header('status: 400 Bad Request', true, 400);
+				header( 'status: 400 Bad Request', true, 400 );
 			}
 		}
 		echo $data;
 	}
 
-	public static function is_valid_callback($subject)
+	/**
+	 * @param $subject
+	 *
+	 * @return bool
+	 */
+	public static function is_valid_callback( $subject )
 	{
 		$identifier_syntax
 			= '/^[$_\p{L}][$_\p{L}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\x{200C}\x{200D}]*+$/u';
 
-		$reserved_words = array('break', 'do', 'instanceof', 'typeof', 'case',
-								'else', 'new', 'var', 'catch', 'finally', 'return', 'void', 'continue',
-								'for', 'switch', 'while', 'debugger', 'function', 'this', 'with',
-								'default', 'if', 'throw', 'delete', 'in', 'try', 'class', 'enum',
-								'extends', 'super', 'const', 'export', 'import', 'implements', 'let',
-								'private', 'public', 'yield', 'interface', 'package', 'protected',
-								'static', 'null', 'true', 'false');
+		$reserved_words = array(
+			'break',
+			'do',
+			'instanceof',
+			'typeof',
+			'case',
+			'else',
+			'new',
+			'var',
+			'catch',
+			'finally',
+			'return',
+			'void',
+			'continue',
+			'for',
+			'switch',
+			'while',
+			'debugger',
+			'function',
+			'this',
+			'with',
+			'default',
+			'if',
+			'throw',
+			'delete',
+			'in',
+			'try',
+			'class',
+			'enum',
+			'extends',
+			'super',
+			'const',
+			'export',
+			'import',
+			'implements',
+			'let',
+			'private',
+			'public',
+			'yield',
+			'interface',
+			'package',
+			'protected',
+			'static',
+			'null',
+			'true',
+			'false'
+		);
 
-		return preg_match($identifier_syntax, $subject)
-			   && ! in_array(mb_strtolower($subject, 'UTF-8'), $reserved_words);
+		return preg_match( $identifier_syntax, $subject )
+			   && !in_array( mb_strtolower( $subject, 'UTF-8' ), $reserved_words );
 	}
-
 
 	/**
 	 * @return array|mixed|null
@@ -857,6 +1034,9 @@ class Utilities
 	}
 
 	/* checks for post data and performs gunzip functions */
+	/**
+	 * @return string
+	 */
 	public static function getPostData()
 	{
 		$content_enc = ( !empty( $_SERVER["HTTP_CONTENT_ENCODING"] ) ) ? $_SERVER["HTTP_CONTENT_ENCODING"] : '';
@@ -880,6 +1060,12 @@ class Utilities
 		return $data;
 	}
 
+	/**
+	 * @param $error
+	 * @param $xml
+	 *
+	 * @return string
+	 */
 	public static function display_xml_error( $error, $xml )
 	{
 		$return = $xml[$error->line - 1] . "\n";
@@ -899,8 +1085,8 @@ class Utilities
 		}
 
 		$return .= trim( $error->message ) .
-			"\n  Line: $error->line" .
-			"\n  Column: $error->column";
+				   "\n  Line: $error->line" .
+				   "\n  Column: $error->column";
 
 		if ( $error->file )
 		{
@@ -910,6 +1096,12 @@ class Utilities
 		return "$return\n\n--------------------------------------------\n\n";
 	}
 
+	/**
+	 * @param $xmlString
+	 *
+	 * @return null|SimpleXMLElement
+	 * @throws Exception
+	 */
 	public static function xmlToObject( $xmlString )
 	{
 		if ( empty( $xmlString ) )
@@ -936,6 +1128,12 @@ class Utilities
 
 //        $postarray = json_decode(json_encode((array) $xml), true);
 
+	/**
+	 * @param $json
+	 *
+	 * @return mixed|null
+	 * @throws Exception
+	 */
 	public static function jsonToArray( $json )
 	{
 		if ( empty( $json ) )
@@ -974,6 +1172,9 @@ class Utilities
 		return $array;
 	}
 
+	/**
+	 * @param $tracker
+	 */
 	public static function markTimeStart( $tracker )
 	{
 		if ( isset( $GLOBALS['TRACK_TIME'] ) && isset( $GLOBALS[$tracker] ) )
@@ -982,6 +1183,9 @@ class Utilities
 		}
 	}
 
+	/**
+	 * @param $tracker
+	 */
 	public static function markTimeStop( $tracker )
 	{
 		if ( isset( $GLOBALS[$tracker . '_TIMER'] ) && isset( $GLOBALS['TRACK_TIME'] ) && isset( $GLOBALS[$tracker] ) )
@@ -991,6 +1195,9 @@ class Utilities
 		}
 	}
 
+	/**
+	 * @param string $pre_log
+	 */
 	public static function logTimers( $pre_log = '' )
 	{
 		$track = static::getTimers();
@@ -1000,6 +1207,9 @@ class Utilities
 		}
 	}
 
+	/**
+	 * @return array|null
+	 */
 	public static function getTimers()
 	{
 		$track = null;
@@ -1017,11 +1227,14 @@ class Utilities
 		return $track;
 	}
 
+	/**
+	 * @return string
+	 */
 	public static function getAbsoluteURLFolder()
 	{
-		$scriptFolder = ( isset( $_SERVER['HTTPS'] ) && ( $_SERVER['HTTPS'] == 'on' ) ) ? 'https://' : 'http://';
-		$scriptFolder .= $_SERVER['HTTP_HOST'] . rtrim( dirname( $_SERVER['REQUEST_URI'] ), '/\\' ) . '/';
+		$_url = 'http' . ( 'on' == FilterInput::server( 'HTTPS' ) ? 's' : null ) . '://' . FilterInput::server( 'HTTP_HOST' )
+				. rtrim( dirname( $_SERVER['REQUEST_URI'] ), '/\\' ) . '/';
 
-		return $scriptFolder;
+		return $_url;
 	}
 }
