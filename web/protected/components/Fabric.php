@@ -22,7 +22,6 @@ use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\SeedUtility;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\Option;
 
 require_once __DIR__ . '/HttpMethod.php';
 require_once __DIR__ . '/Curl.php';
@@ -86,10 +85,31 @@ class Fabric extends SeedUtility
 	 * @var int
 	 */
 	const EXPIRATION_THRESHOLD = 30;
+	/**
+	 * @var string
+	 */
+	const DEFAULT_DOC_ROOT = '/var/www/launchpad/web';
 
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
+
+	/**
+	 * @return bool
+	 */
+	public static function hostedPrivatePlatform()
+	{
+		/**
+		 * Add host names to this list to white-list...
+		 */
+		static $_allowedHosts = array(
+			'launchpad-dev.dreamfactory.com',
+		);
+
+		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+
+		return in_array( $_host, $_allowedHosts );
+	}
 
 	/**
 	 * @return array|mixed
@@ -103,7 +123,7 @@ class Fabric extends SeedUtility
 		//	If this isn't a cloud request, bail
 		$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
 
-		if ( false === strpos( $_host, '.cloud.dreamfactory.com' ) )
+		if ( false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) )
 		{
 			Log::error( 'Attempt to access system from non-provisioned host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
@@ -212,7 +232,7 @@ class Fabric extends SeedUtility
 
 			if ( false !== ( $_data = json_decode( file_get_contents( $_tmpConfig ), true ) ) )
 			{
-				return array( $_data['settings'], $_data['instance'] );
+				return array($_data['settings'], $_data['instance']);
 			}
 		}
 
@@ -220,7 +240,9 @@ class Fabric extends SeedUtility
 	}
 
 	/**
-	 * @param array $settings
+	 * @param string   $host
+	 * @param array    $settings
+	 * @param stdClass $instance
 	 *
 	 * @return mixed
 	 */
@@ -242,6 +264,6 @@ class Fabric extends SeedUtility
 	 */
 	public static function fabricHosted()
 	{
-		return file_exists( static::FABRIC_MARKER );
+		return static::DEFAULT_DOC_ROOT == FilterInput::server( 'DOCUMENT_ROOT' ) && file_exists( static::FABRIC_MARKER );
 	}
 }

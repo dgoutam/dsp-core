@@ -511,15 +511,15 @@ class UserManager extends RestService
 		{
 			case '':
 				$resources = array(
-					array( 'name' => 'session' ),
-					array( 'name' => 'profile' ),
-					array( 'name' => 'password' ),
-					array( 'name' => 'challenge' ),
-					array( 'name' => 'register' ),
-					array( 'name' => 'confirm' ),
-					array( 'name' => 'ticket' )
+					array('name' => 'session'),
+					array('name' => 'profile'),
+					array('name' => 'password'),
+					array('name' => 'challenge'),
+					array('name' => 'register'),
+					array('name' => 'confirm'),
+					array('name' => 'ticket')
 				);
-				$result = array( 'resource' => $resources );
+				$result = array('resource' => $resources);
 				break;
 			case 'challenge':
 				$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
@@ -718,7 +718,7 @@ class UserManager extends RestService
 		{
 			case 'session':
 				$this->userLogout();
-				$result = array( 'success' => true );
+				$result = array('success' => true);
 				break;
 			default:
 				// unsupported GET request
@@ -782,11 +782,11 @@ class UserManager extends RestService
 		$to = $email;
 		$subject = 'Welcome to ' . $this->siteName;
 		$body = 'Hello ' . $fullname . ",\r\n\r\n" .
-				"Welcome! Your registration  with " . $this->siteName . " is complete.\r\n" .
-				"\r\n" .
-				"Regards,\r\n" .
-				"Webmaster\r\n" .
-				$this->siteName;
+			"Welcome! Your registration  with " . $this->siteName . " is complete.\r\n" .
+			"\r\n" .
+			"Regards,\r\n" .
+			"Webmaster\r\n" .
+			$this->siteName;
 
 		$html = str_replace( "\r\n", "<br />", $body );
 		try
@@ -819,8 +819,8 @@ class UserManager extends RestService
 	{
 		$subject = "Registration Completed: " . $fullname;
 		$body = "A new user registered at " . $this->siteName . ".\r\n" .
-				"Name: " . $fullname . "\r\n" .
-				"Email address: " . $email . "\r\n";
+			"Name: " . $fullname . "\r\n" .
+			"Email address: " . $email . "\r\n";
 
 		$html = str_replace( "\r\n", "<br />", $body );
 
@@ -858,11 +858,11 @@ class UserManager extends RestService
 		$link = Pii::app()->getHomeUrl() . '?code=' . urlencode( $this->getResetPasswordCode( $email ) );
 
 		$body = "Hello " . $full_name . ",\r\n\r\n" .
-				"There was a request to reset your password at " . $this->siteName . "\r\n" .
-				"Please click the link below to complete the request: \r\n" . $link . "\r\n" .
-				"Regards,\r\n" .
-				"Webmaster\r\n" .
-				$this->siteName;
+			"There was a request to reset your password at " . $this->siteName . "\r\n" .
+			"Please click the link below to complete the request: \r\n" . $link . "\r\n" .
+			"Regards,\r\n" .
+			"Webmaster\r\n" .
+			$this->siteName;
 
 		$html = str_replace( "\r\n", "<br />", $body );
 
@@ -899,16 +899,16 @@ class UserManager extends RestService
 		$to = $email;
 		$subject = "Your new password for " . $this->siteName;
 		$body = "Hello " . $user_rec['name'] . ",\r\n\r\n" .
-				"Your password was reset successfully. " .
-				"Here is your updated login:\r\n" .
-				"email:" . $user_rec['email'] . "\r\n" .
-				"password:$new_password\r\n" .
-				"\r\n" .
-				"Login here: " . Utilities::getAbsoluteURLFolder() . "login.php\r\n" .
-				"\r\n" .
-				"Regards,\r\n" .
-				"Webmaster\r\n" .
-				$this->siteName;
+			"Your password was reset successfully. " .
+			"Here is your updated login:\r\n" .
+			"email:" . $user_rec['email'] . "\r\n" .
+			"password:$new_password\r\n" .
+			"\r\n" .
+			"Login here: " . Utilities::getAbsoluteURLFolder() . "login.php\r\n" .
+			"\r\n" .
+			"Regards,\r\n" .
+			"Webmaster\r\n" .
+			$this->siteName;
 
 		$html = str_replace( "\r\n", "<br />", $body );
 
@@ -947,13 +947,13 @@ class UserManager extends RestService
 		$to = $email;
 		$subject = "Your registration with " . $this->siteName;
 		$body = "Hello " . $fullname . ",\r\n\r\n" .
-				"Thanks for your registration with " . $this->siteName . "\r\n" .
-				"Please click the link below to confirm your registration.\r\n" .
-				"$confirm_url\r\n" .
-				"\r\n" .
-				"Regards,\r\n" .
-				"Webmaster\r\n" .
-				$this->siteName;
+			"Thanks for your registration with " . $this->siteName . "\r\n" .
+			"Please click the link below to confirm your registration.\r\n" .
+			"$confirm_url\r\n" .
+			"\r\n" .
+			"Regards,\r\n" .
+			"Webmaster\r\n" .
+			$this->siteName;
 
 		$html = str_replace( "\r\n", "<br />", $body );
 		try
@@ -986,8 +986,8 @@ class UserManager extends RestService
 	{
 		$subject = "New registration: " . $fullname;
 		$body = "A new user registered at " . $this->siteName . ".\r\n" .
-				"Name: " . $fullname . "\r\n" .
-				"Email address: " . $email;
+			"Name: " . $fullname . "\r\n" .
+			"Email address: " . $email;
 
 		$html = str_replace( "\r\n", "<br />", $body );
 
@@ -1057,7 +1057,7 @@ class UserManager extends RestService
 			$theApps = Utilities::getArrayValue( 'allowed_apps', $session, array() );
 			if ( $is_sys_admin )
 			{
-				$theApps = App::model()->findAll( 'is_active = :ia', array( ':ia' => 1 ) );
+				$theApps = App::model()->findAll( 'is_active = :ia', array(':ia' => 1) );
 			}
 			$theGroups = AppGroup::model()->with( 'apps' )->findAll();
 			$appGroups = array();
@@ -1073,7 +1073,7 @@ class UserManager extends RestService
 				foreach ( $theGroups as $g_key => $group )
 				{
 					$groupId = $group->id;
-					$groupData = ( isset( $appGroups[$g_key] ) ) ? $appGroups[$g_key] : $group->getAttributes( array( 'id', 'name', 'description' ) );
+					$groupData = ( isset( $appGroups[$g_key] ) ) ? $appGroups[$g_key] : $group->getAttributes( array('id', 'name', 'description') );
 					foreach ( $tempGroups as $tempGroup )
 					{
 						if ( $tempGroup->id === $groupId )
@@ -1127,49 +1127,37 @@ class UserManager extends RestService
 			throw new Exception( "Login request is missing required password.", ErrorCodes::BAD_REQUEST );
 		}
 
-		try
+		$_model = new LoginForm();
+		$_model->username = $email;
+		$_model->password = $password;
+		$_model->setDrupalAuth( false );
+
+		if ( !$_model->authenticate( 'password', 'authenticate' ) || !$_model->login() )
 		{
-			$identity = new DspUserIdentity( $email, $password );
-
-			if ( $identity->authenticate() )
-			{
-				Pii::user()->login( $identity );
-			}
-			else
-			{
-				throw new Exception( "The credentials supplied do not match system records.", ErrorCodes::UNAUTHORIZED );
-			}
-
-			/** @var User $theUser */
-			$theUser = $identity->getUser();
-
-			if ( null === $theUser )
-			{
-				// bad user object
-				throw new Exception( "The user session contains no data.", ErrorCodes::INTERNAL_SERVER_ERROR );
-			}
-
-			if ( 'y' !== $theUser->confirm_code )
-			{
-				throw new Exception( "Login registration has not been confirmed." );
-			}
-
-			$isSysAdmin = $theUser->is_sys_admin;
-			$result = static::generateSessionDataFromUser( Pii::user()->getId() );
-
-			// write back login datetime
-			$theUser->last_login_date = date( 'c' );
-			$theUser->save();
-
-			static::$_userId = $theUser->id;
-
-			// additional stuff for session - launchpad mainly
-			return static::addSessionExtras( $result, $isSysAdmin, true );
+			throw new CHttpException( ErrorCodes::UNAUTHORIZED, 'The credentials supplied do not match system records.' );
 		}
-		catch ( Exception $ex )
+
+		if ( null === ( $theUser = $_model->getIdentity()->getUser() ) )
 		{
-			throw $ex;
+			// bad user object
+			throw new Exception( "The user session contains no data.", ErrorCodes::INTERNAL_SERVER_ERROR );
 		}
+
+		if ( 'y' !== $theUser->confirm_code )
+		{
+			throw new Exception( "Login registration has not been confirmed." );
+		}
+
+		$isSysAdmin = $theUser->is_sys_admin;
+		$result = static::generateSessionDataFromUser( $theUser->id, $theUser );
+
+		// write back login datetime
+		$theUser->update( array('last_login_date' => date( 'c' )) );
+
+		static::$_userId = $theUser->id;
+
+		// additional stuff for session - launchpad mainly
+		return static::addSessionExtras( $result, $isSysAdmin, true );
 	}
 
 	/**
@@ -1270,7 +1258,7 @@ class UserManager extends RestService
 		$timestamp = time();
 		$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
 
-		return array( 'ticket' => $ticket, 'ticket_expiry' => time() + ( 5 * 60 ) );
+		return array('ticket' => $ticket, 'ticket_expiry' => time() + ( 5 * 60 ));
 	}
 
 	/**
@@ -1287,7 +1275,7 @@ class UserManager extends RestService
 		{
 			throw new Exception( "The email field for invitation can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-		$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+		$theUser = User::model()->find( 'email=:email', array(':email' => $email) );
 		if ( empty( $theUser ) )
 		{
 			throw new Exception( "No user currently exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
@@ -1302,7 +1290,7 @@ class UserManager extends RestService
 			if ( empty( $confirmCode ) )
 			{
 				$confirmCode = static::makeConfirmationMd5( $email );
-				$record = array( 'confirm_code' => $confirmCode );
+				$record = array('confirm_code' => $confirmCode);
 				$theUser->setAttributes( $record );
 				$theUser->save();
 			}
@@ -1335,7 +1323,7 @@ class UserManager extends RestService
 		{
 			throw new Exception( "The email field for User can not be empty.", ErrorCodes::BAD_REQUEST );
 		}
-		$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+		$theUser = User::model()->find( 'email=:email', array(':email' => $email) );
 		if ( null !== $theUser )
 		{
 			throw new Exception( "A User already exists with the email '$email'.", ErrorCodes::BAD_REQUEST );
@@ -1370,7 +1358,7 @@ class UserManager extends RestService
 			throw new Exception( "Failed to register new user!\n{$ex->getMessage()}", $ex->getCode() );
 		}
 
-		return array( 'success' => true );
+		return array('success' => true);
 	}
 
 	/**
@@ -1383,7 +1371,7 @@ class UserManager extends RestService
 	{
 		try
 		{
-			$theUser = User::model()->find( 'confirm_code=:cc', array( ':cc' => $code ) );
+			$theUser = User::model()->find( 'confirm_code=:cc', array(':cc' => $code) );
 			if ( null === $theUser )
 			{
 				throw new Exception( "Invalid confirm code.", ErrorCodes::BAD_REQUEST );
@@ -1396,7 +1384,7 @@ class UserManager extends RestService
 			throw new Exception( "Error validating confirmation.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 
-		return array( 'success' => true );
+		return array('success' => true);
 	}
 
 	/**
@@ -1410,7 +1398,7 @@ class UserManager extends RestService
 	{
 		try
 		{
-			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+			$theUser = User::model()->find( 'email=:email', array(':email' => $email) );
 			if ( null === $theUser )
 			{
 				// bad email
@@ -1428,7 +1416,7 @@ class UserManager extends RestService
 				{
 					static::sendResetPasswordLink( $email, $fullName );
 
-					return array( 'success' => true );
+					return array('success' => true);
 				}
 				else
 				{
@@ -1440,14 +1428,13 @@ class UserManager extends RestService
 				$question = $theUser->security_question;
 				if ( !empty( $question ) )
 				{
-					return array( 'security_question' => $question );
+					return array('security_question' => $question);
 				}
 				else
 				{
 					throw new Exception( 'No valid security question provisioned for this user.' );
 				}
 			}
-
 		}
 		catch ( Exception $ex )
 		{
@@ -1467,7 +1454,7 @@ class UserManager extends RestService
 	{
 		try
 		{
-			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+			$theUser = User::model()->find( 'email=:email', array(':email' => $email) );
 			if ( null === $theUser )
 			{
 				// bad email
@@ -1504,7 +1491,7 @@ class UserManager extends RestService
 	{
 		try
 		{
-			$theUser = User::model()->find( 'confirm_code=:cc', array( ':cc' => $code ) );
+			$theUser = User::model()->find( 'confirm_code=:cc', array(':cc' => $code) );
 			if ( null === $theUser )
 			{
 				// bad code
@@ -1540,7 +1527,7 @@ class UserManager extends RestService
 	{
 		try
 		{
-			$theUser = User::model()->find( 'email=:email', array( ':email' => $email ) );
+			$theUser = User::model()->find( 'email=:email', array(':email' => $email) );
 			if ( null === $theUser )
 			{
 				// bad code
@@ -1600,7 +1587,7 @@ class UserManager extends RestService
 			$theUser->setAttribute( 'password', CPasswordHelper::hashPassword( $new_password ) );
 			$theUser->save();
 
-			return array( 'success' => true );
+			return array('success' => true);
 		}
 		catch ( Exception $ex )
 		{
@@ -1648,7 +1635,7 @@ class UserManager extends RestService
 			$theUser->setAttributes( $record );
 			$theUser->save();
 
-			return array( 'success' => true );
+			return array('success' => true);
 		}
 		catch ( Exception $ex )
 		{
@@ -1677,13 +1664,13 @@ class UserManager extends RestService
 			// todo protect certain attributes here
 			$fields = $theUser->getAttributes(
 				array(
-					 'first_name',
-					 'last_name',
-					 'display_name',
-					 'email',
-					 'phone',
-					 'security_question',
-					 'default_app_id'
+					'first_name',
+					'last_name',
+					'display_name',
+					'email',
+					'phone',
+					'security_question',
+					'default_app_id'
 				)
 			);
 
@@ -1720,7 +1707,7 @@ class UserManager extends RestService
 
 		$isSysAdmin = $user->getAttribute( 'is_sys_admin' );
 		$defaultAppId = $user->getAttribute( 'default_app_id' );
-		$fields = array( 'id', 'display_name', 'first_name', 'last_name', 'email', 'is_sys_admin', 'last_login_date' );
+		$fields = array('id', 'display_name', 'first_name', 'last_name', 'email', 'is_sys_admin', 'last_login_date');
 		$userInfo = $user->getAttributes( $fields );
 		$data = $userInfo; // reply data
 		$allowedApps = array();
@@ -1746,7 +1733,7 @@ class UserManager extends RestService
 			$roleApps = array();
 			if ( !empty( $theApps ) )
 			{
-				$appFields = array( 'id', 'api_name', 'is_active' );
+				$appFields = array('id', 'api_name', 'is_active');
 				foreach ( $theApps as $app )
 				{
 					$roleApps[] = $app->getAttributes( $appFields );
@@ -1757,7 +1744,7 @@ class UserManager extends RestService
 				}
 			}
 			$role['apps'] = $roleApps;
-			$permsFields = array( 'service_id', 'component', 'access' );
+			$permsFields = array('service_id', 'component', 'access');
 			$thePerms = $theRole->getRelated( 'role_service_accesses' );
 			$theServices = $theRole->getRelated( 'services' );
 			$perms = array();
@@ -1824,7 +1811,7 @@ class UserManager extends RestService
 		$roleApps = array();
 		if ( !empty( $theApps ) )
 		{
-			$appFields = array( 'id', 'api_name', 'is_active' );
+			$appFields = array('id', 'api_name', 'is_active');
 			foreach ( $theApps as $app )
 			{
 				$roleApps[] = $app->getAttributes( $appFields );
@@ -1835,7 +1822,7 @@ class UserManager extends RestService
 			}
 		}
 		$roleData['apps'] = $roleApps;
-		$permsFields = array( 'service_id', 'component', 'access' );
+		$permsFields = array('service_id', 'component', 'access');
 		$thePerms = $role->getRelated( 'role_service_accesses' );
 		$theServices = $role->getRelated( 'services' );
 		$perms = array();

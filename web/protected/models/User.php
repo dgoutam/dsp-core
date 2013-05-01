@@ -1,5 +1,7 @@
 <?php
 use \Kisma\Core\Exceptions\StorageException;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Sql;
 
 /**
  * User.php
@@ -88,14 +90,14 @@ class User extends BaseDspSystemModel
 	public function rules()
 	{
 		$_rules = array(
-			array( 'email, display_name', 'required' ),
-			array( 'email, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
-			array( 'email', 'email' ),
-			array( 'email', 'length', 'max' => 255 ),
-			array( 'is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true ),
-			array( 'password, first_name, last_name, security_answer', 'length', 'max' => 64 ),
-			array( 'phone', 'length', 'max' => 32 ),
-			array( 'confirm_code, display_name, security_question', 'length', 'max' => 128 ),
+			array('email, display_name', 'required'),
+			array('email, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
+			array('email', 'email'),
+			array('email', 'length', 'max' => 255),
+			array('is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true),
+			array('password, first_name, last_name, security_answer', 'length', 'max' => 64),
+			array('phone', 'length', 'max' => 32),
+			array('confirm_code, display_name, security_question', 'length', 'max' => 128),
 		);
 
 		return array_merge( parent::rules(), $_rules );
@@ -107,18 +109,18 @@ class User extends BaseDspSystemModel
 	public function relations()
 	{
 		$_relations = array(
-			'apps_created'        => array( self::HAS_MANY, 'App', 'created_by_id' ),
-			'apps_modified'       => array( self::HAS_MANY, 'App', 'last_modified_by_id' ),
-			'app_groups_created'  => array( self::HAS_MANY, 'AppGroup', 'created_by_id' ),
-			'app_groups_modified' => array( self::HAS_MANY, 'AppGroup', 'last_modified_by_id' ),
-			'roles_created'       => array( self::HAS_MANY, 'Role', 'created_by_id' ),
-			'roles_modified'      => array( self::HAS_MANY, 'Role', 'last_modified_by_id' ),
-			'services_created'    => array( self::HAS_MANY, 'Service', 'created_by_id' ),
-			'services_modified'   => array( self::HAS_MANY, 'Service', 'last_modified_by_id' ),
-			'users_created'       => array( self::HAS_MANY, 'User', 'created_by_id' ),
-			'users_modified'      => array( self::HAS_MANY, 'User', 'last_modified_by_id' ),
-			'default_app'         => array( self::BELONGS_TO, 'App', 'default_app_id' ),
-			'role'                => array( self::BELONGS_TO, 'Role', 'role_id' ),
+			'apps_created'        => array(self::HAS_MANY, 'App', 'created_by_id'),
+			'apps_modified'       => array(self::HAS_MANY, 'App', 'last_modified_by_id'),
+			'app_groups_created'  => array(self::HAS_MANY, 'AppGroup', 'created_by_id'),
+			'app_groups_modified' => array(self::HAS_MANY, 'AppGroup', 'last_modified_by_id'),
+			'roles_created'       => array(self::HAS_MANY, 'Role', 'created_by_id'),
+			'roles_modified'      => array(self::HAS_MANY, 'Role', 'last_modified_by_id'),
+			'services_created'    => array(self::HAS_MANY, 'Service', 'created_by_id'),
+			'services_modified'   => array(self::HAS_MANY, 'Service', 'last_modified_by_id'),
+			'users_created'       => array(self::HAS_MANY, 'User', 'created_by_id'),
+			'users_modified'      => array(self::HAS_MANY, 'User', 'last_modified_by_id'),
+			'default_app'         => array(self::BELONGS_TO, 'App', 'default_app_id'),
+			'role'                => array(self::BELONGS_TO, 'Role', 'role_id'),
 		);
 
 		return array_merge( parent::relations(), $_relations );
@@ -203,7 +205,7 @@ class User extends BaseDspSystemModel
 		$this->is_sys_admin = intval( Utilities::boolval( $this->is_sys_admin ) );
 		if ( is_string( $this->role_id ) )
 		{
-			if ( empty( $this->role_id ))
+			if ( empty( $this->role_id ) )
 			{
 				$this->role_id = null;
 			}
@@ -214,7 +216,7 @@ class User extends BaseDspSystemModel
 		}
 		if ( is_string( $this->default_app_id ) )
 		{
-			if ( empty( $this->default_app_id ))
+			if ( empty( $this->default_app_id ) )
 			{
 				$this->default_app_id = null;
 			}
@@ -240,7 +242,8 @@ class User extends BaseDspSystemModel
 
 		//	Check and make sure this is not the last admin user
 		if ( $this->is_sys_admin &&
-			 !static::model()->count( 'is_sys_admin = :is AND id != :id', array( ':is' => 1, ':id' => $_id ) ) )
+			!static::model()->count( 'is_sys_admin = :is AND id != :id', array(':is' => 1, ':id' => $_id) )
+		)
 		{
 			throw new StorageException( 'There must be at least one administrative account. This one may not be deleted.' );
 		}
@@ -270,32 +273,59 @@ class User extends BaseDspSystemModel
 	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
 		$addConfirmCode = UserManager::isSystemAdmin();
+
 		return parent::getRetrievableAttributes(
 			$requested,
 			array_merge(
 				array(
-					 'display_name',
-					 'first_name',
-					 'last_name',
-					 'email',
-					 'phone',
-					 'is_active',
-					 'is_sys_admin',
-					 'role_id',
-					 'default_app_id',
-					 ( $addConfirmCode ? 'confirm_code' : '')
+					'display_name',
+					'first_name',
+					'last_name',
+					'email',
+					'phone',
+					'is_active',
+					'is_sys_admin',
+					'role_id',
+					'default_app_id',
+					( $addConfirmCode ? 'confirm_code' : '' )
 				),
 				$columns
 			),
 			// hide these from the general public
 			array_merge(
 				array(
-					 'password',
-					 'security_question',
-					 'security_answer'
+					'password',
+					'security_question',
+					'security_answer'
 				),
 				$hidden
 			)
 		);
+	}
+
+	/**
+	 * @param string $userName
+	 * @param string $password
+	 *
+	 * @return bool|\User
+	 */
+	public static function authenticate( $userName, $password )
+	{
+		$_user = static::model()
+				 ->with( 'role.role_service_accesses', 'role.apps', 'role.services' )
+				 ->findByAttributes(
+				array(
+					'email' => $userName
+				)
+			);
+
+		if ( empty( $_user ) || !CPasswordHelper::verifyPassword( $password, $_user->password ) )
+		{
+			return false;
+		}
+
+		Log::debug( 'Platform user auth: ' . $userName );
+
+		return $_user;
 	}
 }

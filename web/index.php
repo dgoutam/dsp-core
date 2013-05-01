@@ -25,6 +25,7 @@ $_autoloader = require_once( $_basePath . '/vendor/autoload.php' );
 require_once __DIR__ . '/protected/components/Pii.php';
 require_once $_basePath . '/src/Platform/Utility/DataCache.php';
 
+use Kisma\Core\Utility\FilterInput;
 use Platform\Utility\DataCache;
 
 //	Initialize app settings
@@ -39,8 +40,8 @@ if ( !( $_config = DataCache::load( $_key = $_SERVER['REMOTE_ADDR'] . $_SERVER['
 require_once $_basePath . '/config/aliases.php';
 
 //	Comment out the following lines in production
-//defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-//defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
+defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
+defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
 \Yii::createWebApplication( $_config );
 

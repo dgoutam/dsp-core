@@ -7,11 +7,30 @@
  */
 class LoginForm extends CFormModel
 {
+	/**
+	 * @var string
+	 */
 	public $username;
+	/**
+	 * @var string
+	 */
 	public $password;
+	/**
+	 * @var boolean
+	 */
 	public $rememberMe;
-
-	private $_identity;
+	/**
+	 * @var  PlatformUserIdentity
+	 */
+	protected $_identity;
+	/**
+	 * @var DrupalUserIdentity
+	 */
+	protected $_drupalIdentity;
+	/**
+	 * @var bool
+	 */
+	protected $_drupalAuth = true;
 
 	/**
 	 * Declares the validation rules.
@@ -21,12 +40,9 @@ class LoginForm extends CFormModel
 	public function rules()
 	{
 		return array(
-			// username and password are required
-			array( 'username, password', 'required' ),
-			// rememberMe needs to be a boolean
-			array( 'rememberMe', 'boolean' ),
-			// password needs to be authenticated
-			array( 'password', 'authenticate' ),
+			array('username, password', 'required'),
+			array('rememberMe', 'boolean'),
+			array('password', 'authenticate' . ( $this->_drupalAuth ? 'Drupal' : null )),
 		);
 	}
 
@@ -49,12 +65,38 @@ class LoginForm extends CFormModel
 	{
 		if ( !$this->hasErrors() )
 		{
-			$this->_identity = new DspUserIdentity( $this->username, $this->password, true );
-			if ( !$this->_identity->authenticate() )
+			$this->_identity = new PlatformUserIdentity( $this->username, $this->password );
+
+			if ( $this->_identity->authenticate() )
 			{
-				$this->addError( 'password', 'Incorrect email or password.' );
+				return true;
 			}
+
+			$this->addError( 'password', 'The email address and password pair do not match.' );
 		}
+
+		return false;
+	}
+
+	/**
+	 * Authenticates the password.
+	 * This is the 'authenticate' validator as declared in rules().
+	 */
+	public function authenticateDrupal( $attribute, $params )
+	{
+		if ( !$this->hasErrors() )
+		{
+			$this->_drupalIdentity = new DrupalUserIdentity( $this->username, $this->password );
+
+			if ( $this->_drupalIdentity->authenticate() )
+			{
+				return true;
+			}
+
+			$this->addError( 'password', 'The email address and password pair do not match.' );
+		}
+
+		return false;
 	}
 
 	/**
@@ -64,21 +106,105 @@ class LoginForm extends CFormModel
 	 */
 	public function login()
 	{
-		if ( $this->_identity === null )
-		{
-			$this->_identity = new DspUserIdentity( $this->username, $this->password, true );
-			$this->_identity->authenticate();
-		}
-		if ( $this->_identity->errorCode == DspUserIdentity::ERROR_NONE )
-		{
-			$duration = $this->rememberMe ? 3600 * 24 * 30 : 0; // 30 days
-			Yii::app()->user->login( $this->_identity, $duration );
+		$_identity = ( $this->_drupalAuth ? $this->_drupalIdentity : $this->_identity );
 
-			return true;
-		}
-		else
+		if ( empty( $_identity ) )
 		{
-			return false;
+			if ( $this->_drupalAuth )
+			{
+				$_identity = new DrupalUserIdentity( $this->username, $this->password );
+			}
+			else
+			{
+				$_identity = new PlatformUserIdentity( $this->username, $this->password );
+				$_identity->setDrupalIdentity( $this->_drupalIdentity );
+			}
+
+			if ( !$_identity->authenticate() )
+			{
+				$_identity = null;
+
+				return false;
+			}
 		}
+
+		if ( \CBaseUserIdentity::ERROR_NONE == $_identity->errorCode )
+		{
+			if ( $this->_drupalAuth )
+			{
+				$this->_drupalIdentity = $_identity;
+			}
+			else
+			{
+				$this->_identity = $_identity;
+				$_identity->setDrupalIdentity( $this->_drupalIdentity );
+			}
+
+			$_duration = $this->rememberMe ? 3600 * 24 * 30 : 0;
+
+			return Pii::user()->login( $_identity, $_duration );
+		}
+
+		return false;
+	}
+
+	/**
+	 * @param \DrupalUserIdentity $drupalIdentity
+	 *
+	 * @return LoginForm
+	 */
+	public function setDrupalIdentity( $drupalIdentity )
+	{
+		$this->_drupalIdentity = $drupalIdentity;
+
+		return $this;
+	}
+
+	/**
+	 * @return \DrupalUserIdentity
+	 */
+	public function getDrupalIdentity()
+	{
+		return $this->_drupalIdentity;
+	}
+
+	/**
+	 * @param \PlatformUserIdentity $identity
+	 *
+	 * @return LoginForm
+	 */
+	public function setIdentity( $identity )
+	{
+		$this->_identity = $identity;
+
+		return $this;
+	}
+
+	/**
+	 * @return \PlatformUserIdentity
+	 */
+	public function getIdentity()
+	{
+		return $this->_identity;
+	}
+
+	/**
+	 * @param boolean $drupalAuth
+	 *
+	 * @return LoginForm
+	 */
+	public function setDrupalAuth( $drupalAuth )
+	{
+		$this->_drupalAuth = $drupalAuth;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getDrupalAuth()
+	{
+		return $this->_drupalAuth;
 	}
 }

@@ -20,6 +20,7 @@
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
 
 /**
  * SiteController.php
@@ -35,6 +36,8 @@ class SiteController extends Controller
 		parent::init();
 
 		$this->layout = 'initial';
+
+		Log::debug( 'Requested route: ' . $this->route );
 	}
 
 	/**
@@ -53,18 +56,34 @@ class SiteController extends Controller
 	public function accessRules()
 	{
 		return array(
+			array(
+				'allow',
+				'actions' => array('index', 'login', 'error',),
+				'users'   => array('?'),
+			),
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics' ),
-				'users'   => array( '@' ),
+				'actions' => array('initSystem', 'initAdmin', 'environment', 'initSchema', 'upgradeSchema', 'initData', 'metrics', 'fileTree', 'logout'),
+				'users'   => array('@'),
 			),
-			//	Deny all others access to init commands
-			array(
-				'deny',
-				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'metrics' ),
-			),
+//			//	Deny all others access to init commands
+//			array(
+//				'deny',
+//			),
 		);
+	}
+
+	protected function _initSystemSplash()
+	{
+		$this->render(
+			'_splash',
+			array(
+				'for' => PlatformStates::INIT_REQUIRED,
+			)
+		);
+
+		$this->actionInitSystem();
 	}
 
 	/**
@@ -88,23 +107,23 @@ class SiteController extends Controller
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					$this->redirect( array( 'site/initSystem' ) );
+					$this->actionInitSystem();
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( array( 'site/initAdmin' ) );
+					$this->redirect( array('site/initAdmin') );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
-					$this->redirect( array( 'site/upgradeSchema' ) );
+					$this->redirect( array('site/upgradeSchema') );
 					break;
 
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( array( 'site/upgradeSchema' ) );
+					$this->redirect( array('site/upgradeSchema') );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( array( 'site/initData' ) );
+					$this->redirect( array('site/initData') );
 					break;
 			}
 		}
@@ -154,14 +173,21 @@ class SiteController extends Controller
 			//	Validate user input and redirect to the previous page if valid
 			if ( $_model->validate() && $_model->login() )
 			{
-				$this->redirect( '/' );
+				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
+				{
+					$_returnUrl = Pii::url( 'site/index' );
+				}
+
+				$this->redirect( $_returnUrl );
+
+				return;
 			}
 		}
 
 		$this->render(
 			'login',
 			array(
-				 'model' => $_model
+				'model' => $_model
 			)
 		);
 	}
@@ -207,7 +233,7 @@ class SiteController extends Controller
 		$this->render(
 			'initSchema',
 			array(
-				 'model' => $_model
+				'model' => $_model
 			)
 		);
 	}
@@ -244,7 +270,7 @@ class SiteController extends Controller
 		$this->render(
 			'initData',
 			array(
-				 'model' => $_model
+				'model' => $_model
 			)
 		);
 	}
