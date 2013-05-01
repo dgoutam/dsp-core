@@ -50,179 +50,14 @@ abstract class BaseDbSvc extends RestService
 	}
 
 	/**
-	 * Object destructor
-	 */
-	public function __destruct()
-	{
-	}
-
-	/**
-	 * Swagger output for common api parameters
-	 *
-	 * @param        $parameters
-	 * @param string $method
-	 *
 	 * @return array
+	 * @throws Exception
 	 */
-	public static function swaggerParameters( $parameters, $method = '' )
+	public function getSwaggerApis()
 	{
-		$swagger = array();
-		foreach ( $parameters as $param )
-		{
-			switch ( $param )
-			{
-				case 'table_name':
-					$swagger[] = array(
-						"paramType"     => "path",
-						"name"          => $param,
-						"description"   => "Name of the table to perform operations on.",
-						"dataType"      => "String",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'field_name':
-					$swagger[] = array(
-						"paramType"     => "path",
-						"name"          => $param,
-						"description"   => "Name of the table field/column to perform operations on.",
-						"dataType"      => "String",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'id':
-					$swagger[] = array(
-						"paramType"     => "path",
-						"name"          => $param,
-						"description"   => "Identifier of the resource to retrieve.",
-						"dataType"      => "String",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'ids':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Comma-delimited list of the identifiers of the resources to retrieve.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'filter':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "SQL-like filter to limit the resources to retrieve.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'order':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "SQL-like order containing field and direction for filter results.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'limit':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Set to limit the filter results.",
-						"dataType"      => "int",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'include_count':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Include the total number of filter results.",
-						"dataType"      => "boolean",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'include_schema':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Include the schema of the table queried.",
-						"dataType"      => "boolean",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'fields':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Comma-delimited list of field names to retrieve for each record.",
-						"dataType"      => "String",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'related':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Comma-delimited list of related names to retrieve for each record.",
-						"dataType"      => "string",
-						"required"      => false,
-						"allowMultiple" => true
-					);
-					break;
-				case 'record':
-					$swagger[] = array(
-						"paramType"     => "body",
-						"name"          => $param,
-						"description"   => "Array of record properties.",
-						"dataType"      => "array",
-						"required"      => true,
-						"allowMultiple" => true
-					);
-					break;
-			}
-		}
-
-		return $swagger;
-	}
-
-	/**
-	 * @param string $service
-	 * @param string $description
-	 *
-	 * @return array
-	 */
-	public static function swaggerPerDb( $service, $description = '' )
-	{
-		$swagger = array(
+		$apis = array(
 			array(
-				'path'        => '/' . $service,
-				'description' => $description,
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List tables available in the database service",
-						"notes"          => "Use the table names in available record operations.",
-						"responseClass"  => "array",
-						"nickname"       => "getTables",
-						"parameters"     => array(),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $service . '/{table_name}',
+				'path'        => '/' . $this->_apiName . '/{table_name}',
 				'description' => 'Operations for per table administration.',
 				'operations'  => array(
 					array(
@@ -231,7 +66,7 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Use the 'ids' or 'filter' parameter to limit records that are returned.",
 						"responseClass"  => "array",
 						"nickname"       => "getRecords",
-						"parameters"     => static::swaggerParameters(
+						"parameters"     => SwaggerUtilities::getParameters(
 							array(
 								 'table_name',
 								 'ids',
@@ -253,7 +88,7 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Post data should be an array of fields for a single record or an array of records",
 						"responseClass"  => "array",
 						"nickname"       => "createRecords",
-						"parameters"     => static::swaggerParameters(
+						"parameters"     => SwaggerUtilities::getParameters(
 							array(
 								 'table_name',
 								 'fields',
@@ -269,7 +104,7 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Post data should be an array of fields for a single record or an array of records",
 						"responseClass"  => "array",
 						"nickname"       => "updateRecords",
-						"parameters"     => static::swaggerParameters(
+						"parameters"     => SwaggerUtilities::getParameters(
 							array(
 								 'table_name',
 								 'fields',
@@ -285,7 +120,7 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
 						"responseClass"  => "array",
 						"nickname"       => "deleteRecords",
-						"parameters"     => static::swaggerParameters(
+						"parameters"     => SwaggerUtilities::getParameters(
 							array(
 								 'table_name',
 								 'ids',
@@ -299,7 +134,7 @@ abstract class BaseDbSvc extends RestService
 				)
 			),
 			array(
-				'path'        => '/' . $service . '/{table_name}/{id}',
+				'path'        => '/' . $this->_apiName . '/{table_name}/{id}',
 				'description' => 'Operations for single record administration.',
 				'operations'  => array(
 					array(
@@ -308,7 +143,14 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
 						"responseClass"  => "array",
 						"nickname"       => "getRecord",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'id', 'fields', 'related' ) ),
+						"parameters"     => SwaggerUtilities::getParameters(
+							array(
+								 'table_name',
+								 'id',
+								 'fields',
+								 'related'
+							)
+						),
 						"errorResponses" => array()
 					),
 					array(
@@ -317,7 +159,7 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Post data should be an array of fields for a single record",
 						"responseClass"  => "array",
 						"nickname"       => "updateRecord",
-						"parameters"     => static::swaggerParameters(
+						"parameters"     => SwaggerUtilities::getParameters(
 							array(
 								 'table_name',
 								 'id',
@@ -334,29 +176,25 @@ abstract class BaseDbSvc extends RestService
 						"notes"          => "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
 						"responseClass"  => "array",
 						"nickname"       => "deleteRecord",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'id', 'fields', 'related' ) ),
+						"parameters"     => SwaggerUtilities::getParameters(
+							array(
+								 'table_name',
+								 'id',
+								 'fields',
+								 'related'
+							)
+						),
 						"errorResponses" => array()
 					),
 				)
 			),
 		);
-
-		return $swagger;
-	}
-
-	// Controller based methods
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		$apis = static::swaggerPerDb( $this->_apiName, $this->_description );
 		$apis = array_merge( parent::getSwaggerApis(), $apis );
 
 		return $apis;
 	}
+
+	// REST Service implementation
 
 	/**
 	 * @throws Exception
