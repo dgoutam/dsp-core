@@ -17,11 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
 /**
- * iDspBlob.php
+ * BlobService.php
  * Interface for handling blob storage resources.
  */
-interface iDspBlob
+interface BlobService
 {
 	/**
 	 * @return array

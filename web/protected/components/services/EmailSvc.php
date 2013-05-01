@@ -17,42 +17,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * EmailSvc
  * A service to handle email services accessed through the REST API.
  */
 class EmailSvc extends RestService
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
 	 * @var boolean
 	 */
 	protected $_isNative = false;
-
 	/**
-	 * @var null | Swift_SmtpTransport | Swift_SendMailTransport | Swift_MailTransport
+	 * @var null|Swift_SmtpTransport|Swift_SendMailTransport|Swift_MailTransport
 	 */
 	protected $_transport = null;
-
 	/**
 	 * @var string
 	 */
 	protected $fromName;
-
 	/**
 	 * @var string
 	 */
 	protected $fromAddress;
-
 	/**
 	 * @var string
 	 */
 	protected $replyToName;
-
 	/**
 	 * @var string
 	 */
 	protected $replyToAddress;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Create a new EmailSvc
@@ -70,14 +72,14 @@ class EmailSvc extends RestService
 		$transportType = Utilities::getArrayValue( 'storage_type', $config, '' );
 		$credentials = Utilities::getArrayValue( 'credentials', $config, array() );
 		// Create the Transport
-		$this->_transport = EmailUtilities::createTransport($transportType, $credentials);
+		$this->_transport = EmailUtilities::createTransport( $transportType, $credentials );
 
 		$parameters = Utilities::getArrayValue( 'parameters', $config, array() );
-		foreach ($parameters as $param)
+		foreach ( $parameters as $param )
 		{
 			$key = Utilities::getArrayValue( 'name', $param );
 			$value = Utilities::getArrayValue( 'value', $param );
-			switch ($key)
+			switch ( $key )
 			{
 				case 'from_name':
 					$this->fromName = $value;
@@ -94,8 +96,6 @@ class EmailSvc extends RestService
 			}
 		}
 	}
-
-	// Controller based methods
 
 	/**
 	 *
@@ -156,6 +156,9 @@ class EmailSvc extends RestService
 		return $apis;
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getSwaggerModels()
 	{
 		$models = array(
@@ -167,18 +170,18 @@ class EmailSvc extends RestService
 						"description" => "Email Template to base email on."
 					),
 					"to"             => array(
-						"type"       => "array",
-						"items"      => array('$ref' => "Address"),
+						"type"        => "array",
+						"items"       => array( '$ref' => "Address" ),
 						"description" => "Required single or multiple receiver addresses."
 					),
 					"cc"             => array(
-						"type"       => "array",
-						"items"      => array('$ref' => "Address"),
+						"type"        => "array",
+						"items"       => array( '$ref' => "Address" ),
 						"description" => "Optional CC receiver addresses."
 					),
 					"bcc"            => array(
-						"type"       => "array",
-						"items"      => array('$ref' => "Address"),
+						"type"        => "array",
+						"items"       => array( '$ref' => "Address" ),
 						"description" => "Optional BCC receiver addresses."
 					),
 					"subject"        => array(
@@ -211,15 +214,15 @@ class EmailSvc extends RestService
 					),
 				)
 			),
-			"Address" => array(
+			"Address"  => array(
 				"id"         => "Address",
 				"properties" => array(
-					"name" => array(
-						"type" => "string",
+					"name"  => array(
+						"type"        => "string",
 						"description" => "Optional name displayed along with the email address."
 					),
 					"email" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "Required email address."
 					)
 				)
@@ -228,7 +231,7 @@ class EmailSvc extends RestService
 				"id"         => "Response",
 				"properties" => array(
 					"count" => array(
-						"type" => "integer",
+						"type"        => "integer",
 						"description" => "Number of emails successfully sent."
 					)
 				)
@@ -239,6 +242,10 @@ class EmailSvc extends RestService
 		return $models;
 	}
 
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
 	public function actionPost()
 	{
 		$data = Utilities::getPostDataAsArray();
@@ -284,8 +291,6 @@ class EmailSvc extends RestService
 
 		return array( 'count' => $count );
 	}
-
-	//------- Email Methods ----------------------
 
 	/**
 	 * @param $template
@@ -400,7 +405,7 @@ class EmailSvc extends RestService
 		{
 			foreach ( $data as $name => $value )
 			{
-				if (is_string($value))
+				if ( is_string( $value ) )
 				{
 					// replace {xxx} in subject
 					$subject = str_replace( '{' . $name . '}', $value, $subject );
@@ -438,6 +443,6 @@ class EmailSvc extends RestService
 			$reply_email
 		);
 
-		return EmailUtilities::sendMessage($this->_transport, $message);
+		return EmailUtilities::sendMessage( $this->_transport, $message );
 	}
 }

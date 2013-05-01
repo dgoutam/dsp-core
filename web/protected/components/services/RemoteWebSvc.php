@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * RemoteWebSvc
  * A service to handle remote web services accessed through the REST API.
@@ -32,17 +31,14 @@ class RemoteWebSvc extends RestService
 	 * @var string
 	 */
 	protected $_baseUrl;
-
 	/**
 	 * @var array
 	 */
 	protected $_credentials;
-
 	/**
 	 * @var array
 	 */
 	protected $_headers;
-
 	/**
 	 * @var array
 	 */
@@ -190,7 +186,7 @@ class RemoteWebSvc extends RestService
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-}
+	}
 
 	/**
 	 * @throws Exception
@@ -223,7 +219,7 @@ class RemoteWebSvc extends RestService
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-}
+	}
 
 	/**
 	 * @throws Exception
@@ -255,7 +251,7 @@ class RemoteWebSvc extends RestService
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-}
+	}
 
 	/**
 	 * @throws Exception
@@ -287,7 +283,7 @@ class RemoteWebSvc extends RestService
 //      Utilities::logTimers();
 
 		exit; // bail to avoid header error, unless we are reformatting the data
-}
+	}
 
 	/**
 	 * @throws Exception

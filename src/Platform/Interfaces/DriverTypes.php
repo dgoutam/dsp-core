@@ -17,38 +17,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
 /**
- * Controller
+ * DriverTypes.php
+ * The various supported database drivers
  */
-class Controller extends \CController
+interface DriverTypes
 {
 	//*************************************************************************
-	//	Methods
+	//	Constants
 	//*************************************************************************
 
 	/**
-	 * Overridden to log API requests to local graylog server
-	 *
-	 * @param CAction $action
-	 *
-	 * @return bool
+	 * @var int
 	 */
-	protected function beforeAction( $action )
-	{
-		$_host = $_SERVER['HTTP_HOST'];
-
-		//	Get the additional data ready
-		$_logInfo = array(
-			'short_message' => 'DSP <--- "' . $action->id . '"',
-			'full_message'  => 'Inbound DSP request from "' . $_host . '": ' . $action->id,
-			'level'         => GraylogLevels::Info,
-			'facility'      => Graylog::DefaultFacility . '/api',
-			'_source'       => $_SERVER['REMOTE_ADDR'],
-			'_payload'      => $_REQUEST,
-		);
-
-		\GelfLogger::logMessage( $_logInfo );
-
-		return true;
-	}
+	const DRV_OTHER = 0;
+	/**
+	 * @var int
+	 */
+	const DRV_SQLSRV = 1;
+	/**
+	 * @var int
+	 */
+	const DRV_MYSQL = 2;
+	/**
+	 * @var int
+	 */
+	const DRV_SQLITE = 3;
+	/**
+	 * @var int
+	 */
+	const DRV_PGSQL = 4;
+	/**
+	 * @var int
+	 */
+	const DRV_OCSQL = 5;
 }

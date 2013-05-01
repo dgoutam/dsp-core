@@ -17,44 +17,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * BaseDbSvc
  * A base service class to handle generic db services accessed through the REST API.
  */
 abstract class BaseDbSvc extends RestService
 {
-
-	// Members
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
 
 	/**
 	 * @var
 	 */
 	protected $tableName;
-
 	/**
 	 * @var
 	 */
 	protected $recordId;
 
-	/**
-	 * Create a new BaseDbSvc
-	 *
-	 * @param array $config
-	 *
-	 * @throws InvalidArgumentException
-	 */
-	public function __construct( $config )
-	{
-		parent::__construct( $config );
-	}
-
-	/**
-	 * Object destructor
-	 */
-	public function __destruct()
-	{
-	}
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Swagger output for common api parameters

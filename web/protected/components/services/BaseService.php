@@ -17,14 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * BaseService
  * A base service class to handle services of various kinds.
  */
 abstract class BaseService implements iService
-// not quite ready to let the seed out of the bag
-//abstract class BaseService extends SeedBag implements iService
 {
 	//*************************************************************************
 	//* Members
@@ -78,15 +75,19 @@ abstract class BaseService implements iService
 
 		// Validate basic settings
 		$this->_apiName = Utilities::getArrayValue( 'api_name', $settings, '' );
+
 		if ( empty( $this->_apiName ) )
 		{
 			throw new \InvalidArgumentException( 'Service name can not be empty.' );
 		}
+
 		$this->_type = Utilities::getArrayValue( 'type', $settings, '' );
+
 		if ( empty( $this->_type ) )
 		{
 			throw new \InvalidArgumentException( 'Service type can not be empty.' );
 		}
+
 		$this->_name = Utilities::getArrayValue( 'name', $settings, '' );
 		$this->_description = Utilities::getArrayValue( 'description', $settings, '' );
 		$this->_nativeFormat = Utilities::getArrayValue( 'native_format', $settings, '' );

@@ -17,35 +17,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * SchemaSvc
  * A service to handle SQL database schema-related services accessed through the REST API.
  */
 class SchemaSvc extends RestService
 {
-
-	// Members
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
 
 	/**
 	 * @var
 	 */
 	protected $tableName;
-
 	/**
 	 * @var
 	 */
 	protected $fieldName;
-
 	/**
 	 * @var CDbConnection
 	 */
 	protected $_sqlConn;
-
 	/**
 	 * @var boolean
 	 */
 	protected $_isNative = false;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Create a new SchemaSvc
@@ -226,7 +227,7 @@ class SchemaSvc extends RestService
 						"notes"          => "Post data should be a single table definition or an array of table definitions",
 						"responseClass"  => "array",
 						"nickname"       => "createTables",
-						"parameters"     => static::swaggerParameters( array('tables') ),
+						"parameters"     => static::swaggerParameters( array( 'tables' ) ),
 						"errorResponses" => array()
 					),
 					array(
@@ -235,7 +236,7 @@ class SchemaSvc extends RestService
 						"notes"          => "Post data should be a single table definition or an array of table definitions",
 						"responseClass"  => "array",
 						"nickname"       => "updateTables",
-						"parameters"     => static::swaggerParameters( array('tables') ),
+						"parameters"     => static::swaggerParameters( array( 'tables' ) ),
 						"errorResponses" => array()
 					),
 				)
@@ -259,7 +260,7 @@ class SchemaSvc extends RestService
 						"notes"          => "Post data should be an array of field properties for a single record or an array of fields",
 						"responseClass"  => "array",
 						"nickname"       => "createFields",
-						"parameters"     => static::swaggerParameters( array( 'table_name','fields' ) ),
+						"parameters"     => static::swaggerParameters( array( 'table_name', 'fields' ) ),
 						"errorResponses" => array()
 					),
 					array(
@@ -268,7 +269,7 @@ class SchemaSvc extends RestService
 						"notes"          => "Post data should be an array of field properties for a single record or an array of fields",
 						"responseClass"  => "array",
 						"nickname"       => "updateFields",
-						"parameters"     => static::swaggerParameters( array( 'table_name','fields' ) ),
+						"parameters"     => static::swaggerParameters( array( 'table_name', 'fields' ) ),
 						"errorResponses" => array()
 					),
 					array(
@@ -324,168 +325,168 @@ class SchemaSvc extends RestService
 	public function getSwaggerModels()
 	{
 		$models = array(
-			"Tables" => array(
-				"id" => "Tables",
+			"Tables"      => array(
+				"id"         => "Tables",
 				"properties" => array(
 					"table" => array(
-						"type" => "array",
-						"items" => array( '$ref' => "TableSchema"),
+						"type"        => "array",
+						"items"       => array( '$ref' => "TableSchema" ),
 						"description" => "An array of table definitions."
 					),
 				)
 			),
 			"TableSchema" => array(
-				"id" => "TableSchema",
+				"id"         => "TableSchema",
 				"properties" => array(
-					"name" => array(
-						"type" => "string",
+					"name"        => array(
+						"type"        => "string",
 						"description" => "Identifier/Name for the table."
 					),
-					"label" => array(
-						"type" => "string",
+					"label"       => array(
+						"type"        => "string",
 						"description" => "Displayable singular name for the table."
 					),
-					"plural" => array(
-						"type" => "string",
+					"plural"      => array(
+						"type"        => "string",
 						"description" => "Displayable plural name for the table."
 					),
 					"primary_key" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "Field(s), if any, that represent the primary key of each record."
 					),
-					"name_field" => array(
-						"type" => "string",
+					"name_field"  => array(
+						"type"        => "string",
 						"description" => "Field(s), if any, that represent the name of each record."
 					),
-					"field" => array(
-						"type" => "array",
-						"items" => array( '$ref' => "FieldSchema"),
+					"field"       => array(
+						"type"        => "array",
+						"items"       => array( '$ref' => "FieldSchema" ),
 						"description" => "An array of available fields in each record."
 					),
-					"related" => array(
-						"type" => "array",
-						"items" => array( '$ref' => "Related"),
+					"related"     => array(
+						"type"        => "array",
+						"items"       => array( '$ref' => "Related" ),
 						"description" => "An array of available relationships to other tables."
 					),
 				)
 			),
-			"Fields" => array(
-				"id" => "Fields",
+			"Fields"      => array(
+				"id"         => "Fields",
 				"properties" => array(
 					"field" => array(
-						"type" => "array",
-						"items" => array( '$ref' => "FieldSchema"),
+						"type"        => "array",
+						"items"       => array( '$ref' => "FieldSchema" ),
 						"description" => "An array of field definitions."
 					),
 				)
 			),
 			"FieldSchema" => array(
-				"id" => "FieldSchema",
+				"id"         => "FieldSchema",
 				"properties" => array(
-					"name" => array(
-						"type" => "string",
+					"name"               => array(
+						"type"        => "string",
 						"description" => "The API name of the field."
 					),
-					"label" => array(
-						"type" => "string",
+					"label"              => array(
+						"type"        => "string",
 						"description" => "The displayable label for the field."
 					),
-					"type" => array(
-						"type" => "string",
+					"type"               => array(
+						"type"        => "string",
 						"description" => "The DSP abstract data type for this field."
 					),
-					"db_type" => array(
-						"type" => "string",
+					"db_type"            => array(
+						"type"        => "string",
 						"description" => "The native database type used for this field."
 					),
-					"length" => array(
-						"type" => "integer",
+					"length"             => array(
+						"type"        => "integer",
 						"description" => "The maximum length allowed (in characters for string, displayed for numbers)."
 					),
-					"precision" => array(
-						"type" => "integer",
+					"precision"          => array(
+						"type"        => "integer",
 						"description" => "Total number of places for numbers."
 					),
-					"scale" => array(
-						"type" => "integer",
+					"scale"              => array(
+						"type"        => "integer",
 						"description" => "Number of decimal places allowed for numbers."
 					),
-					"default" => array(
-						"type" => "string",
+					"default"            => array(
+						"type"        => "string",
 						"description" => "Default value for this field."
 					),
-					"required" => array(
-						"type" => "boolean",
+					"required"           => array(
+						"type"        => "boolean",
 						"description" => "Is a value required for record creation."
 					),
-					"allow_null" => array(
-						"type" => "boolean",
+					"allow_null"         => array(
+						"type"        => "boolean",
 						"description" => "Is null allowed as a value."
 					),
-					"fixed_length" => array(
-						"type" => "boolean",
+					"fixed_length"       => array(
+						"type"        => "boolean",
 						"description" => "Is the length fixed (not variable)."
 					),
 					"supports_multibyte" => array(
-						"type" => "boolean",
+						"type"        => "boolean",
 						"description" => "Does the data type support multibyte characters."
 					),
-					"auto_increment" => array(
-						"type" => "boolean",
+					"auto_increment"     => array(
+						"type"        => "boolean",
 						"description" => "Does the integer field value increment upon new record creation."
 					),
-					"is_primary_key" => array(
-						"type" => "boolean",
+					"is_primary_key"     => array(
+						"type"        => "boolean",
 						"description" => "Is this field used as/part of the primary key."
 					),
-					"is_foreign_key" => array(
-						"type" => "boolean",
+					"is_foreign_key"     => array(
+						"type"        => "boolean",
 						"description" => "Is this field used as a foreign key."
 					),
-					"ref_table" => array(
-						"type" => "string",
+					"ref_table"          => array(
+						"type"        => "string",
 						"description" => "For foreign keys, the referenced table name."
 					),
-					"ref_fields" => array(
-						"type" => "string",
+					"ref_fields"         => array(
+						"type"        => "string",
 						"description" => "For foreign keys, the referenced table field name."
 					),
-					"validation" => array(
-						"type" => "string",
+					"validation"         => array(
+						"type"        => "string",
 						"description" => "Comma-delimited list of validations to be performed on this field."
 					),
-					"values" => array(
-						"type" => "array",
-						"item" => array( '$ref' => "string"),
+					"values"             => array(
+						"type"        => "array",
+						"item"        => array( '$ref' => "string" ),
 						"description" => "Selectable string values for picklist validation."
 					),
 				)
 			),
-			"Related" => array(
-				"id" => "Related",
+			"Related"     => array(
+				"id"         => "Related",
 				"properties" => array(
-					"name" => array(
-						"type" => "string",
+					"name"      => array(
+						"type"        => "string",
 						"description" => "Name of the relationship."
 					),
-					"type" => array(
-						"type" => "string",
+					"type"      => array(
+						"type"        => "string",
 						"description" => "Relationship type - belongs_to, has_many, many_many."
 					),
 					"ref_table" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "The table name that is referenced by the relationship."
 					),
 					"ref_field" => array(
-						"type" => "string",
+						"type"        => "string",
 						"description" => "The field name that is referenced by the relationship."
 					),
-					"join" => array(
-						"type" => "string",
+					"join"      => array(
+						"type"        => "string",
 						"description" => "The intermediate joining table used for many_many relationships."
 					),
-					"field" => array(
-						"type" => "string",
+					"field"     => array(
+						"type"        => "string",
 						"description" => "The current table field that is used in the relationship."
 					),
 				)
@@ -931,6 +932,7 @@ class SchemaSvc extends RestService
 		try
 		{
 			$names = DbUtilities::createFields( $this->_sqlConn, $table, $fields );
+
 			return DbUtilities::describeFields( $this->_sqlConn, $table, $names );
 		}
 		catch ( Exception $ex )
@@ -1033,6 +1035,7 @@ class SchemaSvc extends RestService
 		try
 		{
 			$names = DbUtilities::createFields( $this->_sqlConn, $table, $fields, true );
+
 			return DbUtilities::describeFields( $this->_sqlConn, $table, $names );
 		}
 		catch ( Exception $ex )

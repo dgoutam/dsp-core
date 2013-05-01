@@ -24,6 +24,10 @@ use Kisma\Core\Utility\Option;
  */
 class FileUtilities
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
 	 * @var array of file extensions to mime types
 	 */
@@ -1013,6 +1017,10 @@ class FileUtilities
 			'zirz'        => 'application/vnd.zul',
 			'zmm'         => 'application/vnd.handheld-entertainment+xml'
 		);
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * @param $path

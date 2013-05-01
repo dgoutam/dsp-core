@@ -17,23 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * BaseFileSvc
  * Base File Storage Service giving REST access to file storage.
  */
 abstract class BaseFileSvc extends RestService implements iFileManager
 {
-	/**
-	 * @param array $config
-	 *
-	 * @throws Exception
-	 */
-	public function __construct( $config )
-	{
-		parent::__construct( $config );
-	}
-
 	/**
 	 * @param        $dest_path
 	 * @param        $dest_name
@@ -46,8 +35,7 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 	 * @return array
 	 * @throws Exception
 	 */
-	protected function handleFile( $dest_path, $dest_name, $source_file, $contentType = '',
-								   $extract = false, $clean = false, $check_exist = false )
+	protected function handleFile( $dest_path, $dest_name, $source_file, $contentType = '', $extract = false, $clean = false, $check_exist = false )
 	{
 		$ext = FileUtilities::getFileExtension( $source_file );
 		if ( empty( $contentType ) )
@@ -89,8 +77,7 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 	 * @return array
 	 * @throws Exception
 	 */
-	protected function handleFileContent( $dest_path, $dest_name, $content, $contentType = '',
-										  $extract = false, $clean = false, $check_exist = false )
+	protected function handleFileContent( $dest_path, $dest_name, $content, $contentType = '', $extract = false, $clean = false, $check_exist = false )
 	{
 		$ext = FileUtilities::getFileExtension( $dest_name );
 		if ( empty( $contentType ) )

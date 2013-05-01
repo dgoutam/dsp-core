@@ -25,47 +25,44 @@
 abstract class RestService extends BaseService implements iRestHandler, iSwagger
 {
 	//*************************************************************************
-	//* Members
-	//*************************************************************************
-
-
-	//*************************************************************************
 	//* Methods
 	//*************************************************************************
 
 	/**
-	 * Create a new REST service
-	 *
-	 * @param array $settings configuration array
-	 *
-	 * @throws \InvalidArgumentException
-	 * @throws \Exception
+	 * @throws Exception
 	 */
-	public function __construct( $settings = array() )
-	{
-		parent::__construct( $settings );
-	}
-
 	public function actionPost()
 	{
 		throw new Exception( "POST requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionPut()
 	{
 		throw new Exception( "PUT requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionMerge()
 	{
 		throw new Exception( "MERGE requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionDelete()
 	{
 		throw new Exception( "DELETE requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionGet()
 	{
 		throw new Exception( "GET requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
@@ -80,6 +77,7 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 		$swagger = SwaggerUtilities::getBaseInfo( $this->_apiName );
 		$swagger['apis'] = $this->getSwaggerApis();
 		$swagger['models'] = $this->getSwaggerModels();
+
 		return $swagger;
 	}
 
@@ -90,6 +88,7 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 	public function getSwaggerApis()
 	{
 		$swagger = SwaggerUtilities::getBaseApis( $this->_apiName );
+
 		return $swagger;
 	}
 
@@ -100,6 +99,7 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 	public function getSwaggerModels()
 	{
 		$swagger = SwaggerUtilities::getBaseModels();
+
 		return $swagger;
 	}
 }
