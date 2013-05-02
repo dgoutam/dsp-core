@@ -497,7 +497,7 @@ class SystemManager extends RestService
 						 array(
 							 "httpMethod"     => "GET",
 							 "summary"        => "Retrieve system configuration options",
-							 "notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
+							 "notes"          => "The retrieved properties control how the system behaves.",
 							 "responseClass"  => "Config",
 							 "nickname"       => "getConfig",
 							 "parameters"     => array(),
@@ -524,12 +524,12 @@ class SystemManager extends RestService
 					 )
 				 ),
 			),
-			SwaggerUtilities::swaggerPerResource( 'system', 'app' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'email_template' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'role' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'service' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'user' )
+			SwaggerUtilities::apisPerResource( 'system', 'app' ),
+			SwaggerUtilities::apisPerResource( 'system', 'app_group' ),
+			SwaggerUtilities::apisPerResource( 'system', 'email_template' ),
+			SwaggerUtilities::apisPerResource( 'system', 'role' ),
+			SwaggerUtilities::apisPerResource( 'system', 'service' ),
+			SwaggerUtilities::apisPerResource( 'system', 'user' )
 		);
 
 		return $apis;
@@ -592,26 +592,6 @@ class SystemManager extends RestService
 			"Config"  => array(
 				"id"         => "Config",
 				"properties" => array(
-					"id"                      => array(
-						"type"        => "string",
-						"description" => "Identifier for this record."
-					),
-					"created_date"            => array(
-						"type"        => "string",
-						"description" => "Date this record was created."
-					),
-					"created_by_id"           => array(
-						"type"        => "integer",
-						"description" => "User Id of who created this record."
-					),
-					"last_modified_date"      => array(
-						"type"        => "string",
-						"description" => "Date this record was last modified."
-					),
-					"last_modified_by_id"     => array(
-						"type"        => "integer",
-						"description" => "User Id of who last modified this record."
-					),
 					"dsp_version"             => array(
 						"type"        => "string",
 						"description" => "Version of the DSP software."
@@ -643,7 +623,16 @@ class SystemManager extends RestService
 				)
 			),
 		);
-		$models = array_merge( parent::getSwaggerModels(), $models );
+		$models = array_merge(
+			parent::getSwaggerModels(),
+			$models,
+			SwaggerUtilities::modelsPerResource( 'system', 'app' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'app_group' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'email_template' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'role' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'service' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'user' )
+		);
 
 		return $models;
 	}

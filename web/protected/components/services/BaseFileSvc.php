@@ -291,17 +291,15 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 	}
 
 	/**
-	 * @param string $service
-	 * @param string $description
-	 *
 	 * @return array
+	 * @throws Exception
 	 */
-	public static function swaggerForFiles( $service, $description = '' )
+	public function getSwaggerApis()
 	{
-		$swagger = array(
+		$apis = array(
 			array(
-				'path'        => '/' . $service,
-				'description' => $description,
+				'path'        => '/' . $this->_apiName,
+				'description' => $this->_description,
 				'operations'  => array(
 					array(
 						"httpMethod"     => "GET",
@@ -322,7 +320,7 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 				)
 			),
 			array(
-				'path'        => '/' . $service . '/{folder}/',
+				'path'        => '/' . $this->_apiName . '/{folder}/',
 				'description' => 'Operations for folders.',
 				'operations'  => array(
 					array(
@@ -388,7 +386,7 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 				)
 			),
 			array(
-				'path'        => '/' . $service . '/{folder}/{file}',
+				'path'        => '/' . $this->_apiName . '/{folder}/{file}',
 				'description' => 'Operations for a single file.',
 				'operations'  => array(
 					array(
@@ -429,20 +427,7 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 				)
 			),
 		);
-
-		return $swagger;
-	}
-
-	// Controller based methods
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwagger()
-	{
-		$apis = static::swaggerForFiles( $this->_apiName, $this->_description );
-		$apis = array_merge( parent::getSwaggerApis(), $apis );
+//		$apis = array_merge( parent::getSwaggerApis(), $apis );
 
 		return $apis;
 	}
