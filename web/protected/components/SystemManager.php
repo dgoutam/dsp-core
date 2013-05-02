@@ -26,34 +26,39 @@ use Kisma\Core\Utility\Sql;
  */
 class SystemManager extends RestService
 {
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
 
-	// constants
 	/**
 	 * @var string
 	 */
 	const SYSTEM_TABLE_PREFIX = 'df_sys_';
 
-	// Members
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
 
 	/**
 	 * @var \SystemManager
 	 */
 	private static $_instance = null;
-
 	/**
 	 * @var string
 	 */
 	protected $modelName;
-
 	/**
 	 * @var int
 	 */
 	protected $modelId;
-
 	/**
 	 * @var string
 	 */
 	protected $relatedModelName;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Creates a new SystemManager instance
@@ -68,6 +73,7 @@ class SystemManager extends RestService
 			'description' => 'Service for system administration.',
 			'is_active'   => true,
 		);
+
 		parent::__construct( $config );
 	}
 
@@ -88,31 +94,67 @@ class SystemManager extends RestService
 
 	// Service interface implementation
 
+	/**
+	 * @param string $apiName
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setApiName( $apiName )
 	{
 		throw new Exception( 'SystemManager API name can not be changed.' );
 	}
 
+	/**
+	 * @param string $type
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setType( $type )
 	{
 		throw new Exception( 'SystemManager type can not be changed.' );
 	}
 
+	/**
+	 * @param string $description
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setDescription( $description )
 	{
 		throw new Exception( 'SystemManager description can not be changed.' );
 	}
 
+	/**
+	 * @param boolean $isActive
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setIsActive( $isActive )
 	{
 		throw new Exception( 'SystemManager active flag can not be changed.' );
 	}
 
+	/**
+	 * @param string $name
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setName( $name )
 	{
 		throw new Exception( 'SystemManager name can not be changed.' );
 	}
 
+	/**
+	 * @param string $nativeFormat
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setNativeFormat( $nativeFormat )
 	{
 		throw new Exception( 'SystemManager native format can not be changed.' );
@@ -185,7 +227,7 @@ class SystemManager extends RestService
 		// Check for at least one system admin user
 		$command = $_db->createCommand()
 				   ->select( '(COUNT(*))' )->from( 'df_sys_user' )->where( 'is_sys_admin=:is' );
-		if ( 0 == $command->queryScalar( array(':is' => 1) ) )
+		if ( 0 == $command->queryScalar( array( ':is' => 1 ) ) )
 		{
 			return PlatformStates::ADMIN_REQUIRED;
 		}
@@ -275,11 +317,11 @@ class SystemManager extends RestService
 				if ( empty( $oldVersion ) )
 				{
 					// first time is troublesome with session user id
-					$rows = $command->insert( 'df_sys_config', array('db_version' => $version) );
+					$rows = $command->insert( 'df_sys_config', array( 'db_version' => $version ) );
 				}
 				else
 				{
-					$rows = $command->update( 'df_sys_config', array('db_version' => $version) );
+					$rows = $command->update( 'df_sys_config', array( 'db_version' => $version ) );
 				}
 				if ( 0 >= $rows )
 				{
@@ -328,7 +370,7 @@ class SystemManager extends RestService
 				Pii::redirect( '/site/login' );
 			}
 
-			$theUser = User::model()->find( 'email = :email', array(':email' => $email) );
+			$theUser = User::model()->find( 'email = :email', array( ':email' => $email ) );
 
 			if ( empty( $theUser ) )
 			{
@@ -652,15 +694,15 @@ class SystemManager extends RestService
 			{
 				case '':
 					$result = array(
-						array('name' => 'app', 'label' => 'Application'),
-						array('name' => 'app_group', 'label' => 'Application Group'),
-						array('name' => 'config', 'label' => 'Configuration'),
-						array('name' => 'role', 'label' => 'Role'),
-						array('name' => 'service', 'label' => 'Service'),
-						array('name' => 'user', 'label' => 'User'),
-						array('name' => 'email_template', 'label' => 'Email Template')
+						array( 'name' => 'app', 'label' => 'Application' ),
+						array( 'name' => 'app_group', 'label' => 'Application Group' ),
+						array( 'name' => 'config', 'label' => 'Configuration' ),
+						array( 'name' => 'role', 'label' => 'Role' ),
+						array( 'name' => 'service', 'label' => 'Service' ),
+						array( 'name' => 'user', 'label' => 'User' ),
+						array( 'name' => 'email_template', 'label' => 'Email Template' )
 					);
-					$result = array('resource' => $result);
+					$result = array( 'resource' => $result );
 					break;
 				case 'config':
 					// Most requests contain 'returned fields' parameter, all by default
@@ -674,7 +716,7 @@ class SystemManager extends RestService
 						{
 							$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 							$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-							$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
+							$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 						}
 					}
 
@@ -698,7 +740,7 @@ class SystemManager extends RestService
 						{
 							$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 							$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-							$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
+							$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 						}
 					}
 
@@ -829,7 +871,7 @@ class SystemManager extends RestService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
+					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 				}
 			}
 			switch ( $this->modelName )
@@ -983,7 +1025,7 @@ class SystemManager extends RestService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
+					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 				}
 			}
 			switch ( $this->modelName )
@@ -1082,7 +1124,7 @@ class SystemManager extends RestService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
+					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 				}
 			}
 			switch ( $this->modelName )
@@ -1180,7 +1222,7 @@ class SystemManager extends RestService
 				{
 					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
 					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array('name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder);
+					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 				}
 			}
 			switch ( $this->modelName )
@@ -1450,7 +1492,7 @@ class SystemManager extends RestService
 			$primaryKey = $obj->tableSchema->primaryKey;
 			if ( empty( $return_fields ) && empty( $extras ) )
 			{
-				$data = array($primaryKey => $id);
+				$data = array( $primaryKey => $id );
 			}
 			else
 			{
@@ -1552,7 +1594,7 @@ class SystemManager extends RestService
 			$primaryKey = $obj->tableSchema->primaryKey;
 			if ( empty( $return_fields ) && empty( $extras ) )
 			{
-				$data = array($primaryKey => $id);
+				$data = array( $primaryKey => $id );
 			}
 			else
 			{
@@ -1640,7 +1682,7 @@ class SystemManager extends RestService
 		if ( !isset( $records[0] ) )
 		{ // isArrayNumeric($records)
 			// conversion from xml can pull single record out of array format
-			$records = array($records);
+			$records = array( $records );
 		}
 		UserManager::checkSessionPermission( 'create', 'system', $table );
 		// todo implement rollback
@@ -1653,11 +1695,11 @@ class SystemManager extends RestService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
 			}
 		}
 
-		return array('record' => $out);
+		return array( 'record' => $out );
 	}
 
 	/**
@@ -1727,7 +1769,7 @@ class SystemManager extends RestService
 
 			if ( empty( $return_fields ) && empty( $extras ) )
 			{
-				$data = array($primaryKey => $id);
+				$data = array( $primaryKey => $id );
 			}
 			else
 			{
@@ -1810,7 +1852,7 @@ class SystemManager extends RestService
 		if ( !isset( $records[0] ) )
 		{
 			// conversion from xml can pull single record out of array format
-			$records = array($records);
+			$records = array( $records );
 		}
 		UserManager::checkSessionPermission( 'update', 'system', $table );
 		$out = array();
@@ -1824,11 +1866,11 @@ class SystemManager extends RestService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
 			}
 		}
 
-		return array('record' => $out);
+		return array( 'record' => $out );
 	}
 
 	/**
@@ -1889,11 +1931,11 @@ class SystemManager extends RestService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
 			}
 		}
 
-		return array('record' => $out);
+		return array( 'record' => $out );
 	}
 
 	/**
@@ -2025,7 +2067,7 @@ class SystemManager extends RestService
 		if ( !isset( $records[0] ) )
 		{
 			// conversion from xml can pull single record out of array format
-			$records = array($records);
+			$records = array( $records );
 		}
 		$out = array();
 		foreach ( $records as $record )
@@ -2041,11 +2083,11 @@ class SystemManager extends RestService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
 			}
 		}
 
-		return array('record' => $out);
+		return array( 'record' => $out );
 	}
 
 	/**
@@ -2094,11 +2136,11 @@ class SystemManager extends RestService
 			}
 			catch ( Exception $ex )
 			{
-				$out[] = array('error' => array('message' => $ex->getMessage(), 'code' => $ex->getCode()));
+				$out[] = array( 'error' => array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() ) );
 			}
 		}
 
-		return array('record' => $out);
+		return array( 'record' => $out );
 	}
 
 	/**
@@ -2276,7 +2318,7 @@ class SystemManager extends RestService
 				$out[] = $data;
 			}
 
-			$results = array('record' => $out);
+			$results = array( 'record' => $out );
 			if ( $include_count || $include_schema )
 			{
 				// count total records
@@ -2386,11 +2428,11 @@ class SystemManager extends RestService
 				if ( !is_array( $id ) )
 				{
 					$message = "A $table resource with id '$id' could not be found.";
-					$ids[$key] = array('error' => array('message' => $message, 'code' => ErrorCodes::NOT_FOUND));
+					$ids[$key] = array( 'error' => array( 'message' => $message, 'code' => ErrorCodes::NOT_FOUND ) );
 				}
 			}
 
-			return array('record' => $ids);
+			return array( 'record' => $ids );
 		}
 		catch ( Exception $ex )
 		{
@@ -2596,7 +2638,7 @@ class SystemManager extends RestService
 					{
 						throw new Exception( "Can not include services in package file." );
 					}
-					if ( !empty( $schemas ) && !$zip->addFromString( 'schema.json', json_encode( array('service' => $schemas) ) ) )
+					if ( !empty( $schemas ) && !$zip->addFromString( 'schema.json', json_encode( array( 'service' => $schemas ) ) ) )
 					{
 						throw new Exception( "Can not include database schema in package file." );
 					}
@@ -2845,7 +2887,7 @@ class SystemManager extends RestService
 	 */
 	public static function importAppFromZip( $name, $zip_file )
 	{
-		$record = array('api_name' => $name, 'name' => $name, 'is_url_external' => 0, 'url' => '/index.html');
+		$record = array( 'api_name' => $name, 'name' => $name, 'is_url_external' => 0, 'url' => '/index.html' );
 		try
 		{
 			$result = static::createRecord( 'app', $record );
@@ -2915,7 +2957,7 @@ class SystemManager extends RestService
 		{
 			try
 			{
-				$app = App::model()->find( 'name=:name', array(':name' => $name) );
+				$app = App::model()->find( 'name=:name', array( ':name' => $name ) );
 				if ( isset( $app ) )
 				{
 					return $app->getPrimaryKey();

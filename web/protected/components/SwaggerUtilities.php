@@ -17,13 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * SwaggerUtilities
  * A utilities class to handle swagger documentation of the REST API.
  */
 class SwaggerUtilities
 {
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Swagger base response used by Swagger-UI
@@ -39,6 +41,7 @@ class SwaggerUtilities
 			'swaggerVersion' => '1.1',
 			'basePath'       => Yii::app()->getRequest()->getHostInfo() . '/rest'
 		);
+
 		if ( !empty( $service ) )
 		{
 			$swagger['resourcePath'] = '/' . $service;
@@ -86,25 +89,25 @@ class SwaggerUtilities
 	{
 		$models = array(
 			"Resources" => array(
-				"id" => "Resources",
+				"id"         => "Resources",
 				"properties" => array(
 					"resource" => array(
-						"type" => "array",
+						"type"        => "array",
 						"description" => "Resources available for this service",
-						"items" => array( '$ref' => "Resource")
+						"items"       => array( '$ref' => "Resource" )
 					)
 				)
 			),
-			"Resource" => array(
-				"id" => "Resource",
+			"Resource"  => array(
+				"id"         => "Resource",
 				"properties" => array(
 					"name" => array(
 						"type" => "string"
 					)
 				)
 			),
-			"Success" => array(
-				"id" => "Success",
+			"Success"   => array(
+				"id"         => "Success",
 				"properties" => array(
 					"success" => array(
 						"type" => "boolean"
@@ -407,8 +410,8 @@ class SwaggerUtilities
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve multiple $plural",
 						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned. " .
-					                        "Use the 'fields' and 'related' parameters to limit properties returned for each resource. " .
-					                        "By default, all fields and no relations are returned for all resources.",
+											"Use the 'fields' and 'related' parameters to limit properties returned for each resource. " .
+											"By default, all fields and no relations are returned for all resources.",
 						"responseClass"  => $classPlural,
 						"nickname"       => "get" . $classPlural,
 						"parameters"     => static::getParameters(
@@ -430,7 +433,7 @@ class SwaggerUtilities
 						"httpMethod"     => "POST",
 						"summary"        => "Create one or more $plural",
 						"notes"          => "Post data should be a single $className or $classPlural, an array of $className (shown). " .
-					                        "By default, only the id property of the $className is returned on success, " .
+											"By default, only the id property of the $className is returned on success, " .
 											"use 'fields' and 'related' to return more info.",
 						"responseClass"  => $classPlural,
 						"nickname"       => "create" . $classPlural,
@@ -533,7 +536,7 @@ class SwaggerUtilities
 					),
 				)
 			),
-			$className  => array(
+			$className   => array(
 				"id"         => $className,
 				"properties" => array(
 					"created_date"        => array(
