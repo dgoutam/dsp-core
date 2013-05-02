@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
 /**
  * PageLocation.php
  * The various places within a web page
