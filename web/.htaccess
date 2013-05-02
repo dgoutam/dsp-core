@@ -1,5 +1,3 @@
-# BE AWARE...
-#
 # This file is part of the DreamFactory Services Platform(tm) (DSP)
 #
 # DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
@@ -17,17 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# .htaccess
-#
 IndexIgnore */*
 RewriteEngine on
 RewriteBase /
 
-#	Force login to be SSL
+#	Force SSL
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP_HOST} ^(.+)\.cloud\.dreamfactory\.com$ [NC]
-RewriteRule ^/?site/login/?(.*) https://%{SERVER_NAME}/site/login/$1 [R,L]
+RewriteRule  (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L]
 
 # if a directory or a file exists, use it directly
 RewriteCond %{REQUEST_FILENAME} !-f

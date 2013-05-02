@@ -17,61 +17,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * RestController
  * REST API router and controller
  */
 class RestController extends Controller
 {
-	// Members
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
 
 	/**
-	 * Default response format, either 'json' or 'xml'
-	 *
-	 * @var string
+	 * @var string Default response format, either 'json' or 'xml'
 	 */
-	private $format = 'json';
-
+	protected $format = 'json';
 	/**
-	 * service to direct call to
-	 *
-	 * @var string
+	 * @var string service to direct call to
 	 */
-	private $service = '';
-
+	protected $service = '';
 	/**
-	 * resource to be handled by service
-	 *
-	 * @var string
+	 * @var string resource to be handled by service
 	 */
-	private $resource = '';
-
+	protected $resource = '';
 	/**
-	 * Swagger controlled get
-	 *
-	 * @var bool
+	 * @var bool Swagger controlled get
 	 */
-	private $swagger = false;
+	protected $swagger = false;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
-	 * @return array action filters
-	 */
-	public function filters()
-	{
-		return array();
-	}
-
-	// Actions
-
-	/**
-	 *
+	 * /rest/index
 	 */
 	public function actionIndex()
 	{
 		try
 		{
 			$command = Yii::app()->db->createCommand();
+
 			if ( $this->swagger )
 			{
 				$services = array(
@@ -79,9 +64,9 @@ class RestController extends Controller
 					array( 'path' => '/system', 'description' => 'System Configuration' )
 				);
 				$command->select( 'api_name,description' )
-					->from( 'df_sys_service' )
-					->order( 'api_name' )
-					->where( 'type != :t', array( ':t' => 'Remote Web Service' ) );
+				->from( 'df_sys_service' )
+				->order( 'api_name' )
+				->where( 'type != :t', array( ':t' => 'Remote Web Service' ) );
 				$result = $command->queryAll();
 				foreach ( $result as $service )
 				{
@@ -390,8 +375,8 @@ class RestController extends Controller
 			{
 				$requestUri = yii::app()->request->requestUri;
 				if ( ( false === strpos( $requestUri, '?' ) &&
-					'/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
-					( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
+					   '/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
+					 ( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
 				)
 				{
 					$this->resource .= '/';
@@ -407,7 +392,7 @@ class RestController extends Controller
 	/**
 	 * @param Exception $ex
 	 */
-	private function handleErrors( Exception $ex )
+	protected function handleErrors( Exception $ex )
 	{
 		$result = array(
 			"error" => array(
@@ -424,7 +409,7 @@ class RestController extends Controller
 	 * @param     $result
 	 * @param int $code
 	 */
-	private function handleResults( $result, $code = 200 )
+	protected function handleResults( $result, $code = 200 )
 	{
 		$code = ErrorCodes::getHttpStatusCode( $code );
 		$title = ErrorCodes::getHttpStatusCodeTitle( $code );

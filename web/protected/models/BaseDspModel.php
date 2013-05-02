@@ -101,13 +101,13 @@ class BaseDspModel extends \CActiveRecord
 		return $_cache = array_merge(
 			parent::attributeLabels(),
 			array(
-				'id'                  => 'ID',
-				'create_date'         => 'Created Date',
-				'created_date'        => 'Created Date',
-				'last_modified_date'  => 'Last Modified Date',
-				'lmod_date'           => 'Last Modified Date',
-				'created_by_id'       => 'Created By',
-				'last_modified_by_id' => 'Last Modified By',
+				 'id'                  => 'ID',
+				 'create_date'         => 'Created Date',
+				 'created_date'        => 'Created Date',
+				 'last_modified_date'  => 'Last Modified Date',
+				 'lmod_date'           => 'Last Modified Date',
+				 'created_by_id'       => 'Created By',
+				 'last_modified_by_id' => 'Last Modified By',
 			)
 		);
 	}
@@ -180,18 +180,18 @@ class BaseDspModel extends \CActiveRecord
 		return array_merge(
 			parent::behaviors(),
 			array(
-				//	Data formatter
-				'base_model.data_format_behavior' => array(
-					'class' => 'Platform\\Yii\\Behaviors\\DataFormatBehavior',
-				),
-				//	Timestamper
-				'base_model.timestamp_behavior'   => array(
-					'class'              => 'Platform\\Yii\\Behaviors\\TimestampBehavior',
-					'createdColumn'      => 'created_date',
+				 //	Data formatter
+				 'base_model.data_format_behavior' => array(
+					 'class' => 'Platform\\Yii\\Behaviors\\DataFormatBehavior',
+				 ),
+				 //	Timestamper
+				 'base_model.timestamp_behavior'   => array(
+					 'class'              => 'Platform\\Yii\\Behaviors\\TimestampBehavior',
+					 'createdColumn'      => 'created_date',
 //					 'createdByColumn'      => 'created_by_id',
-					'lastModifiedColumn' => 'last_modified_date',
+					 'lastModifiedColumn' => 'last_modified_date',
 //					 'lastModifiedByColumn' => 'last_modified_by_id',
-				),
+				 ),
 			)
 		);
 	}
@@ -309,7 +309,7 @@ class BaseDspModel extends \CActiveRecord
 		return new \CActiveDataProvider(
 			$this,
 			array(
-				'criteria' => $_criteria,
+				 'criteria' => $_criteria,
 			)
 		);
 	}

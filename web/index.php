@@ -17,9 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * index.php
- */
 $_basePath = dirname( __DIR__ );
 $_autoloader = require_once( $_basePath . '/vendor/autoload.php' );
 require_once __DIR__ . '/protected/components/Pii.php';

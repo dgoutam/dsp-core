@@ -1,4 +1,22 @@
 <?php
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use \Kisma\Core\Exceptions\StorageException;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
@@ -6,24 +24,6 @@ use Kisma\Core\Utility\Sql;
 /**
  * User.php
  * The system user model for the DSP
- *
- * This file is part of the DreamFactory Document Service Platform (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This source file and all is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
  *
  * Columns
  *
@@ -90,14 +90,14 @@ class User extends BaseDspSystemModel
 	public function rules()
 	{
 		$_rules = array(
-			array('email, display_name', 'required'),
-			array('email, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false),
-			array('email', 'email'),
-			array('email', 'length', 'max' => 255),
-			array('is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true),
-			array('password, first_name, last_name, security_answer', 'length', 'max' => 64),
-			array('phone', 'length', 'max' => 32),
-			array('confirm_code, display_name, security_question', 'length', 'max' => 128),
+			array( 'email, display_name', 'required' ),
+			array( 'email, display_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
+			array( 'email', 'email' ),
+			array( 'email', 'length', 'max' => 255 ),
+			array( 'is_active, is_sys_admin, default_app_id, role_id', 'numerical', 'integerOnly' => true ),
+			array( 'password, first_name, last_name, security_answer', 'length', 'max' => 64 ),
+			array( 'phone', 'length', 'max' => 32 ),
+			array( 'confirm_code, display_name, security_question', 'length', 'max' => 128 ),
 		);
 
 		return array_merge( parent::rules(), $_rules );
@@ -109,18 +109,18 @@ class User extends BaseDspSystemModel
 	public function relations()
 	{
 		$_relations = array(
-			'apps_created'        => array(self::HAS_MANY, 'App', 'created_by_id'),
-			'apps_modified'       => array(self::HAS_MANY, 'App', 'last_modified_by_id'),
-			'app_groups_created'  => array(self::HAS_MANY, 'AppGroup', 'created_by_id'),
-			'app_groups_modified' => array(self::HAS_MANY, 'AppGroup', 'last_modified_by_id'),
-			'roles_created'       => array(self::HAS_MANY, 'Role', 'created_by_id'),
-			'roles_modified'      => array(self::HAS_MANY, 'Role', 'last_modified_by_id'),
-			'services_created'    => array(self::HAS_MANY, 'Service', 'created_by_id'),
-			'services_modified'   => array(self::HAS_MANY, 'Service', 'last_modified_by_id'),
-			'users_created'       => array(self::HAS_MANY, 'User', 'created_by_id'),
-			'users_modified'      => array(self::HAS_MANY, 'User', 'last_modified_by_id'),
-			'default_app'         => array(self::BELONGS_TO, 'App', 'default_app_id'),
-			'role'                => array(self::BELONGS_TO, 'Role', 'role_id'),
+			'apps_created'        => array( self::HAS_MANY, 'App', 'created_by_id' ),
+			'apps_modified'       => array( self::HAS_MANY, 'App', 'last_modified_by_id' ),
+			'app_groups_created'  => array( self::HAS_MANY, 'AppGroup', 'created_by_id' ),
+			'app_groups_modified' => array( self::HAS_MANY, 'AppGroup', 'last_modified_by_id' ),
+			'roles_created'       => array( self::HAS_MANY, 'Role', 'created_by_id' ),
+			'roles_modified'      => array( self::HAS_MANY, 'Role', 'last_modified_by_id' ),
+			'services_created'    => array( self::HAS_MANY, 'Service', 'created_by_id' ),
+			'services_modified'   => array( self::HAS_MANY, 'Service', 'last_modified_by_id' ),
+			'users_created'       => array( self::HAS_MANY, 'User', 'created_by_id' ),
+			'users_modified'      => array( self::HAS_MANY, 'User', 'last_modified_by_id' ),
+			'default_app'         => array( self::BELONGS_TO, 'App', 'default_app_id' ),
+			'role'                => array( self::BELONGS_TO, 'Role', 'role_id' ),
 		);
 
 		return array_merge( parent::relations(), $_relations );
@@ -242,7 +242,7 @@ class User extends BaseDspSystemModel
 
 		//	Check and make sure this is not the last admin user
 		if ( $this->is_sys_admin &&
-			!static::model()->count( 'is_sys_admin = :is AND id != :id', array(':is' => 1, ':id' => $_id) )
+			 !static::model()->count( 'is_sys_admin = :is AND id != :id', array( ':is' => 1, ':id' => $_id ) )
 		)
 		{
 			throw new StorageException( 'There must be at least one administrative account. This one may not be deleted.' );
@@ -278,25 +278,25 @@ class User extends BaseDspSystemModel
 			$requested,
 			array_merge(
 				array(
-					'display_name',
-					'first_name',
-					'last_name',
-					'email',
-					'phone',
-					'is_active',
-					'is_sys_admin',
-					'role_id',
-					'default_app_id',
-					( $addConfirmCode ? 'confirm_code' : '' )
+					 'display_name',
+					 'first_name',
+					 'last_name',
+					 'email',
+					 'phone',
+					 'is_active',
+					 'is_sys_admin',
+					 'role_id',
+					 'default_app_id',
+					 ( $addConfirmCode ? 'confirm_code' : '' )
 				),
 				$columns
 			),
 			// hide these from the general public
 			array_merge(
 				array(
-					'password',
-					'security_question',
-					'security_answer'
+					 'password',
+					 'security_question',
+					 'security_answer'
 				),
 				$hidden
 			)
@@ -315,7 +315,7 @@ class User extends BaseDspSystemModel
 				 ->with( 'role.role_service_accesses', 'role.apps', 'role.services' )
 				 ->findByAttributes(
 				array(
-					'email' => $userName
+					 'email' => $userName
 				)
 			);
 
