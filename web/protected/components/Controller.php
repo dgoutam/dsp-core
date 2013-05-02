@@ -17,6 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Platform\Interfaces\Graylog;
+use Platform\Interfaces\GraylogLevels;
+use Platform\Services\Graylog\GelfLogger;
+
 /**
  * Controller
  */
@@ -39,15 +43,16 @@ class Controller extends \CController
 
 		//	Get the additional data ready
 		$_logInfo = array(
-			'short_message' => 'DSP <--- "' . $action->id . '"',
-			'full_message'  => 'Inbound DSP request from "' . $_host . '": ' . $action->id,
+			'short_message' => strtoupper( $action->id ) . ' /' . $this->route,
+			'full_message'  => 'Inbound API request from "' . $_host . '": ' . $action->id,
 			'level'         => GraylogLevels::Info,
 			'facility'      => Graylog::DefaultFacility . '/api',
+			'_dsp_name'     => $_host,
 			'_source'       => $_SERVER['REMOTE_ADDR'],
 			'_payload'      => $_REQUEST,
 		);
 
-		\GelfLogger::logMessage( $_logInfo );
+		GelfLogger::logMessage( $_logInfo );
 
 		return true;
 	}

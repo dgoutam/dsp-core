@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Interfaces;
+
 use Kisma\Core\Enums\SeedEnum;
 use Platform\Interfaces\Graylog;
 

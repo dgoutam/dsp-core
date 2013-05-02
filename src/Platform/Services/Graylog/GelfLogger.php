@@ -17,12 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Services\Graylog;
+
 use Kisma\Core\SeedBag;
+use Platform\Interfaces\Graylog;
 
 /**
  * GelfLogger
  */
-class GelfLogger extends SeedBag implements \Platform\Interfaces\Graylog
+class GelfLogger extends SeedBag implements Graylog
 {
 	//**********************************************************************
 	//* Methods
@@ -47,14 +50,14 @@ class GelfLogger extends SeedBag implements \Platform\Interfaces\Graylog
 			$_data = $message->getData();
 		}
 
-		$_toSend = self::_prepareData( $_data );
+		$_toSend = static::_prepareData( $_data );
 
 		if ( !$_toSend )
 		{
 			return false;
 		}
 
-		$_url = 'udp://' . self::DefaultHost . ':' . self::DefaultPort;
+		$_url = 'udp://' . static::DefaultHost . ':' . static::DefaultPort;
 		$_sock = stream_socket_client( $_url );
 
 		foreach ( $_toSend as $_buf )
@@ -93,17 +96,17 @@ class GelfLogger extends SeedBag implements \Platform\Interfaces\Graylog
 			return false;
 		}
 
-		if ( strlen( $_gzJsonData ) <= self::MaximumChunkSize )
+		if ( strlen( $_gzJsonData ) <= static::MaximumChunkSize )
 		{
 			return array( $_gzJsonData );
 		}
 
 		$_prepared = array();
 
-		$_chunks = str_split( $_gzJsonData, self::MaximumChunkSize );
+		$_chunks = str_split( $_gzJsonData, static::MaximumChunkSize );
 		$_numChunks = count( $_chunks );
 
-		if ( $_numChunks > self::MaximumChunksAllowed )
+		if ( $_numChunks > static::MaximumChunksAllowed )
 		{
 			return false;
 		}
@@ -113,7 +116,7 @@ class GelfLogger extends SeedBag implements \Platform\Interfaces\Graylog
 
 		foreach ( $_chunks as $_chunk )
 		{
-			$_prepared[] = self::_prepareChunk( $_chunk, $_msgId, $_seqNum, $_numChunks );
+			$_prepared[] = static::_prepareChunk( $_chunk, $_msgId, $_seqNum, $_numChunks );
 		}
 
 		return $_prepared;

@@ -17,14 +17,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Services\Graylog;
+
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
+use Platform\Interfaces\Graylog;
+use Platform\Interfaces\GraylogLevels;
 
 /**
  * GelfMessage
  * Encapsulation of a graylog packet
  */
-class GelfMessage implements \Platform\Interfaces\Graylog
+class GelfMessage implements Graylog
 {
 	//**********************************************************************
 	//* Members
@@ -98,7 +103,7 @@ class GelfMessage implements \Platform\Interfaces\Graylog
 
 		$this->_data = array(
 			'version'   => static::GelfVersion,
-			'host'      => $_host,
+			'host'      => FilterInput::server( 'HTTP_HOST' ) . ' (' . $_host . ')',
 			'timestamp' => $_time,
 			'level'     => Option::get( $data, 'level', static::DefaultLevel ),
 			'facility'  => Option::get( $data, 'facility', static::DefaultFacility ),
