@@ -58,14 +58,14 @@ class SiteController extends Controller
 		return array(
 			array(
 				'allow',
-				'actions' => array('index', 'login', 'error',),
-				'users'   => array('?'),
+				'actions' => array( 'index', 'login', 'error', ),
+				'users'   => array( '?' ),
 			),
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'actions' => array('initSystem', 'initAdmin', 'environment', 'initSchema', 'upgradeSchema', 'initData', 'metrics', 'fileTree', 'logout'),
-				'users'   => array('@'),
+				'actions' => array( 'initSystem', 'initAdmin', 'environment', 'initSchema', 'upgradeSchema', 'initData', 'metrics', 'fileTree', 'logout' ),
+				'users'   => array( '@' ),
 			),
 //			//	Deny all others access to init commands
 //			array(
@@ -79,7 +79,7 @@ class SiteController extends Controller
 		$this->render(
 			'_splash',
 			array(
-				'for' => PlatformStates::INIT_REQUIRED,
+				 'for' => PlatformStates::INIT_REQUIRED,
 			)
 		);
 
@@ -111,19 +111,19 @@ class SiteController extends Controller
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( array('site/initAdmin') );
+					$this->redirect( array( 'site/initAdmin' ) );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
-					$this->redirect( array('site/upgradeSchema') );
+					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( array('site/upgradeSchema') );
+					$this->redirect( array( 'site/upgradeSchema' ) );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( array('site/initData') );
+					$this->redirect( array( 'site/initData' ) );
 					break;
 			}
 		}
@@ -182,12 +182,16 @@ class SiteController extends Controller
 
 				return;
 			}
+			else
+			{
+				$_model->addError( 'username', 'Invalid user name and password combination.' );
+			}
 		}
 
 		$this->render(
 			'login',
 			array(
-				'model' => $_model
+				 'model' => $_model
 			)
 		);
 	}
@@ -197,7 +201,7 @@ class SiteController extends Controller
 	 */
 	public function actionLogout()
 	{
-		Yii::app()->user->logout();
+		Pii::user()->logout();
 		$this->redirect( '/' );
 	}
 
@@ -233,7 +237,7 @@ class SiteController extends Controller
 		$this->render(
 			'initSchema',
 			array(
-				'model' => $_model
+				 'model' => $_model
 			)
 		);
 	}
@@ -270,7 +274,7 @@ class SiteController extends Controller
 		$this->render(
 			'initData',
 			array(
-				'model' => $_model
+				 'model' => $_model
 			)
 		);
 	}

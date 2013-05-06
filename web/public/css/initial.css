@@ -14,7 +14,7 @@ h2.headline {
 .main-content {
 	height:     640px;
 	font-size:  18px !important;
-	background: url(../images/bg-initial.png) 25% 0 no-repeat;
+	background: url(../images/bg-initial.png) 50% 0 no-repeat;
 }
 
 .main-content.step2 {

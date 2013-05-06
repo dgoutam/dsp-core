@@ -24,6 +24,32 @@
 use Kisma\Core\Utility\Bootstrap;
 use Platform\Yii\Utility\Validate;
 
+$_style = $_message = null;
+
+if ( isset( $model ) )
+{
+	$_errors = $model->getErrors();
+
+	if ( !empty( $_errors ) )
+	{
+		$_message
+			= '<div class="alert alert-error alert-fixed fade in" data-alert="alert" style="width: 50%;"><strong>No sir, we didn\'t like it.</strong>';
+
+		foreach ( $_errors as $_error )
+		{
+			foreach ( $_error as $_value )
+			{
+				$_message .= '<p>' . $_value . '</p>';
+			}
+		}
+
+		$_message .= '</div>';
+
+		$_style = 'margin-bottom: 8px;';
+	}
+}
+
+
 Validate::register(
 	'form#login-form',
 	array(
@@ -33,7 +59,8 @@ Validate::register(
 	)
 );
 ?>
-<h2 class="headline">Activate Your New DSP!</h2>
+<h2 class="headline" style="<?php echo $_style; ?>">Activate Your New DSP!</h2>
+<?php echo $_message; ?>
 <p>In order to activate this DSP, you must enter your <strong>DreamFactory.com</strong> site credentials.</p><p>Please enter the email address and
 	password you used to register on the <strong>DreamFactory.com</strong> web site. If you have not yet registered, you may <a
 		href="https://www.dreamfactory.com/user/register"
