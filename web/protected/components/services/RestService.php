@@ -20,52 +20,154 @@
 
 /**
  * RestService
- * A base service class to handle services accessed through the REST API.
+ * A base to handle services accessed through the REST API.
  */
-abstract class RestService extends BaseService implements iRestHandler, iSwagger
+abstract class RestService extends BaseService implements iRestHandler, iSwagger, HttpMethod
 {
+	//*************************************************************************
+	//* Members
+	//*************************************************************************
+
+	/**
+	 * @var string Full path coming from the URL of the REST call
+	 */
+	protected $_resourcePath = null;
+
+	/**
+	 * @var array Resource path broken into array by path divider ('/')
+	 */
+	protected $_resourceArray = null;
+
+	/**
+	 * @var string First piece of the resource path array
+	 */
+	protected $_resource = null;
+
+	/**
+	 * @var string REST verb to take action on
+	 */
+	protected $_action = self::Get;
+
+
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
 
 	/**
-	 * @throws Exception
+	 * @param null $resource_path
 	 */
-	public function actionPost()
+	protected function _setResource( $resource_path = null )
 	{
-		throw new Exception( "POST requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
+		$this->_resourcePath = $resource_path;
+		$this->_resourceArray = ( !empty( $this->_resourcePath ) ) ? explode( '/', $this->_resourcePath ) : array();
 	}
 
 	/**
-	 * @throws Exception
+	 * @param string $action
 	 */
-	public function actionPut()
+	protected function _setAction( $action = self::Get )
 	{
-		throw new Exception( "PUT requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
+		$this->_action = strtoupper( $action );
 	}
 
 	/**
-	 * @throws Exception
+	 * Apply the commonly used REST path members to the class
 	 */
-	public function actionMerge()
+	protected function _detectResourceMembers()
 	{
-		throw new Exception( "MERGE requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
+		$this->_resource = ( isset( $this->_resourceArray, $this->_resourceArray[0] ) )
+			? strtolower( $this->_resourceArray[0] )
+			: null;
 	}
 
 	/**
-	 * @throws Exception
+	 *
 	 */
-	public function actionDelete()
+	protected function _preProcess()
 	{
-		throw new Exception( "DELETE requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
+		// throw exception here to stop processing
 	}
 
 	/**
-	 * @throws Exception
+	 * @param null $results
 	 */
-	public function actionGet()
+	protected function _postProcess( $results = null )
 	{
-		throw new Exception( "GET requests are not supported by this service type.", ErrorCodes::BAD_REQUEST );
+
+	}
+
+	/**
+	 * @return bool
+	 */
+	protected function _handleResource()
+	{
+		return false;
+	}
+
+	/**
+	 * List all possible resources accessible via this service, return false if this is not applicable
+	 *
+	 * @Api(
+	 *   path="/{api_name}", description="Operations available for this service.",
+	 *   @operations(
+	 *     @operation(
+	 *       httpMethod="GET", summary="List resources available for this service.",
+	 *       notes="See listed operations for each resource available.",
+	 *       responseClass="Resources", nickname="getResources",
+	 *       @parameters(
+	 *       ),
+	 *       @errorResponses(
+	 *       )
+	 *     )
+	 *   )
+	 * )
+	 *
+	 * @return array|boolean
+	 */
+	protected function _listResources()
+	{
+		return false;
+	}
+
+	/**
+	 * @param null   $resource
+	 * @param string $action
+	 *
+	 * @return array|bool
+	 * @throws BadRequestException
+	 */
+	public function processRequest( $resource = null, $action = self::Get)
+	{
+		$this->_setResource( $resource );
+		$this->_setAction( $action );
+		$this->_detectResourceMembers();
+
+		$this->_preProcess();
+
+		if ( empty( $this->_resource ) && (0 == strcasecmp( self::Get, $action ) ) )
+		{
+			$results = $this->_listResources();
+			if ( false === $results )
+			{
+				$results = $this->_handleResource();
+			}
+		}
+		else
+		{
+			$results = $this->_handleResource();
+		}
+
+		$this->_postProcess( $results );
+
+		if ( false === $results )
+		{
+			$msg = strtoupper($action) . ' Request';
+			$msg .= ( empty( $this->_resource ) ) ? " for resource '$this->_resourcePath'" : ' with no resource';
+			$msg .=	" is not currently supported by the '$this->_apiName' service API.";
+			throw new BadRequestException( $msg );
+		}
+
+		return $results;
 	}
 
 	/**

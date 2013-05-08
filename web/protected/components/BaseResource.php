@@ -18,14 +18,19 @@
  * limitations under the License.
  */
 /**
- * BaseService
- * A base service class to handle services of various kinds.
+ * BaseResource
+ * A base service resource class to handle service resources of various kinds.
  */
-abstract class BaseService implements iService
+abstract class BaseResource
 {
 	//*************************************************************************
 	//* Members
 	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	protected $_serviceName;
 
 	/**
 	 * @var string
@@ -52,11 +57,6 @@ abstract class BaseService implements iService
 	 */
 	protected $_isActive = false;
 
-	/**
-	 * @var string
-	 */
-	protected $_nativeFormat = '';
-
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
@@ -73,44 +73,56 @@ abstract class BaseService implements iService
 	{
 		//parent::__construct( $settings ); // not ready to let the seed out of the bag
 
-		// Validate basic settings
-		$this->_apiName = Utilities::getArrayValue( 'api_name', $settings, '' );
+		$this->_serviceName = Utilities::getArrayValue( 'service_name', $settings, '' );
 
-		if ( empty( $this->_apiName ) )
+		if ( empty( $this->_serviceName ) )
 		{
 			throw new \InvalidArgumentException( 'Service name can not be empty.' );
 		}
 
+		$this->_apiName = Utilities::getArrayValue( 'api_name', $settings, '' );
 		$this->_type = Utilities::getArrayValue( 'type', $settings, '' );
-
-		if ( empty( $this->_type ) )
-		{
-			throw new \InvalidArgumentException( 'Service type can not be empty.' );
-		}
-
 		$this->_name = Utilities::getArrayValue( 'name', $settings, '' );
 		$this->_description = Utilities::getArrayValue( 'description', $settings, '' );
-		$this->_nativeFormat = Utilities::getArrayValue( 'native_format', $settings, '' );
 		$this->_isActive = Utilities::boolval( Utilities::getArrayValue( 'is_active', $settings, false ) );
 	}
 
 	/**
 	 * @param string $request
-	 * @param string $component
 	 */
-	protected function checkPermission( $request, $component = '' )
+	protected function checkPermission( $request )
 	{
-		UserSession::checkSessionPermission( $request, $this->_apiName, $component );
+		UserSession::checkSessionPermission( $request, $this->_serviceName, $this->_apiName );
 	}
 
 	/**
-	 * @param string $apiName
+	 * @param string $service_name
 	 *
-	 * @return BaseService
+	 * @return BaseResource
 	 */
-	public function setApiName( $apiName )
+	public function setServiceName( $service_name )
 	{
-		$this->_apiName = $apiName;
+		$this->_serviceName = $service_name;
+
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getServiceName()
+	{
+		return $this->_serviceName;
+	}
+
+	/**
+	 * @param string $api_name
+	 *
+	 * @return BaseResource
+	 */
+	public function setApiName( $api_name )
+	{
+		$this->_apiName = $api_name;
 
 		return $this;
 	}
@@ -126,7 +138,7 @@ abstract class BaseService implements iService
 	/**
 	 * @param string $type
 	 *
-	 * @return BaseService
+	 * @return BaseResource
 	 */
 	public function setType( $type )
 	{
@@ -146,7 +158,7 @@ abstract class BaseService implements iService
 	/**
 	 * @param string $description
 	 *
-	 * @return BaseService
+	 * @return BaseResource
 	 */
 	public function setDescription( $description )
 	{
@@ -166,7 +178,7 @@ abstract class BaseService implements iService
 	/**
 	 * @param boolean $isActive
 	 *
-	 * @return BaseService
+	 * @return BaseResource
 	 */
 	public function setIsActive( $isActive )
 	{
@@ -186,7 +198,7 @@ abstract class BaseService implements iService
 	/**
 	 * @param string $name
 	 *
-	 * @return BaseService
+	 * @return BaseResource
 	 */
 	public function setName( $name )
 	{
@@ -201,25 +213,5 @@ abstract class BaseService implements iService
 	public function getName()
 	{
 		return $this->_name;
-	}
-
-	/**
-	 * @param string $nativeFormat
-	 *
-	 * @return BaseService
-	 */
-	public function setNativeFormat( $nativeFormat )
-	{
-		$this->_nativeFormat = $nativeFormat;
-
-		return $this;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getNativeFormat()
-	{
-		return $this->_nativeFormat;
 	}
 }

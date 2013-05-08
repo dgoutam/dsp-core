@@ -246,50 +246,62 @@ class EmailSvc extends RestService
 	 * @return array
 	 * @throws Exception
 	 */
-	public function actionPost()
+	protected function _handleResource()
 	{
-		$data = Utilities::getPostDataAsArray();
-
-		// build email from posted data
-		$template = Utilities::getArrayValue( 'template', $_REQUEST );
-		$template = Utilities::getArrayValue( 'template', $data, $template );
-		if ( !empty( $template ) )
+		switch ( $this->_resource )
 		{
-			$count = $this->sendEmailByTemplate( $template, $data );
-		}
-		else
-		{
-			if ( empty( $data ) )
-			{
-				throw new Exception( 'No POST data in request.', ErrorCodes::BAD_REQUEST );
-			}
+			case '':
+				switch ( $this->_action )
+				{
+					case self::Post:
+						$data = Utilities::getPostDataAsArray();
 
-			$to = Utilities::getArrayValue( 'to', $data );
-			$cc = Utilities::getArrayValue( 'cc', $data );
-			$bcc = Utilities::getArrayValue( 'bcc', $data );
-			$subject = Utilities::getArrayValue( 'subject', $data );
-			$text = Utilities::getArrayValue( 'body_text', $data );
-			$html = Utilities::getArrayValue( 'body_html', $data );
-			$fromName = Utilities::getArrayValue( 'from_name', $data );
-			$fromEmail = Utilities::getArrayValue( 'from_email', $data );
-			$replyName = Utilities::getArrayValue( 'reply_to_name', $data );
-			$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data );
-			$count = $this->sendEmail(
-				$to,
-				$cc,
-				$bcc,
-				$subject,
-				$text,
-				$html,
-				$fromName,
-				$fromEmail,
-				$replyName,
-				$replyEmail,
-				$data
-			);
+						// build email from posted data
+						$template = Utilities::getArrayValue( 'template', $_REQUEST );
+						$template = Utilities::getArrayValue( 'template', $data, $template );
+						if ( !empty( $template ) )
+						{
+							$count = $this->sendEmailByTemplate( $template, $data );
+						}
+						else
+						{
+							if ( empty( $data ) )
+							{
+								throw new Exception( 'No POST data in request.', ErrorCodes::BAD_REQUEST );
+							}
+
+							$to = Utilities::getArrayValue( 'to', $data );
+							$cc = Utilities::getArrayValue( 'cc', $data );
+							$bcc = Utilities::getArrayValue( 'bcc', $data );
+							$subject = Utilities::getArrayValue( 'subject', $data );
+							$text = Utilities::getArrayValue( 'body_text', $data );
+							$html = Utilities::getArrayValue( 'body_html', $data );
+							$fromName = Utilities::getArrayValue( 'from_name', $data );
+							$fromEmail = Utilities::getArrayValue( 'from_email', $data );
+							$replyName = Utilities::getArrayValue( 'reply_to_name', $data );
+							$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data );
+							$count = $this->sendEmail(
+								$to,
+								$cc,
+								$bcc,
+								$subject,
+								$text,
+								$html,
+								$fromName,
+								$fromEmail,
+								$replyName,
+								$replyEmail,
+								$data
+							);
+						}
+
+						return array( 'count' => $count );
+						break;
+				}
+				break;
 		}
 
-		return array( 'count' => $count );
+		return false;
 	}
 
 	/**
@@ -445,4 +457,127 @@ class EmailSvc extends RestService
 
 		return EmailUtilities::sendMessage( $this->_transport, $message );
 	}
+/*
+	public static function sendUserEmail( $template, $data )
+	{
+		$to = Utilities::getArrayValue( 'to', $data );
+		$cc = Utilities::getArrayValue( 'cc', $data );
+		$bcc = Utilities::getArrayValue( 'bcc', $data );
+		$subject = Utilities::getArrayValue( 'subject', $template );
+		$content = Utilities::getArrayValue( 'content', $template );
+		$bodyText = Utilities::getArrayValue( 'text', $content );
+		$bodyHtml = Utilities::getArrayValue( 'html', $content );
+		try
+		{
+			$svc = ServiceHandler::getServiceObject( 'email' );
+			$result = ( $svc ) ? $svc->sendEmail( $to, $cc, $bcc, $subject, $bodyText, $bodyHtml ) : false;
+			if ( !filter_var( $result, FILTER_VALIDATE_BOOLEAN ) )
+			{
+				$msg = "Error: Failed to send user email.";
+				if ( is_string( $result ) )
+				{
+					$msg .= "\n$result";
+				}
+				throw new Exception( $msg );
+			}
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
+
+	protected function sendUserWelcomeEmail( $email, $fullname )
+	{
+//        $to = "$fullname <$email>";
+		$to = $email;
+		$subject = 'Welcome to ' . $this->siteName;
+		$body = 'Hello ' . $fullname . ",\r\n\r\n" .
+				"Welcome! Your registration  with " . $this->siteName . " is complete.\r\n" .
+				"\r\n" .
+				"Regards,\r\n" .
+				"Webmaster\r\n" .
+				$this->siteName;
+
+		$html = str_replace( "\r\n", "<br />", $body );
+	}
+
+	protected function sendAdminIntimationOnRegComplete( $email, $fullname )
+	{
+		$subject = "Registration Completed: " . $fullname;
+		$body = "A new user registered at " . $this->siteName . ".\r\n" .
+				"Name: " . $fullname . "\r\n" .
+				"Email address: " . $email . "\r\n";
+
+		$html = str_replace( "\r\n", "<br />", $body );
+	}
+
+	protected function sendResetPasswordLink( $email, $full_name )
+	{
+//        $to = "$full_name <$email>";
+		$to = $email;
+		$subject = "Your reset password request at " . $this->siteName;
+		$link = Pii::app()->getHomeUrl() . '?code=' . urlencode( $this->getResetPasswordCode( $email ) );
+
+		$body = "Hello " . $full_name . ",\r\n\r\n" .
+				"There was a request to reset your password at " . $this->siteName . "\r\n" .
+				"Please click the link below to complete the request: \r\n" . $link . "\r\n" .
+				"Regards,\r\n" .
+				"Webmaster\r\n" .
+				$this->siteName;
+
+		$html = str_replace( "\r\n", "<br />", $body );
+	}
+
+	protected function sendNewPassword( $user_rec, $new_password )
+	{
+		$email = $user_rec['email'];
+//        $to = $user_rec['name'] . ' <' . $email . '>';
+		$to = $email;
+		$subject = "Your new password for " . $this->siteName;
+		$body = "Hello " . $user_rec['name'] . ",\r\n\r\n" .
+				"Your password was reset successfully. " .
+				"Here is your updated login:\r\n" .
+				"email:" . $user_rec['email'] . "\r\n" .
+				"password:$new_password\r\n" .
+				"\r\n" .
+				"Login here: " . Utilities::getAbsoluteURLFolder() . "login.php\r\n" .
+				"\r\n" .
+				"Regards,\r\n" .
+				"Webmaster\r\n" .
+				$this->siteName;
+
+		$html = str_replace( "\r\n", "<br />", $body );
+	}
+
+	protected function sendUserConfirmationEmail( $email, $confirmcode, $fullname )
+	{
+		$confirm_url = Utilities::getAbsoluteURLFolder() . 'confirmreg.php?code=' . $confirmcode;
+
+//        $to = "$fullname <$email>";
+		$to = $email;
+		$subject = "Your registration with " . $this->siteName;
+		$body = "Hello " . $fullname . ",\r\n\r\n" .
+				"Thanks for your registration with " . $this->siteName . "\r\n" .
+				"Please click the link below to confirm your registration.\r\n" .
+				"$confirm_url\r\n" .
+				"\r\n" .
+				"Regards,\r\n" .
+				"Webmaster\r\n" .
+				$this->siteName;
+
+		$html = str_replace( "\r\n", "<br />", $body );
+	}
+
+	protected function sendAdminIntimationEmail( $email, $fullname )
+	{
+		$subject = "New registration: " . $fullname;
+		$body = "A new user registered at " . $this->siteName . ".\r\n" .
+				"Name: " . $fullname . "\r\n" .
+				"Email address: " . $email;
+
+		$html = str_replace( "\r\n", "<br />", $body );
+	}
+
+*/
 }

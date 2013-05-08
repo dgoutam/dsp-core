@@ -50,18 +50,6 @@
 					"allow_null": false
 				},
 				{
-					"name":       "storage_id",
-					"type":       "string",
-					"allow_null": true,
-					"length":     64
-				},
-				{
-					"name":       "private_storage_id",
-					"type":       "string",
-					"allow_null": true,
-					"length":     64
-				},
-				{
 					"name":       "created_date",
 					"type":       "timestamp_on_create",
 					"validation": "api_read_only"
