@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Option;
 use Platform\Interfaces\Graylog;
 use Platform\Interfaces\GraylogLevels;
@@ -64,8 +65,8 @@ class Controller extends \CController
 			'_dsp_name'     => $_host,
 			'_source'       => $_SERVER['REMOTE_ADDR'],
 			'_payload'      => $_REQUEST,
-			'_path'         => Option::request( 'path' ),
-			'_app_name'     => Option::request( 'app_name' ),
+			'_path'         => Option::get( $_REQUEST, 'path' ),
+			'_app_name'     => Option::get( $_REQUEST, 'app_name' ),
 			'_method'       => FilterInput::server( 'REQUEST_METHOD' ),
 		);
 
