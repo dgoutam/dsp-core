@@ -19,17 +19,7 @@
  */
 use Kisma\Core\Utility\Sql;
 use Swagger\Swagger;
-use Swagger\Annotations\Operation;
-use Swagger\Annotations\Operations;
-use Swagger\Annotations\Parameter;
-use Swagger\Annotations\Parameters;
-use Swagger\Annotations\Api;
-use Swagger\Annotations\ErrorResponse;
-use Swagger\Annotations\ErrorResponses;
-use Swagger\Annotations\Resource;
-use Swagger\Annotations\Property;
-use Swagger\Annotations\AllowableValues;
-use Swagger\Annotations\Model;
+use Swagger\Annotations as SWG;
 
 /**
  * UserManager
@@ -38,7 +28,7 @@ use Swagger\Annotations\Model;
  * @package
  * @category
  *
- * @Resource(
+ * @SWG\Resource(
  *   apiVersion="1.0.0",
  *   swaggerVersion="1.1",
  *   basePath="http://localhost/rest",
@@ -289,16 +279,16 @@ class UserManager extends RestService
 	// REST interface implementation
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user", description="Operations available for user session management.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for user session management.",
 	 *       notes="See listed operations for each resource available.",
 	 *       responseClass="Resources", nickname="getResources",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
+	 *       @SWG\ErrorResponses(
 	 *       )
 	 *     )
 	 *   )
@@ -323,44 +313,44 @@ class UserManager extends RestService
 
 	/**
 	 *
-	 *   @Api(
+	 *   @SWG\Api(
 	 *     path="/user/session", description="Operations on a user's session.",
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Login and create a new user session.",
 	 *       notes="Calling this creates a new session and logs in the user.",
 	 *       responseClass="Session", nickname="login",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="credentials", description="Data containing name-value pairs used for logging into the system.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Login"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve the current user session information.",
 	 *       notes="Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.",
 	 *       responseClass="Session", nickname="getSession",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Logout and destroy the current user session.",
 	 *       notes="Calling this deletes the current session and logs out the user.",
 	 *       responseClass="Success", nickname="logout",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -525,22 +515,22 @@ class UserManager extends RestService
 	//-------- User Operations ------------------------------------------------
 
 	/*
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/register", description="Operations on a user's security challenge.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Register a new user in the system.",
 	 *       notes="The new user is created and sent an email for confirmation.",
 	 *       responseClass="Success", nickname="registerUser",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="registration", description="Data containing name-value pairs for new user registration.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Register"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -586,22 +576,22 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/register", description="Operations on a user's security challenge.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Register a new user in the system.",
 	 *       notes="The new user is created and sent an email for confirmation.",
 	 *       responseClass="Success", nickname="registerUser",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="registration", description="Data containing name-value pairs for new user registration.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Register"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -661,22 +651,22 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/confirm", description="Operations on a user's confirmation.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Confirm a new user registration or password change request.",
 	 *       notes="The new user is confirmed and assumes the role given by system admin.",
 	 *       responseClass="Success", nickname="confirmUser",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="confirmation", description="Data containing name-value pairs for new user confirmation.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Confirm"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -708,15 +698,15 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/challenge", description="Operations on a user's security challenge.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve the security challenge question for the given user.",
 	 *       notes="Use this question to challenge the user..",
 	 *       responseClass="Question", nickname="getChallenge",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="email",
 	 *           description="User email used to request security question.",
 	 *           paramType="query",
@@ -726,9 +716,9 @@ class UserManager extends RestService
 	 *           allowMultiple=false
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -842,22 +832,22 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/challenge", description="Operations on a user's security challenge.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Answer the security challenge question for the given user.",
 	 *       notes="Use this to gain temporary access to change password.",
 	 *       responseClass="Session", nickname="answerChallenge",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="answer", description="Answer to the security question.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Answer"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -986,22 +976,22 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/password", description="Operations on a user's password.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Update the current user's password.",
 	 *       notes="A valid session is required to change the password through this API.",
 	 *       responseClass="Success", nickname="changePassword",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="credentials", description="Data containing name-value pairs for password change.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Password"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -1045,22 +1035,22 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/profile", description="Operations on a user's profile.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Update the current user's profile information.",
 	 *       notes="Update the security question and answer through this api, as well as, display name, email, etc.",
 	 *       responseClass="Success", nickname="changeProfile",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="profile", description="Data containing name-value pairs for the user profile.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Profile"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -1114,18 +1104,18 @@ class UserManager extends RestService
 	}
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/user/profile", description="Operations on a user's profile.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve the current user's profile information.",
 	 *       notes="This profile, along with password, is the only things that the user can directly change.",
 	 *       responseClass="Profile", nickname="getProfile",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )

@@ -20,23 +20,13 @@
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 use Swagger\Swagger;
-use Swagger\Annotations\Operation;
-use Swagger\Annotations\Operations;
-use Swagger\Annotations\Parameter;
-use Swagger\Annotations\Parameters;
-use Swagger\Annotations\Api;
-use Swagger\Annotations\ErrorResponse;
-use Swagger\Annotations\ErrorResponses;
-use Swagger\Annotations\Resource;
-use Swagger\Annotations\Property;
-use Swagger\Annotations\AllowableValues;
-use Swagger\Annotations\Model;
+use Swagger\Annotations as SWG;
 
 /**
  * SystemManager
  * DSP system administration manager
  *
- * @Resource(
+ * @SWG\Resource(
  *   apiVersion="1.0.0",
  *   swaggerVersion="1.1",
  *   basePath="http://localhost/rest",
@@ -647,16 +637,16 @@ class SystemManager extends RestService
 	// REST interface implementation
 
 	/**
-	 * @Api(
+	 * @SWG\Api(
 	 *   path="/system", description="Operations available for system management.",
-	 *   @operations(
-	 *     @operation(
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for system management.",
 	 *       notes="See listed operations for each resource available.",
 	 *       responseClass="Resources", nickname="getResources",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
+	 *       @SWG\ErrorResponses(
 	 *       )
 	 *     )
 	 *   )
@@ -681,31 +671,31 @@ class SystemManager extends RestService
 
 	/**
 	 *
-	 *   @Api(
+	 *   @SWG\Api(
 	 *     path="/system/config", description="Operations for system configuration options.",
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve system configuration options.",
 	 *       notes="The retrieved properties control how the system behaves.",
 	 *       responseClass="Config", nickname="getConfig",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
+	 *       @SWG\ErrorResponses(
 	 *       )
 	 *     ),
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Update one or more system configuration properties.",
 	 *       notes="Post data should be an array of properties.",
 	 *       responseClass="Success", nickname="setConfig",
-	 *       @parameters(
-	 *         @parameter(
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
 	 *           name="config", description="Data containing name-value pairs of properties to set.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Config"
 	 *         )
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )

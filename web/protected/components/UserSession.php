@@ -20,17 +20,7 @@
 use Kisma\Core\Utility\Sql;
 use Platform\Interfaces\PermissionTypes;
 use Swagger\Swagger;
-use Swagger\Annotations\Operation;
-use Swagger\Annotations\Operations;
-use Swagger\Annotations\Parameter;
-use Swagger\Annotations\Parameters;
-use Swagger\Annotations\Api;
-use Swagger\Annotations\ErrorResponse;
-use Swagger\Annotations\ErrorResponses;
-use Swagger\Annotations\Resource;
-use Swagger\Annotations\Property;
-use Swagger\Annotations\AllowableValues;
-use Swagger\Annotations\Model;
+use Swagger\Annotations as SWG;
 
 /**
  * UserSession
@@ -39,7 +29,7 @@ use Swagger\Annotations\Model;
  * @package
  * @category
  *
- * @Api(
+ * @SWG\Api(
  *   path="/user/session", description="Operations on a user's session."
  * )
  *
@@ -139,20 +129,20 @@ class UserSession extends RestResource
 
 	/**
 	 *
-	 * @operation(
+	 * @SWG\Operation(
 	 *   httpMethod="POST", summary="Login and create a new user session.",
 	 *   notes="Calling this creates a new session and logs in the user.",
 	 *   responseClass="Session", nickname="login",
-	 *   @parameters(
-	 *     @parameter(
+	 *   @SWG\Parameters(
+	 *     @SWG\Parameter(
 	 *       name="credentials", description="Data containing name-value pairs used for logging into the system.",
 	 *       paramType="body", required="true", allowMultiple=false, dataType="Login"
 	 *     )
 	 *   ),
-	 *   @errorResponses(
-	 *      @errorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *      @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *      @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *   @SWG\ErrorResponses(
+	 *      @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *      @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *      @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *   )
 	 * )
 	 *
@@ -213,15 +203,15 @@ class UserSession extends RestResource
 	 * userSession refreshes an existing session or
 	 *     allows the SSO creation of a new session for external apps via timed ticket
 	 *
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve the current user session information.",
 	 *       notes="Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.",
 	 *       responseClass="Session", nickname="getSession",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *
@@ -299,15 +289,15 @@ class UserSession extends RestResource
 	}
 
 	/**
-	 *     @operation(
+	 *     @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Logout and destroy the current user session.",
 	 *       notes="Calling this deletes the current session and logs out the user.",
 	 *       responseClass="Success", nickname="logout",
-	 *       @parameters(
+	 *       @SWG\Parameters(
 	 *       ),
-	 *       @errorResponses(
-	 *          @errorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @errorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *
