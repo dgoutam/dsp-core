@@ -1,5 +1,5 @@
 {
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -48,6 +48,11 @@
 					"default":    "email,display_name,first_name,last_name,phone,default_app_id,security_question,security_answer",
 					"length":     255,
 					"allow_null": false
+				},
+				{
+					"name":       "allowed_hosts",
+					"type":       "text",
+					"allow_null": true
 				},
 				{
 					"name":       "created_date",
