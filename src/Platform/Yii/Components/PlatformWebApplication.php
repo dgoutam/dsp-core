@@ -19,7 +19,10 @@
  */
 namespace Platform\Yii\Components;
 use Kisma\Core\Enums\HttpMethod;
+use Kisma\Core\Enums\HttpResponse;
+use Kisma\Core\Exceptions\HttpException;
 use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Option;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -27,6 +30,32 @@ use Platform\Yii\Utility\Pii;
  */
 class PlatformWebApplication extends \CWebApplication
 {
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
+
+	/**
+	 * @var string The allowed HTTP methods
+	 */
+	const CORS_ALLOWED_METHODS = 'GET, POST, PUT, DELETE, PATCH, MERGE, COPY, OPTIONS';
+	/**
+	 * @var string The allowed HTTP headers
+	 */
+	const CORS_ALLOWED_HEADERS = 'x-requested-with';
+	/**
+	 * @var int The default number of seconds to allow this to be cached. Default is 15 minutes.
+	 */
+	const CORS_DEFAULT_MAX_AGE = 900;
+
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
+	/**
+	 * @var array
+	 */
+	protected $_corsWhitelist = array();
+
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
@@ -38,7 +67,6 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		parent::init();
 
-		/** @noinspection PhpUndefinedFieldInspection */
 		Pii::app()->onBeginRequest = array( $this, 'checkRequestMethod' );
 	}
 
@@ -47,19 +75,85 @@ class PlatformWebApplication extends \CWebApplication
 	 */
 	public function checkRequestMethod()
 	{
-		$_origin = FilterInput::server( 'HTTP_ORIGIN' ) ? : '*';
-
-		if ( isset( $_SERVER['REQUEST_METHOD'] ) && HttpMethod::Options == $_SERVER['REQUEST_METHOD'] )
+		//	Answer an options call...
+		if ( HttpMethod::Options == FilterInput::server( 'REQUEST_METHOD' ) )
 		{
 			header( 'HTTP/1.1 204' );
 			header( 'content-length: 0' );
 			header( 'content-type: text/plain' );
-			header( 'access-control-allow-origin: ' . $_origin );
-			header( 'access-control-allow-methods: GET, POST, PUT, DELETE, PATCH, MERGE, COPY, OPTIONS' );
-			header( 'access-control-allow-headers: content-type, accept' );
-			header( 'access-control-max-age: 3600' );
+
+			$this->addCorsHeaders( array( '*' ) );
 
 			Pii::end();
 		}
 	}
+
+	/**
+	 * @param array $whitelist
+	 *
+	 * @throws \Exception
+	 */
+	public function addCorsHeaders( $whitelist = array() )
+	{
+		static $_cache = array();
+
+		$_header = 'X-DreamFactory-Unclean: 0';
+
+		if ( '*' !== ( $_origin = FilterInput::server( 'HTTP_ORIGIN' ) ? : '*' ) )
+		{
+			$_origin = parse_url( $_origin, PHP_URL_HOST );
+		}
+
+		//	Not checked yet, look in the whitelist...
+		if ( !in_array( $_origin, $_cache ) )
+		{
+			$whitelist = array_merge( $this->_corsWhitelist, $whitelist );
+
+			$_safe = false;
+
+			foreach ( $whitelist as $_source )
+			{
+				if ( $_source == $_origin || parse_url( $_source, PHP_URL_HOST ) == $_origin )
+				{
+					$_safe = true;
+					break;
+				}
+			}
+
+			if ( false === $_safe )
+			{
+				$_header = 'X-DreamFactory-Unclean: 1';
+				//throw new \Exception( 'You are not authorized to retrieve this information', HttpResponse::Forbidden );
+			}
+
+			$_cache[] = $_origin;
+		}
+
+		header( 'Access-Control-Allow-Origin: ' . $_origin );
+		header( 'Access-Control-Allow-Methods: ' . static::CORS_ALLOWED_METHODS );
+		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
+		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
+		header( $_header );
+	}
+
+	/**
+	 * @param array $corsWhitelist
+	 *
+	 * @return PlatformWebApplication
+	 */
+	public function setCorsWhitelist( $corsWhitelist )
+	{
+		$this->_corsWhitelist = $corsWhitelist;
+
+		return $this;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getCorsWhitelist()
+	{
+		return $this->_corsWhitelist;
+	}
+
 }
