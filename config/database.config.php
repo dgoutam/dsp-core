@@ -21,10 +21,10 @@
  * database.config.php
  * The database configuration file for the DSP
  */
-if ( file_exists( '/var/www/.fabric_hosted' ) )
-{
-	require_once __DIR__ . '/../web/protected/components/Fabric.php';
+require_once __DIR__ . '/../web/protected/components/Fabric.php';
 
+if ( Fabric::fabricHosted() )
+{
 	return Fabric::initialize();
 }
 

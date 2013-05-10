@@ -107,8 +107,8 @@ JS;
 		//	Register the jquery plugin
 		Pii::scriptFile(
 			array(
-				self::Cdn . 'jquery.validate.min.js',
-				self::Cdn . 'additional-methods.min.js',
+				 self::Cdn . 'jquery.validate.min.js',
+				 self::Cdn . 'additional-methods.min.js',
 			),
 			self::End
 		);

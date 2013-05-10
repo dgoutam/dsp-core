@@ -112,6 +112,6 @@ class DataCache
 	 */
 	protected static function _getCacheFileName( $key )
 	{
-		return static::CACHE_PATH . '/' . sha1( $key ) . '.dsp.cache';
+		return static::CACHE_PATH . '/' . sha1( $key ) . '.dfc';
 	}
 }

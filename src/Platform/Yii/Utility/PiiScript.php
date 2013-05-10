@@ -18,7 +18,6 @@
  * limitations under the License.
  */
 namespace Platform\Yii\Utility;
-
 use Kisma\Core\Enums\OutputFormat;
 
 /**
@@ -43,8 +42,8 @@ class PiiScript
 	/***
 	 * Makes an array of key=>value pairs in an array.
 	 *
-	 * @param array   $options The options to use as a source
-	 * @param int     $format
+	 * @param array $options The options to use as a source
+	 * @param int   $format
 	 *
 	 * @return mixed
 	 */

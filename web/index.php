@@ -19,30 +19,18 @@
  */
 /**
  * index.php
+ * Main entry point/bootstrap for all processes
  */
-$_basePath = dirname( __DIR__ );
-$_autoloader = require_once( $_basePath . '/vendor/autoload.php' );
-require_once __DIR__ . '/protected/components/Pii.php';
-require_once $_basePath . '/src/Platform/Utility/DataCache.php';
+//	Load up composer...
+$_autoloader = require_once( '../vendor/autoload.php' );
 
-use Platform\Utility\DataCache;
+//	Yii debug settings
+defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
+defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
-//	Initialize app settings
-\Pii::run( __DIR__, $_autoloader );
-
-//	Main DSP web configuration
-if ( !( $_config = DataCache::load( $_key = $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_HOST'] . '.web' ) ) )
-{
-	DataCache::store( $_key, $_config = require $_basePath . '/config/web.php' );
-}
-
-require_once $_basePath . '/config/aliases.php';
-
-//	Comment out the following lines in production
-//defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-//defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
-
-\Yii::createWebApplication( $_config );
-
-//	This initializes caching inside Pii
-\Pii::app()->run();
+//	Create the application and run
+Platform\Yii\Utility\Pii::run(
+	__DIR__,
+	$_autoloader,
+	'Platform\\Yii\\Components\\PlatformWebApplication'
+);

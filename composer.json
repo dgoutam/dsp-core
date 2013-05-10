@@ -1,48 +1,61 @@
 {
-	"name":              "dreamfactory/web-csp",
-	"description":       "DreamFactory Services Platform(tm)",
-	"keywords":          [
-		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library", "dsp-core", "dsp"
-	],
-	"type":              "library",
-	"license":           ["GPL-3.0", "proprietary"],
-	"authors":           [
-		{
-			"name":  "Lee Hicks",
-			"email": "leehicks@dreamfactory.com",
-			"role":  "Lead Developer, server-side"
-		},
-		{
-			"name":  "Jason Sykes",
-			"email": "jasonsykes@dreamfactory.com",
-			"role":  "Lead Developer, client-side"
-		},
-		{
-			"name":  "Todd Appleton",
-			"email": "toddappleton@dreamfactory.com",
-			"role":  "Lead Developer and QA, client-side"
-		},
-		{
-			"name":  "Jerry Ablan",
-			"email": "jerryablan@dreamfactory.com",
-			"role":  "Black Ops"
-		}
-	],
+	"name": "dreamfactory/web-csp",
+	"description": "DreamFactory Services Platform(tm)",
+	"keywords":
+		[
+			"php",
+			"php5",
+			"rest",
+			"framework",
+			"cloud-computing",
+			"remote web services",
+			"library",
+			"dsp-core",
+			"dsp"
+		],
+	"type": "library",
+	"license":
+		[
+			"Apache-2.0"
+		],
+	"authors":
+		[
+			{
+				"name": "Lee Hicks",
+				"email": "leehicks@dreamfactory.com",
+				"role": "Lead Developer, server-side"
+			},
+			{
+				"name": "Jason Sykes",
+				"email": "jasonsykes@dreamfactory.com",
+				"role": "Lead Developer, client-side"
+			},
+			{
+				"name": "Todd Appleton",
+				"email": "toddappleton@dreamfactory.com",
+				"role": "Lead Developer and QA, client-side"
+			},
+			{
+				"name": "Jerry Ablan",
+				"email": "jerryablan@dreamfactory.com",
+				"role": "Black Ops"
+			}
+		],
 	"minimum-stability": "dev",
-	"require":           {
-		"php":                        ">=5.3.8",
-		"kisma/kisma":                "dev-master",
-		"dreamfactory/yii":           "dev-master",
-		"dreamfactory/app-admin":     "dev-master",
+	"require": {
+		"php": ">=5.3.8",
+		"kisma/kisma": "dev-master",
+		"dreamfactory/yii": "dev-master",
+		"dreamfactory/app-admin": "dev-master",
 		"dreamfactory/app-launchpad": "dev-master",
-		"dreamfactory/web-core":      "dev-master",
-		"aws/aws-sdk-php":            "2.*",
-		"swiftmailer/swiftmailer":    "4.3.*"
+		"dreamfactory/web-core": "dev-master",
+		"aws/aws-sdk-php": "2.*",
+		"swiftmailer/swiftmailer": "4.3.*"
 	},
-	"autoload":          {
+	"autoload": {
 		"psr-0": {
 			"WindowsAzure\\": "lib/microsoft/azure-sdk-for-php",
-			"Platform\\":     "src/"
+			"Platform\\": "src/"
 		}
 	}
 

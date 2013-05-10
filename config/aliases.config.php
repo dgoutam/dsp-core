@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 /**
- * aliases.php
- * Yii aliases for the DreamFactory Services Platform server application.
+ * aliases.config.php
+ * A single location for all your aliasing needs!
  */
-//	Our base path
-$_basePath = dirname( __DIR__ );
+use Platform\Yii\Utility\Pii;
 
-\Yii::setPathOfAlias( 'Platform', $_basePath . '/src/Platform' );
-\Yii::setPathOfAlias( 'vendor', $_basePath . '/vendor' );
+Pii::alias( 'Platform', $_basePath . '/src/Platform' );
+Pii::alias( 'Swift', $_vendorPath . '/swiftmailer/swiftmailer/lib/classes' );
+Pii::alias( 'vendor', $_vendorPath );

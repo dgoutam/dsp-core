@@ -22,65 +22,30 @@
  * This is the main configuration file for the DreamFactory Services Platform server application.
  */
 
-//.........................................................................
-//. Default Values
-//.........................................................................
-
-use Kisma\Core\Utility\Log;
-
-const ENABLE_DB_CACHE = true;
-
-global $_autoloader;
-
-$_dbCache = $_dbName = null;
-$_appName = 'DreamFactory Services Platform';
-
-//	Our base path
-$_basePath = dirname( __DIR__ );
-
-//	Get the globals set...
-require_once $_basePath . '/web/protected/components/Fabric.php';
-
-//	Our log file path. Log name is set by startup script
-$_logFilePath = $_basePath . '/log';
-$_vendorPath = $_basePath . '/vendor';
-
-//	Location of the blob storage credentials if provisioned, otherwise local file storage is used.
-$_blobConfig = __DIR__ . '/blob.config.php';
-
-//	Read in the database configuration
-$_dbConfig = require_once( __DIR__ . '/database.config.php' );
-$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require __DIR__ . '/common.config.php' : array();
-
 /**
- * Database Caching
+ * Load up the database and common configurations between the web and background apps,
+ * setting globals whilst at it.
  */
-if ( ENABLE_DB_CACHE )
-{
-	/**
-	 * The database cache object
-	 */
-	$_dbCache = array(
-		'class'                => 'CDbCache',
-		'connectionID'         => 'db',
-		'cacheTableName'       => 'df_sys_cache',
-		'autoCreateCacheTable' => true,
-	);
-}
+$_dbConfig = require( __DIR__ . '/database.config.php' );
+$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require( __DIR__ . '/common.config.php' ) : array();
 
 //.........................................................................
 //. The configuration himself (like Raab)
 //.........................................................................
 
 return array(
+
 	//.........................................................................
 	//. Base Configuration
 	//.........................................................................
 
-	'basePath'    => $_basePath . '/web/protected',
+	/**    Basics */
+	'basePath'    => $_docRoot . '/protected',
 	'name'        => $_appName,
 	'runtimePath' => $_logFilePath,
+	/**    Preloads */
 	'preload'     => array('log'),
+	/**    Imports */
 	'import'      => array(
 		'system.utils.*',
 		'application.behaviors.*',
@@ -91,16 +56,9 @@ return array(
 		'application.components.file_managers.*',
 		'application.components.services.*',
 	),
-	'modules'     => array(
-		'gii' => array(
-			'class'    => 'system.gii.GiiModule',
-			'password' => 'xyzzy',
-		),
-	),
-	//.........................................................................
-	//. Application Components
-	//.........................................................................
-
+	/**    Modules */
+//	'modules'     => array(),
+	/**    Components */
 	'components'  => array(
 		//	Asset management
 		'assetManager' => array(
@@ -146,9 +104,9 @@ return array(
 				array(
 					'class'       => 'LiveLogRoute',
 					'maxFileSize' => '102400',
-					'logFile'     => basename( \Kisma::get( 'app.log_file' ) ),
+					'logFile'     => $_logFileName,
 					'logPath'     => $_logFilePath,
-					'levels'      => 'error, warning, trace, info',
+					'levels'      => 'error, warning, trace, info, debug, notice',
 				),
 			),
 		),
