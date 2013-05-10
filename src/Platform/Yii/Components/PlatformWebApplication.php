@@ -21,7 +21,6 @@ namespace Platform\Yii\Components;
 
 use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Enums\HttpResponse;
-use Kisma\Core\Exceptions\HttpException;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Option;
 use Platform\Yii\Utility\Pii;
@@ -57,7 +56,8 @@ class PlatformWebApplication extends \CWebApplication
 	 */
 	protected $_corsWhitelist = array();
 	/**
-	 * @var bool If true (default), the CORS headers will be sent automatically on non-OPTIONS calls before your actions are called. Requires whitelist to be set up prior to request being processed.
+	 * @var bool    If true, the CORS headers will be sent automatically before dispatching the action.
+	 *              NOTE: "OPTIONS" calls will always get headers, regardless of the setting. All other requests respect the setting.
 	 */
 	protected $_autoAddHeaders = true;
 
@@ -76,7 +76,7 @@ class PlatformWebApplication extends \CWebApplication
 	}
 
 	/**
-	 * Handles an OPTIONS request to the server to allow CORS
+	 * Handles an OPTIONS request to the server to allow CORS and optionally sends the CORS headers
 	 */
 	public function checkRequestMethod()
 	{
@@ -100,13 +100,19 @@ class PlatformWebApplication extends \CWebApplication
 	}
 
 	/**
-	 * @param array $whitelist
-	 *
-	 * @throws \Exception
+	 * @param array|bool $whitelist Set to "false" to reset the internal method cache.
 	 */
 	public function addCorsHeaders( $whitelist = array() )
 	{
 		static $_cache = array();
+
+		//	Reset the cache before processing...
+		if ( false === $whitelist )
+		{
+			$_cache = null;
+
+			return;
+		}
 
 		$_header = 'X-DreamFactory-Unclean: 0';
 
@@ -155,6 +161,9 @@ class PlatformWebApplication extends \CWebApplication
 	public function setCorsWhitelist( $corsWhitelist )
 	{
 		$this->_corsWhitelist = $corsWhitelist;
+
+		//	Reset the header cache
+		$this->addCorsHeaders( false );
 
 		return $this;
 	}
