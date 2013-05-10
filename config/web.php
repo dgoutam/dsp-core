@@ -53,8 +53,8 @@ return array(
 		'application.models.forms.*',
 		'application.components.*',
 		'application.components.blobs.*',
-		'application.components.file_managers.*',
 		'application.components.services.*',
+		'application.exceptions.*',
 	),
 	/**    Modules */
 //	'modules'     => array(),
