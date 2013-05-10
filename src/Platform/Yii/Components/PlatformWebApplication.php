@@ -52,7 +52,7 @@ class PlatformWebApplication extends \CWebApplication
 	//*************************************************************************
 
 	/**
-	 * @var array An indexed array of white-listed host URIs
+	 * @var array An indexed array of white-listed hosts (ajax.example.com or foo.bar.com or just bar.com)
 	 */
 	protected $_corsWhitelist = array();
 	/**
@@ -116,28 +116,12 @@ class PlatformWebApplication extends \CWebApplication
 
 		$_header = 'X-DreamFactory-Unclean: 0';
 
-		if ( '*' !== ( $_origin = FilterInput::server( 'HTTP_ORIGIN' ) ? : '*' ) )
+		//	Not in cache, check it out...
+		if ( !in_array( $_origin = FilterInput::server( 'HTTP_ORIGIN' ), $_cache ) )
 		{
-			$_origin = parse_url( $_origin, PHP_URL_HOST );
-		}
+			$_serverOrigin = $_SERVER['SERVER_NAME'];
 
-		//	Not checked yet, look in the whitelist...
-		if ( !in_array( $_origin, $_cache ) )
-		{
-			$whitelist = array_merge( $this->_corsWhitelist, $whitelist );
-
-			$_safe = false;
-
-			foreach ( $whitelist as $_source )
-			{
-				if ( $_source == $_origin || parse_url( $_source, PHP_URL_HOST ) == $_origin )
-				{
-					$_safe = true;
-					break;
-				}
-			}
-
-			if ( false === $_safe )
+			if ( null !== $_origin && !$this->_allowedOrigin( $_origin, (array)$_serverOrigin ) )
 			{
 				$_header = 'X-DreamFactory-Unclean: 1';
 				//throw new \Exception( 'You are not authorized to retrieve this information', HttpResponse::Forbidden );
@@ -151,6 +135,25 @@ class PlatformWebApplication extends \CWebApplication
 		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
 		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
 		header( $_header );
+	}
+
+	/**
+	 * @param       $source
+	 * @param array $additional
+	 *
+	 * @return bool
+	 */
+	protected function _allowedOrigin( $source, $additional = array() )
+	{
+		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whitey )
+		{
+			if ( preg_match( '/^http:\/\/([\w_-]+\.)*' . $_whitey . '$/', $source ) )
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
