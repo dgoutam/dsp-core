@@ -40,13 +40,17 @@ return array(
 	//.........................................................................
 
 	/**    Basics */
-	'basePath'    => $_docRoot . '/protected',
-	'name'        => $_appName,
-	'runtimePath' => $_logFilePath,
+	'basePath'        => $_docRoot . '/protected',
+	'name'            => $_appName,
+	'runtimePath'     => $_logFilePath,
+	/** CORS Configuration */
+	'corsWhitelist'   => array('dsp.local'),
+	'autoAddHeaders'  => true,
+	'extendedHeaders' => true,
 	/**    Preloads */
-	'preload'     => array('log'),
+	'preload'         => array('log'),
 	/**    Imports */
-	'import'      => array(
+	'import'          => array(
 		'system.utils.*',
 		'application.behaviors.*',
 		'application.models.*',
@@ -59,7 +63,7 @@ return array(
 	/**    Modules */
 //	'modules'     => array(),
 	/**    Components */
-	'components'  => array(
+	'components'      => array(
 		//	Asset management
 		'assetManager' => array(
 			'class'      => 'CAssetManager',
@@ -117,5 +121,5 @@ return array(
 	//. Global application parameters
 	//.........................................................................
 
-	'params'      => $_commonConfig,
+	'params'          => $_commonConfig,
 );

@@ -60,6 +60,10 @@ class PlatformWebApplication extends \CWebApplication
 	 *              NOTE: "OPTIONS" calls will always get headers, regardless of the setting. All other requests respect the setting.
 	 */
 	protected $_autoAddHeaders = true;
+	/**
+	 * @var bool If true, adds some extended information about the request in the form of X-DreamFactory-* headers
+	 */
+	protected $_extendedHeaders = true;
 
 	//*************************************************************************
 	//	Methods
@@ -77,8 +81,10 @@ class PlatformWebApplication extends \CWebApplication
 
 	/**
 	 * Handles an OPTIONS request to the server to allow CORS and optionally sends the CORS headers
+	 *
+	 * @param \CEvent $event
 	 */
-	public function checkRequestMethod()
+	public function checkRequestMethod( \CEvent $event )
 	{
 		//	Answer an options call...
 		if ( HttpMethod::Options == FilterInput::server( 'REQUEST_METHOD' ) )
@@ -87,7 +93,7 @@ class PlatformWebApplication extends \CWebApplication
 			header( 'content-length: 0' );
 			header( 'content-type: text/plain' );
 
-			$this->addCorsHeaders( array('*') );
+			$this->addCorsHeaders();
 
 			Pii::end();
 		}
@@ -95,12 +101,17 @@ class PlatformWebApplication extends \CWebApplication
 		//	Auto-add the CORS headers...
 		if ( $this->_autoAddHeaders )
 		{
-			$this->addCorsHeaders();
+			if ( !$this->addCorsHeaders() )
+			{
+				$event->handled = true;
+			}
 		}
 	}
 
 	/**
 	 * @param array|bool $whitelist Set to "false" to reset the internal method cache.
+	 *
+	 * @return bool
 	 */
 	public function addCorsHeaders( $whitelist = array() )
 	{
@@ -109,45 +120,76 @@ class PlatformWebApplication extends \CWebApplication
 		//	Reset the cache before processing...
 		if ( false === $whitelist )
 		{
-			$_cache = null;
+			$_cache = array();
 
-			return;
+			return true;
 		}
 
-		$_header = 'X-DreamFactory-Unclean: 0';
+		$_origin = Option::get( $_SERVER, 'HTTP_ORIGIN' );
+		$_requestSource = $_SERVER['SERVER_NAME'];
 
 		//	Not in cache, check it out...
-		if ( !in_array( $_origin = FilterInput::server( 'HTTP_ORIGIN' ), $_cache ) )
+		if ( $_origin && !in_array( $_origin, $_cache ) )
 		{
-			$_serverOrigin = $_SERVER['SERVER_NAME'];
-
-			if ( null !== $_origin && !$this->_allowedOrigin( $_origin, (array)$_serverOrigin ) )
+			if ( $this->_allowedOrigin( $_origin, array($_requestSource) ) )
 			{
-				$_header = 'X-DreamFactory-Unclean: 1';
-				//throw new \Exception( 'You are not authorized to retrieve this information', HttpResponse::Forbidden );
+				$_cache[] = $_origin;
 			}
+			else
+			{
+				/**
+				 * No sir, I didn't like it.
+				 *
+				 * @link http://www.youtube.com/watch?v=VRaoHi_xcWk
+				 */
+				header( 'HTTP/1.1 403 Forbidden' );
 
-			$_cache[] = $_origin;
+				Pii::end();
+
+				//	If end fails for some unknown impossible reason...
+				return false;
+			}
 		}
 
 		header( 'Access-Control-Allow-Origin: ' . $_origin );
-		header( 'Access-Control-Allow-Methods: ' . static::CORS_ALLOWED_METHODS );
 		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
+		header( 'Access-Control-Allow-Methods: ' . static::CORS_ALLOWED_METHODS );
 		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
-		header( $_header );
+
+		if ( $this->_extendedHeaders )
+		{
+			header( 'X-DreamFactory-Source: ' . $_requestSource );
+
+			if ( $_origin )
+			{
+				if ( !empty( $this->_corsWhitelist ) )
+				{
+					header( 'X-DreamFactory-Full-Whitelist: ' . implode( ', ', $this->_corsWhitelist ) );
+				}
+
+				header( 'X-DreamFactory-Origin-Whitelisted: ' . preg_match( '/^([\w_-]+\.)*' . $_requestSource . '$/', $_origin ) );
+			}
+		}
+
+		return true;
 	}
 
 	/**
-	 * @param       $source
-	 * @param array $additional
+	 * @param string $origin     The requesting origin
+	 * @param array  $additional Additional origins to allow
 	 *
 	 * @return bool
 	 */
-	protected function _allowedOrigin( $source, $additional = array() )
+	protected function _allowedOrigin( $origin, $additional = array() )
 	{
-		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whitey )
+		if ( !is_array( $additional ) )
 		{
-			if ( preg_match( '/^http:\/\/([\w_-]+\.)*' . $_whitey . '$/', $source ) )
+			$additional = array($additional);
+		}
+
+		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whiteGuy )
+		{
+			if ( preg_match( '/^([\w_-]+\.)*' . $_whiteGuy . '$/', $origin ) )
 			{
 				return true;
 			}
@@ -184,7 +226,7 @@ class PlatformWebApplication extends \CWebApplication
 	 *
 	 * @return PlatformWebApplication
 	 */
-	public function setAutoAddHeaders( $autoAddHeaders )
+	public function setAutoAddHeaders( $autoAddHeaders = true )
 	{
 		$this->_autoAddHeaders = $autoAddHeaders;
 
@@ -197,5 +239,25 @@ class PlatformWebApplication extends \CWebApplication
 	public function getAutoAddHeaders()
 	{
 		return $this->_autoAddHeaders;
+	}
+
+	/**
+	 * @param boolean $extendedHeaders
+	 *
+	 * @return PlatformWebApplication
+	 */
+	public function setExtendedHeaders( $extendedHeaders = true )
+	{
+		$this->_extendedHeaders = $extendedHeaders;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getExtendedHeaders()
+	{
+		return $this->_extendedHeaders;
 	}
 }
