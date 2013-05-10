@@ -19,41 +19,48 @@
  */
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
+use Swagger\Swagger;
+use Swagger\Annotations as SWG;
 
 /**
  * SystemManager
  * DSP system administration manager
+ *
+ * @SWG\Resource(
+ *   apiVersion="1.0.0",
+ *   swaggerVersion="1.1",
+ *   basePath="http://localhost/rest",
+ *   resourcePath="/system"
+ * )
+ *
  */
 class SystemManager extends RestService
 {
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
 
-	// constants
 	/**
 	 * @var string
 	 */
 	const SYSTEM_TABLE_PREFIX = 'df_sys_';
 
-	// Members
-
-	/**
-	 * @var \SystemManager
-	 */
-	private static $_instance = null;
-
-	/**
-	 * @var string
-	 */
-	protected $modelName;
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
 
 	/**
 	 * @var int
 	 */
-	protected $modelId;
-
+	protected $_resourceId;
 	/**
 	 * @var string
 	 */
-	protected $relatedModelName;
+	protected $_relatedResource;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Creates a new SystemManager instance
@@ -68,51 +75,73 @@ class SystemManager extends RestService
 			'description' => 'Service for system administration.',
 			'is_active'   => true,
 		);
+
 		parent::__construct( $config );
-	}
-
-	/**
-	 * Gets the static instance of this class.
-	 *
-	 * @return SystemManager
-	 */
-	public static function getInstance()
-	{
-		if ( !isset( static::$_instance ) )
-		{
-			static::$_instance = new SystemManager();
-		}
-
-		return static::$_instance;
 	}
 
 	// Service interface implementation
 
+	/**
+	 * @param string $apiName
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setApiName( $apiName )
 	{
 		throw new Exception( 'SystemManager API name can not be changed.' );
 	}
 
+	/**
+	 * @param string $type
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setType( $type )
 	{
 		throw new Exception( 'SystemManager type can not be changed.' );
 	}
 
+	/**
+	 * @param string $description
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setDescription( $description )
 	{
 		throw new Exception( 'SystemManager description can not be changed.' );
 	}
 
+	/**
+	 * @param boolean $isActive
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setIsActive( $isActive )
 	{
 		throw new Exception( 'SystemManager active flag can not be changed.' );
 	}
 
+	/**
+	 * @param string $name
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setName( $name )
 	{
 		throw new Exception( 'SystemManager name can not be changed.' );
 	}
 
+	/**
+	 * @param string $nativeFormat
+	 *
+	 * @throws Exception
+	 * @return BaseService
+	 */
 	public function setNativeFormat( $nativeFormat )
 	{
 		throw new Exception( 'SystemManager native format can not be changed.' );
@@ -173,9 +202,9 @@ class SystemManager extends RestService
 
 			$version = Utilities::getArrayValue( 'version', $contents );
 			$oldVersion = $_db->createCommand()
-				->select( 'db_version' )->from( 'df_sys_config' )
-				->order( 'id DESC' )->limit( 1 )
-				->queryScalar();
+						  ->select( 'db_version' )->from( 'df_sys_config' )
+						  ->order( 'id DESC' )->limit( 1 )
+						  ->queryScalar();
 			if ( static::doesDbVersionRequireUpgrade( $oldVersion, $version ) )
 			{
 				return PlatformStates::SCHEMA_REQUIRED;
@@ -184,7 +213,7 @@ class SystemManager extends RestService
 
 		// Check for at least one system admin user
 		$command = $_db->createCommand()
-			->select( '(COUNT(*))' )->from( 'df_sys_user' )->where( 'is_sys_admin=:is' );
+				   ->select( '(COUNT(*))' )->from( 'df_sys_user' )->where( 'is_sys_admin=:is' );
 		if ( 0 == $command->queryScalar( array( ':is' => 1 ) ) )
 		{
 			return PlatformStates::ADMIN_REQUIRED;
@@ -192,7 +221,7 @@ class SystemManager extends RestService
 
 		// Need to check for the default services
 		$command = $_db->createCommand()
-			->select( '(COUNT(*))' )->from( 'df_sys_service' );
+				   ->select( '(COUNT(*))' )->from( 'df_sys_service' );
 		if ( 0 == $command->queryScalar() )
 		{
 			return PlatformStates::DATA_REQUIRED;
@@ -314,13 +343,19 @@ class SystemManager extends RestService
 	 */
 	public static function initAdmin()
 	{
-		$_user = Pii::user();
+		$_user = Yii::app()->user;
+		$_piiUser = Pii::app()->getUser();
 
 		try
 		{
 			// Create and login first admin user
 			$email = $_user->getState( 'email' );
 			$pwd = $_user->getState( 'password' );
+
+			if ( empty( $email ) || empty( $pwd ) )
+			{
+				Pii::redirect( '/site/login' );
+			}
 
 			$theUser = User::model()->find( 'email = :email', array( ':email' => $email ) );
 
@@ -481,49 +516,17 @@ class SystemManager extends RestService
 	 */
 	public function getSwaggerApis()
 	{
+		$path = Yii::app()->basePath . '/components';
+		$swagger = Swagger::discover($path);
+		$apis = $swagger->registry['/system']->apis;
 		$apis = array_merge(
-			parent::getSwaggerApis(),
-			array(
-				 array(
-					 'path'        => '/system/config',
-					 'description' => 'Operations for system configuration options.',
-					 'operations'  => array(
-						 array(
-							 "httpMethod"     => "GET",
-							 "summary"        => "Retrieve system configuration options",
-							 "notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
-							 "responseClass"  => "Config",
-							 "nickname"       => "getConfig",
-							 "parameters"     => array(),
-							 "errorResponses" => array()
-						 ),
-						 array(
-							 "httpMethod"     => "PUT",
-							 "summary"        => "Update one or more system configuration properties.",
-							 "notes"          => "Post data should be an array of properties.",
-							 "responseClass"  => "Success",
-							 "nickname"       => "updateConfig",
-							 "parameters"     => array(
-								 $swagger[] = array(
-									 "paramType"     => "body",
-									 "name"          => "config",
-									 "description"   => "Properties to set.",
-									 "dataType"      => "Config",
-									 "required"      => true,
-									 "allowMultiple" => false
-								 )
-							 ),
-							 "errorResponses" => SwaggerUtilities::getErrors( array( ErrorCodes::BAD_REQUEST ) )
-						 ),
-					 )
-				 ),
-			),
-			SwaggerUtilities::swaggerPerResource( 'system', 'app' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'app_group' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'email_template' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'role' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'service' ),
-			SwaggerUtilities::swaggerPerResource( 'system', 'user' )
+			$apis,
+			SwaggerUtilities::apisPerResource( 'system', 'app' ),
+			SwaggerUtilities::apisPerResource( 'system', 'app_group' ),
+			SwaggerUtilities::apisPerResource( 'system', 'email_template' ),
+			SwaggerUtilities::apisPerResource( 'system', 'role' ),
+			SwaggerUtilities::apisPerResource( 'system', 'service' ),
+			SwaggerUtilities::apisPerResource( 'system', 'user' )
 		);
 
 		return $apis;
@@ -586,26 +589,6 @@ class SystemManager extends RestService
 			"Config"  => array(
 				"id"         => "Config",
 				"properties" => array(
-					"id"                      => array(
-						"type"        => "string",
-						"description" => "Identifier for this record."
-					),
-					"created_date"            => array(
-						"type"        => "string",
-						"description" => "Date this record was created."
-					),
-					"created_by_id"           => array(
-						"type"        => "integer",
-						"description" => "User Id of who created this record."
-					),
-					"last_modified_date"      => array(
-						"type"        => "string",
-						"description" => "Date this record was last modified."
-					),
-					"last_modified_by_id"     => array(
-						"type"        => "integer",
-						"description" => "User Id of who last modified this record."
-					),
 					"dsp_version"             => array(
 						"type"        => "string",
 						"description" => "Version of the DSP software."
@@ -637,7 +620,16 @@ class SystemManager extends RestService
 				)
 			),
 		);
-		$models = array_merge( parent::getSwaggerModels(), $models );
+		$models = array_merge(
+			parent::getSwaggerModels(),
+			$models,
+			SwaggerUtilities::modelsPerResource( 'system', 'app' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'app_group' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'email_template' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'role' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'service' ),
+			SwaggerUtilities::modelsPerResource( 'system', 'user' )
+		);
 
 		return $models;
 	}
@@ -645,621 +637,449 @@ class SystemManager extends RestService
 	// REST interface implementation
 
 	/**
+	 * @SWG\Api(
+	 *   path="/system", description="Operations available for system management.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="List resources available for system management.",
+	 *       notes="See listed operations for each resource available.",
+	 *       responseClass="Resources", nickname="getResources",
+	 *       @SWG\Parameters(
+	 *       ),
+	 *       @SWG\ErrorResponses(
+	 *       )
+	 *     )
+	 *   )
+	 * )
+	 *
 	 * @return array
-	 * @throws Exception
 	 */
-	public function actionGet()
+	protected function _listResources()
 	{
-		try
-		{
-			$this->detectCommonParams();
-			switch ( $this->modelName )
-			{
-				case '':
-					$result = array(
-						array( 'name' => 'app', 'label' => 'Application' ),
-						array( 'name' => 'app_group', 'label' => 'Application Group' ),
-						array( 'name' => 'config', 'label' => 'Configuration' ),
-						array( 'name' => 'role', 'label' => 'Role' ),
-						array( 'name' => 'service', 'label' => 'Service' ),
-						array( 'name' => 'user', 'label' => 'User' ),
-						array( 'name' => 'email_template', 'label' => 'Email Template' )
-					);
-					$result = array( 'resource' => $result );
-					break;
-				case 'config':
-					// Most requests contain 'returned fields' parameter, all by default
-					$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
-					$extras = array();
-					$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-					if ( !empty( $related ) )
-					{
-						$related = array_map( 'trim', explode( ',', $related ) );
-						foreach ( $related as $relative )
-						{
-							$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-							$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-							$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
-						}
-					}
+		$resources = array(
+			array( 'name' => 'app', 'label' => 'Application' ),
+			array( 'name' => 'app_group', 'label' => 'Application Group' ),
+			array( 'name' => 'config', 'label' => 'Configuration' ),
+			array( 'name' => 'role', 'label' => 'Role' ),
+			array( 'name' => 'service', 'label' => 'Service' ),
+			array( 'name' => 'user', 'label' => 'User' ),
+			array( 'name' => 'email_template', 'label' => 'Email Template' )
+		);
 
-					$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
-					$result = static::retrieveConfig( $fields, $include_schema, $extras );
-					break;
-				case 'app':
-				case 'app_group':
-				case 'role':
-				case 'service':
-				case 'user':
-				case 'email_template':
-					// Most requests contain 'returned fields' parameter, all by default
-					$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
-					$extras = array();
-					$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-					if ( !empty( $related ) )
-					{
-						$related = array_map( 'trim', explode( ',', $related ) );
-						foreach ( $related as $relative )
-						{
-							$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-							$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-							$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
-						}
-					}
-
-					if ( empty( $this->modelId ) )
-					{
-						$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
-						if ( !empty( $ids ) )
-						{
-							$result = static::retrieveRecordsByIds( $this->modelName, $ids, $fields, $extras );
-						}
-						else
-						{ // get by filter or all
-							$data = Utilities::getPostDataAsArray();
-							if ( !empty( $data ) )
-							{ // complex filters or large numbers of ids require post
-								$ids = Utilities::getArrayValue( 'ids', $data, '' );
-								if ( !empty( $ids ) )
-								{
-									$result = static::retrieveRecordsByIds( $this->modelName, $ids, $fields, $extras );
-								}
-								else
-								{
-									$records = Utilities::getArrayValue( 'record', $data, null );
-									if ( empty( $records ) )
-									{
-										// xml to array conversion leaves them in plural wrapper
-										$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-									}
-									if ( !empty( $records ) )
-									{
-										// passing records to have them updated with new or more values, id field required
-										// for single record and no id field given, get records matching given fields
-										$result = static::retrieveRecords( $this->modelName, $records, $fields, $extras );
-									}
-									else
-									{ // if not specified use filter
-										$filter = Utilities::getArrayValue( 'filter', $data, '' );
-										$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-										$order = Utilities::getArrayValue( 'order', $data, '' );
-										$offset = intval( Utilities::getArrayValue( 'offset', $data, 0 ) );
-										$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-										$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $data, false ) );
-										$result = static::retrieveRecordsByFilter(
-											$this->modelName,
-											$fields,
-											$filter,
-											$limit,
-											$order,
-											$offset,
-											$include_count,
-											$include_schema,
-											$extras
-										);
-									}
-								}
-							}
-							else
-							{
-								$filter = Utilities::getArrayValue( 'filter', $_REQUEST, '' );
-								$limit = intval( Utilities::getArrayValue( 'limit', $_REQUEST, 0 ) );
-								$order = Utilities::getArrayValue( 'order', $_REQUEST, '' );
-								$offset = intval( Utilities::getArrayValue( 'offset', $_REQUEST, 0 ) );
-								$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $_REQUEST, false ) );
-								$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
-								$result = static::retrieveRecordsByFilter(
-									$this->modelName,
-									$fields,
-									$filter,
-									$limit,
-									$order,
-									$offset,
-									$include_count,
-									$include_schema,
-									$extras
-								);
-							}
-						}
-					}
-					else
-					{
-						if ( 0 == strcasecmp( 'app', $this->modelName ) )
-						{
-							$asPkg = Utilities::boolval( Utilities::getArrayValue( 'pkg', $_REQUEST, false ) );
-							if ( $asPkg )
-							{
-								$includeFiles = Utilities::boolval( Utilities::getArrayValue( 'include_files', $_REQUEST, false ) );
-								$includeServices = Utilities::boolval( Utilities::getArrayValue( 'include_services', $_REQUEST, false ) );
-								$includeSchema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
-								$includeData = Utilities::boolval( Utilities::getArrayValue( 'include_data', $_REQUEST, false ) );
-								static::exportAppAsPackage( $this->modelId, $includeFiles, $includeServices, $includeSchema, $includeData );
-							}
-						}
-						// single entity by id
-						$result = static::retrieveRecordById( $this->modelName, $this->modelId, $fields, $extras );
-					}
-					break;
-				default:
-					throw new Exception( "GET request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST );
-					break;
-			}
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionPost()
-	{
-		try
-		{
-			$this->detectCommonParams();
-			$data = Utilities::getPostDataAsArray();
-			// Most requests contain 'returned fields' parameter
-			$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-			$extras = array();
-			$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-			if ( !empty( $related ) )
-			{
-				$related = array_map( 'trim', explode( ',', $related ) );
-				foreach ( $related as $relative )
-				{
-					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
-				}
-			}
-			switch ( $this->modelName )
-			{
-				case '':
-					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
-					break;
-				case 'config':
-					// typically an update here
-					if ( empty( $data ) )
-					{
-						throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
-					}
-					$result = static::updateConfig( $data, $fields, $extras );
-					break;
-				case 'app':
-					// you can import an application package file, local or remote, or from zip, but nothing else
-					$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
-					if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
-					{
-						// need to download and extract zip file and move contents to storage
-						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-						try
-						{
-							return static::importAppFromPackage( $filename, $fileUrl );
-						}
-						catch ( Exception $ex )
-						{
-							throw new Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
-						}
-					}
-					$name = Utilities::getArrayValue( 'name', $_REQUEST, '' );
-					// from repo or remote zip file
-					if ( !empty( $name ) && ( 0 === strcasecmp( 'zip', FileUtilities::getFileExtension( $fileUrl ) ) ) )
-					{
-						// need to download and extract zip file and move contents to storage
-						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-						try
-						{
-							return static::importAppFromZip( $name, $filename );
-							// todo save url for later updates
-						}
-						catch ( Exception $ex )
-						{
-							throw new Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
-						}
-					}
-					if ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-					{
-						// older html multi-part/form-data post, single or multiple files
-						$files = $_FILES['files'];
-						if ( is_array( $files['error'] ) )
-						{
-							throw new Exception( "Only a single application package file is allowed for import." );
-						}
-						$filename = $files['name'];
-						$error = $files['error'];
-						if ( $error !== UPLOAD_ERR_OK )
-						{
-							throw new Exception( "Failed to import application package $filename.\n$error" );
-						}
-						$tmpName = $files['tmp_name'];
-						$contentType = $files['type'];
-						if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $filename ) ) )
-						{
-							try
-							{
-								// need to extract zip file and move contents to storage
-								return static::importAppFromPackage( $tmpName );
-							}
-							catch ( Exception $ex )
-							{
-								throw new Exception( "Failed to import application package $filename.\n{$ex->getMessage()}" );
-							}
-						}
-						if ( !empty( $name ) && !FileUtilities::isZipContent( $contentType ) )
-						{
-							try
-							{
-								// need to extract zip file and move contents to storage
-								return static::importAppFromZip( $name, $tmpName );
-							}
-							catch ( Exception $ex )
-							{
-								throw new Exception( "Failed to import application package $filename.\n{$ex->getMessage()}" );
-							}
-						}
-					}
-				//	intentionally fall through...
-
-				case 'app_group':
-				case 'role':
-				case 'service':
-				case 'user':
-				case 'email_template':
-					$records = Utilities::getArrayValue( 'record', $data, array() );
-					if ( empty( $records ) )
-					{
-						// xml to array conversion leaves them in plural wrapper
-						$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-					}
-					if ( empty( $records ) )
-					{
-						if ( empty( $data ) )
-						{
-							throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
-						}
-						$result = static::createRecord( $this->modelName, $data, $fields, $extras );
-					}
-					else
-					{
-						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-						if ( !isset( $rollback ) )
-						{
-							$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-						}
-						$result = static::createRecords( $this->modelName, $records, $rollback, $fields, $extras );
-					}
-					break;
-				default:
-					throw new Exception( "POST request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST );
-					break;
-			}
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionPut()
-	{
-		try
-		{
-			$this->detectCommonParams();
-			$data = Utilities::getPostDataAsArray();
-			// Most requests contain 'returned fields' parameter
-			$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-			$extras = array();
-			$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-			if ( !empty( $related ) )
-			{
-				$related = array_map( 'trim', explode( ',', $related ) );
-				foreach ( $related as $relative )
-				{
-					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
-				}
-			}
-			switch ( $this->modelName )
-			{
-				case '':
-					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
-					break;
-				case 'config':
-					// typically an update here
-					if ( empty( $data ) )
-					{
-						throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
-					}
-					$result = static::updateConfig( $data, $fields, $extras );
-					break;
-				case 'app':
-				case 'app_group':
-				case 'role':
-				case 'service':
-				case 'user':
-				case 'email_template':
-					if ( empty( $this->modelId ) )
-					{
-						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-						if ( !isset( $rollback ) )
-						{
-							$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-						}
-						$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-						if ( empty( $ids ) )
-						{
-							$ids = Utilities::getArrayValue( 'ids', $data, '' );
-						}
-						if ( !empty( $ids ) )
-						{
-							$result = static::updateRecordsByIds( $this->modelName, $ids, $data, $rollback, $fields, $extras );
-						}
-						else
-						{
-							$records = Utilities::getArrayValue( 'record', $data, null );
-							if ( empty( $records ) )
-							{
-								// xml to array conversion leaves them in plural wrapper
-								$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-							}
-							if ( empty( $records ) )
-							{
-								if ( empty( $data ) )
-								{
-									throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
-								}
-								$result = static::updateRecord( $this->modelName, $data, $fields, $extras );
-							}
-							else
-							{
-								$result = static::updateRecords( $this->modelName, $records, $rollback, $fields, $extras );
-							}
-						}
-					}
-					else
-					{
-						$result = static::updateRecordById( $this->modelName, $this->modelId, $data, $fields, $extras );
-					}
-					break;
-				default:
-					throw new Exception( "PUT request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST );
-					break;
-			}
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionMerge()
-	{
-		try
-		{
-			$this->detectCommonParams();
-			$data = Utilities::getPostDataAsArray();
-			// Most requests contain 'returned fields' parameter
-			$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-			$extras = array();
-			$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-			if ( !empty( $related ) )
-			{
-				$related = array_map( 'trim', explode( ',', $related ) );
-				foreach ( $related as $relative )
-				{
-					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
-				}
-			}
-			switch ( $this->modelName )
-			{
-				case '':
-					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
-					break;
-				case 'config':
-					// typically an update here
-					if ( empty( $data ) )
-					{
-						throw new Exception( 'No record in MERGE update request.', ErrorCodes::BAD_REQUEST );
-					}
-					$result = static::updateConfig( $data, $fields, $extras );
-					break;
-				case 'app':
-				case 'app_group':
-				case 'role':
-				case 'service':
-				case 'user':
-				case 'email_template':
-					if ( empty( $this->modelId ) )
-					{
-						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-						if ( !isset( $rollback ) )
-						{
-							$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-						}
-						$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-						if ( empty( $ids ) )
-						{
-							$ids = Utilities::getArrayValue( 'ids', $data, '' );
-						}
-						if ( !empty( $ids ) )
-						{
-							$result = static::updateRecordsByIds( $this->modelName, $ids, $data, $rollback, $fields, $extras );
-						}
-						else
-						{
-							$records = Utilities::getArrayValue( 'record', $data, null );
-							if ( empty( $records ) )
-							{
-								// xml to array conversion leaves them in plural wrapper
-								$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-							}
-							if ( empty( $records ) )
-							{
-								if ( empty( $data ) )
-								{
-									throw new Exception( 'No record in MERGE update request.', ErrorCodes::BAD_REQUEST );
-								}
-								$result = static::updateRecord( $this->modelName, $data, $fields, $extras );
-							}
-							else
-							{
-								$result = static::updateRecords( $this->modelName, $records, $rollback, $fields, $extras );
-							}
-						}
-					}
-					else
-					{
-						$result = static::updateRecordById( $this->modelName, $this->modelId, $data, $fields, $extras );
-					}
-					break;
-				default:
-					throw new Exception( "MERGE/PATCH request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST );
-					break;
-			}
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionDelete()
-	{
-		try
-		{
-			$this->detectCommonParams();
-			// Most requests contain 'returned fields' parameter
-			$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-			$extras = array();
-			$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-			if ( !empty( $related ) )
-			{
-				$related = array_map( 'trim', explode( ',', $related ) );
-				foreach ( $related as $relative )
-				{
-					$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-					$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-					$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
-				}
-			}
-			switch ( $this->modelName )
-			{
-				case '':
-					throw new Exception( "Multi-table batch requests not currently available through this API.", ErrorCodes::FORBIDDEN );
-					break;
-				case 'app':
-				case 'app_group':
-				case 'role':
-				case 'service':
-				case 'user':
-				case 'email_template':
-					if ( empty( $this->modelId ) )
-					{
-						$data = Utilities::getPostDataAsArray();
-						$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-						if ( empty( $ids ) )
-						{
-							$ids = Utilities::getArrayValue( 'ids', $data, '' );
-						}
-						if ( !empty( $ids ) )
-						{
-							$result = static::deleteRecordsByIds( $this->modelName, $ids, $fields, $extras );
-						}
-						else
-						{
-							$records = Utilities::getArrayValue( 'record', $data, null );
-							if ( empty( $records ) )
-							{
-								// xml to array conversion leaves them in plural wrapper
-								$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-							}
-							if ( empty( $records ) )
-							{
-								if ( empty( $data ) )
-								{
-									throw new Exception( "Id list or record containing Id field required to delete $this->modelName records.", ErrorCodes::BAD_REQUEST );
-								}
-								$result = static::deleteRecord( $this->modelName, $data, $fields, $extras );
-							}
-							else
-							{
-								$result = static::deleteRecords( $this->modelName, $records, $fields, $extras );
-							}
-						}
-					}
-					else
-					{
-						$result = static::deleteRecordById( $this->modelName, $this->modelId, $fields, $extras );
-					}
-					break;
-				default:
-					throw new Exception( "DELETE request received for an unsupported system resource named '$this->modelName'.", ErrorCodes::BAD_REQUEST );
-					break;
-			}
-
-			return $result;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
+		return array( 'resource' => $resources );
 	}
 
 	/**
 	 *
+	 *   @SWG\Api(
+	 *     path="/system/config", description="Operations for system configuration options.",
+	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="Retrieve system configuration options.",
+	 *       notes="The retrieved properties control how the system behaves.",
+	 *       responseClass="Config", nickname="getConfig",
+	 *       @SWG\Parameters(
+	 *       ),
+	 *       @SWG\ErrorResponses(
+	 *       )
+	 *     ),
+	 *     @SWG\Operation(
+	 *       httpMethod="POST", summary="Update one or more system configuration properties.",
+	 *       notes="Post data should be an array of properties.",
+	 *       responseClass="Success", nickname="setConfig",
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
+	 *           name="config", description="Data containing name-value pairs of properties to set.",
+	 *           paramType="body", required="true", allowMultiple=false, dataType="Config"
+	 *         )
+	 *       ),
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       )
+	 *     )
+	 *   )
+	 *
+	 * @return array|bool
+	 * @throws Exception
 	 */
-	protected function detectCommonParams()
+	protected function _handleResource()
 	{
-		$resource = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$resource = ( !empty( $resource ) ) ? explode( '/', $resource ) : array();
-		$this->modelName = strtolower( ( isset( $resource[0] ) ) ? $resource[0] : '' );
-		$this->modelId = ( isset( $resource[1] ) ) ? $resource[1] : '';
+		switch ( $this->_resource )
+		{
+			case '':
+				switch ( $this->_action )
+				{
+					case self::Get:
+						return $this->_listResources();
+						break;
+					default:
+						return false;
+				}
+				break;
+			case 'config':
+				// Most requests contain 'returned fields' parameter, all by default
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
+				$extras = array();
+				$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
+				if ( !empty( $related ) )
+				{
+					$related = array_map( 'trim', explode( ',', $related ) );
+					foreach ( $related as $relative )
+					{
+						$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
+						$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
+						$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+					}
+				}
+
+				switch ( $this->_action )
+				{
+					case self::Get:
+						$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+						$result = static::retrieveConfig( $fields, $include_schema, $extras );
+						break;
+					case self::Post:
+					case self::Put:
+					case self::Patch:
+					case self::Merge:
+						$data = Utilities::getPostDataAsArray();
+						if ( empty( $data ) )
+						{
+							throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
+						}
+						$result = static::updateConfig( $data, $fields, $extras );
+						break;
+					default:
+						return false;
+				}
+				break;
+			case 'app':
+			case 'app_group':
+			case 'role':
+			case 'service':
+			case 'user':
+			case 'email_template':
+				// Most requests contain 'returned fields' parameter, all by default
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
+				$extras = array();
+				$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
+				if ( !empty( $related ) )
+				{
+					$related = array_map( 'trim', explode( ',', $related ) );
+					foreach ( $related as $relative )
+					{
+						$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
+						$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
+						$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+					}
+				}
+
+				switch ( $this->_action )
+				{
+					case self::Get:
+						if ( empty( $this->_resourceId ) )
+						{
+							$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
+							if ( !empty( $ids ) )
+							{
+								$result = static::retrieveRecordsByIds( $this->_resource, $ids, $fields, $extras );
+							}
+							else
+							{ // get by filter or all
+								$data = Utilities::getPostDataAsArray();
+								if ( !empty( $data ) )
+								{ // complex filters or large numbers of ids require post
+									$ids = Utilities::getArrayValue( 'ids', $data, '' );
+									if ( !empty( $ids ) )
+									{
+										$result = static::retrieveRecordsByIds( $this->_resource, $ids, $fields, $extras );
+									}
+									else
+									{
+										$records = Utilities::getArrayValue( 'record', $data, null );
+										if ( empty( $records ) )
+										{
+											// xml to array conversion leaves them in plural wrapper
+											$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+										}
+										if ( !empty( $records ) )
+										{
+											// passing records to have them updated with new or more values, id field required
+											// for single record and no id field given, get records matching given fields
+											$result = static::retrieveRecords( $this->_resource, $records, $fields, $extras );
+										}
+										else
+										{ // if not specified use filter
+											$filter = Utilities::getArrayValue( 'filter', $data, '' );
+											$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
+											$order = Utilities::getArrayValue( 'order', $data, '' );
+											$offset = intval( Utilities::getArrayValue( 'offset', $data, 0 ) );
+											$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
+											$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $data, false ) );
+											$result = static::retrieveRecordsByFilter(
+												$this->_resource,
+												$fields,
+												$filter,
+												$limit,
+												$order,
+												$offset,
+												$include_count,
+												$include_schema,
+												$extras
+											);
+										}
+									}
+								}
+								else
+								{
+									$filter = Utilities::getArrayValue( 'filter', $_REQUEST, '' );
+									$limit = intval( Utilities::getArrayValue( 'limit', $_REQUEST, 0 ) );
+									$order = Utilities::getArrayValue( 'order', $_REQUEST, '' );
+									$offset = intval( Utilities::getArrayValue( 'offset', $_REQUEST, 0 ) );
+									$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $_REQUEST, false ) );
+									$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+									$result = static::retrieveRecordsByFilter(
+										$this->_resource,
+										$fields,
+										$filter,
+										$limit,
+										$order,
+										$offset,
+										$include_count,
+										$include_schema,
+										$extras
+									);
+								}
+							}
+						}
+						else
+						{
+							if ( 0 == strcasecmp( 'app', $this->_resource ) )
+							{
+								$asPkg = Utilities::boolval( Utilities::getArrayValue( 'pkg', $_REQUEST, false ) );
+								if ( $asPkg )
+								{
+									$includeFiles = Utilities::boolval( Utilities::getArrayValue( 'include_files', $_REQUEST, false ) );
+									$includeServices = Utilities::boolval( Utilities::getArrayValue( 'include_services', $_REQUEST, false ) );
+									$includeSchema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+									$includeData = Utilities::boolval( Utilities::getArrayValue( 'include_data', $_REQUEST, false ) );
+									static::exportAppAsPackage( $this->_resourceId, $includeFiles, $includeServices, $includeSchema, $includeData );
+								}
+							}
+							// single entity by id
+							$result = static::retrieveRecordById( $this->_resource, $this->_resourceId, $fields, $extras );
+						}
+						break;
+					case self::Post:
+						$data = Utilities::getPostDataAsArray();
+						if ( 'app' == $this->_resource )
+						{
+							// you can import an application package file, local or remote, or from zip, but nothing else
+							$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
+							if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
+							{
+								// need to download and extract zip file and move contents to storage
+								$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
+								try
+								{
+									return static::importAppFromPackage( $filename, $fileUrl );
+								}
+								catch ( Exception $ex )
+								{
+									throw new Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
+								}
+							}
+							$name = Utilities::getArrayValue( 'name', $_REQUEST, '' );
+							// from repo or remote zip file
+							if ( !empty( $name ) && ( 0 === strcasecmp( 'zip', FileUtilities::getFileExtension( $fileUrl ) ) ) )
+							{
+								// need to download and extract zip file and move contents to storage
+								$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
+								try
+								{
+									return static::importAppFromZip( $name, $filename );
+									// todo save url for later updates
+								}
+								catch ( Exception $ex )
+								{
+									throw new Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
+								}
+							}
+							if ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
+							{
+								// older html multi-part/form-data post, single or multiple files
+								$files = $_FILES['files'];
+								if ( is_array( $files['error'] ) )
+								{
+									throw new Exception( "Only a single application package file is allowed for import." );
+								}
+								$filename = $files['name'];
+								$error = $files['error'];
+								if ( $error !== UPLOAD_ERR_OK )
+								{
+									throw new Exception( "Failed to import application package $filename.\n$error" );
+								}
+								$tmpName = $files['tmp_name'];
+								$contentType = $files['type'];
+								if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $filename ) ) )
+								{
+									try
+									{
+										// need to extract zip file and move contents to storage
+										return static::importAppFromPackage( $tmpName );
+									}
+									catch ( Exception $ex )
+									{
+										throw new Exception( "Failed to import application package $filename.\n{$ex->getMessage()}" );
+									}
+								}
+								if ( !empty( $name ) && !FileUtilities::isZipContent( $contentType ) )
+								{
+									try
+									{
+										// need to extract zip file and move contents to storage
+										return static::importAppFromZip( $name, $tmpName );
+									}
+									catch ( Exception $ex )
+									{
+										throw new Exception( "Failed to import application package $filename.\n{$ex->getMessage()}" );
+									}
+								}
+							}
+						}
+						$records = Utilities::getArrayValue( 'record', $data, array() );
+						if ( empty( $records ) )
+						{
+							// xml to array conversion leaves them in plural wrapper
+							$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+						}
+						if ( empty( $records ) )
+						{
+							if ( empty( $data ) )
+							{
+								throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
+							}
+							$result = static::createRecord( $this->_resource, $data, $fields, $extras );
+						}
+						else
+						{
+							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
+							if ( !isset( $rollback ) )
+							{
+								$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+							}
+							$result = static::createRecords( $this->_resource, $records, $rollback, $fields, $extras );
+						}
+						break;
+					case self::Put:
+					case self::Patch:
+					case self::Merge:
+						$data = Utilities::getPostDataAsArray();
+						if ( empty( $this->_resourceId ) )
+						{
+							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
+							if ( !isset( $rollback ) )
+							{
+								$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+							}
+							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+							if ( empty( $ids ) )
+							{
+								$ids = Utilities::getArrayValue( 'ids', $data, '' );
+							}
+							if ( !empty( $ids ) )
+							{
+								$result = static::updateRecordsByIds( $this->_resource, $ids, $data, $rollback, $fields, $extras );
+							}
+							else
+							{
+								$records = Utilities::getArrayValue( 'record', $data, null );
+								if ( empty( $records ) )
+								{
+									// xml to array conversion leaves them in plural wrapper
+									$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+								}
+								if ( empty( $records ) )
+								{
+									if ( empty( $data ) )
+									{
+										throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
+									}
+									$result = static::updateRecord( $this->_resource, $data, $fields, $extras );
+								}
+								else
+								{
+									$result = static::updateRecords( $this->_resource, $records, $rollback, $fields, $extras );
+								}
+							}
+						}
+						else
+						{
+							$result = static::updateRecordById( $this->_resource, $this->_resourceId, $data, $fields, $extras );
+						}
+						break;
+					case self::Delete:
+						if ( empty( $this->_resourceId ) )
+						{
+							$data = Utilities::getPostDataAsArray();
+							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+							if ( empty( $ids ) )
+							{
+								$ids = Utilities::getArrayValue( 'ids', $data, '' );
+							}
+							if ( !empty( $ids ) )
+							{
+								$result = static::deleteRecordsByIds( $this->_resource, $ids, $fields, $extras );
+							}
+							else
+							{
+								$records = Utilities::getArrayValue( 'record', $data, null );
+								if ( empty( $records ) )
+								{
+									// xml to array conversion leaves them in plural wrapper
+									$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+								}
+								if ( empty( $records ) )
+								{
+									if ( empty( $data ) )
+									{
+										throw new Exception( "Id list or record containing Id field required to delete $this->_resource records.", ErrorCodes::BAD_REQUEST );
+									}
+									$result = static::deleteRecord( $this->_resource, $data, $fields, $extras );
+								}
+								else
+								{
+									$result = static::deleteRecords( $this->_resource, $records, $fields, $extras );
+								}
+							}
+						}
+						else
+						{
+							$result = static::deleteRecordById( $this->_resource, $this->_resourceId, $fields, $extras );
+						}
+						break;
+					default:
+						return false;
+				}
+				break;
+			default:
+				return false;
+				break;
+		}
+
+		return $result;
+	}
+
+
+	/**
+	 *
+	 */
+	protected function _detectResourceMembers()
+	{
+		parent::_detectResourceMembers();
+
+		$this->_resourceId = ( isset( $this->_resourceArray[1] ) ) ? $this->_resourceArray[1] : '';
 	}
 
 	/**
@@ -1416,7 +1236,7 @@ class SystemManager extends RestService
 
 	protected static function updateConfig( $record, $fields, $extras )
 	{
-		UserManager::checkSessionPermission( 'update', 'system', 'config' );
+		UserSession::checkSessionPermission( 'update', 'system', 'config' );
 
 		try
 		{
@@ -1647,7 +1467,7 @@ class SystemManager extends RestService
 			// conversion from xml can pull single record out of array format
 			$records = array( $records );
 		}
-		UserManager::checkSessionPermission( 'create', 'system', $table );
+		UserSession::checkSessionPermission( 'create', 'system', $table );
 		// todo implement rollback
 		$out = array();
 		foreach ( $records as $record )
@@ -1680,7 +1500,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'create', 'system', $table );
+		UserSession::checkSessionPermission( 'create', 'system', $table );
 
 		return static::createRecordLow( $table, $record, $return_fields, $extras );
 	}
@@ -1817,7 +1637,7 @@ class SystemManager extends RestService
 			// conversion from xml can pull single record out of array format
 			$records = array( $records );
 		}
-		UserManager::checkSessionPermission( 'update', 'system', $table );
+		UserSession::checkSessionPermission( 'update', 'system', $table );
 		$out = array();
 		foreach ( $records as $record )
 		{
@@ -1855,7 +1675,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'update', 'system', $table );
+		UserSession::checkSessionPermission( 'update', 'system', $table );
 		// todo this needs to use $model->getPrimaryKey()
 		$id = Utilities::getArrayValue( 'id', $record, '' );
 
@@ -1883,7 +1703,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'update', 'system', $table );
+		UserSession::checkSessionPermission( 'update', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$out = array();
 		foreach ( $ids as $id )
@@ -1921,7 +1741,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'There is no record in the request.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'update', 'system', $table );
+		UserSession::checkSessionPermission( 'update', 'system', $table );
 
 		return static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 	}
@@ -2088,7 +1908,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'delete', 'system', $table );
+		UserSession::checkSessionPermission( 'delete', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$out = array();
 		foreach ( $ids as $id )
@@ -2121,7 +1941,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'delete', 'system', $table );
+		UserSession::checkSessionPermission( 'delete', 'system', $table );
 
 		return static::deleteRecordLow( $table, $id, $return_fields, $extras );
 	}
@@ -2202,7 +2022,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'read', 'system', $table );
+		UserSession::checkSessionPermission( 'read', 'system', $table );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -2320,7 +2140,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'read', 'system', $table );
+		UserSession::checkSessionPermission( 'read', 'system', $table );
 		$ids = array_map( 'trim', explode( ',', $id_list ) );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
@@ -2418,7 +2238,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'Table name can not be empty.', ErrorCodes::BAD_REQUEST );
 		}
-		UserManager::checkSessionPermission( 'read', 'system', $table );
+		UserSession::checkSessionPermission( 'read', 'system', $table );
 		$model = static::getResourceModel( $table );
 		$return_fields = $model->getRetrievableAttributes( $return_fields );
 		$relations = $model->relations();
@@ -2496,7 +2316,7 @@ class SystemManager extends RestService
 											   $include_schema = false,
 											   $include_data = false )
 	{
-		UserManager::checkSessionPermission( 'read', 'system', 'app' );
+		UserSession::checkSessionPermission( 'read', 'system', 'app' );
 		$model = App::model();
 		if ( $include_services || $include_schema )
 		{

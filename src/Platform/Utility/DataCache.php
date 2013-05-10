@@ -60,14 +60,12 @@ class DataCache
 		{
 			if ( ( time() - fileatime( $_fileName ) ) > static::CACHE_TTL )
 			{
-				unlink( $_fileName );
-				//Log::debug( 'Cache file expired: ' . $_fileName );
+				@unlink( $_fileName );
 			}
 			else
 			{
 				$_data = json_decode( Hasher::decryptString( file_get_contents( $_fileName ), static::SALTY_GOODNESS ), true );
-				//Log::debug( 'Cache data found.' );
-				touch( $_fileName );
+				@touch( $_fileName );
 
 				return $_data;
 			}
@@ -112,6 +110,6 @@ class DataCache
 	 */
 	protected static function _getCacheFileName( $key )
 	{
-		return static::CACHE_PATH . '/' . sha1( $key ) . '.dfc';
+		return static::CACHE_PATH . '/.dsp-' . sha1( $key );
 	}
 }

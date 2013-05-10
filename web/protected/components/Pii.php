@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
@@ -34,6 +35,10 @@ class Pii extends \CHtml
 	 * @var string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
+	/**
+	 * @var string
+	 */
+	const DEFAULT_DOC_ROOT = '/var/www/launchpad/web';
 
 	//********************************************************************************
 	//* Members
@@ -112,9 +117,16 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.vendor_path', $_basePath . '/vendor' );
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.dsp_name', $_dspName );
-		\Kisma::set( 'platform.fabric_hosted',
-					 $_isFabric = file_exists( ( class_exists( '\\Fabric', false ) ? \Fabric::FABRIC_MARKER : static::FABRIC_MARKER ) )
+		\Kisma::set(
+			'platform.fabric_hosted',
+			$_isFabric = (
+			class_exists( '\\Fabric', false ) ?
+				\Fabric::fabricHosted()
+				:
+				( FilterInput::server( 'DOCUMENT_ROOT' ) == static::DEFAULT_DOC_ROOT && file_exists( static::FABRIC_MARKER ) )
+			)
 		);
+
 		\Kisma::set( 'app.app_class', ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
 		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
@@ -753,7 +765,7 @@ class Pii extends \CHtml
 		//	Convert to an array
 		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
 		{
-			$columnsToSort = array( $columnsToSort );
+			$columnsToSort = array($columnsToSort);
 		}
 
 		//	Any fields?

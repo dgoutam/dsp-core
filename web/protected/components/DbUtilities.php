@@ -19,39 +19,17 @@
  */
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use Platform\Interfaces\DriverTypes;
 
 /**
  * DbUtilities
  * Generic database utilities
  */
-class DbUtilities
+class DbUtilities implements DriverTypes
 {
-	// constants
-
-	/**
-	 * @var int
-	 */
-	const DRV_OTHER = 0;
-	/**
-	 * @var int
-	 */
-	const DRV_SQLSRV = 1;
-	/**
-	 * @var int
-	 */
-	const DRV_MYSQL = 2;
-	/**
-	 * @var int
-	 */
-	const DRV_SQLITE = 3;
-	/**
-	 * @var int
-	 */
-	const DRV_PGSQL = 4;
-	/**
-	 * @var int
-	 */
-	const DRV_OCSQL = 5;
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * @param CDbConnection $db
@@ -1968,6 +1946,11 @@ class DbUtilities
 		}
 	}
 
+	/**
+	 * @param $original
+	 *
+	 * @return array
+	 */
 	public static function reformatFieldLabelArray( $original )
 	{
 		$new = array();

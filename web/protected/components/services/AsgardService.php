@@ -32,10 +32,19 @@ use Kisma\Core\Utility\Sql;
  */
 class AsgardService extends SeedBag
 {
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
+
 	/**
 	 * @var string
 	 */
 	const SYSTEM_TABLE_NAME_PREFIX = 'df_sys_';
+
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
 	 * @var array Used to determine if an app is a system app or not
 	 */
@@ -44,6 +53,10 @@ class AsgardService extends SeedBag
 			'github.com/dreamfactorysoftware/',
 			'bitbucket.org/dreamfactory/',
 		);
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * @param array $contents

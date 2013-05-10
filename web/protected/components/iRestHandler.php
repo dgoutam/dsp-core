@@ -23,15 +23,5 @@
 
 interface iRestHandler
 {
-    // Controller based methods
-
-    public function actionGet();
-
-    public function actionPost();
-
-    public function actionPut();
-
-    public function actionMerge();
-
-    public function actionDelete();
+	public function processRequest( $resource = null, $action = 'GET');
 }

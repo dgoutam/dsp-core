@@ -1,5 +1,5 @@
 {
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -50,16 +50,9 @@
 					"allow_null": false
 				},
 				{
-					"name":       "storage_id",
-					"type":       "string",
-					"allow_null": true,
-					"length":     64
-				},
-				{
-					"name":       "private_storage_id",
-					"type":       "string",
-					"allow_null": true,
-					"length":     64
+					"name":       "allowed_hosts",
+					"type":       "text",
+					"allow_null": true
 				},
 				{
 					"name":       "created_date",

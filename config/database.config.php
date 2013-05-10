@@ -17,6 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
+
 /**
  * database.config.php
  * The database configuration file for the DSP

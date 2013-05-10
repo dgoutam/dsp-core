@@ -1,27 +1,29 @@
 <?php
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use \Kisma\Core\Exceptions\StorageException;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Sql;
 
 /**
  * User.php
  * The system user model for the DSP
- *
- * This file is part of the DreamFactory Document Service Platform (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This source file and all is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
  *
  * Columns
  *
@@ -203,7 +205,7 @@ class User extends BaseDspSystemModel
 		$this->is_sys_admin = intval( Utilities::boolval( $this->is_sys_admin ) );
 		if ( is_string( $this->role_id ) )
 		{
-			if ( empty( $this->role_id ))
+			if ( empty( $this->role_id ) )
 			{
 				$this->role_id = null;
 			}
@@ -214,7 +216,7 @@ class User extends BaseDspSystemModel
 		}
 		if ( is_string( $this->default_app_id ) )
 		{
-			if ( empty( $this->default_app_id ))
+			if ( empty( $this->default_app_id ) )
 			{
 				$this->default_app_id = null;
 			}
@@ -233,14 +235,15 @@ class User extends BaseDspSystemModel
 		$_id = $this->getPrimaryKey();
 
 		// make sure you don't delete yourself
-		if ( $_id == UserManager::getCurrentUserId() )
+		if ( $_id == UserSession::getCurrentUserId() )
 		{
 			throw new StorageException( 'The currently logged in user may not be deleted.' );
 		}
 
 		//	Check and make sure this is not the last admin user
 		if ( $this->is_sys_admin &&
-			 !static::model()->count( 'is_sys_admin = :is AND id != :id', array( ':is' => 1, ':id' => $_id ) ) )
+			 !static::model()->count( 'is_sys_admin = :is AND id != :id', array( ':is' => 1, ':id' => $_id ) )
+		)
 		{
 			throw new StorageException( 'There must be at least one administrative account. This one may not be deleted.' );
 		}
@@ -269,7 +272,8 @@ class User extends BaseDspSystemModel
 	 */
 	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
-		$addConfirmCode = UserManager::isSystemAdmin();
+		$addConfirmCode = UserSession::isSystemAdmin();
+
 		return parent::getRetrievableAttributes(
 			$requested,
 			array_merge(
@@ -283,7 +287,7 @@ class User extends BaseDspSystemModel
 					 'is_sys_admin',
 					 'role_id',
 					 'default_app_id',
-					 ( $addConfirmCode ? 'confirm_code' : '')
+					 ( $addConfirmCode ? 'confirm_code' : '' )
 				),
 				$columns
 			),
@@ -297,5 +301,31 @@ class User extends BaseDspSystemModel
 				$hidden
 			)
 		);
+	}
+
+	/**
+	 * @param string $userName
+	 * @param string $password
+	 *
+	 * @return bool|\User
+	 */
+	public static function authenticate( $userName, $password )
+	{
+		$_user = static::model()
+				 ->with( 'role.role_service_accesses', 'role.apps', 'role.services' )
+				 ->findByAttributes(
+				array(
+					 'email' => $userName
+				)
+			);
+
+		if ( empty( $_user ) || !CPasswordHelper::verifyPassword( $password, $_user->password ) )
+		{
+			return false;
+		}
+
+		Log::debug( 'Platform user auth: ' . $userName );
+
+		return $_user;
 	}
 }

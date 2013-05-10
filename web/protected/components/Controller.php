@@ -1,43 +1,49 @@
 <?php
 /**
- * Controller.php
- *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright (c) 2012-2013 by DreamFactory Software, Inc. All rights reserved.
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Option;
+use Platform\Interfaces\Graylog;
+use Platform\Interfaces\GraylogLevels;
+use Platform\Services\Graylog\GelfLogger;
+
+/**
+ * Controller
  */
 class Controller extends \CController
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
-	 * @var string the default layout for the controller view. Defaults to '//layouts/column1',
-	 * meaning using a single column layout. See 'protected/views/layouts/column1.php'.
-	 */
-	public $layout = '//layouts/column1';
-	/**
-	 * @var array context menu items. This property will be assigned to {@link CMenu::items}.
-	 */
-	public $menu = array();
-	/**
-	 * @var array the breadcrumbs of the current page. The value of this property will
-	 * be assigned to {@link CBreadcrumbs::links}. Please refer to {@link CBreadcrumbs::links}
-	 * for more details on how to specify this property.
+	 * @var array
 	 */
 	public $breadcrumbs = array();
+	/**
+	 * @var array
+	 */
+	public $menu = array();
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Overridden to log API requests to local graylog server
@@ -52,16 +58,20 @@ class Controller extends \CController
 
 		//	Get the additional data ready
 		$_logInfo = array(
-			'short_message' => 'DSP <--- "' . $action->id . '"',
-			'full_message'  => 'Inbound DSP request from "' . $_host . '": ' . $action->id,
+			'short_message' => strtoupper( $action->id ) . ' /' . $this->route,
+			'full_message'  => 'Inbound API request from "' . $_host . '": ' . $action->id,
 			'level'         => GraylogLevels::Info,
 			'facility'      => Graylog::DefaultFacility . '/api',
+			'_dsp_name'     => $_host,
 			'_source'       => $_SERVER['REMOTE_ADDR'],
 			'_payload'      => $_REQUEST,
+			'_path'         => Option::get( $_REQUEST, 'path' ),
+			'_app_name'     => Option::get( $_REQUEST, 'app_name' ),
+			'_method'       => FilterInput::server( 'REQUEST_METHOD' ),
 		);
 
 		GelfLogger::logMessage( $_logInfo );
 
-		return parent::beforeAction( $action );
+		return true;
 	}
 }

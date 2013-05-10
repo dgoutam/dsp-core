@@ -1,55 +1,60 @@
 <?php
-
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * SqlDbSvc.php
  * A service to handle SQL database services accessed through the REST API.
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class SqlDbSvc extends BaseDbSvc
 {
-
-	// Members
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
 
 	/**
 	 * @var CDbConnection
 	 */
 	protected $_sqlConn;
-
 	/**
 	 * @var boolean
 	 */
 	protected $_isNative = false;
-
 	/**
 	 * @var array
 	 */
 	protected $_fieldCache;
-
 	/**
 	 * @var array
 	 */
 	protected $_relatedCache;
-
 	/**
 	 * @var integer
 	 */
 	protected $_driverType = DbUtilities::DRV_OTHER;
 
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
+
+	/**
+	 * @return int
+	 */
 	public function getDriverType()
 	{
 		return $this->_driverType;
@@ -212,6 +217,9 @@ class SqlDbSvc extends BaseDbSvc
 		}
 	}
 
+	/**
+	 * @return array
+	 */
 	protected function gatherExtrasFromRequest()
 	{
 		$extras = array();
@@ -230,36 +238,29 @@ class SqlDbSvc extends BaseDbSvc
 		return $extras;
 	}
 
-	// Controller based methods
+	// REST service implementation
 
 	/**
 	 * @throws Exception
 	 * @return array
 	 */
-	public function actionGet()
+	protected function _listResources()
 	{
-		$result = parent::actionGet();
-
-		if ( empty( $this->tableName ) )
+		$exclude = '';
+		if ( $this->_isNative )
 		{
-			$exclude = '';
-			if ( $this->_isNative )
-			{
-				// check for system tables
-				$exclude = SystemManager::SYSTEM_TABLE_PREFIX;
-			}
-			try
-			{
-				$result = DbUtilities::describeDatabase( $this->_sqlConn, '', $exclude );
-				$result = array( 'resource' => $result );
-			}
-			catch ( Exception $ex )
-			{
-				throw new Exception( "Error describing database tables.\n{$ex->getMessage()}" );
-			}
+			// check for system tables
+			$exclude = SystemManager::SYSTEM_TABLE_PREFIX;
 		}
-
-		return $result;
+		try
+		{
+			$result = DbUtilities::describeDatabase( $this->_sqlConn, '', $exclude );
+			return array( 'resource' => $result );
+		}
+		catch ( Exception $ex )
+		{
+			throw new Exception( "Error describing database tables.\n{$ex->getMessage()}" );
+		}
 	}
 
 	//-------- Table Records Operations ---------------------
@@ -1583,7 +1584,7 @@ class SqlDbSvc extends BaseDbSvc
 				case 'user_id_on_create':
 					if ( !$for_update )
 					{
-						$userId = UserManager::getCurrentUserId();
+						$userId = UserSession::getCurrentUserId();
 						if ( isset( $userId ) )
 						{
 							$parsed[$name] = $userId;
@@ -1591,7 +1592,7 @@ class SqlDbSvc extends BaseDbSvc
 					}
 					break;
 				case 'user_id_on_update':
-					$userId = UserManager::getCurrentUserId();
+					$userId = UserSession::getCurrentUserId();
 					if ( isset( $userId ) )
 					{
 						$parsed[$name] = $userId;
@@ -1841,6 +1842,14 @@ class SqlDbSvc extends BaseDbSvc
 
 	// generic assignments
 
+	/**
+	 * @param $relations
+	 * @param $data
+	 * @param $extras
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
 	protected function retrieveRelatedRecords( $relations, $data, $extras )
 	{
 		if ( !empty( $extras ) )

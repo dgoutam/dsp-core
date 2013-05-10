@@ -1,25 +1,24 @@
 <?php
 /**
- * Config.php
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
- * This file is part of the DreamFactory Document Service Platform (DSP)
- * Copyright (c) 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This source file and all is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- *
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Config.php
  * The system configuration model for the DSP
  *
  * Columns
@@ -31,8 +30,7 @@
  * @property integer    $allow_guest_user
  * @property integer    $guest_role_id
  * @property string     $editable_profile_fields
- * @property string     $storage_id
- * @property string     $private_storage_id
+ * @property string     $allowed_hosts
  *
  * Relations
  *
@@ -70,7 +68,7 @@ class Config extends BaseDspSystemModel
 			array( 'db_version', 'length', 'max' => 32 ),
 			array( 'editable_profile_fields', 'length', 'max' => 255 ),
 			array( 'allow_open_registration, allow_guest_user, open_reg_role_id, guest_role_id', 'numerical', 'integerOnly' => true ),
-			array( 'id, db_version, editable_profile_fields', 'safe', 'on' => 'search' ),
+			array( 'id, db_version, editable_profile_fields, allowed_hosts', 'safe', 'on' => 'search' ),
 		);
 	}
 
@@ -100,6 +98,7 @@ class Config extends BaseDspSystemModel
 			'allow_guest_user'        => 'Allow Guest User',
 			'guest_role_id'           => 'Guest Role Id',
 			'editable_profile_fields' => 'Editable Profile Fields',
+			'allowed_hosts'           => 'Allowed Hosts',
 		);
 	}
 
@@ -157,6 +156,19 @@ class Config extends BaseDspSystemModel
 	/**
 	 * {@InheritDoc}
 	 */
+	protected function beforeSave()
+	{
+		if ( is_array( $this->allowed_hosts ) )
+		{
+			$this->allowed_hosts = json_encode( $this->allowed_hosts );
+		}
+
+		return parent::beforeSave();
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
 	public function afterFind()
 	{
 		parent::afterFind();
@@ -164,6 +176,15 @@ class Config extends BaseDspSystemModel
 		//	Correct data type
 		$this->allow_open_registration = intval( $this->allow_open_registration );
 		$this->allow_guest_user = intval( $this->allow_guest_user );
+
+		if ( isset( $this->allowed_hosts ) )
+		{
+			$this->allowed_hosts = json_decode( $this->allowed_hosts, true );
+		}
+		else
+		{
+			$this->allowed_hosts = array();
+		}
 	}
 
 	/**
@@ -185,6 +206,7 @@ class Config extends BaseDspSystemModel
 					 'allow_guest_user',
 					 'guest_role_id',
 					 'editable_profile_fields',
+					 'allowed_hosts',
 				),
 				$columns
 			),

@@ -22,6 +22,7 @@
  * @var $model InitAdminForm
  */
 use Kisma\Core\Utility\Bootstrap;
+use Platform\Yii\Utility\Validate;
 
 Validate::register(
 	'form#init-form',
@@ -30,7 +31,7 @@ Validate::register(
 		 'errorClass'     => 'error',
 		 'errorPlacement' => 'function(error,element){error.appendTo(element.parent("div"));error.css("margin","-10px 0 0");}',
 		 'rules'          => array(
-			 'InitAdminForm[email]'       => array(
+			 'InitAdminForm[email]'          => array(
 				 'required'  => true,
 				 'minlength' => 5,
 			 ),
@@ -59,58 +60,69 @@ Validate::register(
 
 <form id="init-form" method="POST">
 	<?php
-	echo'<legend>Login Credentials</legend>';
+	echo '<legend>Login Credentials</legend>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_email' ), 'Email Address' ) . '<div class="controls">' .
-		 Bootstrap::text( array( 'id'  => 'InitAdminForm_email',
+		 Bootstrap::text( array(
+							   'id'    => 'InitAdminForm_email',
 							   'name'  => 'InitAdminForm[email]',
 							   'class' => 'email required',
 							   'value' => $model->email
-						  ) ) . '</div></div>';
+						  )
+		 ) . '</div></div>';
 
-	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_password' ), 'Password' ) . '<div class="controls">' .
-		Bootstrap::password( array(
-								  'id'    => 'InitAdminForm_password',
-								  'name'  => 'InitAdminForm[password]',
-								  'class' => 'password required',
-								  'value' => null
-							 ) ) .
-		'</div></div>';
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_password' ), 'Password' ) . '<div class="controls">' .
+		 Bootstrap::password( array(
+								   'id'    => 'InitAdminForm_password',
+								   'name'  => 'InitAdminForm[password]',
+								   'class' => 'password required',
+								   'value' => null
+							  )
+		 ) .
+		 '</div></div>';
 
-	echo'<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_passwordRepeat' ),
-		'Password Again' ) . '<div class="controls">' .
-		Bootstrap::password( array(
-								  'id'    => 'InitAdminForm_passwordRepeat',
-								  'name'  => 'InitAdminForm[passwordRepeat]',
-								  'class' => 'password required',
-								  'value' => null
-							 ) ) .
-		'</div></div>';
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_passwordRepeat' ),
+														   'Password Again'
+	) . '<div class="controls">' .
+		 Bootstrap::password( array(
+								   'id'    => 'InitAdminForm_passwordRepeat',
+								   'name'  => 'InitAdminForm[passwordRepeat]',
+								   'class' => 'password required',
+								   'value' => null
+							  )
+		 ) .
+		 '</div></div>';
 
-	echo'<legend>User Details</legend>';
+	echo '<legend>User Details</legend>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_firstName' ), 'First Name' ) . '<div class="controls">' .
-		Bootstrap::text( array( 'id'  => 'InitAdminForm_firstName',
-							  'name'  => 'InitAdminForm[firstName]',
-							  'class' => 'required',
-							  'value' => $model->firstName
-						 ) ) . '</div></div>';
+		 Bootstrap::text( array(
+							   'id'    => 'InitAdminForm_firstName',
+							   'name'  => 'InitAdminForm[firstName]',
+							   'class' => 'required',
+							   'value' => $model->firstName
+						  )
+		 ) . '</div></div>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_lastName' ), 'Last Name' ) . '<div class="controls">' .
-		Bootstrap::text( array( 'id'  => 'InitAdminForm_lastName',
-							  'name'  => 'InitAdminForm[lastName]',
-							  'class' => 'required',
-							  'value' => $model->lastName
-						 ) ) . '</div></div>';
+		 Bootstrap::text( array(
+							   'id'    => 'InitAdminForm_lastName',
+							   'name'  => 'InitAdminForm[lastName]',
+							   'class' => 'required',
+							   'value' => $model->lastName
+						  )
+		 ) . '</div></div>';
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_displayName' ),
-		'Display Name' ) . '<div class="controls">' .
-		Bootstrap::text( array(
-							  'id'    => 'InitAdminForm_displayName',
-							  'name'  => 'InitAdminForm[displayName]',
-							  'class' => 'required',
-							  'value' => $model->displayName,
-						 ) ) . '</div></div>';
+														   'Display Name'
+	) . '<div class="controls">' .
+		 Bootstrap::text( array(
+							   'id'    => 'InitAdminForm_displayName',
+							   'name'  => 'InitAdminForm[displayName]',
+							   'class' => 'required',
+							   'value' => $model->displayName,
+						  )
+		 ) . '</div></div>';
 
 	?>
 

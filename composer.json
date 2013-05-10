@@ -48,9 +48,10 @@
 		"dreamfactory/yii": "dev-master",
 		"dreamfactory/app-admin": "dev-master",
 		"dreamfactory/app-launchpad": "dev-master",
-		"dreamfactory/web-core": "dev-master",
-		"aws/aws-sdk-php": "2.*",
-		"swiftmailer/swiftmailer": "4.3.*"
+		"dreamfactory/web-core":      "dev-master",
+		"aws/aws-sdk-php":            "2.*",
+		"swiftmailer/swiftmailer":    "4.3.*",
+		"zircote/swagger-php":        "dev-master"
 	},
 	"autoload": {
 		"psr-0": {

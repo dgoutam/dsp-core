@@ -1,24 +1,25 @@
 <?php
-
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * AppRemoteFileSvc.php
  * A service to handle application-specific file storage accessed through the REST API.
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class AppRemoteFileSvc extends RemoteFileSvc
 {
@@ -68,7 +69,7 @@ class AppRemoteFileSvc extends RemoteFileSvc
 			);
 		}
 
-		return array_merge( $swagger, parent::swaggerParameters( $parameters, $method ));
+		return array_merge( $swagger, parent::swaggerParameters( $parameters, $method ) );
 	}
 
 	/**
@@ -234,110 +235,62 @@ class AppRemoteFileSvc extends RemoteFileSvc
 		return $swagger;
 	}
 
-	// Controller based methods
+	// REST interface implementation
 
 	/**
 	 * @return array
 	 * @throws Exception
 	 */
-	public function actionGet()
+	protected function _handleResource()
 	{
-		$this->checkPermission( 'read' );
-		$path_array = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path_array ) ) ? explode( '/', $path_array ) : array();
-		$app_root = ( isset( $path_array[0] ) ? $path_array[0] : '' );
-		if ( empty( $app_root ) )
+		switch ($this->_action)
 		{
-			// list app folders only for now
-			return $this->getFolderContent( '', false, true, false );
+			case self::Get:
+				$this->checkPermission( 'read' );
+				if ( empty( $this->_resource ) )
+				{
+					// list app folders only for now
+					return $this->getFolderContent( '', false, true, false );
+				}
+				break;
+			case self::Post:
+				$this->checkPermission( 'create' );
+				if ( empty( $this->_resource ) )
+				{
+					// for application management at root directory,
+					throw new Exception( "Application service root directory is not available for file creation." );
+				}
+				break;
+			case self::Put:
+			case self::Patch:
+			case self::Merge:
+				$this->checkPermission( 'update' );
+				if ( empty( $this->_resource ) || ( ( 1 === count( $this->_resourceArray ) ) && empty( $this->_resourceArray[0] ) ) )
+				{
+					// for application management at root directory,
+					throw new Exception( "Application service root directory is not available for file updates." );
+				}
+				break;
+			case self::Delete:
+				$this->checkPermission( 'delete' );
+				if ( empty( $this->_resource ) )
+				{
+					// for application management at root directory,
+					throw new Exception( "Application service root directory is not available for file deletes." );
+				}
+				$more = ( isset( $$this->_resourceArray[1] ) ? $this->_resourceArray[1] : '' );
+				if ( empty( $more ) )
+				{
+					// dealing only with application root here
+					$content = Utilities::getPostDataAsArray();
+					if ( empty( $content ) )
+					{
+						throw new Exception( "Application root directory is not available for delete. Use the system API to delete the app." );
+					}
+				}
+				break;
 		}
 
-		return parent::actionGet();
+		return parent::_handleResource();
 	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionPost()
-	{
-		$this->checkPermission( 'create' );
-		$path_array = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path_array ) ) ? explode( '/', $path_array ) : array();
-		$app_root = ( isset( $path_array[0] ) ? $path_array[0] : '' );
-		if ( empty( $app_root ) )
-		{
-			// for application management at root directory,
-			throw new Exception( "Application service root directory is not available for file creation." );
-		}
-
-		return parent::actionPost();
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionPut()
-	{
-		$this->checkPermission( 'update' );
-		$path_array = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path_array ) ) ? explode( '/', $path_array ) : array();
-		if ( empty( $path_array ) || ( ( 1 === count( $path_array ) ) && empty( $path_array[0] ) ) )
-		{
-			// for application management at root directory,
-			throw new Exception( "Application service root directory is not available for file updates." );
-		}
-
-		return parent::actionPut();
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionMerge()
-	{
-		$this->checkPermission( 'update' );
-		$path_array = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path_array ) ) ? explode( '/', $path_array ) : array();
-		$app_root = ( isset( $path_array[0] ) ? $path_array[0] : '' );
-		if ( empty( $app_root ) )
-		{
-			// for application management at root directory,
-			throw new Exception( "Application service root directory is not available for file updates." );
-		}
-
-		return parent::actionMerge();
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionDelete()
-	{
-		$this->checkPermission( 'delete' );
-		$path_array = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path_array ) ) ? explode( '/', $path_array ) : array();
-		$app_root = ( isset( $path_array[0] ) ? $path_array[0] : '' );
-		if ( empty( $app_root ) )
-		{
-			// for application management at root directory,
-			throw new Exception( "Application service root directory is not available for file deletes." );
-		}
-		$more = ( isset( $path_array[1] ) ? $path_array[1] : '' );
-		if ( empty( $more ) )
-		{
-			// dealing only with application root here
-			$content = Utilities::getPostDataAsArray();
-			if ( empty( $content ) )
-			{
-				throw new Exception( "Application root directory is not available for delete. Use the system API to delete the app." );
-			}
-		}
-
-		return parent::actionDelete();
-	}
-
 }

@@ -1,38 +1,47 @@
 <?php
-
+/**
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 use Kisma\Core\Utility\Log;
 
 /**
  * LocalFileSvc.php
  * Remote File Storage Service giving REST access to file storage.
- *
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 class LocalFileSvc extends BaseFileSvc
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
 	 * @var string
 	 */
 	protected $storageContainer;
 
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
+
 	/**
 	 * Create a new LocalFileSvc
 	 *
-	 * @param  array  $config
+	 * @param  array $config
 	 *
 	 * @throws InvalidArgumentException
 	 * @throws Exception
@@ -154,10 +163,11 @@ class LocalFileSvc extends BaseFileSvc
 			}
 			else
 			{
-                if (!empty($path)) {
-                    throw new Exception("Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND);
-                }
-                // container root doesn't really exist until first write creates it
+				if ( !empty( $path ) )
+				{
+					throw new Exception( "Folder '$path' does not exist in storage.", ErrorCodes::NOT_FOUND );
+				}
+				// container root doesn't really exist until first write creates it
 			}
 
 			return array( "folder" => $folders, "file" => $files );
@@ -252,9 +262,9 @@ class LocalFileSvc extends BaseFileSvc
 	}
 
 	/**
-	 * @param string  $dest_path
-	 * @param string  $src_path
-	 * @param bool    $check_exist
+	 * @param string $dest_path
+	 * @param string $src_path
+	 * @param bool   $check_exist
 	 *
 	 * @return void
 	 * @throws Exception
@@ -537,14 +547,13 @@ class LocalFileSvc extends BaseFileSvc
 			}
 			else
 			{
-				Log::debug('FileManager::streamFile is_file call fail: ' . $key );
+				Log::debug( 'FileManager::streamFile is_file call fail: ' . $key );
 
 				$status_header = "HTTP/1.1 404 The specified file '$path' does not exist.";
 				header( $status_header );
 				header( 'Content-type: text/html' );
 			}
-			Yii::app()->end();
-			;
+			Yii::app()->end();;
 		}
 		catch ( Exception $ex )
 		{
@@ -580,8 +589,7 @@ class LocalFileSvc extends BaseFileSvc
 				header( $status_header );
 				header( 'Content-type: text/html' );
 			}
-			Yii::app()->end();
-			;
+			Yii::app()->end();;
 		}
 		catch ( Exception $ex )
 		{
@@ -681,9 +689,9 @@ class LocalFileSvc extends BaseFileSvc
 	}
 
 	/**
-	 * @param string  $dest_path
-	 * @param string  $src_path
-	 * @param bool    $check_exist
+	 * @param string $dest_path
+	 * @param string $src_path
+	 * @param bool   $check_exist
 	 *
 	 * @return void
 	 * @throws Exception
@@ -920,7 +928,7 @@ class LocalFileSvc extends BaseFileSvc
 	 */
 	private static function asFullPath( $name )
 	{
-		return Defaults::getStoragePath($name);
+		return Defaults::getStoragePath( $name );
 	}
 
 	/**

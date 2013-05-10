@@ -320,7 +320,7 @@ class BaseDspModel extends \CActiveRecord
 	/**
 	 * @param string $modelClass
 	 *
-	 * @return BaseModel
+	 * @return BaseDspModel
 	 */
 	public function setModelClass( $modelClass )
 	{

@@ -17,13 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * SwaggerUtilities
  * A utilities class to handle swagger documentation of the REST API.
  */
 class SwaggerUtilities
 {
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Swagger base response used by Swagger-UI
@@ -39,6 +41,7 @@ class SwaggerUtilities
 			'swaggerVersion' => '1.1',
 			'basePath'       => Yii::app()->getRequest()->getHostInfo() . '/rest'
 		);
+
 		if ( !empty( $service ) )
 		{
 			$swagger['resourcePath'] = '/' . $service;
@@ -86,25 +89,25 @@ class SwaggerUtilities
 	{
 		$models = array(
 			"Resources" => array(
-				"id" => "Resources",
+				"id"         => "Resources",
 				"properties" => array(
 					"resource" => array(
-						"type" => "array",
+						"type"        => "array",
 						"description" => "Resources available for this service",
-						"items" => array( '$ref' => "Resource")
+						"items"       => array( '$ref' => "Resource" )
 					)
 				)
 			),
-			"Resource" => array(
-				"id" => "Resource",
+			"Resource"  => array(
+				"id"         => "Resource",
 				"properties" => array(
 					"name" => array(
 						"type" => "string"
 					)
 				)
 			),
-			"Success" => array(
-				"id" => "Success",
+			"Success"   => array(
+				"id"         => "Success",
 				"properties" => array(
 					"success" => array(
 						"type" => "boolean"
@@ -386,7 +389,7 @@ class SwaggerUtilities
 	 *
 	 * @return array
 	 */
-	public static function swaggerPerResource( $service, $resource, $label = '', $plural = '' )
+	public static function apisPerResource( $service, $resource, $label = '', $plural = '' )
 	{
 		if ( empty( $label ) )
 		{
@@ -396,7 +399,9 @@ class SwaggerUtilities
 		{
 			$plural = Utilities::pluralize( $label );
 		}
-		$swagger = array(
+		$className = str_replace( ' ', '', $label );
+		$classPlural = str_replace( ' ', '', $plural );
+		$apis = array(
 			array(
 				'path'        => '/' . $service . '/' . $resource,
 				'description' => 'Operations for ' . ucfirst( $plural ) . ' administration.',
@@ -404,9 +409,11 @@ class SwaggerUtilities
 					array(
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve multiple $plural",
-						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned.",
-						"responseClass"  => "Records",
-						"nickname"       => "get" . ucfirst( $plural ),
+						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are returned. " .
+											"Use the 'fields' and 'related' parameters to limit properties returned for each resource. " .
+											"By default, all fields and no relations are returned for all resources.",
+						"responseClass"  => $classPlural,
+						"nickname"       => "get" . $classPlural,
 						"parameters"     => static::getParameters(
 							array(
 								 'ids',
@@ -425,28 +432,34 @@ class SwaggerUtilities
 					array(
 						"httpMethod"     => "POST",
 						"summary"        => "Create one or more $plural",
-						"notes"          => "Post data should be an array of fields for a single $resource or a record array of $plural",
-						"responseClass"  => "array",
-						"nickname"       => "create" . ucfirst( $plural ),
-						"parameters"     => static::getParameters( array( 'fields', 'related', ( ( 'app' == $resource ) ? 'url' : '' ) ) ),
+						"notes"          => "Post data should be a single $className or $classPlural, an array of $className (shown). " .
+											"By default, only the id property of the $className is returned on success, " .
+											"use 'fields' and 'related' to return more info.",
+						"responseClass"  => $classPlural,
+						"nickname"       => "create" . $classPlural,
+						"parameters"     => static::getParameters( array( 'fields', 'related', 'record', ( ( 'app' == $resource ) ? 'url' : '' ) ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "PUT",
 						"summary"        => "Update one or more $plural",
-						"notes"          => "Post data should be an array of fields for a single $resource or a record array of $plural",
-						"responseClass"  => "array",
-						"nickname"       => "update" . ucfirst( $plural ),
-						"parameters"     => static::getParameters( array( 'fields', 'related' ) ),
+						"notes"          => "Post data should be a single $className or $classPlural, an array of $className (shown). " .
+											"By default, only the id property of the $className is returned on success, " .
+											"use 'fields' and 'related' to return more info.",
+						"responseClass"  => $classPlural,
+						"nickname"       => "update" . $classPlural,
+						"parameters"     => static::getParameters( array( 'fields', 'related', 'record' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
 						"httpMethod"     => "DELETE",
 						"summary"        => "Delete one or more $plural",
-						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
-						"responseClass"  => "array",
-						"nickname"       => "delete" . ucfirst( $plural ),
-						"parameters"     => static::getParameters( array( 'fields', 'related' ) ),
+						"notes"          => "Post data should be a single $className or $classPlural, an array of $className (shown). " .
+											"By default, only the id property of the $className is returned on success, " .
+											"use 'fields' and 'related' to return more info.",
+						"responseClass"  => $classPlural,
+						"nickname"       => "delete" . $classPlural,
+						"parameters"     => static::getParameters( array( 'fields', 'related', 'record' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 				)
@@ -459,8 +472,8 @@ class SwaggerUtilities
 						"httpMethod"     => "GET",
 						"summary"        => "Retrieve one $label by identifier",
 						"notes"          => "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
-						"responseClass"  => "array",
-						"nickname"       => "get" . ucfirst( $label ),
+						"responseClass"  => $className,
+						"nickname"       => "get" . $className,
 						"parameters"     => static::getParameters( array( 'id', 'fields', 'related', ( ( 'app' == $resource ) ? 'pkg' : '' ) ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
@@ -468,8 +481,8 @@ class SwaggerUtilities
 						"httpMethod"     => "PUT",
 						"summary"        => "Update one $label by identifier",
 						"notes"          => "Post data should be an array of fields for a single $resource",
-						"responseClass"  => "array",
-						"nickname"       => "update" . ucfirst( $label ),
+						"responseClass"  => $className,
+						"nickname"       => "update" . $className,
 						"parameters"     => static::getParameters( array( 'id', 'fields', 'related' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
@@ -477,8 +490,8 @@ class SwaggerUtilities
 						"httpMethod"     => "DELETE",
 						"summary"        => "Delete one $label by identifier",
 						"notes"          => "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
-						"responseClass"  => "array",
-						"nickname"       => "delete" . ucfirst( $label ),
+						"responseClass"  => $className,
+						"nickname"       => "delete" . $className,
 						"parameters"     => static::getParameters( array( 'id', 'fields', 'related' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
@@ -486,7 +499,83 @@ class SwaggerUtilities
 			),
 		);
 
-		return $swagger;
+		return $apis;
+	}
+
+	/**
+	 * Define dynamic swagger output for each service resource.
+	 * Currently used only for the System service, but maybe others later.
+	 *
+	 * @param string $service
+	 * @param string $resource
+	 * @param string $label
+	 * @param string $plural
+	 *
+	 * @return array
+	 */
+	public static function modelsPerResource( $service, $resource, $label = '', $plural = '' )
+	{
+		if ( empty( $label ) )
+		{
+			$label = Utilities::labelize( $resource );
+		}
+		if ( empty( $plural ) )
+		{
+			$plural = Utilities::pluralize( $label );
+		}
+		$className = str_replace( ' ', '', $label );
+		$classPlural = str_replace( ' ', '', $plural );
+		$models = array(
+			$classPlural => array(
+				"id"         => $classPlural,
+				"properties" => array(
+					"record" => array(
+						"type"        => "array",
+						"items"       => array( '$ref' => $className ),
+						"description" => "Array of system records of the given resource."
+					),
+				)
+			),
+			$className   => array(
+				"id"         => $className,
+				"properties" => array(
+					"created_date"        => array(
+						"type"        => "string",
+						"description" => "Date this record was created."
+					),
+					"created_by_id"       => array(
+						"type"        => "integer",
+						"description" => "User Id of who created this record."
+					),
+					"last_modified_date"  => array(
+						"type"        => "string",
+						"description" => "Date this record was last modified."
+					),
+					"last_modified_by_id" => array(
+						"type"        => "integer",
+						"description" => "User Id of who last modified this record."
+					),
+					"name"                => array(
+						"type"        => "string",
+						"description" => "Displayable name of this resource."
+					),
+					"api_name"            => array(
+						"type"        => "string",
+						"description" => "Name of the resource to use in API transactions."
+					),
+					"description"         => array(
+						"type"        => "string",
+						"description" => "Description of this resource."
+					),
+					"is_active"           => array(
+						"type"        => "boolean",
+						"description" => "Is this system resource active for use."
+					),
+				)
+			),
+		);
+
+		return $models;
 	}
 
 }
