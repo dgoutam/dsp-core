@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 namespace Platform\Yii\Components;
+
 use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\Exceptions\HttpException;
@@ -52,9 +53,13 @@ class PlatformWebApplication extends \CWebApplication
 	//*************************************************************************
 
 	/**
-	 * @var array
+	 * @var array An indexed array of white-listed host URIs
 	 */
 	protected $_corsWhitelist = array();
+	/**
+	 * @var bool If true (default), the CORS headers will be sent automatically on non-OPTIONS calls before your actions are called. Requires whitelist to be set up prior to request being processed.
+	 */
+	protected $_autoAddHeaders = true;
 
 	//*************************************************************************
 	//	Methods
@@ -67,7 +72,7 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		parent::init();
 
-		Pii::app()->onBeginRequest = array( $this, 'checkRequestMethod' );
+		Pii::app()->onBeginRequest = array($this, 'checkRequestMethod');
 	}
 
 	/**
@@ -82,9 +87,15 @@ class PlatformWebApplication extends \CWebApplication
 			header( 'content-length: 0' );
 			header( 'content-type: text/plain' );
 
-			$this->addCorsHeaders( array( '*' ) );
+			$this->addCorsHeaders( array('*') );
 
 			Pii::end();
+		}
+
+		//	Auto-add the CORS headers...
+		if ( $this->_autoAddHeaders )
+		{
+			$this->addCorsHeaders();
 		}
 	}
 
@@ -156,4 +167,23 @@ class PlatformWebApplication extends \CWebApplication
 		return $this->_corsWhitelist;
 	}
 
+	/**
+	 * @param boolean $autoAddHeaders
+	 *
+	 * @return PlatformWebApplication
+	 */
+	public function setAutoAddHeaders( $autoAddHeaders )
+	{
+		$this->_autoAddHeaders = $autoAddHeaders;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getAutoAddHeaders()
+	{
+		return $this->_autoAddHeaders;
+	}
 }
