@@ -35,10 +35,6 @@ $_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require( __DIR_
 
 return array(
 
-	//.........................................................................
-	//. Base Configuration
-	//.........................................................................
-
 	/**    Basics */
 	'basePath'        => $_docRoot . '/protected',
 	'name'            => $_appName,
