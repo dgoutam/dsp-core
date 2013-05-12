@@ -107,6 +107,7 @@ return array_merge(
 		  */
 		 'dsp.version'       => '1.0.1',
 		 'dsp.name'          => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint' => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
 		 'cloud.endpoint'    => 'http://api.cloud.dreamfactory.com',
 		 /**
 		  * User data

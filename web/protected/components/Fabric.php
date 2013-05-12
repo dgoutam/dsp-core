@@ -17,9 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 use Kisma\Core\Enums\DateTime;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\SeedUtility;
+use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 
@@ -44,27 +46,11 @@ class Fabric extends SeedUtility
 	/**
 	 * @var string
 	 */
-	const DSP_HOST = '___DSP_HOST___';
-	/**
-	 * @var string
-	 */
-	const DSP_CREDENTIALS = '___DSP_CREDENTIALS___';
-	/**
-	 * @var string
-	 */
 	const DSP_DB_CONFIG_FILE_NAME_PATTERN = '%%INSTANCE_NAME%%.database.config.php';
 	/**
 	 * @var string
 	 */
 	const DSP_DEFAULT_SUBDOMAIN = '.cloud.dreamfactory.com';
-	/**
-	 * @var string
-	 */
-	const DSP_DB_CONFIG = '___DSP_DB_CONFIG___';
-	/**
-	 * @var string
-	 */
-	const STORAGE_KEY = '___DSP_STORAGE_KEY___';
 	/**
 	 * @var string My favorite cookie
 	 */
@@ -93,6 +79,14 @@ class Fabric extends SeedUtility
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
+
+	/**
+	 * @return bool True if this DSP is fabric-hosted
+	 */
+	public static function fabricHosted()
+	{
+		return static::DEFAULT_DOC_ROOT == FilterInput::server( 'DOCUMENT_ROOT' ) && file_exists( static::FABRIC_MARKER );
+	}
 
 	/**
 	 * @return bool
@@ -151,6 +145,13 @@ class Fabric extends SeedUtility
 //			Log::info( 'Credentials pull' );
 			$_response = \Curl::get( static::AUTH_ENDPOINT . '/' . $_dspName . '/database' );
 
+			if ( HttpResponse::NotFound == \Curl::getLastHttpCode() )
+			{
+				Pii::redirect( '/site/your-new-dsp' );
+
+				return;
+			}
+
 			if ( is_object( $_response ) && isset( $_response->details, $_response->details->code ) && HttpResponse::NotFound == $_response->details->code )
 			{
 //				Log::error( 'Instance "' . $_dspName . '" not found during web initialize.' );
@@ -159,7 +160,7 @@ class Fabric extends SeedUtility
 
 			if ( !$_response || !is_object( $_response ) || false == $_response->success )
 			{
-//				Log::error( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
+				error_log( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
 				throw new \CHttpException( HttpResponse::InternalServerError, 'Cannot connect to authentication service' );
 			}
 
@@ -205,34 +206,20 @@ class Fabric extends SeedUtility
 	 */
 	protected static function _checkCache( $host )
 	{
-		//	Create a hash
-		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/.dsp-' . sha1( $host . $_SERVER['REMOTE_ADDR'] );
-
-		if ( file_exists( $_tmpConfig ) )
+		//	See if file is available and return it, or expire it...
+		if ( file_exists( $_cacheFile = static::_cacheFileName( $host ) ) )
 		{
-			if ( ( time() - fileatime( $_tmpConfig ) ) > static::EXPIRATION_THRESHOLD )
+			//	No session or expired?
+			if ( Pii::isEmpty( session_id() ) || ( time() - fileatime( $_cacheFile ) ) > static::EXPIRATION_THRESHOLD )
 			{
-//				Log::warning( 'Expired (' . ( time() - fileatime( $_tmpConfig ) ) . 's old) dbconfig found. Removing: ' . $_tmpConfig );
-				@unlink( $_tmpConfig );
+				@unlink( $_cacheFile );
 
 				return false;
 			}
 
-			if ( /*'' == session_id() ||*/
-				'deleted' == FilterInput::cookie( 'PHPSESSID' )
-			)
+			if ( false !== ( $_data = json_decode( file_get_contents( $_cacheFile ), true ) ) )
 			{
-//				Log::warning( 'Logged out user session found. Removing: ' . $_tmpConfig );
-				@unlink( $_tmpConfig );
-
-				return false;
-			}
-
-//			Log::debug( 'tmp read: ' . $_tmpConfig );
-
-			if ( false !== ( $_data = json_decode( file_get_contents( $_tmpConfig ), true ) ) )
-			{
-				return array($_data['settings'], $_data['instance']);
+				return array( $_data['settings'], $_data['instance'] );
 			}
 		}
 
@@ -240,6 +227,8 @@ class Fabric extends SeedUtility
 	}
 
 	/**
+	 * Writes the cache file out to disk
+	 *
 	 * @param string   $host
 	 * @param array    $settings
 	 * @param stdClass $instance
@@ -248,22 +237,25 @@ class Fabric extends SeedUtility
 	 */
 	protected static function _cacheSettings( $host, $settings, $instance )
 	{
-		$_tmpConfig = rtrim( sys_get_temp_dir(), '/' ) . '/.dsp-' . sha1( $host . $_SERVER['REMOTE_ADDR'] );
 		$_data = array(
 			'settings' => $settings,
 			'instance' => $instance,
 		);
 
-		file_put_contents( $_tmpConfig, json_encode( $_data ) );
+		file_put_contents( static::_cacheFileName( $host ), json_encode( $_data ) );
 
 		return $settings;
 	}
 
 	/**
-	 * @return bool True if this DSP is fabric-hosted
+	 * Generates the file name for the configuration cache file
+	 *
+	 * @param string $host
+	 *
+	 * @return string
 	 */
-	public static function fabricHosted()
+	protected static function _cacheFileName( $host )
 	{
-		return static::DEFAULT_DOC_ROOT == FilterInput::server( 'DOCUMENT_ROOT' ) && file_exists( static::FABRIC_MARKER );
+		return rtrim( sys_get_temp_dir(), '/' ) . '/.dsp-' . sha1( $host . $_SERVER['REMOTE_ADDR'] );
 	}
 }
