@@ -27,7 +27,7 @@
  * setting globals whilst at it.
  */
 $_dbConfig = require( __DIR__ . '/database.config.php' );
-$_commonConfig = file_exists( __DIR__ . '/common.config.php' ) ? require( __DIR__ . '/common.config.php' ) : array();
+$_commonConfig = require( __DIR__ . '/common.config.php' );
 
 //.........................................................................
 //. The configuration himself (like Raab)
@@ -40,11 +40,11 @@ return array(
 	'name'            => $_appName,
 	'runtimePath'     => $_logFilePath,
 	/** CORS Configuration */
-	'corsWhitelist'   => array('dsp.local'),
+	'corsWhitelist'   => array( '*' ),
 	'autoAddHeaders'  => true,
 	'extendedHeaders' => true,
 	/**    Preloads */
-	'preload'         => array('log'),
+	'preload'         => array( 'log' ),
 	/**    Imports */
 	'import'          => array(
 		'system.utils.*',
@@ -56,8 +56,6 @@ return array(
 		'application.components.services.*',
 		'application.exceptions.*',
 	),
-	/**    Modules */
-//	'modules'     => array(),
 	/**    Components */
 	'components'      => array(
 		//	Asset management
@@ -80,17 +78,17 @@ return array(
 			'showScriptName' => false,
 			'rules'          => array(
 				// REST patterns
-				array('rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
-				array('rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST'),
-				array('rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT'),
-				array('rest/merge', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE'),
-				array('rest/delete', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE'),
+				array( 'rest/get', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
+				array( 'rest/post', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'POST' ),
+				array( 'rest/put', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PUT' ),
+				array( 'rest/merge', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'PATCH,MERGE' ),
+				array( 'rest/delete', 'pattern' => 'rest/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'DELETE' ),
 				// Other controllers
 				'<controller:\w+>/<id:\d+>'              => '<controller>/view',
 				'<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'          => '<controller>/<action>',
 				// fall through to storage services for direct access
-				array('storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET'),
+				array( 'storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 			),
 		),
 		//	User configuration

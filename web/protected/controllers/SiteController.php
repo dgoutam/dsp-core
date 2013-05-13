@@ -102,7 +102,7 @@ class SiteController extends Controller
 					// try local launchpad
 					if ( is_file( \Kisma::get( 'app.app_path' ) . '/public/launchpad/index.html' ) )
 					{
-						Pii::redirect( '/public/launchpad/index.html' );
+						$this->redirect( '/public/launchpad/index.html' );
 					}
 
 					//	Fall back to this app default site
@@ -110,20 +110,20 @@ class SiteController extends Controller
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					Pii::redirect( 'site/initSystem' );
+					$this->redirect( 'site/initSystem' );
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					Pii::redirect( 'site/initAdmin' );
+					$this->redirect( 'site/initAdmin' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
 				case PlatformStates::UPGRADE_REQUIRED:
-					Pii::redirect( 'site/upgradeSchema' );
+					$this->redirect('site/upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					Pii::redirect( 'site/initData' );
+					$this->redirect('site/initData' );
 					break;
 			}
 		}
@@ -202,7 +202,7 @@ class SiteController extends Controller
 	public function actionLogout()
 	{
 		Pii::user()->logout();
-		Pii::redirect( '/' );
+		$this->redirect('/' );
 	}
 
 	/**
@@ -211,7 +211,7 @@ class SiteController extends Controller
 	public function actionInitSystem()
 	{
 		SystemManager::initSystem();
-		Pii::redirect( '/' );
+		$this->redirect('/' );
 	}
 
 	/**
@@ -228,7 +228,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				Pii::redirect( '/' );
+				$this->redirect('/' );
 			}
 
 			$this->refresh();
@@ -248,7 +248,7 @@ class SiteController extends Controller
 	public function actionInitAdmin()
 	{
 		SystemManager::initAdmin();
-		Pii::redirect( '/' );
+		$this->redirect('/' );
 	}
 
 	/**
@@ -265,7 +265,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				Pii::redirect( '/' );
+				$this->redirect('/' );
 			}
 
 			$this->refresh();

@@ -137,18 +137,12 @@ class ServiceHandler
 
 		try
 		{
+			$record = static::getService( $api_name );
+			$type = Utilities::getArrayValue( 'type', $record, '' );
 			switch ( strtolower( $api_name ) )
 			{
 				// some special cases first
-				case 'system':
-					$service = new SystemManager();
-					break;
-				case 'user':
-					$service = new UserManager();
-					break;
 				case 'app':
-					$record = static::getService( $api_name );
-					$type = Utilities::getArrayValue( 'type', $record, '' );
 					switch ( $type )
 					{
 						case 'Local File Storage':
@@ -160,8 +154,6 @@ class ServiceHandler
 					}
 					break;
 				default:
-					$record = static::getService( $api_name );
-					$type = Utilities::getArrayValue( 'type', $record, '' );
 					switch ( $type )
 					{
 						case 'Remote Web Service':
