@@ -23,6 +23,7 @@
  */
 //	Load up composer...
 $_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
+$_autoloader = require_once( __DIR__ . '/../src/Platform/Yii/Utility/Pii.php' );
 
 //	Yii debug settings
 defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
