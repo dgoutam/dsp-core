@@ -323,6 +323,11 @@ class RestController extends Controller
 				Utilities::sendXmlResponse( $result );
 				break;
 		}
-		Yii::app()->end();
+		/**
+		 * @var \Platform\Yii\Components\PlatformWebApplication $app
+		 */
+		$app = Yii::app();
+		$app->addCorsHeaders(  );
+		$app->end();
 	}
 }
