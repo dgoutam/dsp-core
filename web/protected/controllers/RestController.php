@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * RestController
  * REST API router and controller
@@ -103,7 +104,7 @@ class RestController extends Controller
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			if ( $this->swagger )
 			{
-				$result = $svcObj->getSwagger();
+				$result = SwaggerUtilities::getSwaggerForService( $svcObj );
 			}
 			else
 			{
@@ -312,6 +313,7 @@ class RestController extends Controller
 		$code = ErrorCodes::getHttpStatusCode( $code );
 		$title = ErrorCodes::getHttpStatusCodeTitle( $code );
 		header( "HTTP/1.1 $code $title" );
+//		Yii::app()->addCorsHeaders();
 		switch ( $this->format )
 		{
 			case 'json':

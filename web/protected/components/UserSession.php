@@ -19,7 +19,6 @@
  */
 use Kisma\Core\Utility\Sql;
 use Platform\Interfaces\PermissionTypes;
-use Swagger\Swagger;
 use Swagger\Annotations as SWG;
 
 /**
@@ -29,8 +28,30 @@ use Swagger\Annotations as SWG;
  * @package
  * @category
  *
- * @SWG\Api(
- *   path="/user/session", description="Operations on a user's session."
+ * @SWG\Resource(
+ *   apiVersion="1.0.0",
+ *   swaggerVersion="1.1",
+ *   basePath="http://localhost/rest",
+ *   resourcePath="/user"
+ * )
+ *
+ * @SWG\Model(id="Session",
+ *   @SWG\Property(name="id",type="string",description="Identifier for the current user."),
+ *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user."),
+ *   @SWG\Property(name="is_sys_admin",type="boolean",description="Is the current user a system administrator."),
+ *   @SWG\Property(name="last_login_date",type="string",description="Date and time of the last login for the current user."),
+ *   @SWG\Property(name="app_groups",type="Array",description="App groups and the containing apps."),
+ *   @SWG\Property(name="no_group_apps",type="Array",description="Apps that are not in any app groups."),
+ *   @SWG\Property(name="ticket",type="string",description="Timed ticket that can be used to start a separate session."),
+ *   @SWG\Property(name="ticket_expiry",type="string",description="Expiration time for the given ticket.")
+ * )
+ *
+ * @SWG\Model(id="Login",
+ *   @SWG\Property(name="email",type="string"),
+ *   @SWG\Property(name="password",type="string")
  * )
  *
  */
@@ -128,23 +149,121 @@ class UserSession extends RestResource
 	//-------- User Operations ------------------------------------------------
 
 	/**
+	 * userSession refreshes an existing session or
+	 *     allows the SSO creation of a new session for external apps via timed ticket
 	 *
-	 * @SWG\Operation(
-	 *   httpMethod="POST", summary="Login and create a new user session.",
-	 *   notes="Calling this creates a new session and logs in the user.",
-	 *   responseClass="Session", nickname="login",
-	 *   @SWG\Parameters(
-	 *     @SWG\Parameter(
-	 *       name="credentials", description="Data containing name-value pairs used for logging into the system.",
-	 *       paramType="body", required="true", allowMultiple=false, dataType="Login"
+	 * @SWG\Api(
+	 *   path="/user/session", description="Operations on a user's session.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="Retrieve the current user session information.",
+	 *       notes="Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.",
+	 *       responseClass="Session", nickname="getSession",
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       )
 	 *     )
-	 *   ),
-	 *   @SWG\ErrorResponses(
-	 *      @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *      @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *      @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *   )
 	 * )
+	 *
+	 * @param string $ticket
+	 *
+	 * @return mixed
+	 * @throws Exception
+	 */
+	public static function userSession( $ticket = '' )
+	{
+		if ( empty( $ticket ) )
+		{
+			try
+			{
+				$userId = static::validateSession();
+			}
+			catch ( Exception $ex )
+			{
+				static::userLogout();
+
+				// special case for possible guest user
+				$theConfig = Config::model()->with(
+					'guest_role.role_service_accesses',
+					'guest_role.apps',
+					'guest_role.services'
+				)->find();
+
+				if ( !empty( $theConfig ) )
+				{
+					if ( Utilities::boolval( $theConfig->allow_guest_user ) )
+					{
+						$result = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
+
+						// additional stuff for session - launchpad mainly
+						return static::addSessionExtras( $result, false, true );
+					}
+				}
+
+				// otherwise throw original exception
+				throw $ex;
+			}
+		}
+		else
+		{ // process ticket
+			$creds = Utilities::decryptCreds( $ticket, "gorilla" );
+			$pieces = explode( ',', $creds );
+			$userId = $pieces[0];
+			$timestamp = $pieces[1];
+			$curTime = time();
+			$lapse = $curTime - $timestamp;
+			if ( empty( $userId ) || ( $lapse > 300 ) )
+			{ // only lasts 5 minutes
+				static::userLogout();
+				throw new Exception( "Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED );
+			}
+		}
+
+		try
+		{
+			$theUser = User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->findByPk( $userId );
+			if ( null === $theUser )
+			{
+				throw new Exception( "The user identified in the session or ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED );
+			}
+			$isSysAdmin = $theUser->is_sys_admin;
+			$result = static::generateSessionDataFromUser( null, $theUser );
+
+			// additional stuff for session - launchpad mainly
+			return static::addSessionExtras( $result, $isSysAdmin, true );
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
+
+	/**
+	 *
+	 * @SWG\Api(
+	 *   path="/user/session", description="Operations on a user's session.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="POST", summary="Login and create a new user session.",
+	 *       notes="Calling this creates a new session and logs in the user.",
+	 *       responseClass="Session", nickname="login",
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
+	 *           name="credentials", description="Data containing name-value pairs used for logging into the system.",
+	 *           paramType="body", required="true", allowMultiple=false, dataType="Login"
+	 *         )
+	 *       ),
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       )
+	 *     )
+	 *   )
+	 * )
+	 *
 	 *
 	 * @param string $email
 	 * @param string $password
@@ -200,106 +319,20 @@ class UserSession extends RestResource
 	}
 
 	/**
-	 * userSession refreshes an existing session or
-	 *     allows the SSO creation of a new session for external apps via timed ticket
-	 *
-	 *     @SWG\Operation(
-	 *       httpMethod="GET", summary="Retrieve the current user session information.",
-	 *       notes="Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.",
-	 *       responseClass="Session", nickname="getSession",
-	 *       @SWG\Parameters(
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
-	 *       )
-	 *     )
-	 *
-	 * @param string $ticket
-	 *
-	 * @return mixed
-	 * @throws Exception
-	 */
-	public static function userSession( $ticket = '' )
-	{
-		if ( empty( $ticket ) )
-		{
-			try
-			{
-				$userId = static::validateSession();
-			}
-			catch ( Exception $ex )
-			{
-				static::userLogout();
-
-				// special case for possible guest user
-				$theConfig = Config::model()->with(
-								 'guest_role.role_service_accesses',
-								 'guest_role.apps',
-								 'guest_role.services'
-							 )->find();
-
-				if ( !empty( $theConfig ) )
-				{
-					if ( Utilities::boolval( $theConfig->allow_guest_user ) )
-					{
-						$result = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
-
-						// additional stuff for session - launchpad mainly
-						return static::addSessionExtras( $result, false, true );
-					}
-				}
-
-				// otherwise throw original exception
-				throw $ex;
-			}
-		}
-		else
-		{ // process ticket
-			$creds = Utilities::decryptCreds( $ticket, "gorilla" );
-			$pieces = explode( ',', $creds );
-			$userId = $pieces[0];
-			$timestamp = $pieces[1];
-			$curTime = time();
-			$lapse = $curTime - $timestamp;
-			if ( empty( $userId ) || ( $lapse > 300 ) )
-			{ // only lasts 5 minutes
-				static::userLogout();
-				throw new Exception( "Ticket used for session generation is too old.", ErrorCodes::UNAUTHORIZED );
-			}
-		}
-
-		try
-		{
-			$theUser = User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->findByPk( $userId );
-			if ( null === $theUser )
-			{
-				throw new Exception( "The user identified in the session or ticket does not exist in the system.", ErrorCodes::UNAUTHORIZED );
-			}
-			$isSysAdmin = $theUser->is_sys_admin;
-			$result = static::generateSessionDataFromUser( null, $theUser );
-
-			// additional stuff for session - launchpad mainly
-			return static::addSessionExtras( $result, $isSysAdmin, true );
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
-		}
-	}
-
-	/**
+	 * @SWG\Api(
+	 *   path="/user/session", description="Operations on a user's session.",
+	 *   @SWG\Operations(
 	 *     @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Logout and destroy the current user session.",
 	 *       notes="Calling this deletes the current session and logs out the user.",
 	 *       responseClass="Success", nickname="logout",
-	 *       @SWG\Parameters(
-	 *       ),
 	 *       @SWG\ErrorResponses(
 	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
 	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
+	 *   )
+	 * )
 	 *
 	 */
 	public static function userLogout()

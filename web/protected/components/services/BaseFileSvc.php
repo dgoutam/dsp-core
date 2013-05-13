@@ -17,9 +17,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Swagger\Annotations as SWG;
+
 /**
  * BaseFileSvc
  * Base File Storage Service giving REST access to file storage.
+ *
+ * @SWG\Resource(
+ *   apiVersion="1.0.0",
+ *   swaggerVersion="1.1",
+ *   basePath="http://localhost/rest",
+ *   resourcePath="/{file}"
+ * )
+ *
+ * @SWG\Model(id="Tables",
+ *   @SWG\Property(name="table",type="Array",items="$ref:TableSchema",description="An array of table definitions.")
+ * )
+ * @SWG\Model(id="TableSchema",
+ *   @SWG\Property(name="name",type="string",description="Identifier/Name for the table."),
+ *   @SWG\Property(name="label",type="Array",items="$ref:EmailAddress",description="Displayable singular name for the table."),
+ *   @SWG\Property(name="plural",type="Array",items="$ref:EmailAddress",description="Displayable plural name for the table."),
+ *   @SWG\Property(name="primary_key",type="string",description="Field(s), if any, that represent the primary key of each record."),
+ *   @SWG\Property(name="name_field",type="string",description="Field(s), if any, that represent the name of each record."),
+ *   @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of available fields in each record."),
+ *   @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of available relationships to other tables.")
+ * )
+ *
  */
 abstract class BaseFileSvc extends RestService implements iFileManager
 {
@@ -289,150 +312,236 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 
 		return $swagger;
 	}
+/*
+ * 	"httpMethod"     => "GET",
+	"summary"        => "List folders and files in the given folder.",
+	"notes"          => "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
+	"nickname"       => "getFoldersAndFiles",
+	"parameters"     => static::swaggerParameters(
+	array('folder','folders_only','files_only','full_tree','zip')
 
+	"httpMethod"     => "POST",
+	"summary"        => "Create one or more folders and/or files from posted data.",
+	"notes"          => "Post data as an array of folders and/or files.",
+	"responseClass"  => "array",
+	"nickname"       => "createFoldersAndFiles",
+	"parameters"     => static::swaggerParameters(
+	array('folder','url','extract','clean','check_exist')
+
+	"httpMethod"     => "PUT",
+	"summary"        => "Update one or more folders and/or files",
+	"notes"          => "Post data as an array of folders and/or files.",
+	"responseClass"  => "array",
+	"nickname"       => "updateFoldersAndFiles",
+	"parameters"     => static::swaggerParameters(
+	array('folder','url','extract','clean','check_exist')
+	 *
+	"httpMethod"     => "DELETE",
+	"summary"        => "Delete one or more folders and/or files",
+	"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
+	"nickname"       => "deleteFoldersAndFiles",
+	"parameters"     => static::swaggerParameters( array( 'folder' ) ),
+
+ */
 	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		$apis = array(
-			array(
-				'path'        => '/' . $this->_apiName,
-				'description' => $this->_description,
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List root folders and files",
-						"notes"          => "Use the available parameters to limit information returned.",
-						"responseClass"  => "array",
-						"nickname"       => "getRoot",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'folders_only',
-								 'files_only',
-								 'full_tree',
-								 'zip'
-							)
-						),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $this->_apiName . '/{folder}/',
-				'description' => 'Operations for folders.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List folders and files in the given folder.",
-						"notes"          => "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
-						"responseClass"  => "array",
-						"nickname"       => "getFoldersAndFiles",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'folder',
-								 'folders_only',
-								 'files_only',
-								 'full_tree',
-								 'zip'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "POST",
-						"summary"        => "Create one or more folders and/or files from posted data.",
-						"notes"          => "Post data as an array of folders and/or files.",
-						"responseClass"  => "array",
-						"nickname"       => "createFoldersAndFiles",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'folder',
-								 'url',
-								 'extract',
-								 'clean',
-								 'check_exist'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one or more folders and/or files",
-						"notes"          => "Post data as an array of folders and/or files.",
-						"responseClass"  => "array",
-						"nickname"       => "updateFoldersAndFiles",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'folder',
-								 'url',
-								 'extract',
-								 'clean',
-								 'check_exist'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete one or more folders and/or files",
-						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteFoldersAndFiles",
-						"parameters"     => static::swaggerParameters( array( 'folder' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $this->_apiName . '/{folder}/{file}',
-				'description' => 'Operations for a single file.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "Download the given file or properties about the file.",
-						"notes"          => "Use the 'properties' parameter (optionally add 'content' for base64 content) to list properties of the file.",
-						"responseClass"  => "array",
-						"nickname"       => "getFile",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'folder',
-								 'file',
-								 'properties',
-								 'content',
-								 'download'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update content of the given file",
-						"notes"          => "Post data should be an array of fields for a single record",
-						"responseClass"  => "array",
-						"nickname"       => "updateFile",
-						"parameters"     => static::swaggerParameters( array( 'folder', 'file' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete the given file",
-						"notes"          => "DELETE the given FILE FROM the STORAGE.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteFile",
-						"parameters"     => static::swaggerParameters( array( 'folder', 'file' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-		);
-//		$apis = array_merge( parent::getSwaggerApis(), $apis );
-
-		return $apis;
-	}
-
-	/**
+	 * @SWG\Api(
+	 *   path="/{file}", description="Operations available for SQL DB Schemas.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="List root folders and files.",
+	 *       notes="Use the available parameters to limit information returned.",
+	 *       responseClass="array", nickname="getRoot",
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
+	 *           name="folders_only", description="Only include folders in the folder listing.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *         ),
+	 *         @SWG\Parameter(
+	 *           name="files_only", description="Only include files in the folder listing.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *         ),
+	 *         @SWG\Parameter(
+	 *           name="full_tree", description="List the contents of sub-folders as well.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *         ),
+	 *         @SWG\Parameter(
+	 *           name="zip", description="Return the zipped content of the folder.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *         )
+	 *       ),
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       )
+	 *     ),
+	 *     @SWG\Operation(
+	 *       httpMethod="POST", summary="Create a root folder or file.",
+	 *       notes="Post data should be a single table definition or an array of table definitions.",
+	 *       responseClass="Resources", nickname="createTables"
+	 *     )
+	 *   )
+	 * )
+	 *   @SWG\Api(
+	 *     path="/{file}/{folder_name}", description="Operations on folders.",
+	 *     @SWG\Operations(
+	 *       @SWG\Operation(
+	 *         httpMethod="GET", summary="Retrieve table definition for the given table.",
+	 *         notes="This describes the table, its fields and relations to other tables.",
+	 *         responseClass="TableSchema", nickname="describeTable",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="POST", summary="Create one or more fields in the given table.",
+	 *         notes="Post data should be an array of field properties for a single record or an array of fields.",
+	 *         responseClass="Success", nickname="createFields",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Array of field definitions.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Fields"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="PUT", summary="Update one or more fields in the given table.",
+	 *         notes="Post data should be an array of field properties for a single record or an array of fields.",
+	 *         responseClass="Success", nickname="updateFields",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Array of field definitions.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Fields"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="DELETE", summary="Delete one or more folders and/or files.",
+	 *         notes="Careful, this deletes a folder and all of its contents.",
+	 *         responseClass="Success", nickname="deleteFoldersAndFiles",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       )
+	 *     )
+	 *   )
+	 *
+	 *   @SWG\Api(
+	 *     path="/{file}/{folder_name}/{file_name}", description="Operations on a single file.",
+	 *     @SWG\Operations(
+	 *       @SWG\Operation(
+	 *         httpMethod="GET", summary="Download the given file or properties about the file.",
+	 *         notes="Use the 'properties' parameter (optionally add 'content' for base64 content) to list properties of the file.",
+	 *         responseClass="FieldSchema", nickname="getFile",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="folder_name", description="Name of the folder or folder path where the file exists.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="file_name", description="Name of the file to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="properties", description="Name of the file to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="content", description="Name of the file to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="download", description="Name of the file to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="PUT", summary="Update content of the given file.",
+	 *         notes="Post data should be an array of field properties for the given field.",
+	 *         responseClass="Success", nickname="updateFile",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="folder_name", description="Name of the folder or folder path where the file exists.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="file_name", description="Name of the file to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="file_props", description="Array of field properties.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Array"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="DELETE", summary="Delete the given file.",
+	 *         notes="Careful, this removes the given file from the storage.",
+	 *         responseClass="Success", nickname="deleteFile",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="folder_name", description="Name of the folder or folder path where the file exists.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="file_name", description="Name of the file to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       )
+	 *     )
+	 *   )
+	 *
 	 * @return array
 	 * @throws Exception
 	 */

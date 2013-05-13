@@ -94,22 +94,4 @@ abstract class RestResource extends BaseResource implements HttpMethod
 
 		return $results;
 	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		return array();
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerModels()
-	{
-		return array();
-	}
 }

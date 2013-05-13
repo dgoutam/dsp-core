@@ -18,7 +18,6 @@
  * limitations under the License.
  */
 use Kisma\Core\Utility\Sql;
-use Swagger\Swagger;
 use Swagger\Annotations as SWG;
 
 /**
@@ -33,6 +32,37 @@ use Swagger\Annotations as SWG;
  *   swaggerVersion="1.1",
  *   basePath="http://localhost/rest",
  *   resourcePath="/user"
+ * )
+ *
+ * @SWG\Model(id="Profile",
+ *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user."),
+ *   @SWG\Property(name="phone",type="string",description="Phone number."),
+ *   @SWG\Property(name="security_question",type="string",description="Question to be answered to initiate password reset."),
+ *   @SWG\Property(name="default_app_id",type="int",description="Id of the application to be launched at login.")
+ * )
+ * @SWG\Model(id="Register",
+ *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user.")
+ * )
+ * @SWG\Model(id="Confirm",
+ *   @SWG\Property(name="email",type="string"),
+ *   @SWG\Property(name="new_password",type="string")
+ * )
+ * @SWG\Model(id="Password",
+ *   @SWG\Property(name="old_password",type="string"),
+ *   @SWG\Property(name="new_password",type="string")
+ * )
+ * @SWG\Model(id="Question",
+ *   @SWG\Property(name="security_question",type="string")
+ * )
+ * @SWG\Model(id="Answer",
+ *   @SWG\Property(name="email",type="string"),
+ *   @SWG\Property(name="security_answer",type="string")
  * )
  *
  */
@@ -94,188 +124,6 @@ class UserManager extends RestService
 		throw new Exception( 'UserManager native format can not be changed.' );
 	}
 
-	// Swagger interface implementation
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		$path = Yii::app()->basePath . '/components';
-		$swagger = Swagger::discover($path);
-		$apis = $swagger->registry['/user']->apis;
-//		$apis = array_merge( parent::getSwaggerApis(), $apis );
-
-		return $apis;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerModels()
-	{
-		$models = array(
-			"Session"  => array(
-				"id"         => "Session",
-				"properties" => array(
-					"id"              => array(
-						"type"        => "string",
-						"description" => "Identifier for the current user."
-					),
-					"email"           => array(
-						"type"        => "string",
-						"description" => "Email address of the current user."
-					),
-					"first_name"      => array(
-						"type"        => "string",
-						"description" => "First name of the current user."
-					),
-					"last_name"       => array(
-						"type"        => "string",
-						"description" => "Last name of the current user."
-					),
-					"display_name"    => array(
-						"type"        => "string",
-						"description" => "Full display name of the current user."
-					),
-					"is_sys_admin"    => array(
-						"type"        => "boolean",
-						"description" => "Is the current user a system administrator."
-					),
-					"last_login_date" => array(
-						"type"        => "string",
-						"description" => "Date and time of the last login for the current user."
-					),
-					"app_groups"      => array(
-						"type"        => "array",
-						"description" => "App groups and the containing apps."
-					),
-					"no_group_apps"   => array(
-						"type"        => "array",
-						"description" => "Apps that are not in any app groups."
-					),
-					"ticket"          => array(
-						"type"        => "string",
-						"description" => "Timed ticket that can be used to start a separate session."
-					),
-					"ticket_expiry"   => array(
-						"type"        => "string",
-						"description" => "Expiration time for the given ticket."
-					),
-				)
-			),
-			"Profile"  => array(
-				"id"         => "Profile",
-				"properties" => array(
-					"email"             => array(
-						"type" => "string"
-					),
-					"first_name"        => array(
-						"type"        => "string",
-						"description" => "First name of the current user."
-					),
-					"last_name"         => array(
-						"type"        => "string",
-						"description" => "Last name of the current user."
-					),
-					"display_name"      => array(
-						"type"        => "string",
-						"description" => "Full display name of the current user."
-					),
-					"phone"             => array(
-						"type"        => "string",
-						"description" => "First name of the current user."
-					),
-					"security_question" => array(
-						"type"        => "string",
-						"description" => "Question to be answered to initiate password reset."
-					),
-					"default_app_id"    => array(
-						"type"        => "integer",
-						"description" => "Id of the application to be launched at login."
-					),
-				)
-			),
-			"Register" => array(
-				"id"         => "Register",
-				"properties" => array(
-					"email"        => array(
-						"type" => "string"
-					),
-					"first_name"   => array(
-						"type"        => "string",
-						"description" => "First name of the current user."
-					),
-					"last_name"    => array(
-						"type"        => "string",
-						"description" => "Last name of the current user."
-					),
-					"display_name" => array(
-						"type"        => "string",
-						"description" => "Full display name of the current user."
-					),
-				)
-			),
-			"Confirm"  => array(
-				"id"         => "Confirm",
-				"properties" => array(
-					"email"        => array(
-						"type" => "string"
-					),
-					"new_password" => array(
-						"type" => "string"
-					)
-				)
-			),
-			"Login"    => array(
-				"id"         => "Login",
-				"properties" => array(
-					"email"    => array(
-						"type" => "string"
-					),
-					"password" => array(
-						"type" => "string"
-					)
-				)
-			),
-			"Password" => array(
-				"id"         => "Password",
-				"properties" => array(
-					"old_password" => array(
-						"type" => "string"
-					),
-					"new_password" => array(
-						"type" => "string"
-					)
-				)
-			),
-			"Question" => array(
-				"id"         => "Question",
-				"properties" => array(
-					"security_question" => array(
-						"type" => "string"
-					)
-				)
-			),
-			"Answer"   => array(
-				"id"         => "Answer",
-				"properties" => array(
-					"email"           => array(
-						"type" => "string"
-					),
-					"security_answer" => array(
-						"type" => "string"
-					)
-				)
-			),
-		);
-		$models = array_merge( parent::getSwaggerModels(), $models );
-
-		return $models;
-	}
-
 	// REST interface implementation
 
 	/**
@@ -285,11 +133,7 @@ class UserManager extends RestService
 	 *     @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for user session management.",
 	 *       notes="See listed operations for each resource available.",
-	 *       responseClass="Resources", nickname="getResources",
-	 *       @SWG\Parameters(
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *       )
+	 *       responseClass="Resources", nickname="getResources"
 	 *     )
 	 *   )
 	 * )
@@ -312,48 +156,6 @@ class UserManager extends RestService
 	}
 
 	/**
-	 *
-	 *   @SWG\Api(
-	 *     path="/user/session", description="Operations on a user's session.",
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Login and create a new user session.",
-	 *       notes="Calling this creates a new session and logs in the user.",
-	 *       responseClass="Session", nickname="login",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
-	 *           name="credentials", description="Data containing name-value pairs used for logging into the system.",
-	 *           paramType="body", required="true", allowMultiple=false, dataType="Login"
-	 *         )
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
-	 *       )
-	 *     ),
-	 *     @SWG\Operation(
-	 *       httpMethod="GET", summary="Retrieve the current user session information.",
-	 *       notes="Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.",
-	 *       responseClass="Session", nickname="getSession",
-	 *       @SWG\Parameters(
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
-	 *       )
-	 *     ),
-	 *     @SWG\Operation(
-	 *       httpMethod="DELETE", summary="Logout and destroy the current user session.",
-	 *       notes="Calling this deletes the current session and logs out the user.",
-	 *       responseClass="Success", nickname="logout",
-	 *       @SWG\Parameters(
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
-	 *       )
-	 *     )
-	 *   )
 	 *
 	 * @return array|bool
 	 * @throws BadRequestException
@@ -514,28 +316,11 @@ class UserManager extends RestService
 
 	//-------- User Operations ------------------------------------------------
 
-	/*
-	 * @SWG\Api(
-	 *   path="/user/register", description="Operations on a user's security challenge.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Register a new user in the system.",
-	 *       notes="The new user is created and sent an email for confirmation.",
-	 *       responseClass="Success", nickname="registerUser",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
-	 *           name="registration", description="Data containing name-value pairs for new user registration.",
-	 *           paramType="body", required="true", allowMultiple=false, dataType="Register"
-	 *         )
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
-	 *       )
-	 *     )
-	 *   )
-	 * )
+	/**
+	 * @param $email
 	 *
+	 * @return string
+	 * @throws Exception
 	 */
 	public static function userInvite( $email )
 	{
@@ -1039,6 +824,60 @@ class UserManager extends RestService
 	 *   path="/user/profile", description="Operations on a user's profile.",
 	 *   @SWG\Operations(
 	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="Retrieve the current user's profile information.",
+	 *       notes="This profile, along with password, is the only things that the user can directly change.",
+	 *       responseClass="Profile", nickname="getProfile",
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       )
+	 *     )
+	 *   )
+	 * )
+	 *
+	 * @return array
+	 * @throws Exception
+	 */
+	public static function getProfile()
+	{
+		// check valid session,
+		// using userId from session, update with new profile elements
+		$userId = UserSession::validateSession();
+
+		try
+		{
+			$theUser = User::model()->findByPk( $userId );
+			if ( null === $theUser )
+			{
+				// bad session
+				throw new Exception( "The user for the current session was not found in the system." );
+			}
+			// todo protect certain attributes here
+			$fields = $theUser->getAttributes(
+				array(
+					 'first_name',
+					 'last_name',
+					 'display_name',
+					 'email',
+					 'phone',
+					 'security_question',
+					 'default_app_id'
+				)
+			);
+
+			return $fields;
+		}
+		catch ( Exception $ex )
+		{
+			throw $ex;
+		}
+	}
+
+	/**
+	 * @SWG\Api(
+	 *   path="/user/profile", description="Operations on a user's profile.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
 	 *       httpMethod="POST", summary="Update the current user's profile information.",
 	 *       notes="Update the security question and answer through this api, as well as, display name, email, etc.",
 	 *       responseClass="Success", nickname="changeProfile",
@@ -1100,62 +939,6 @@ class UserManager extends RestService
 		catch ( Exception $ex )
 		{
 			throw new Exception( "Failed to update the user profile.", ErrorCodes::INTERNAL_SERVER_ERROR );
-		}
-	}
-
-	/**
-	 * @SWG\Api(
-	 *   path="/user/profile", description="Operations on a user's profile.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="GET", summary="Retrieve the current user's profile information.",
-	 *       notes="This profile, along with password, is the only things that the user can directly change.",
-	 *       responseClass="Profile", nickname="getProfile",
-	 *       @SWG\Parameters(
-	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
-	 *       )
-	 *     )
-	 *   )
-	 * )
-	 *
-	 * @return array
-	 * @throws Exception
-	 */
-	public static function getProfile()
-	{
-		// check valid session,
-		// using userId from session, update with new profile elements
-		$userId = UserSession::validateSession();
-
-		try
-		{
-			$theUser = User::model()->findByPk( $userId );
-			if ( null === $theUser )
-			{
-				// bad session
-				throw new Exception( "The user for the current session was not found in the system." );
-			}
-			// todo protect certain attributes here
-			$fields = $theUser->getAttributes(
-				array(
-					 'first_name',
-					 'last_name',
-					 'display_name',
-					 'email',
-					 'phone',
-					 'security_question',
-					 'default_app_id'
-				)
-			);
-
-			return $fields;
-		}
-		catch ( Exception $ex )
-		{
-			throw $ex;
 		}
 	}
 

@@ -204,7 +204,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		}
 		try
 		{
-			$manyObj = SystemManager::getNewResource( $many_table );
+			$manyObj = SystemManager::getNewModel( $many_table );
 			$pkField = $manyObj->tableSchema->primaryKey;
 			$many_table = static::tableNamePrefix() . $many_table;
 			// use query builder
@@ -294,7 +294,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		$map_table = static::tableNamePrefix() . $map_table;
 		try
 		{
-			$manyObj = SystemManager::getNewResource( $many_table );
+			$manyObj = SystemManager::getNewModel( $many_table );
 			$pkManyField = $manyObj->tableSchema->primaryKey;
 			$pkMapField = 'id';
 			// use query builder

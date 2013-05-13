@@ -17,9 +17,68 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Swagger\Annotations as SWG;
+
 /**
  * SchemaSvc
  * A service to handle SQL database schema-related services accessed through the REST API.
+ *
+ * @SWG\Resource(
+ *   apiVersion="1.0.0",
+ *   swaggerVersion="1.1",
+ *   basePath="http://localhost/rest",
+ *   resourcePath="/{sql_schema}"
+ * )
+ *
+ * @SWG\Model(id="Tables",
+ *   @SWG\Property(name="table",type="Array",items="$ref:TableSchema",description="An array of table definitions.")
+ * )
+ * @SWG\Model(id="TableSchema",
+ *   @SWG\Property(name="name",type="string",description="Identifier/Name for the table."),
+ *   @SWG\Property(name="label",type="Array",items="$ref:EmailAddress",description="Displayable singular name for the table."),
+ *   @SWG\Property(name="plural",type="Array",items="$ref:EmailAddress",description="Displayable plural name for the table."),
+ *   @SWG\Property(name="primary_key",type="string",description="Field(s), if any, that represent the primary key of each record."),
+ *   @SWG\Property(name="name_field",type="string",description="Field(s), if any, that represent the name of each record."),
+ *   @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of available fields in each record."),
+ *   @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of available relationships to other tables.")
+ * )
+ * @SWG\Model(id="Fields",
+ *   @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of field definitions.")
+ * )
+ * @SWG\Model(id="FieldSchema",
+ *   @SWG\Property(name="name",type="string",description="The API name of the field."),
+ *   @SWG\Property(name="label",type="string",description="The displayable label for the field."),
+ *   @SWG\Property(name="type",type="string",description="The DSP abstract data type for this field."),
+ *   @SWG\Property(name="db_type",type="string",description="The native database type used for this field."),
+ *   @SWG\Property(name="length",type="int",description="The maximum length allowed (in characters for string, displayed for numbers)."),
+ *   @SWG\Property(name="precision",type="int",description="Total number of places for numbers."),
+ *   @SWG\Property(name="scale",type="int",description="Number of decimal places allowed for numbers."),
+ *   @SWG\Property(name="default",type="string",description="Default value for this field."),
+ *   @SWG\Property(name="required",type="boolean",description="Is a value required for record creation."),
+ *   @SWG\Property(name="allow_null",type="boolean",description="Is null allowed as a value."),
+ *   @SWG\Property(name="fixed_length",type="boolean",description="Is the length fixed (not variable)."),
+ *   @SWG\Property(name="supports_multibyte",type="boolean",description="Does the data type support multibyte characters."),
+ *   @SWG\Property(name="auto_increment",type="boolean",description="Does the integer field value increment upon new record creation."),
+ *   @SWG\Property(name="is_primary_key",type="boolean",description="Is this field used as/part of the primary key."),
+ *   @SWG\Property(name="is_foreign_key",type="boolean",description="Is this field used as a foreign key."),
+ *   @SWG\Property(name="ref_table",type="string",description="For foreign keys, the referenced table name."),
+ *   @SWG\Property(name="ref_fields",type="string",description="For foreign keys, the referenced table field name."),
+ *   @SWG\Property(name="validation",type="Array",items="$ref:string",description="validations to be performed on this field."),
+ *   @SWG\Property(name="values",type="Array",items="$ref:string",description="Selectable string values for picklist validation.")
+ * )
+ * @SWG\Model(id="Relateds",
+ *   @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of relationship definitions.")
+ * )
+ * @SWG\Model(id="RelatedSchema",
+ *   @SWG\Property(name="name",type="string",description="Name of the relationship."),
+ *   @SWG\Property(name="type",type="string",description="Relationship type - belongs_to, has_many, many_many."),
+ *   @SWG\Property(name="ref_table",type="string",description="The table name that is referenced by the relationship."),
+ *   @SWG\Property(name="ref_field",type="string",description="The field name that is referenced by the relationship."),
+ *   @SWG\Property(name="join",type="string",description="The intermediate joining table used for many_many relationships."),
+ *   @SWG\Property(name="field",type="string",description="The current table field that is used in the relationship.")
+ * )
+ *
+ *
  */
 class SchemaSvc extends RestService
 {
@@ -128,375 +187,177 @@ class SchemaSvc extends RestService
 	}
 
 	/**
-	 * Swagger output for common api parameters
+	 * @SWG\Api(
+	 *   path="/{sql_schema}", description="Operations available for SQL DB Schemas.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="List resources available for database schema.",
+	 *       notes="See listed operations for each resource available.",
+	 *       responseClass="Resources", nickname="getResources"
+	 *     ),
+	 *     @SWG\Operation(
+	 *       httpMethod="POST", summary="Create one or more tables.",
+	 *       notes="Post data should be a single table definition or an array of table definitions.",
+	 *       responseClass="Resources", nickname="createTables"
+	 *     ),
+	 *     @SWG\Operation(
+	 *       httpMethod="PUT", summary="Update one or more tables.",
+	 *       notes="Post data should be a single table definition or an array of table definitions.",
+	 *       responseClass="Resources", nickname="updateTables"
+	 *     )
+	 *   )
+	 * )
+	 *   @SWG\Api(
+	 *     path="/{sql_schema}/{table_name}", description="Operations for per table administration.",
+	 *     @SWG\Operations(
+	 *       @SWG\Operation(
+	 *         httpMethod="GET", summary="Retrieve table definition for the given table.",
+	 *         notes="This describes the table, its fields and relations to other tables.",
+	 *         responseClass="TableSchema", nickname="describeTable",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="POST", summary="Create one or more fields in the given table.",
+	 *         notes="Post data should be an array of field properties for a single record or an array of fields.",
+	 *         responseClass="Success", nickname="createFields",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Array of field definitions.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Fields"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="PUT", summary="Update one or more fields in the given table.",
+	 *         notes="Post data should be an array of field properties for a single record or an array of fields.",
+	 *         responseClass="Success", nickname="updateFields",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Array of field definitions.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Fields"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="DELETE", summary="Delete (aka drop) the given table.",
+	 *         notes="Careful, this drops the database table and all of its contents.",
+	 *         responseClass="Success", nickname="deleteTable",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       )
+	 *     )
+	 *   )
 	 *
-	 * @param        $parameters
-	 * @param string $method
+	 *   @SWG\Api(
+	 *     path="/{sql_schema}/{table_name}/{field_name}", description="Operations for single field administration.",
+	 *     @SWG\Operations(
+	 *       @SWG\Operation(
+	 *         httpMethod="GET", summary="Retrieve the definition of the given field for the given table.",
+	 *         notes="This describes the field and its properties.",
+	 *         responseClass="FieldSchema", nickname="describeField",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="field_name", description="Name of the field to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="PUT", summary="Update one record by identifier.",
+	 *         notes="Post data should be an array of field properties for the given field.",
+	 *         responseClass="Success", nickname="updateField",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="field_name", description="Name of the field to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="field_props", description="Array of field properties.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="FieldSchema"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="DELETE", summary="DELETE (aka DROP) the given field FROM the given TABLE.",
+	 *         notes="Careful, this drops the database table field/column and all of its contents.",
+	 *         responseClass="Success", nickname="deleteField",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="field_name", description="Name of the field to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       )
+	 *     )
+	 *   )
 	 *
-	 * @return array
-	 */
-	public static function swaggerParameters( $parameters, $method = '' )
-	{
-		$swagger = array();
-		foreach ( $parameters as $param )
-		{
-			switch ( $param )
-			{
-				case 'table_name':
-					$swagger[] = array(
-						"paramType"     => "path",
-						"name"          => $param,
-						"description"   => "Name of the table to perform operations on.",
-						"dataType"      => "String",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'field_name':
-					$swagger[] = array(
-						"paramType"     => "path",
-						"name"          => $param,
-						"description"   => "Name of the table field/column to perform operations on.",
-						"dataType"      => "String",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'include_schema':
-					$swagger[] = array(
-						"paramType"     => "query",
-						"name"          => $param,
-						"description"   => "Include the schema of the table queried.",
-						"dataType"      => "boolean",
-						"required"      => false,
-						"allowMultiple" => false
-					);
-					break;
-				case 'tables':
-					$swagger[] = array(
-						"paramType"     => "body",
-						"name"          => $param,
-						"description"   => "Array of table definitions.",
-						"dataType"      => "Tables",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'fields':
-					$swagger[] = array(
-						"paramType"     => "body",
-						"name"          => $param,
-						"description"   => "Array of field definitions.",
-						"dataType"      => "Fields",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-				case 'field_props':
-					$swagger[] = array(
-						"paramType"     => "body",
-						"name"          => $param,
-						"description"   => "Array of field properties.",
-						"dataType"      => "FieldSchema",
-						"required"      => true,
-						"allowMultiple" => false
-					);
-					break;
-			}
-		}
-
-		return $swagger;
-	}
-
-	// Controller based methods
-
-	/**
-	 * @return array
+	 * @return array|bool
 	 * @throws Exception
 	 */
-	public function getSwaggerApis()
-	{
-		$apis = array(
-			array(
-				'path'        => '/' . $this->_apiName,
-				'description' => $this->_description,
-				'operations'  => array(
-					array(
-						"httpMethod"     => "POST",
-						"summary"        => "Create one or more tables",
-						"notes"          => "Post data should be a single table definition or an array of table definitions",
-						"responseClass"  => "array",
-						"nickname"       => "createTables",
-						"parameters"     => static::swaggerParameters( array( 'tables' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one or more tables",
-						"notes"          => "Post data should be a single table definition or an array of table definitions",
-						"responseClass"  => "array",
-						"nickname"       => "updateTables",
-						"parameters"     => static::swaggerParameters( array( 'tables' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $this->_apiName . '/{table_name}',
-				'description' => 'Operations for per table administration.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "Retrieve table definition for the given table",
-						"notes"          => "This describes the table, its fields and relations to other tables.",
-						"responseClass"  => "TableSchema",
-						"nickname"       => "describeTable",
-						"parameters"     => static::swaggerParameters( array( 'table_name' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "POST",
-						"summary"        => "Create one or more fields in the given table",
-						"notes"          => "Post data should be an array of field properties for a single record or an array of fields",
-						"responseClass"  => "array",
-						"nickname"       => "createFields",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'fields' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one or more fields in the given table",
-						"notes"          => "Post data should be an array of field properties for a single record or an array of fields",
-						"responseClass"  => "array",
-						"nickname"       => "updateFields",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'fields' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete (aka drop) the given table",
-						"notes"          => "Careful, this drops the database table and all of its contents.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteTable",
-						"parameters"     => static::swaggerParameters( array( 'table_name' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $this->_apiName . '/{table_name}/{field_name}',
-				'description' => 'Operations for single record administration.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "Retrieve the definition of the given field for the given table",
-						"notes"          => "This describes the field and its properties.",
-						"responseClass"  => "FieldSchema",
-						"nickname"       => "describeField",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'field_name' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one record by identifier",
-						"notes"          => "Post data should be an array of field properties for the given field",
-						"responseClass"  => "array",
-						"nickname"       => "updateField",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'field_name', 'field_props' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "DELETE (aka DROP) the given field FROM the given TABLE",
-						"notes"          => "Careful, this drops the database table field/column and all of its contents.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteField",
-						"parameters"     => static::swaggerParameters( array( 'table_name', 'field_name' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-		);
-		$apis = array_merge( parent::getSwaggerApis(), $apis );
-
-		return $apis;
-	}
-
-	public function getSwaggerModels()
-	{
-		$models = array(
-			"Tables"      => array(
-				"id"         => "Tables",
-				"properties" => array(
-					"table" => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "TableSchema" ),
-						"description" => "An array of table definitions."
-					),
-				)
-			),
-			"TableSchema" => array(
-				"id"         => "TableSchema",
-				"properties" => array(
-					"name"        => array(
-						"type"        => "string",
-						"description" => "Identifier/Name for the table."
-					),
-					"label"       => array(
-						"type"        => "string",
-						"description" => "Displayable singular name for the table."
-					),
-					"plural"      => array(
-						"type"        => "string",
-						"description" => "Displayable plural name for the table."
-					),
-					"primary_key" => array(
-						"type"        => "string",
-						"description" => "Field(s), if any, that represent the primary key of each record."
-					),
-					"name_field"  => array(
-						"type"        => "string",
-						"description" => "Field(s), if any, that represent the name of each record."
-					),
-					"field"       => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "FieldSchema" ),
-						"description" => "An array of available fields in each record."
-					),
-					"related"     => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "Related" ),
-						"description" => "An array of available relationships to other tables."
-					),
-				)
-			),
-			"Fields"      => array(
-				"id"         => "Fields",
-				"properties" => array(
-					"field" => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "FieldSchema" ),
-						"description" => "An array of field definitions."
-					),
-				)
-			),
-			"FieldSchema" => array(
-				"id"         => "FieldSchema",
-				"properties" => array(
-					"name"               => array(
-						"type"        => "string",
-						"description" => "The API name of the field."
-					),
-					"label"              => array(
-						"type"        => "string",
-						"description" => "The displayable label for the field."
-					),
-					"type"               => array(
-						"type"        => "string",
-						"description" => "The DSP abstract data type for this field."
-					),
-					"db_type"            => array(
-						"type"        => "string",
-						"description" => "The native database type used for this field."
-					),
-					"length"             => array(
-						"type"        => "integer",
-						"description" => "The maximum length allowed (in characters for string, displayed for numbers)."
-					),
-					"precision"          => array(
-						"type"        => "integer",
-						"description" => "Total number of places for numbers."
-					),
-					"scale"              => array(
-						"type"        => "integer",
-						"description" => "Number of decimal places allowed for numbers."
-					),
-					"default"            => array(
-						"type"        => "string",
-						"description" => "Default value for this field."
-					),
-					"required"           => array(
-						"type"        => "boolean",
-						"description" => "Is a value required for record creation."
-					),
-					"allow_null"         => array(
-						"type"        => "boolean",
-						"description" => "Is null allowed as a value."
-					),
-					"fixed_length"       => array(
-						"type"        => "boolean",
-						"description" => "Is the length fixed (not variable)."
-					),
-					"supports_multibyte" => array(
-						"type"        => "boolean",
-						"description" => "Does the data type support multibyte characters."
-					),
-					"auto_increment"     => array(
-						"type"        => "boolean",
-						"description" => "Does the integer field value increment upon new record creation."
-					),
-					"is_primary_key"     => array(
-						"type"        => "boolean",
-						"description" => "Is this field used as/part of the primary key."
-					),
-					"is_foreign_key"     => array(
-						"type"        => "boolean",
-						"description" => "Is this field used as a foreign key."
-					),
-					"ref_table"          => array(
-						"type"        => "string",
-						"description" => "For foreign keys, the referenced table name."
-					),
-					"ref_fields"         => array(
-						"type"        => "string",
-						"description" => "For foreign keys, the referenced table field name."
-					),
-					"validation"         => array(
-						"type"        => "string",
-						"description" => "Comma-delimited list of validations to be performed on this field."
-					),
-					"values"             => array(
-						"type"        => "array",
-						"item"        => array( '$ref' => "string" ),
-						"description" => "Selectable string values for picklist validation."
-					),
-				)
-			),
-			"Related"     => array(
-				"id"         => "Related",
-				"properties" => array(
-					"name"      => array(
-						"type"        => "string",
-						"description" => "Name of the relationship."
-					),
-					"type"      => array(
-						"type"        => "string",
-						"description" => "Relationship type - belongs_to, has_many, many_many."
-					),
-					"ref_table" => array(
-						"type"        => "string",
-						"description" => "The table name that is referenced by the relationship."
-					),
-					"ref_field" => array(
-						"type"        => "string",
-						"description" => "The field name that is referenced by the relationship."
-					),
-					"join"      => array(
-						"type"        => "string",
-						"description" => "The intermediate joining table used for many_many relationships."
-					),
-					"field"     => array(
-						"type"        => "string",
-						"description" => "The current table field that is used in the relationship."
-					),
-				)
-			),
-		);
-		$models = array_merge( parent::getSwaggerModels(), $models );
-
-		return $models;
-	}
-
 	protected function _handleResource()
 	{
 		if ( empty( $this->_tableName ) )

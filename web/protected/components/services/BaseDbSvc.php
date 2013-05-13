@@ -17,9 +17,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Swagger\Annotations as SWG;
+
 /**
  * BaseDbSvc
  * A base service class to handle generic db services accessed through the REST API.
+ *
+ * @SWG\Resource(
+ *   apiVersion="1.0.0",
+ *   swaggerVersion="1.1",
+ *   basePath="http://localhost/rest",
+ *   resourcePath="/{sql_db}"
+ * )
+ *
+ * @SWG\Model(id="Records",
+ *   @SWG\Property(name="record",type="Array",items="$ref:Record",description="Array of records of the given resource."),
+ *   @SWG\Property(name="meta",type="MetaData",description="Available meta data for the response.")
+ * )
+ * @SWG\Model(id="Record",
+ *   @SWG\Property(name="field",type="Array",items="$ref:string",description="Example field name-value pairs."),
+ *   @SWG\Property(name="related",type="Array",items="$ref:string",description="Example related records.")
+ * )
+ *
  */
 abstract class BaseDbSvc extends RestService
 {
@@ -36,153 +55,262 @@ abstract class BaseDbSvc extends RestService
 	//	Methods
 	//*************************************************************************
 
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		$apis = array(
-			array(
-				'path'        => '/' . $this->_apiName . '/{table_name}',
-				'description' => 'Operations for per table administration.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "Retrieve multiple records",
-						"notes"          => "Use the 'ids' or 'filter' parameter to limit records that are returned.",
-						"responseClass"  => "array",
-						"nickname"       => "getRecords",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'ids',
-								 'filter',
-								 'limit',
-								 'offset',
-								 'order',
-								 'include_count',
-								 'include_schema',
-								 'fields',
-								 'related'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "POST",
-						"summary"        => "Create one or more records",
-						"notes"          => "Post data should be an array of fields for a single record or an array of records",
-						"responseClass"  => "array",
-						"nickname"       => "createRecords",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'fields',
-								 'related',
-								 'record'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one or more records",
-						"notes"          => "Post data should be an array of fields for a single record or an array of records",
-						"responseClass"  => "array",
-						"nickname"       => "updateRecords",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'fields',
-								 'related',
-								 'record'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete one or more records",
-						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteRecords",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'ids',
-								 'filter',
-								 'fields',
-								 'related'
-							)
-						),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $this->_apiName . '/{table_name}/{id}',
-				'description' => 'Operations for single record administration.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "Retrieve one record by identifier",
-						"notes"          => "Use the 'fields' and/or 'related' parameter to limit properties that are returned.",
-						"responseClass"  => "array",
-						"nickname"       => "getRecord",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'id',
-								 'fields',
-								 'related'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one record by identifier",
-						"notes"          => "Post data should be an array of fields for a single record",
-						"responseClass"  => "array",
-						"nickname"       => "updateRecord",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'id',
-								 'fields',
-								 'related',
-								 'record'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete one record by identifier",
-						"notes"          => "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteRecord",
-						"parameters"     => SwaggerUtilities::getParameters(
-							array(
-								 'table_name',
-								 'id',
-								 'fields',
-								 'related'
-							)
-						),
-						"errorResponses" => array()
-					),
-				)
-			),
-		);
-		$apis = array_merge( parent::getSwaggerApis(), $apis );
-
-		return $apis;
-	}
-
 	// REST interface implementation
 
+	/**
+	 * @SWG\Api(
+	 *   path="/{sql_db}", description="Operations available for SQL database tables.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="GET", summary="List resources available for database schema.",
+	 *       notes="See listed operations for each resource available.",
+	 *       responseClass="Resources", nickname="getResources"
+	 *     )
+	 *   )
+	 * )
+	 * @SWG\Api(
+	 *   path="/{sql_db}/{table_name}", description="Operations for table records administration.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *         httpMethod="GET", summary="Retrieve multiple records.",
+	 *         notes="Use the 'ids' or 'filter' parameter to limit resources that are returned. Use the 'fields' and 'related' parameters to limit properties returned for each resource. By default, all fields and no relations are returned for all resources.",
+	 *         responseClass="Records", nickname="getRecords",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="ids", description="Comma-delimited list of the identifiers of the resources to retrieve.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="filter", description="SQL-like filter to limit the resources to retrieve.",
+	 *             paramType="query", required="false", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="limit", description="Set to limit the filter results.",
+	 *             paramType="query", required="false", allowMultiple=false, dataType="int"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="order", description="SQL-like order containing field and direction for filter results.",
+	 *             paramType="query", required="false", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="offset", description="Set to offset the filter results to a particular record count.",
+	 *             paramType="query", required="false", allowMultiple=false, dataType="int"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="include_count", description="Include the total number of filter results.",
+	 *             paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="include_schema", description="Include the schema of the table queried.",
+	 *             paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="POST", summary="Create one or more records.",
+	 *         notes="Post data should be a single record or an array of records (shown). By default, only the id property of the record is returned on success, use 'fields' and 'related' to return more info.",
+	 *         responseClass="Success", nickname="createRecords",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="record", description="Data containing name-value pairs of records to create.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Records"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="PUT", summary="Update one or more records.",
+	 *         notes="Post data should be a single record or an array of records (shown). By default, only the id property of the record is returned on success, use 'fields' and 'related' to return more info.",
+	 *         responseClass="Success", nickname="updateRecords",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="record", description="Data containing name-value pairs of records to update.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Records"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="DELETE", summary="Delete one or more records.",
+	 *         notes="Use 'ids' or post data should be a single record or an array of records (shown) containing an id. By default, only the id property of the record is returned on success, use 'fields' and 'related' to return more info.",
+	 *         responseClass="Success", nickname="deleteRecords",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="ids", description="Comma-delimited list of the identifiers of the resources to retrieve.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="record", description="Data containing name-value pairs of records to delete.",
+	 *             paramType="body", required="false", allowMultiple=false, dataType="Records"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       )
+	 *   )
+	 * )
+	 *
+	 * @SWG\Api(
+	 *   path="/{sql_db}/{table_name}/{id}", description="Operations for single record administration.",
+	 *   @SWG\Operations(
+	 *       @SWG\Operation(
+	 *         httpMethod="GET", summary="Retrieve one record by identifier.",
+	 *         notes="Use the 'fields' and/or 'related' parameter to limit properties that are returned. By default, all fields and no relations are returned.",
+	 *         responseClass="Record", nickname="getRecord",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="id", description="Identifier of the resource to retrieve.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="PUT", summary="Update one record by identifier.",
+	 *         notes="Post data should be an array of fields for a single record. Use the 'fields' and/or 'related' parameter to return more properties. By default, the id is returned.",
+	 *         responseClass="Success", nickname="updateUser",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="id", description="Identifier of the resource to retrieve.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="record", description="Data containing name-value pairs of records to update.",
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Apps"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       ),
+	 *       @SWG\Operation(
+	 *         httpMethod="DELETE", summary="Delete one record by identifier.",
+	 *         notes="Use the 'fields' and/or 'related' parameter to return deleted properties. By default, the id is returned.",
+	 *         responseClass="Success", nickname="deleteUser",
+	 *         @SWG\Parameters(
+	 *           @SWG\Parameter(
+	 *             name="table_name", description="Name of the table to perform operations on.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="id", description="Identifier of the resource to retrieve.",
+	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           ),
+	 *           @SWG\Parameter(
+	 *             name="related", description="Comma-delimited list of related names to retrieve for each record.",
+	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
+	 *           )
+	 *         ),
+	 *         @SWG\ErrorResponses(
+	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *         )
+	 *       )
+	 *     )
+	 *   )
+	 *
+	 * @return array|bool
+	 * @throws Exception
+	 */
 	protected function _handleResource()
 	{
 		switch ( $this->_resource )

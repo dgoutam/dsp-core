@@ -17,12 +17,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Swagger\Annotations as SWG;
 
 /**
  * RestService
  * A base to handle services accessed through the REST API.
+ *
+ * Some basic models used in REST interfaces
+ *
+ * @SWG\Model(id="Resources",
+ *     @SWG\Property(name="resource",type="Array", items="$ref:Resource")
+ * )
+ * @SWG\Model(id="Resource",
+ *     @SWG\Property(name="name",type="string")
+ * )
+ * @SWG\Model(id="Success",
+ *     @SWG\Property(name="success",type="boolean")
+ * )
+ *
  */
-abstract class RestService extends BaseService implements iRestHandler, iSwagger, HttpMethod
+abstract class RestService extends BaseService implements iRestHandler, HttpMethod
 {
 	//*************************************************************************
 	//* Members
@@ -105,22 +119,8 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 	}
 
 	/**
-	 * List all possible resources accessible via this service, return false if this is not applicable
-	 *
-	 * @Api(
-	 *   path="/{api_name}", description="Operations available for this service.",
-	 *   @operations(
-	 *     @operation(
-	 *       httpMethod="GET", summary="List resources available for this service.",
-	 *       notes="See listed operations for each resource available.",
-	 *       responseClass="Resources", nickname="getResources",
-	 *       @parameters(
-	 *       ),
-	 *       @errorResponses(
-	 *       )
-	 *     )
-	 *   )
-	 * )
+	 * List all possible resources accessible via this service,
+	 * return false if this is not applicable
 	 *
 	 * @return array|boolean
 	 */
@@ -168,40 +168,5 @@ abstract class RestService extends BaseService implements iRestHandler, iSwagger
 		}
 
 		return $results;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwagger()
-	{
-		$swagger = SwaggerUtilities::getBaseInfo( $this->_apiName );
-		$swagger['apis'] = $this->getSwaggerApis();
-		$swagger['models'] = $this->getSwaggerModels();
-
-		return $swagger;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		$swagger = SwaggerUtilities::getBaseApis( $this->_apiName );
-
-		return $swagger;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerModels()
-	{
-		$swagger = SwaggerUtilities::getBaseModels();
-
-		return $swagger;
 	}
 }

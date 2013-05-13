@@ -17,9 +17,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Swagger\Annotations as SWG;
+
 /**
  * EmailSvc
  * A service to handle email services accessed through the REST API.
+ *
+ * @SWG\Resource(
+ *   apiVersion="1.0.0",
+ *   swaggerVersion="1.1",
+ *   basePath="http://localhost/rest",
+ *   resourcePath="/{email}"
+ * )
+ *
+ * @SWG\Model(id="Email",
+ *   @SWG\Property(name="template",type="string",description="Email Template to base email on."),
+ *   @SWG\Property(name="to",type="Array",items="$ref:EmailAddress",description="Required single or multiple receiver addresses."),
+ *   @SWG\Property(name="cc",type="Array",items="$ref:EmailAddress",description="Optional CC receiver addresses."),
+ *   @SWG\Property(name="bcc",type="Array",items="$ref:EmailAddress",description="Optional BCC receiver addresses."),
+ *   @SWG\Property(name="subject",type="string",description="Text only subject line."),
+ *   @SWG\Property(name="body_text",type="string",description="Text only version of the body."),
+ *   @SWG\Property(name="body_html",type="string",description="Escaped HTML version of the body."),
+ *   @SWG\Property(name="from",type="EmailAddress",description="Required sender name and email."),
+ *   @SWG\Property(name="reply_to",type="EmailAddress",description="Optional reply to name and email.")
+ * )
+ * @SWG\Model(id="EmailAddress",
+ *   @SWG\Property(name="name",type="string",description="Optional name displayed along with the email address."),
+ *   @SWG\Property(name="email",type="string",description="Required email address.")
+ * )
+ * @SWG\Model(id="EmailResponse",
+ *   @SWG\Property(name="count",type="int",description="Number of emails successfully sent.")
+ * )
+ *
  */
 class EmailSvc extends RestService
 {
@@ -98,151 +127,33 @@ class EmailSvc extends RestService
 	}
 
 	/**
+	 * @SWG\Api(
+	 *   path="/{email}", description="Operations on a email service.",
+	 *   @SWG\Operations(
+	 *     @SWG\Operation(
+	 *       httpMethod="POST", summary="Send an email created from posted data.",
+	 *       notes="If a template is not used with all required fields, then they must be included in the request. If the 'from' address is not provisioned in the service, then it must be included in the request..",
+	 *       responseClass="EmailResponse", nickname="sendEmail",
+	 *       @SWG\Parameters(
+	 *         @SWG\Parameter(
+	 *           name="template", description="Optional template to base email on.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="string"
+	 *         ),
+	 *         @SWG\Parameter(
+	 *           name="data", description="Data containing name-value pairs used for provisioning emails.",
+	 *           paramType="body", required="false", allowMultiple=false, dataType="Email"
+	 *         )
+	 *       ),
+	 *       @SWG\ErrorResponses(
+	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request is not complete or valid."),
+	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 *          @SWG\ErrorResponse(code="404", reason="Not Found - Email template or system resource not found."),
+	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 *       )
+	 *     )
+	 *   )
+	 * )
 	 *
-	 * @return array
-	 * @throws Exception
-	 */
-	public function getSwaggerApis()
-	{
-		$apis = array(
-			array(
-				'path'        => '/' . $this->_apiName,
-				'description' => $this->_description,
-				'operations'  => array(
-					array(
-						"httpMethod"     => "POST",
-						"summary"        => "Send an email created from posted data.",
-						"notes"          => "If a template is not used with all required fields, then they must be included in the request." .
-											" If the 'from' address is not provisioned in the service, then it must be included in the request.",
-						"responseClass"  => "Response",
-						"nickname"       => "sendEmail",
-						"parameters"     => array(
-							array(
-								"paramType"     => "query",
-								"name"          => "template",
-								"description"   => "Optional template to base email on.",
-								"dataType"      => "String",
-								"required"      => false,
-								"allowMultiple" => false
-							),
-							array(
-								"paramType"     => "body",
-								"name"          => "post_data",
-								"description"   => "Data containing name-value pairs used for provisioning emails.",
-								"dataType"      => "Email",
-								"required"      => false,
-								"allowMultiple" => false
-							)
-						),
-						"errorResponses" => array(
-							array(
-								"code"   => 400,
-								"reason" => "Request is not complete or valid."
-							),
-							array(
-								"code"   => 404,
-								"reason" => "Email Template not found."
-							),
-							array(
-								"code"   => 500,
-								"reason" => "Failure to send emails."
-							)
-						)
-					)
-				)
-			)
-		);
-
-		return $apis;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getSwaggerModels()
-	{
-		$models = array(
-			"Email"    => array(
-				"id"         => "Email",
-				"properties" => array(
-					"template"       => array(
-						"type"        => "string",
-						"description" => "Email Template to base email on."
-					),
-					"to"             => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "Address" ),
-						"description" => "Required single or multiple receiver addresses."
-					),
-					"cc"             => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "Address" ),
-						"description" => "Optional CC receiver addresses."
-					),
-					"bcc"            => array(
-						"type"        => "array",
-						"items"       => array( '$ref' => "Address" ),
-						"description" => "Optional BCC receiver addresses."
-					),
-					"subject"        => array(
-						"type"        => "string",
-						"description" => "Text only subject line."
-					),
-					"body_text"      => array(
-						"type"        => "string",
-						"description" => "Text only version of the body."
-					),
-					"body_html"      => array(
-						"type"        => "string",
-						"description" => "Escaped HTML version of the body."
-					),
-					"from_name"      => array(
-						"type"        => "string",
-						"description" => "Optional sender displayed name."
-					),
-					"from_email"     => array(
-						"type"        => "string",
-						"description" => "Required email of the sender."
-					),
-					"reply_to_name"  => array(
-						"type"        => "string",
-						"description" => "Optional reply to displayed name."
-					),
-					"reply_to_email" => array(
-						"type"        => "string",
-						"description" => "Optional reply to email."
-					),
-				)
-			),
-			"Address"  => array(
-				"id"         => "Address",
-				"properties" => array(
-					"name"  => array(
-						"type"        => "string",
-						"description" => "Optional name displayed along with the email address."
-					),
-					"email" => array(
-						"type"        => "string",
-						"description" => "Required email address."
-					)
-				)
-			),
-			"Response" => array(
-				"id"         => "Response",
-				"properties" => array(
-					"count" => array(
-						"type"        => "integer",
-						"description" => "Number of emails successfully sent."
-					)
-				)
-			)
-		);
-		$models = array_merge( parent::getSwaggerModels(), $models );
-
-		return $models;
-	}
-
-	/**
 	 * @return array
 	 * @throws Exception
 	 */
