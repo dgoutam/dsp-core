@@ -76,7 +76,7 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		parent::init();
 
-		Pii::app()->onBeginRequest = array($this, 'checkRequestMethod');
+		Pii::app()->onBeginRequest = array( $this, 'checkRequestMethod' );
 	}
 
 	/**
@@ -131,7 +131,7 @@ class PlatformWebApplication extends \CWebApplication
 		//	Not in cache, check it out...
 		if ( $_origin && !in_array( $_origin, $_cache ) )
 		{
-			if ( $this->_allowedOrigin( $_origin, array($_requestSource) ) )
+			if ( $this->_allowedOrigin( $_origin, array( $_requestSource ) ) )
 			{
 				$_cache[] = $_origin;
 			}
@@ -184,12 +184,12 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		if ( !is_array( $additional ) )
 		{
-			$additional = array($additional);
+			$additional = array( $additional );
 		}
 
 		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whiteGuy )
 		{
-			if ( preg_match( '/^([\w_-]+\.)*' . $_whiteGuy . '$/', $origin ) )
+			if ( '*' == $_whiteGuy || preg_match( '/^([\w_-]+\.)*' . $_whiteGuy . '$/', $origin ) )
 			{
 				return true;
 			}
