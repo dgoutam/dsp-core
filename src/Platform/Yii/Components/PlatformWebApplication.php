@@ -189,6 +189,11 @@ class PlatformWebApplication extends \CWebApplication
 
 		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whiteGuy )
 		{
+			if ( false !== strpos( $_whiteGuy, '://' ) )
+			{
+				$_whiteGuy = parse_url( $_whiteGuy, PHP_URL_HOST );
+			}
+
 			if ( '*' == $_whiteGuy || preg_match( '/^([\w_-]+\.)*' . $_whiteGuy . '$/', $origin ) )
 			{
 				return true;
