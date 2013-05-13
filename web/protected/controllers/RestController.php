@@ -55,7 +55,7 @@ class RestController extends Controller
 	{
 		try
 		{
-			$command = Pii::db()->createCommand();
+			$command = Yii::app()->db->createCommand();
 
 			if ( $this->swagger )
 			{
@@ -100,14 +100,34 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
+			switch ( strtolower( $this->service ) )
+			{
+				case 'system':
+					$svcObj = SystemManager::getInstance();
+					break;
+				case 'user':
+					$svcObj = UserManager::getInstance();
+					break;
+				default:
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
+					break;
+			}
 			if ( $this->swagger )
 			{
 				$result = $svcObj->getSwagger();
 			}
 			else
 			{
-				$result = $svcObj->processRequest( $this->resource, 'GET' );
+				$result = $svcObj->actionGet();
+				$type = $svcObj->getType();
+				if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+				{
+					$nativeFormat = $svcObj->getNativeFormat();
+					if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+					{
+						// reformat the code here
+					}
+				}
 			}
 			$this->handleResults( $result );
 		}
@@ -157,9 +177,31 @@ class RestController extends Controller
 						break;
 				}
 			}
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'POST' );
-			$code = ErrorCodes::CREATED;
+			$code = ErrorCodes::OK;
+			switch ( strtolower( $this->service ) )
+			{
+				case 'system':
+					$result = SystemManager::getInstance()->actionPost();
+					$code = ErrorCodes::CREATED;
+					break;
+				case 'user':
+					$result = UserManager::getInstance()->actionPost();
+					break;
+				default:
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
+					$result = $svcObj->actionPost();
+
+					$type = $svcObj->getType();
+					if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+					{
+						$nativeFormat = $svcObj->getNativeFormat();
+						if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+						{
+							// reformat the code here
+						}
+					}
+					break;
+			}
 			$this->handleResults( $result, $code );
 		}
 		catch ( Exception $ex )
@@ -175,8 +217,28 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'MERGE' );
+			switch ( strtolower( $this->service ) )
+			{
+				case 'system':
+					$svcObj = SystemManager::getInstance();
+					break;
+				case 'user':
+					$svcObj = UserManager::getInstance();
+					break;
+				default:
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
+					break;
+			}
+			$result = $svcObj->actionMerge();
+			$type = $svcObj->getType();
+			if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+			{
+				$nativeFormat = $svcObj->getNativeFormat();
+				if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+				{
+					// reformat the code here
+				}
+			}
 			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
@@ -192,8 +254,28 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'PUT' );
+			switch ( strtolower( $this->service ) )
+			{
+				case 'system':
+					$svcObj = SystemManager::getInstance();
+					break;
+				case 'user':
+					$svcObj = UserManager::getInstance();
+					break;
+				default:
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
+					break;
+			}
+			$result = $svcObj->actionPut();
+			$type = $svcObj->getType();
+			if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+			{
+				$nativeFormat = $svcObj->getNativeFormat();
+				if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+				{
+					// reformat the code here
+				}
+			}
 			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
@@ -209,8 +291,28 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'DELETE' );
+			switch ( strtolower( $this->service ) )
+			{
+				case 'system':
+					$svcObj = SystemManager::getInstance();
+					break;
+				case 'user':
+					$svcObj = UserManager::getInstance();
+					break;
+				default:
+					$svcObj = ServiceHandler::getServiceObject( $this->service );
+					break;
+			}
+			$result = $svcObj->actionDelete();
+			$type = $svcObj->getType();
+			if ( 0 === strcasecmp( $type, 'Remote Web Service' ) )
+			{
+				$nativeFormat = $svcObj->getNativeFormat();
+				if ( 0 !== strcasecmp( $nativeFormat, $this->format ) )
+				{
+					// reformat the code here
+				}
+			}
 			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
