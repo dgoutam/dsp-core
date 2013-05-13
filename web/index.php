@@ -22,7 +22,7 @@
  * Main entry point/bootstrap for all processes
  */
 //	Load up composer...
-$_autoloader = require_once( '../vendor/autoload.php' );
+$_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
 
 //	Yii debug settings
 defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );

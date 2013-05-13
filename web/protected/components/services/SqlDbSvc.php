@@ -238,29 +238,36 @@ class SqlDbSvc extends BaseDbSvc
 		return $extras;
 	}
 
-	// REST service implementation
+	// Controller based methods
 
 	/**
 	 * @throws Exception
 	 * @return array
 	 */
-	protected function _listResources()
+	public function actionGet()
 	{
-		$exclude = '';
-		if ( $this->_isNative )
+		$result = parent::actionGet();
+
+		if ( empty( $this->tableName ) )
 		{
-			// check for system tables
-			$exclude = SystemManager::SYSTEM_TABLE_PREFIX;
+			$exclude = '';
+			if ( $this->_isNative )
+			{
+				// check for system tables
+				$exclude = SystemManager::SYSTEM_TABLE_PREFIX;
+			}
+			try
+			{
+				$result = DbUtilities::describeDatabase( $this->_sqlConn, '', $exclude );
+				$result = array( 'resource' => $result );
+			}
+			catch ( Exception $ex )
+			{
+				throw new Exception( "Error describing database tables.\n{$ex->getMessage()}" );
+			}
 		}
-		try
-		{
-			$result = DbUtilities::describeDatabase( $this->_sqlConn, '', $exclude );
-			return array( 'resource' => $result );
-		}
-		catch ( Exception $ex )
-		{
-			throw new Exception( "Error describing database tables.\n{$ex->getMessage()}" );
-		}
+
+		return $result;
 	}
 
 	//-------- Table Records Operations ---------------------
@@ -1584,7 +1591,7 @@ class SqlDbSvc extends BaseDbSvc
 				case 'user_id_on_create':
 					if ( !$for_update )
 					{
-						$userId = UserSession::getCurrentUserId();
+						$userId = UserManager::getCurrentUserId();
 						if ( isset( $userId ) )
 						{
 							$parsed[$name] = $userId;
@@ -1592,7 +1599,7 @@ class SqlDbSvc extends BaseDbSvc
 					}
 					break;
 				case 'user_id_on_update':
-					$userId = UserSession::getCurrentUserId();
+					$userId = UserManager::getCurrentUserId();
 					if ( isset( $userId ) )
 					{
 						$parsed[$name] = $userId;

@@ -28,9 +28,13 @@ abstract class BaseDbSvc extends RestService
 	//*************************************************************************
 
 	/**
-	 * @var int|string
+	 * @var
 	 */
-	protected $_resourceId;
+	protected $tableName;
+	/**
+	 * @var
+	 */
+	protected $recordId;
 
 	//*************************************************************************
 	//	Methods
@@ -181,110 +185,73 @@ abstract class BaseDbSvc extends RestService
 		return $apis;
 	}
 
-	// REST interface implementation
+	// REST Service implementation
 
-	protected function _handleResource()
+	/**
+	 * @throws Exception
+	 * @return array
+	 */
+	public function actionGet()
 	{
-		switch ( $this->_resource )
+		$this->detectCommonParams();
+		switch ( strtolower( $this->tableName ) )
 		{
 			case '':
-				switch ( $this->_action )
-				{
-					case self::Get:
-						return $this->_listResources();
-						break;
-					default:
-						return false;
-				}
+				$result = array( 'resource' => array() );
 				break;
 			default:
-				switch ( $this->_action )
+				$this->validateTableAccess( $this->tableName, 'read' );
+				// Most requests contain 'returned fields' parameter, all by default
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
+				$extras = $this->gatherExtrasFromRequest();
+				$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+				if ( empty( $this->recordId ) )
 				{
-					case self::Get:
-						$this->validateTableAccess( $this->_resource, 'read' );
-						// Most requests contain 'returned fields' parameter, all by default
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
-						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
-						if ( empty( $this->_resourceId ) )
-						{
-							$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
+					$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
+					if ( !empty( $ids ) )
+					{
+						$result = $this->retrieveRecordsByIds( $this->tableName, $ids, $id_field, $fields, $extras );
+						$result = array( 'record' => $result );
+					}
+					else
+					{
+						$data = Utilities::getPostDataAsArray();
+						if ( !empty( $data ) )
+						{ // complex filters or large numbers of ids require post
+							$ids = Utilities::getArrayValue( 'ids', $data, '' );
+							if ( empty( $id_field ) )
+							{
+								$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+							}
 							if ( !empty( $ids ) )
 							{
-								$result = $this->retrieveRecordsByIds( $this->_resource, $ids, $id_field, $fields, $extras );
+								$result = $this->retrieveRecordsByIds( $this->tableName, $ids, $id_field, $fields, $extras );
 								$result = array( 'record' => $result );
 							}
 							else
 							{
-								$data = Utilities::getPostDataAsArray();
-								if ( !empty( $data ) )
-								{ // complex filters or large numbers of ids require post
-									$ids = Utilities::getArrayValue( 'ids', $data, '' );
-									if ( empty( $id_field ) )
-									{
-										$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
-									}
-									if ( !empty( $ids ) )
-									{
-										$result = $this->retrieveRecordsByIds( $this->_resource, $ids, $id_field, $fields, $extras );
-										$result = array( 'record' => $result );
-									}
-									else
-									{
-										$records = Utilities::getArrayValue( 'record', $data, null );
-										if ( empty( $records ) )
-										{
-											// xml to array conversion leaves them in plural wrapper
-											$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-										}
-										if ( !empty( $records ) )
-										{
-											// passing records to have them updated with new or more values, id field required
-											$result = $this->retrieveRecords( $this->_resource, $records, $id_field, $fields, $extras );
-											$result = array( 'record' => $result );
-										}
-										else
-										{
-											$filter = Utilities::getArrayValue( 'filter', $data, '' );
-											$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-											$order = Utilities::getArrayValue( 'order', $data, '' );
-											$offset = intval( Utilities::getArrayValue( 'offset', $data, 0 ) );
-											$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-											$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $data, false ) );
-											$result = $this->retrieveRecordsByFilter(
-												$this->_resource,
-												$fields,
-												$filter,
-												$limit,
-												$order,
-												$offset,
-												$include_count,
-												$include_schema,
-												$extras
-											);
-											if ( isset( $result['meta'] ) )
-											{
-												$meta = $result['meta'];
-												unset( $result['meta'] );
-												$result = array( 'record' => $result, 'meta' => $meta );
-											}
-											else
-											{
-												$result = array( 'record' => $result );
-											}
-										}
-									}
+								$records = Utilities::getArrayValue( 'record', $data, null );
+								if ( empty( $records ) )
+								{
+									// xml to array conversion leaves them in plural wrapper
+									$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+								}
+								if ( !empty( $records ) )
+								{
+									// passing records to have them updated with new or more values, id field required
+									$result = $this->retrieveRecords( $this->tableName, $records, $id_field, $fields, $extras );
+									$result = array( 'record' => $result );
 								}
 								else
 								{
-									$filter = Utilities::getArrayValue( 'filter', $_REQUEST, '' );
-									$limit = intval( Utilities::getArrayValue( 'limit', $_REQUEST, 0 ) );
-									$order = Utilities::getArrayValue( 'order', $_REQUEST, '' );
-									$offset = intval( Utilities::getArrayValue( 'offset', $_REQUEST, 0 ) );
-									$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $_REQUEST, false ) );
-									$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+									$filter = Utilities::getArrayValue( 'filter', $data, '' );
+									$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
+									$order = Utilities::getArrayValue( 'order', $data, '' );
+									$offset = intval( Utilities::getArrayValue( 'offset', $data, 0 ) );
+									$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
+									$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $data, false ) );
 									$result = $this->retrieveRecordsByFilter(
-										$this->_resource,
+										$this->tableName,
 										$fields,
 										$filter,
 										$limit,
@@ -309,183 +276,40 @@ abstract class BaseDbSvc extends RestService
 						}
 						else
 						{
-							// single entity by id
-							$result = $this->retrieveRecordById( $this->_resource, $this->_resourceId, $id_field, $fields, $extras );
-						}
-						break;
-					case self::Post:
-						$data = Utilities::getPostDataAsArray();
-						$this->validateTableAccess( $this->_resource, 'create' );
-						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-						$extras = $this->gatherExtrasFromRequest();
-						$records = Utilities::getArrayValue( 'record', $data, null );
-						if ( empty( $records ) )
-						{
-							// xml to array conversion leaves them in plural wrapper
-							$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-						}
-						if ( empty( $records ) )
-						{
-							if ( empty( $data ) )
+							$filter = Utilities::getArrayValue( 'filter', $_REQUEST, '' );
+							$limit = intval( Utilities::getArrayValue( 'limit', $_REQUEST, 0 ) );
+							$order = Utilities::getArrayValue( 'order', $_REQUEST, '' );
+							$offset = intval( Utilities::getArrayValue( 'offset', $_REQUEST, 0 ) );
+							$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $_REQUEST, false ) );
+							$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+							$result = $this->retrieveRecordsByFilter(
+								$this->tableName,
+								$fields,
+								$filter,
+								$limit,
+								$order,
+								$offset,
+								$include_count,
+								$include_schema,
+								$extras
+							);
+							if ( isset( $result['meta'] ) )
 							{
-								throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
-							}
-							$result = $this->createRecord( $this->_resource, $data, $fields, $extras );
-						}
-						else
-						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
-							$result = $this->createRecords( $this->_resource, $records, $rollback, $fields, $extras );
-							$result = array( 'record' => $result );
-						}
-						break;
-					case self::Put:
-					case self::Patch:
-					case self::Merge:
-						$data = Utilities::getPostDataAsArray();
-						$this->validateTableAccess( $this->_resource, 'update' );
-						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
-						if ( empty( $id_field ) )
-						{
-							$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
-						}
-						if ( empty( $this->_resourceId ) )
-						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
-							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-							if ( empty( $ids ) )
-							{
-								$ids = Utilities::getArrayValue( 'ids', $data, '' );
-							}
-							if ( !empty( $ids ) )
-							{
-								$result = $this->updateRecordsByIds( $this->_resource, $ids, $data, $id_field, $rollback, $fields, $extras );
-								$result = array( 'record' => $result );
+								$meta = $result['meta'];
+								unset( $result['meta'] );
+								$result = array( 'record' => $result, 'meta' => $meta );
 							}
 							else
 							{
-								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
-								if ( !isset( $filter ) )
-								{
-									$filter = Utilities::getArrayValue( 'filter', $data, null );
-								}
-								if ( isset( $filter ) )
-								{
-									$result = $this->updateRecordsByFilter( $this->_resource, $filter, $data, $fields, $extras );
-									$result = array( 'record' => $result );
-								}
-								else
-								{
-									$records = Utilities::getArrayValue( 'record', $data, null );
-									if ( empty( $records ) )
-									{
-										// xml to array conversion leaves them in plural wrapper
-										$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-									}
-									if ( empty( $records ) )
-									{
-										if ( empty( $data ) )
-										{
-											throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
-										}
-										$result = $this->updateRecord( $this->_resource, $data, $id_field, $fields, $extras );
-									}
-									else
-									{
-										$result = $this->updateRecords( $this->_resource, $records, $id_field, $rollback, $fields, $extras );
-										$result = array( 'record' => $result );
-									}
-								}
-							}
-						}
-						else
-						{
-							$result = $this->updateRecordById( $this->_resource, $data, $this->_resourceId, $id_field, $fields, $extras );
-						}
-						break;
-					case self::Delete:
-						$data = Utilities::getPostDataAsArray();
-						$this->validateTableAccess( $this->_resource, 'delete' );
-						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
-						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
-						if ( empty( $id_field ) )
-						{
-							$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
-						}
-						if ( empty( $this->_resourceId ) )
-						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
-							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-							if ( empty( $ids ) )
-							{
-								$ids = Utilities::getArrayValue( 'ids', $data, '' );
-							}
-							if ( !empty( $ids ) )
-							{
-								$result = $this->deleteRecordsByIds( $this->_resource, $ids, $id_field, $rollback, $fields, $extras );
 								$result = array( 'record' => $result );
 							}
-							else
-							{
-								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
-								if ( !isset( $filter ) )
-								{
-									$filter = Utilities::getArrayValue( 'filter', $data, null );
-								}
-								if ( isset( $filter ) )
-								{
-									$result = $this->deleteRecordsByFilter( $this->_resource, $filter, $fields, $extras );
-									$result = array( 'record' => $result );
-								}
-								else
-								{
-									$records = Utilities::getArrayValue( 'record', $data, null );
-									if ( empty( $records ) )
-									{
-										// xml to array conversion leaves them in plural wrapper
-										$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
-									}
-									if ( empty( $records ) )
-									{
-										if ( empty( $data ) )
-										{
-											throw new Exception( 'No record in DELETE request.', ErrorCodes::BAD_REQUEST );
-										}
-										$result = $this->deleteRecord( $this->_resource, $data, $id_field, $fields, $extras );
-									}
-									else
-									{
-										$result = $this->deleteRecords( $this->_resource, $records, $id_field, $rollback, $fields, $extras );
-										$result = array( 'record' => $result );
-									}
-								}
-							}
 						}
-						else
-						{
-							$result = $this->deleteRecordById( $this->_resource, $this->_resourceId, $id_field, $fields, $extras );
-						}
-						break;
-					default:
-						return false;
+					}
+				}
+				else
+				{
+					// single entity by id
+					$result = $this->retrieveRecordById( $this->tableName, $this->recordId, $id_field, $fields, $extras );
 				}
 				break;
 		}
@@ -493,21 +317,331 @@ abstract class BaseDbSvc extends RestService
 		return $result;
 	}
 
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionPost()
+	{
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		switch ( strtolower( $this->tableName ) )
+		{
+			case '':
+				// batch support for multiple tables
+				throw new Exception( 'Multi-table batch request not yet implemented.' );
+				break;
+			default:
+				$this->validateTableAccess( $this->tableName, 'create' );
+				// Most requests contain 'returned fields' parameter
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+				$extras = $this->gatherExtrasFromRequest();
+				$records = Utilities::getArrayValue( 'record', $data, null );
+				if ( empty( $records ) )
+				{
+					// xml to array conversion leaves them in plural wrapper
+					$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+				}
+				if ( empty( $records ) )
+				{
+					if ( empty( $data ) )
+					{
+						throw new Exception( 'No record in POST create request.', ErrorCodes::BAD_REQUEST );
+					}
+					$result = $this->createRecord( $this->tableName, $data, $fields, $extras );
+				}
+				else
+				{
+					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
+					if ( !isset( $rollback ) )
+					{
+						$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+					}
+					$result = $this->createRecords( $this->tableName, $records, $rollback, $fields, $extras );
+					$result = array( 'record' => $result );
+				}
+				break;
+		}
+
+		return $result;
+	}
 
 	/**
-	 *
+	 * @return array
+	 * @throws Exception
 	 */
-	protected function _detectResourceMembers()
+	public function actionPut()
 	{
-		parent::_detectResourceMembers();
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		switch ( strtolower( $this->tableName ) )
+		{
+			case '':
+				// batch support for multiple tables
+				throw new Exception( 'Multi-table batch request not yet implemented.' );
+				break;
+			default:
+				$this->validateTableAccess( $this->tableName, 'update' );
+				// Most requests contain 'returned fields' parameter
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+				$extras = $this->gatherExtrasFromRequest();
+				$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+				if ( empty( $id_field ) )
+				{
+					$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+				}
+				if ( empty( $this->recordId ) )
+				{
+					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
+					if ( !isset( $rollback ) )
+					{
+						$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+					}
+					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+					if ( empty( $ids ) )
+					{
+						$ids = Utilities::getArrayValue( 'ids', $data, '' );
+					}
+					if ( !empty( $ids ) )
+					{
+						$result = $this->updateRecordsByIds( $this->tableName, $ids, $data, $id_field, $rollback, $fields, $extras );
+						$result = array( 'record' => $result );
+					}
+					else
+					{
+						$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
+						if ( !isset( $filter ) )
+						{
+							$filter = Utilities::getArrayValue( 'filter', $data, null );
+						}
+						if ( isset( $filter ) )
+						{
+							$result = $this->updateRecordsByFilter( $this->tableName, $filter, $data, $fields, $extras );
+							$result = array( 'record' => $result );
+						}
+						else
+						{
+							$records = Utilities::getArrayValue( 'record', $data, null );
+							if ( empty( $records ) )
+							{
+								// xml to array conversion leaves them in plural wrapper
+								$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+							}
+							if ( empty( $records ) )
+							{
+								if ( empty( $data ) )
+								{
+									throw new Exception( 'No record in PUT update request.', ErrorCodes::BAD_REQUEST );
+								}
+								$result = $this->updateRecord( $this->tableName, $data, $id_field, $fields, $extras );
+							}
+							else
+							{
+								$result = $this->updateRecords( $this->tableName, $records, $id_field, $rollback, $fields, $extras );
+								$result = array( 'record' => $result );
+							}
+						}
+					}
+				}
+				else
+				{
+					$result = $this->updateRecordById( $this->tableName, $data, $this->recordId, $id_field, $fields, $extras );
+				}
+				break;
+		}
 
-		$this->_resourceId = ( isset( $this->_resourceArray[1] ) ) ? $this->_resourceArray[1] : '';
+		return $result;
+	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionMerge()
+	{
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		switch ( strtolower( $this->tableName ) )
+		{
+			case '':
+				// batch support for multiple tables
+				throw new Exception( 'Multi-table batch request not yet implemented.' );
+				break;
+			default:
+				$this->validateTableAccess( $this->tableName, 'update' );
+				// Most requests contain 'returned fields' parameter
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+				$extras = $this->gatherExtrasFromRequest();
+				$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+				if ( empty( $id_field ) )
+				{
+					$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+				}
+				if ( empty( $this->recordId ) )
+				{
+					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
+					if ( !isset( $rollback ) )
+					{
+						$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+					}
+					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+					if ( empty( $ids ) )
+					{
+						$ids = Utilities::getArrayValue( 'ids', $data, '' );
+					}
+					if ( !empty( $ids ) )
+					{
+						$result = $this->updateRecordsByIds( $this->tableName, $ids, $data, $id_field, $rollback, $fields, $extras );
+						$result = array( 'record' => $result );
+					}
+					else
+					{
+						$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
+						if ( !isset( $filter ) )
+						{
+							$filter = Utilities::getArrayValue( 'filter', $data, null );
+						}
+						if ( isset( $filter ) )
+						{
+							$result = $this->updateRecordsByFilter( $this->tableName, $filter, $data, $fields, $extras );
+							$result = array( 'record' => $result );
+						}
+						else
+						{
+							$records = Utilities::getArrayValue( 'record', $data, null );
+							if ( empty( $records ) )
+							{
+								// xml to array conversion leaves them in plural wrapper
+								$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+							}
+							if ( empty( $records ) )
+							{
+								if ( empty( $data ) )
+								{
+									throw new Exception( 'No record in MERGE update request.', ErrorCodes::BAD_REQUEST );
+								}
+								$result = $this->updateRecord( $this->tableName, $data, $id_field, $fields, $extras );
+							}
+							else
+							{
+								$result = $this->updateRecords( $this->tableName, $records, $id_field, $rollback, $fields, $extras );
+								$result = array( 'record' => $result );
+							}
+						}
+					}
+				}
+				else
+				{
+					$result = $this->updateRecordById( $this->tableName, $data, $this->recordId, $id_field, $fields, $extras );
+				}
+				break;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionDelete()
+	{
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		switch ( strtolower( $this->tableName ) )
+		{
+			case '':
+				// batch support for multiple tables
+				throw new Exception( 'Multi-table batch request not yet implemented.', ErrorCodes::BAD_REQUEST );
+				break;
+			default:
+				$this->validateTableAccess( $this->tableName, 'delete' );
+				// Most requests contain 'returned fields' parameter
+				$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+				$extras = $this->gatherExtrasFromRequest();
+				$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+				if ( empty( $id_field ) )
+				{
+					$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+				}
+				if ( empty( $this->recordId ) )
+				{
+					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
+					if ( !isset( $rollback ) )
+					{
+						$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+					}
+					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+					if ( empty( $ids ) )
+					{
+						$ids = Utilities::getArrayValue( 'ids', $data, '' );
+					}
+					if ( !empty( $ids ) )
+					{
+						$result = $this->deleteRecordsByIds( $this->tableName, $ids, $id_field, $rollback, $fields, $extras );
+						$result = array( 'record' => $result );
+					}
+					else
+					{
+						$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
+						if ( !isset( $filter ) )
+						{
+							$filter = Utilities::getArrayValue( 'filter', $data, null );
+						}
+						if ( isset( $filter ) )
+						{
+							$result = $this->deleteRecordsByFilter( $this->tableName, $filter, $fields, $extras );
+							$result = array( 'record' => $result );
+						}
+						else
+						{
+							$records = Utilities::getArrayValue( 'record', $data, null );
+							if ( empty( $records ) )
+							{
+								// xml to array conversion leaves them in plural wrapper
+								$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+							}
+							if ( empty( $records ) )
+							{
+								if ( empty( $data ) )
+								{
+									throw new Exception( 'No record in DELETE request.', ErrorCodes::BAD_REQUEST );
+								}
+								$result = $this->deleteRecord( $this->tableName, $data, $id_field, $fields, $extras );
+							}
+							else
+							{
+								$result = $this->deleteRecords( $this->tableName, $records, $id_field, $rollback, $fields, $extras );
+								$result = array( 'record' => $result );
+							}
+						}
+					}
+				}
+				else
+				{
+					$result = $this->deleteRecordById( $this->tableName, $this->recordId, $id_field, $fields, $extras );
+				}
+				break;
+		}
+
+		return $result;
 	}
 
 	protected function gatherExtrasFromRequest()
 	{
 
 		return array();
+	}
+
+	/**
+	 *
+	 */
+	protected function detectCommonParams()
+	{
+		$resource = Utilities::getArrayValue( 'resource', $_GET, '' );
+		$resource = ( !empty( $resource ) ) ? explode( '/', $resource ) : array();
+		$this->tableName = ( isset( $resource[0] ) ) ? $resource[0] : '';
+		$this->recordId = ( isset( $resource[1] ) ) ? $resource[1] : '';
 	}
 
 	/**

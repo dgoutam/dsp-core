@@ -21,6 +21,7 @@ use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
+use Platform\Yii\Utility\Pii;
 
 /**
  * SiteController.php
@@ -37,7 +38,7 @@ class SiteController extends Controller
 
 		$this->layout = 'initial';
 
-		Log::debug( 'Requested route: ' . $this->route );
+		Log::debug( 'Requested route: /' . $this->route );
 	}
 
 	/**
@@ -93,13 +94,15 @@ class SiteController extends Controller
 	{
 		try
 		{
-			switch ( SystemManager::getSystemState() )
+			$_state = SystemManager::getSystemState();
+
+			switch ( $_state )
 			{
 				case PlatformStates::READY:
 					// try local launchpad
-					if ( is_file( './public/launchpad/index.html' ) )
+					if ( is_file( \Kisma::get( 'app.app_path' ) . '/public/launchpad/index.html' ) )
 					{
-						$this->redirect( './public/launchpad/index.html' );
+						$this->redirect( '/public/launchpad/index.html' );
 					}
 
 					//	Fall back to this app default site
@@ -107,23 +110,20 @@ class SiteController extends Controller
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					$this->actionInitSystem();
+					$this->redirect( 'site/initSystem' );
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( array( 'site/initAdmin' ) );
+					$this->redirect( 'site/initAdmin' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
-					$this->redirect( array( 'site/upgradeSchema' ) );
-					break;
-
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( array( 'site/upgradeSchema' ) );
+					$this->redirect('site/upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( array( 'site/initData' ) );
+					$this->redirect('site/initData' );
 					break;
 			}
 		}
@@ -202,7 +202,7 @@ class SiteController extends Controller
 	public function actionLogout()
 	{
 		Pii::user()->logout();
-		$this->redirect( '/' );
+		$this->redirect('/' );
 	}
 
 	/**
@@ -211,7 +211,7 @@ class SiteController extends Controller
 	public function actionInitSystem()
 	{
 		SystemManager::initSystem();
-		$this->redirect( '/' );
+		$this->redirect('/' );
 	}
 
 	/**
@@ -228,7 +228,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				$this->redirect( '/' );
+				$this->redirect('/' );
 			}
 
 			$this->refresh();
@@ -248,7 +248,7 @@ class SiteController extends Controller
 	public function actionInitAdmin()
 	{
 		SystemManager::initAdmin();
-		$this->redirect( '/' );
+		$this->redirect('/' );
 	}
 
 	/**
@@ -265,7 +265,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				$this->redirect( '/' );
+				$this->redirect('/' );
 			}
 
 			$this->refresh();

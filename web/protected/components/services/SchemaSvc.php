@@ -30,11 +30,11 @@ class SchemaSvc extends RestService
 	/**
 	 * @var
 	 */
-	protected $_tableName;
+	protected $tableName;
 	/**
 	 * @var
 	 */
-	protected $_fieldName;
+	protected $fieldName;
 	/**
 	 * @var CDbConnection
 	 */
@@ -497,158 +497,238 @@ class SchemaSvc extends RestService
 		return $models;
 	}
 
-	protected function _handleResource()
+	/**
+	 * @return array
+	 */
+	public function actionGet()
 	{
-		if ( empty( $this->_tableName ) )
+		$this->detectCommonParams();
+		if ( empty( $this->tableName ) )
 		{
-			switch ( $this->_action )
-			{
-				case self::Get:
-					$result = $this->describeDatabase();
-					return array( 'resource' => $result );
-					break;
-				case self::Post:
-					$data = Utilities::getPostDataAsArray();
-					$tables = Utilities::getArrayValue( 'table', $data, '' );
-					if ( empty( $tables ) )
-					{
-						// temporary, layer created from xml to array conversion
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
-					}
-					if ( empty( $tables ) )
-					{
-						// could be a single table definition
-						return $this->createTable( $data );
-					}
-					$result = $this->createTables( $tables );
-
-					return array( 'table' => $result );
-					break;
-				case self::Put:
-				case self::Patch:
-				case self::Merge:
-					$data = Utilities::getPostDataAsArray();
-					$tables = Utilities::getArrayValue( 'table', $data, '' );
-					if ( empty( $tables ) )
-					{
-						// temporary, layer created from xml to array conversion
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
-					}
-					if ( empty( $tables ) )
-					{
-						// could be a single table definition
-						return $this->updateTable( $data );
-					}
-					$result = $this->updateTables( $tables );
-
-					return array( 'table' => $result );
-					break;
-				case self::Delete:
-					throw new Exception( 'Invalid format for DELETE Table request.' );
-					break;
-				default:
-					return false;
-			}
+			$result = $this->describeDatabase();
+			$result = array( 'resource' => $result );
 		}
 		else
 		{
-			if ( empty( $this->_fieldName ) )
+			if ( empty( $this->fieldName ) )
 			{
-				switch ( $this->_action )
-				{
-					case self::Get:
-						return $this->describeTable( $this->_tableName );
-						break;
-					case self::Post:
-						$data = Utilities::getPostDataAsArray();
-						// create fields in existing table
-						$fields = Utilities::getArrayValue( 'field', $data, '' );
-						if ( empty( $fields ) )
-						{
-							// temporary, layer created from xml to array conversion
-							$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
-						}
-						if ( empty( $fields ) )
-						{
-							// could be a single field definition
-							return $this->createField( $this->_tableName, $data );
-						}
-						$result = $this->createFields( $this->_tableName, $fields );
-
-						return array( 'field' => $result );
-						break;
-					case self::Put:
-					case self::Patch:
-					case self::Merge:
-						$data = Utilities::getPostDataAsArray();
-						// create fields in existing table
-						$fields = Utilities::getArrayValue( 'field', $data, '' );
-						if ( empty( $fields ) )
-						{
-							// temporary, layer created from xml to array conversion
-							$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
-						}
-						if ( empty( $fields ) )
-						{
-							// could be a single field definition
-							return $this->updateField( $this->_tableName, '', $data );
-						}
-						$result = $this->updateFields( $this->_tableName, $fields );
-
-						return array( 'field' => $result );
-						break;
-					case self::Delete:
-						$this->deleteTable( $this->_tableName );
-
-						return array( 'table' => $this->_tableName );
-						break;
-					default:
-						return false;
-				}
+				$result = $this->describeTable( $this->tableName );
 			}
 			else
 			{
-				switch ( $this->_action )
+				$result = $this->describeField( $this->tableName, $this->fieldName );
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionPost()
+	{
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		if ( empty( $this->tableName ) )
+		{
+			$tables = Utilities::getArrayValue( 'table', $data, '' );
+			if ( empty( $tables ) )
+			{
+				// temporary, layer created from xml to array conversion
+				$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
+			}
+			if ( empty( $tables ) )
+			{
+				// could be a single table definition
+				return $this->createTable( $data );
+			}
+			$result = $this->createTables( $tables );
+
+			return array( 'table' => $result );
+		}
+		else
+		{
+			if ( empty( $this->fieldName ) )
+			{
+				// create fields in existing table
+				$fields = Utilities::getArrayValue( 'field', $data, '' );
+				if ( empty( $fields ) )
 				{
-					case self::Get:
-						return $this->describeField( $this->_tableName, $this->_fieldName );
-						break;
-					case self::Post:
-						// create new field indices?
-						throw new Exception( 'No new field resources currently supported.' );
-						break;
-					case self::Put:
-					case self::Patch:
-					case self::Merge:
-						$data = Utilities::getPostDataAsArray();
-						// create new field in existing table
-						if ( empty( $data ) )
-						{
-							throw new Exception( 'No data in schema create request.' );
-						}
-
-						return $this->updateField( $this->_tableName, $this->_fieldName, $data );
-						break;
-					case self::Delete:
-						$this->deleteField( $this->_tableName, $this->_fieldName );
-
-						return array( 'field' => $this->_fieldName );
-						break;
-					default:
-						return false;
+					// temporary, layer created from xml to array conversion
+					$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
 				}
+				if ( empty( $fields ) )
+				{
+					// could be a single field definition
+					return $this->createField( $this->tableName, $data );
+				}
+				$result = $this->createFields( $this->tableName, $fields );
+
+				return array( 'field' => $result );
+			}
+			else
+			{
+				// create new field indices?
+				throw new Exception( 'No new field resources currently supported.' );
 			}
 		}
 	}
 
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionPut()
+	{
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		if ( empty( $this->tableName ) )
+		{
+			$tables = Utilities::getArrayValue( 'table', $data, '' );
+			if ( empty( $tables ) )
+			{
+				// temporary, layer created from xml to array conversion
+				$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
+			}
+			if ( empty( $tables ) )
+			{
+				// could be a single table definition
+				return $this->updateTable( $data );
+			}
+			$result = $this->updateTables( $tables );
+
+			return array( 'table' => $result );
+		}
+		else
+		{
+			if ( empty( $this->fieldName ) )
+			{
+				// create fields in existing table
+				$fields = Utilities::getArrayValue( 'field', $data, '' );
+				if ( empty( $fields ) )
+				{
+					// temporary, layer created from xml to array conversion
+					$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
+				}
+				if ( empty( $fields ) )
+				{
+					// could be a single field definition
+					return $this->updateField( $this->tableName, '', $data );
+				}
+				$result = $this->updateFields( $this->tableName, $fields );
+
+				return array( 'field' => $result );
+			}
+			else
+			{
+				// create new field in existing table
+				if ( empty( $data ) )
+				{
+					throw new Exception( 'No data in schema create request.' );
+				}
+
+				return $this->updateField( $this->tableName, $this->fieldName, $data );
+			}
+		}
+	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionMerge()
+	{
+		$this->detectCommonParams();
+		$data = Utilities::getPostDataAsArray();
+		if ( empty( $this->tableName ) )
+		{
+			$tables = Utilities::getArrayValue( 'table', $data, '' );
+			if ( empty( $tables ) )
+			{
+				// temporary, layer created from xml to array conversion
+				$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
+			}
+			if ( empty( $tables ) )
+			{
+				// could be a single table definition
+				return $this->updateTable( $data );
+			}
+			$result = $this->updateTables( $tables );
+
+			return array( 'table' => $result );
+		}
+		else
+		{
+			if ( empty( $this->fieldName ) )
+			{
+				// create fields in existing table
+				$fields = Utilities::getArrayValue( 'field', $data, '' );
+				if ( empty( $fields ) )
+				{
+					// temporary, layer created from xml to array conversion
+					$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
+				}
+				if ( empty( $fields ) )
+				{
+					// could be a single field definition
+					return $this->updateField( $this->tableName, '', $data );
+				}
+				$result = $this->updateFields( $this->tableName, $fields );
+
+				return array( 'field' => $result );
+			}
+			else
+			{
+				// create new field in existing table
+				if ( empty( $data ) )
+				{
+					throw new Exception( 'No data in schema create request.' );
+				}
+
+				return $this->updateField( $this->tableName, $this->fieldName, $data );
+			}
+		}
+	}
+
+	/**
+	 * @return array
+	 * @throws Exception
+	 */
+	public function actionDelete()
+	{
+		$this->detectCommonParams();
+		if ( !empty( $this->tableName ) )
+		{
+			if ( !empty( $this->fieldName ) )
+			{
+				$this->deleteField( $this->tableName, $this->fieldName );
+
+				return array( 'field' => $this->fieldName );
+			}
+			else
+			{
+				$this->deleteTable( $this->tableName );
+
+				return array( 'table' => $this->tableName );
+			}
+		}
+		else
+		{
+			throw new Exception( 'Invalid format for DELETE Table request.' );
+		}
+	}
 
 	/**
 	 *
 	 */
-	protected function _detectResourceMembers()
+	protected function detectCommonParams()
 	{
-		$this->_tableName = ( isset( $this->_resourceArray[0] ) ) ? $this->_resourceArray[0] : '';
-		$this->_fieldName = ( isset( $this->_resourceArray[1] ) ) ? $this->_resourceArray[1] : '';
+		$resource = Utilities::getArrayValue( 'resource', $_GET, '' );
+		$resource = ( !empty( $resource ) ) ? explode( '/', $resource ) : array();
+		$this->tableName = ( isset( $resource[0] ) ) ? $resource[0] : '';
+		$this->fieldName = ( isset( $resource[1] ) ) ? $resource[1] : '';
 	}
 
 	/**

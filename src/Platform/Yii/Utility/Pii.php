@@ -94,9 +94,6 @@ class Pii extends \Yii
 	{
 		$_basePath = dirname( $docRoot );
 
-		//	Register the autoloader cuz I don't think it's in there...
-		spl_autoload_register( array($autoloader, 'loadClass'), true, $prependAutoloader );
-
 		$_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' );
 		$_configPath = $_basePath . '/config';
 		$_configFile = $_configPath . '/' . $_appMode . '.php';
@@ -135,6 +132,16 @@ class Pii extends \Yii
 
 		\Kisma::set( 'app.app_class', $_appClass = $className ? : ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
 		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
+
+		//	Register the autoloader cuz I don't think it's in there...
+		try
+		{
+			@\spl_autoload_register( array( $autoloader, 'loadClass' ), true, $prependAutoloader );
+		}
+		catch ( \Exception $_ex )
+		{
+			Log::error( 'Failed to add Composer to SPL autoload chain.' );
+		}
 
 		//	Just return the app if there is one...
 		if ( true !== $autoRun )
@@ -775,7 +782,7 @@ class Pii extends \Yii
 		//	Convert to an array
 		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
 		{
-			$columnsToSort = array($columnsToSort);
+			$columnsToSort = array( $columnsToSort );
 		}
 
 		//	Any fields?
@@ -1004,7 +1011,7 @@ class Pii extends \Yii
 	{
 		if ( method_exists( '\\CHtml', $name ) )
 		{
-			return call_user_func_array( array('\\CHtml', $name), $arguments );
+			return call_user_func_array( array( '\\CHtml', $name ), $arguments );
 		}
 	}
 }

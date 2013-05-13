@@ -185,11 +185,11 @@ class BaseDspModel extends \CActiveRecord
 			array(
 				 //	Data formatter
 				 'base_model.data_format_behavior' => array(
-					 'class' => 'Platform\\Yii\\Behaviors\\DataFormatBehavior',
+					 'class' => '\\Platform\\Yii\\Behaviors\\DataFormatBehavior',
 				 ),
 				 //	Timestamper
 				 'base_model.timestamp_behavior'   => array(
-					 'class'              => 'Platform\\Yii\\Behaviors\\TimestampBehavior',
+					 'class'              => '\\Platform\\Yii\\Behaviors\\TimestampBehavior',
 					 'createdColumn'      => 'created_date',
 //					 'createdByColumn'      => 'created_by_id',
 					 'lastModifiedColumn' => 'last_modified_date',

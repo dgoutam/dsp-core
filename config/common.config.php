@@ -26,8 +26,15 @@
 //* Global Configuration Settings
 //*************************************************************************
 
+/**
+ * @var string
+ */
+const DSP_VERSION = '1.0.2';
+
 //	The base path of the project, where it's checked out basically
 $_basePath = dirname( __DIR__ );
+//	The document root
+$_docRoot = $_basePath . '/web';
 //	The vendor path
 $_vendorPath = $_basePath . '/vendor';
 //	Set to false to disable database caching
@@ -36,6 +43,9 @@ $_dbCacheEnabled = true;
 $_defaultController = 'site';
 //	Load the BLOB storage configuration settings
 $_blobConfig = ( file_exists( __DIR__ . '/blob.config.php' ) ? require_once( __DIR__ . '/blob.config.php' ) : array() );
+//	Where the log files go and the name...
+$_logFilePath = $_basePath . '/log';
+$_logFileName = basename( \Kisma::get( 'app.log_file' ) );
 
 /**
  * Aliases
@@ -49,10 +59,10 @@ if ( file_exists( __DIR__ . '/aliases.config.php' ) )
  * Application Paths
  */
 \Kisma::set( 'app.app_name', $_appName = 'DreamFactory Services Platform' );
-\Kisma::set( 'app.doc_root', $_docRoot = $_basePath . '/web' );
-\Kisma::set( 'app.log_path', $_logFilePath = $_basePath . '/log' );
+\Kisma::set( 'app.doc_root', $_docRoot );
+\Kisma::set( 'app.log_path', $_logFilePath );
 \Kisma::set( 'app.vendor_path', $_vendorPath );
-$_logFileName = basename( \Kisma::get( 'app.log_file' ) );
+\Kisma::set( 'app.log_file_name', $_logFileName );
 
 /**
  * Database Caching
@@ -105,7 +115,7 @@ return array_merge(
 		 /**
 		  * DSP Information
 		  */
-		 'dsp.version'       => '1.0.1',
+		 'dsp.version'       => DSP_VERSION,
 		 'dsp.name'          => $_instanceSettings['dsp_name'],
 		 'dsp.auth_endpoint' => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
 		 'cloud.endpoint'    => 'http://api.cloud.dreamfactory.com',
