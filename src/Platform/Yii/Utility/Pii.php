@@ -18,15 +18,19 @@
  * limitations under the License.
  */
 namespace Platform\Yii\Utility;
+
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use Platform\Utility\DataCache;
 
 /**
  * Pii
  * A Yii helper
+ *
+ * @method static string encode( $text ) Encodes special characters into HTML entities.
  */
-class Pii extends \CHtml
+class Pii extends \Yii
 {
 	//*************************************************************************
 	//* Constants
@@ -40,6 +44,10 @@ class Pii extends \CHtml
 	 * @var string
 	 */
 	const DEFAULT_DOC_ROOT = '/var/www/launchpad/web';
+	/**
+	 * @var bool If true, the configuration (web.php) and it's subs will be cached for the session
+	 */
+	const ENABLE_CONFIG_CACHE = true;
 
 	//********************************************************************************
 	//* Members
@@ -65,10 +73,6 @@ class Pii extends \CHtml
 	 * @var \CAttributeCollection Cache the application parameters for speed
 	 */
 	protected static $_appParameters = null;
-	/**
-	 * @var array An array of class names to search in for missing methods
-	 */
-	protected static $_classPath = array();
 
 	//********************************************************************************
 	//* Public Methods
@@ -77,30 +81,27 @@ class Pii extends \CHtml
 	/**
 	 * Bootstraps the Yii application, setting all the necessary junk
 	 *
-	 * @param string                         $docRoot The document root of the web site
-	 * @param \Composer\Autoload\ClassLoader $autoloader
+	 * @param string                         $docRoot           The document root of the web site
+	 * @param \Composer\Autoload\ClassLoader $autoloader        The autoloader returned by composer
+	 * @param string                         $className         The name of the CApplication class to run
+	 * @param string                         $config            A configuration array or the name of the configuration file
+	 * @param bool                           $autoRun           If true, the app class is created and ran via CApplication::run()
+	 * @param bool                           $prependAutoloader If true, the Composer autoloader will be prepended to the SPL list...
 	 *
-	 * @return void
+	 * @return \CConsoleApplication|\CWebApplication
 	 */
-	public static function run( $docRoot, $autoloader = null )
+	public static function run( $docRoot, $autoloader, $className = null, $config = null, $autoRun = true, $prependAutoloader = true )
 	{
 		$_basePath = dirname( $docRoot );
 
-		if ( null === $autoloader )
-		{
-			/** @noinspection PhpIncludeInspection */
-			$autoloader = require_once( $_basePath . '/vendor/autoload.php' );
-		}
-
-		$_dspName = null;
-
 		$_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' );
 		$_configPath = $_basePath . '/config';
+		$_configFile = $_configPath . '/' . $_appMode . '.php';
 		$_logPath = $_basePath . '/log';
 
-		$_dspName = static::_determineHostName();
+		$_hostName = static::_determineHostName();
 
-		$_logName = $_appMode . '.' . $_dspName . '.log';
+		$_logName = $_appMode . '.' . $_hostName . '.log';
 		$_logFile = $_logPath . '/' . $_logName;
 
 		//	And our log
@@ -117,7 +118,7 @@ class Pii extends \CHtml
 		\Kisma::set( 'app.template_path', $_configPath . '/templates' );
 		\Kisma::set( 'app.vendor_path', $_basePath . '/vendor' );
 		\Kisma::set( 'app.autoloader', $autoloader );
-		\Kisma::set( 'app.dsp_name', $_dspName );
+		\Kisma::set( 'app.host_name', $_hostName );
 		\Kisma::set(
 			'platform.fabric_hosted',
 			$_isFabric = (
@@ -129,11 +130,42 @@ class Pii extends \CHtml
 			)
 		);
 
-		\Kisma::set( 'app.app_class', ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
+		\Kisma::set( 'app.app_class', $_appClass = $className ? : ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
 		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
+		//	Register the autoloader cuz I don't think it's in there...
+		try
+		{
+			@\spl_autoload_register( array( $autoloader, 'loadClass' ), true, $prependAutoloader );
+		}
+		catch ( \Exception $_ex )
+		{
+			Log::error( 'Failed to add Composer to SPL autoload chain.' );
+		}
+
 		//	Just return the app if there is one...
-		return static::app();
+		if ( true !== $autoRun )
+		{
+			return static::app();
+		}
+
+		//	Load configuration if not specified
+		if ( true !== static::ENABLE_CONFIG_CACHE )
+		{
+			/** @noinspection PhpIncludeInspection */
+			$_config = $config ? : require( $_configFile );
+		}
+		else if ( null === ( $_config = $config ) )
+		{
+			if ( false === ( $_config = DataCache::load( $_key = $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_HOST'] . '.' . $_appMode ) ) )
+			{
+				/** @noinspection PhpIncludeInspection */
+				DataCache::store( $_key, $_config = require( $_configFile ) );
+			}
+		}
+
+		//	Instantiate and run baby!
+		static::app( static::createApplication( $_appClass, $_config ) )->run();
 	}
 
 	/**
@@ -176,31 +208,12 @@ class Pii extends \CHtml
 		/** @var $_thisApp \CApplication|\CWebApplication|\CConsoleApplication */
 		static $_thisApp = null;
 
-		if ( false === $app )
+		if ( false === $app || null !== $_thisApp )
 		{
 			return $_thisApp;
 		}
 
-		if ( !empty( $_thisApp ) )
-		{
-			if ( 'cli' != PHP_SAPI && null === static::$_thisUser && null === static::$_clientScript )
-			{
-				static::$_thisUser = $_thisApp->getComponent( 'user', false );
-				static::$_clientScript = $_thisApp->getComponent( 'clientScript', false );
-			}
-
-			return $_thisApp;
-		}
-
-		//	Set other dependencies
-		if ( null !== $app )
-		{
-			$_thisApp = $app;
-		}
-		else
-		{
-			$_thisApp = \Yii::app();
-		}
+		$_thisApp = $app ? : parent::app();
 
 		//	Non-CLI requests have clientScript and a user maybe
 		if ( $_thisApp )
@@ -321,11 +334,13 @@ class Pii extends \CHtml
 	/**
 	 * Convenience method Returns the base path of the current app
 	 *
+	 * @param string $subPath
+	 *
 	 * @return string
 	 */
-	public static function basePath()
+	public static function basePath( $subPath = null )
 	{
-		return static::app()->getBasePath();
+		return static::app()->getBasePath() . ( null !== $subPath ? '/' . ltrim( $subPath, '/' ) : null );
 	}
 
 	/***
@@ -623,7 +638,7 @@ class Pii extends \CHtml
 	 */
 	public static function redirect( $url, $terminate = true, $statusCode = 302 )
 	{
-		static::$_thisRequest->redirect( $url, $terminate, $statusCode );
+		static::$_thisRequest->redirect( is_array( $url ) ? $url : static::url( $url ), $terminate, $statusCode );
 	}
 
 	/**
@@ -671,12 +686,12 @@ class Pii extends \CHtml
 	{
 		if ( null !== $path )
 		{
-			\Yii::setPathOfAlias( $alias, $path );
+			static::setPathOfAlias( $alias, $path );
 
 			return $path;
 		}
 
-		$_path = \Yii::getPathOfAlias( $alias );
+		$_path = static::getPathOfAlias( $alias );
 
 		if ( null !== $morePath )
 		{
@@ -959,7 +974,7 @@ class Pii extends \CHtml
 	 */
 	protected static function _determineHostName()
 	{
-		if ( null === ( $_dspName = \Kisma::get( 'app.dsp_name' ) ) )
+		if ( null === ( $_hostName = \Kisma::get( 'app.host_name' ) ) )
 		{
 			//	Figure out my name
 			if ( isset( $_SERVER, $_SERVER['HTTP_HOST'] ) )
@@ -968,19 +983,35 @@ class Pii extends \CHtml
 
 				if ( 4 == count( $_parts ) )
 				{
-					if ( 'cumulus' == ( $_dspName = $_parts[0] ) )
+					if ( 'cumulus' == ( $_hostName = $_parts[0] ) )
 					{
-						$_dspName = null;
+						$_hostName = null;
 					}
 				}
 			}
 		}
 
-		if ( empty( $_dspName ) )
+		if ( empty( $_hostName ) )
 		{
-			$_dspName = str_replace( '.dreamfactory.com', null, gethostname() );
+			$_hostName = str_replace( '.dreamfactory.com', null, gethostname() );
 		}
 
-		return $_dspName;
+		return $_hostName;
+	}
+
+	/**
+	 * Also handle CHtml statics...
+	 *
+	 * @param string $name
+	 * @param array  $arguments
+	 *
+	 * @return mixed
+	 */
+	public static function __callStatic( $name, $arguments )
+	{
+		if ( method_exists( '\\CHtml', $name ) )
+		{
+			return call_user_func_array( array( '\\CHtml', $name ), $arguments );
+		}
 	}
 }

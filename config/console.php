@@ -23,5 +23,5 @@
  */
 if ( 'cli' == PHP_SAPI )
 {
-//	throw new Exception( 'Console mode not supported.' );
+//	throw new Exception( 'Console mode not yet supported.' );
 }

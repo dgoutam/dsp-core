@@ -17,30 +17,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-$_basePath = dirname( __DIR__ );
-$_autoloader = require_once( $_basePath . '/vendor/autoload.php' );
-require_once __DIR__ . '/protected/components/Pii.php';
-require_once $_basePath . '/src/Platform/Utility/DataCache.php';
+/**
+ * index.php
+ * Main entry point/bootstrap for all processes
+ */
+//	Load up composer...
+$_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
 
-use Kisma\Core\Utility\FilterInput;
-use Platform\Utility\DataCache;
-
-//	Initialize app settings
-\Pii::run( __DIR__, $_autoloader );
-
-//	Main DSP web configuration
-if ( !( $_config = DataCache::load( $_key = $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_HOST'] . '.web' ) ) )
-{
-	DataCache::store( $_key, $_config = require $_basePath . '/config/web.php' );
-}
-
-require_once $_basePath . '/config/aliases.php';
-
-//	Comment out the following lines in production
+//	Yii debug settings
 defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
-\Yii::createApplication( '\\Platform\\Yii\\Components\\PlatformWebApplication', $_config );
-
-//	This initializes caching inside Pii
-\Pii::app()->run();
+//	Create the application and run
+Platform\Yii\Utility\Pii::run(
+	__DIR__,
+	$_autoloader,
+	'Platform\\Yii\\Components\\PlatformWebApplication'
+);

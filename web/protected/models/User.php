@@ -235,7 +235,7 @@ class User extends BaseDspSystemModel
 		$_id = $this->getPrimaryKey();
 
 		// make sure you don't delete yourself
-		if ( $_id == UserSession::getCurrentUserId() )
+		if ( $_id == UserManager::getCurrentUserId() )
 		{
 			throw new StorageException( 'The currently logged in user may not be deleted.' );
 		}
@@ -272,7 +272,7 @@ class User extends BaseDspSystemModel
 	 */
 	public function getRetrievableAttributes( $requested, $columns = array(), $hidden = array() )
 	{
-		$addConfirmCode = UserSession::isSystemAdmin();
+		$addConfirmCode = UserManager::isSystemAdmin();
 
 		return parent::getRetrievableAttributes(
 			$requested,

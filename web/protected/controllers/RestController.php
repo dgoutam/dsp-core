@@ -56,7 +56,7 @@ class RestController extends Controller
 	{
 		try
 		{
-			$command = Pii::db()->createCommand();
+			$command = Yii::app()->db->createCommand();
 
 			if ( $this->swagger )
 			{
@@ -325,6 +325,11 @@ class RestController extends Controller
 				Utilities::sendXmlResponse( $result );
 				break;
 		}
-		Yii::app()->end();
+		/**
+		 * @var \Platform\Yii\Components\PlatformWebApplication $app
+		 */
+		$app = Yii::app();
+		$app->addCorsHeaders(  );
+		$app->end();
 	}
 }

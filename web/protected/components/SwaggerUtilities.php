@@ -511,7 +511,7 @@ class SwaggerUtilities
 											"use 'fields' and 'related' to return more info.",
 						"responseClass"  => $classPlural,
 						"nickname"       => "create" . $classPlural,
-						"parameters"     => static::getParameters( array( 'fields', 'related', 'record', ( ( 'app' == $resource ) ? 'url' : '' ) ) ),
+						"parameters"     => static::getParameters( array( 'fields', 'related', ( ( 'app' == $resource ) ? 'url' : '' ) ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
@@ -522,7 +522,7 @@ class SwaggerUtilities
 											"use 'fields' and 'related' to return more info.",
 						"responseClass"  => $classPlural,
 						"nickname"       => "update" . $classPlural,
-						"parameters"     => static::getParameters( array( 'fields', 'related', 'record' ) ),
+						"parameters"     => static::getParameters( array( 'fields', 'related' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 					array(
@@ -533,7 +533,7 @@ class SwaggerUtilities
 											"use 'fields' and 'related' to return more info.",
 						"responseClass"  => $classPlural,
 						"nickname"       => "delete" . $classPlural,
-						"parameters"     => static::getParameters( array( 'fields', 'related', 'record' ) ),
+						"parameters"     => static::getParameters( array( 'fields', 'related' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
 					),
 				)
@@ -555,7 +555,7 @@ class SwaggerUtilities
 						"httpMethod"     => "PUT",
 						"summary"        => "Update one $label by identifier",
 						"notes"          => "Post data should be an array of fields for a single $resource",
-						"responseClass"  => $className,
+						"responseClass"  => "array",
 						"nickname"       => "update" . $className,
 						"parameters"     => static::getParameters( array( 'id', 'fields', 'related' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )
@@ -564,7 +564,7 @@ class SwaggerUtilities
 						"httpMethod"     => "DELETE",
 						"summary"        => "Delete one $label by identifier",
 						"notes"          => "Use the 'fields' and/or 'related' parameter to return properties that are deleted.",
-						"responseClass"  => $className,
+						"responseClass"  => "array",
 						"nickname"       => "delete" . $className,
 						"parameters"     => static::getParameters( array( 'id', 'fields', 'related' ) ),
 						"errorResponses" => static::getErrors( array( ErrorCodes::BAD_REQUEST ) )

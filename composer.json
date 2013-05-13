@@ -1,11 +1,21 @@
 {
 	"name":              "dreamfactory/web-csp",
-	"description":       "DreamFactory Services Platform(tm)",
+	"description":       "DreamFactory Services Platform(tm) Core",
 	"keywords":          [
-		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library", "dsp-core", "dsp"
+		"php",
+		"php5",
+		"rest",
+		"framework",
+		"cloud-computing",
+		"remote web services",
+		"library",
+		"dsp-core",
+		"dsp"
 	],
 	"type":              "library",
-	"license":           ["Apache", "proprietary"],
+	"license":           [
+		"Apache-2.0"
+	],
 	"authors":           [
 		{
 			"name":  "Lee Hicks",
@@ -37,8 +47,7 @@
 		"dreamfactory/app-launchpad": "dev-master",
 		"dreamfactory/web-core":      "dev-master",
 		"aws/aws-sdk-php":            "2.*",
-		"swiftmailer/swiftmailer":    "4.3.*",
-		"zircote/swagger-php":        "dev-master"
+		"swiftmailer/swiftmailer":    "4.3.*"
 	},
 	"autoload":          {
 		"psr-0": {
