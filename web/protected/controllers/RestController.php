@@ -313,7 +313,6 @@ class RestController extends Controller
 		$code = ErrorCodes::getHttpStatusCode( $code );
 		$title = ErrorCodes::getHttpStatusCodeTitle( $code );
 		header( "HTTP/1.1 $code $title" );
-//		Yii::app()->addCorsHeaders();
 		switch ( $this->format )
 		{
 			case 'json':
