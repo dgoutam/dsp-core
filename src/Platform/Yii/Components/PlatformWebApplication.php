@@ -22,6 +22,7 @@ namespace Platform\Yii\Components;
 use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Yii\Utility\Pii;
 
@@ -101,10 +102,7 @@ class PlatformWebApplication extends \CWebApplication
 		//	Auto-add the CORS headers...
 		if ( $this->_autoAddHeaders )
 		{
-			if ( !$this->addCorsHeaders() )
-			{
-				$event->handled = true;
-			}
+			$this->addCorsHeaders();
 		}
 	}
 
@@ -125,36 +123,66 @@ class PlatformWebApplication extends \CWebApplication
 			return true;
 		}
 
-		$_origin = Option::get( $_SERVER, 'HTTP_ORIGIN' );
+		$_originUri = null;
 		$_requestSource = $_SERVER['SERVER_NAME'];
+		$_origin = trim( Option::server( 'HTTP_ORIGIN' ) );
 
-		//	Not in cache, check it out...
-		if ( $_origin && !in_array( $_origin, $_cache ) )
+		//	Was an origin header passed?
+		if ( !empty( $_origin ) )
 		{
-			if ( $this->_allowedOrigin( $_origin, array( $_requestSource ) ) )
+			if ( false !== ( $_originParts = $this->_parseUri( $_origin ) ) )
 			{
-				$_cache[] = $_origin;
+				$_originUri = $this->_normalizeUri( $_originParts );
+				$_key = sha1( $_requestSource . $_originUri );
+
+				//	Not in cache, check it out...
+				if ( !in_array( $_key, $_cache ) )
+				{
+					if ( false !== $this->_allowedOrigin( $_originParts, $_requestSource ) )
+					{
+//						Log::debug( 'Committing origin to the CORS cache > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
+						$_cache[$_key] = $_originUri;
+					}
+					else
+					{
+						Log::error( 'Unauthorized origin rejected via CORS > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
+
+						/**
+						 * No sir, I didn't like it.
+						 *
+						 * @link http://www.youtube.com/watch?v=VRaoHi_xcWk
+						 */
+						header( 'HTTP/1.1 403 Forbidden' );
+
+						Pii::end();
+
+						//	If end fails for some unknown impossible reason...
+						return false;
+					}
+				}
+				else
+				{
+					$_originUri = $_cache[$_key];
+				}
 			}
 			else
 			{
-				/**
-				 * No sir, I didn't like it.
-				 *
-				 * @link http://www.youtube.com/watch?v=VRaoHi_xcWk
-				 */
-				header( 'HTTP/1.1 403 Forbidden' );
-
-				Pii::end();
-
-				//	If end fails for some unknown impossible reason...
-				return false;
+				Log::warning( 'Unable to parse received origin: [' . $_origin . ']' );
 			}
 		}
+		else
+		{
+//			Log::debug( 'No origin header specified > Source: ' . $_requestSource );
+		}
 
-		header( 'Access-Control-Allow-Origin: ' . $_origin );
 		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
 		header( 'Access-Control-Allow-Methods: ' . static::CORS_ALLOWED_METHODS );
 		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
+
+		if ( !empty( $_originUri ) )
+		{
+			header( 'Access-Control-Allow-Origin: ' . $_originUri );
+		}
 
 		if ( $this->_extendedHeaders )
 		{
@@ -167,7 +195,7 @@ class PlatformWebApplication extends \CWebApplication
 					header( 'X-DreamFactory-Full-Whitelist: ' . implode( ', ', $this->_corsWhitelist ) );
 				}
 
-				header( 'X-DreamFactory-Origin-Whitelisted: ' . preg_match( '/^([\w_-]+\.)*' . $_requestSource . '$/', $_origin ) );
+				header( 'X-DreamFactory-Origin-Whitelisted: ' . preg_match( '/^([\w_-]+\.)*' . $_requestSource . '$/', $_originUri ) );
 			}
 		}
 
@@ -175,8 +203,8 @@ class PlatformWebApplication extends \CWebApplication
 	}
 
 	/**
-	 * @param string $origin     The requesting origin
-	 * @param array  $additional Additional origins to allow
+	 * @param array $origin     The parse_url value of origin
+	 * @param array $additional Additional origins to allow
 	 *
 	 * @return bool
 	 */
@@ -187,25 +215,78 @@ class PlatformWebApplication extends \CWebApplication
 			$additional = array( $additional );
 		}
 
-		if ( false !== strpos( $origin, '://' ) )
-		{
-			$origin = parse_url( $origin, PHP_URL_HOST );
-		}
-
 		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whiteGuy )
 		{
-			if ( false !== strpos( $_whiteGuy, '://' ) )
+			//	All allowed?
+			if ( '*' == $_whiteGuy )
 			{
-				$_whiteGuy = parse_url( $_whiteGuy, PHP_URL_HOST );
+				return '*';
 			}
 
-			if ( '*' == $_whiteGuy || preg_match( '/^([\w_-]+\.)*' . $_whiteGuy . '$/', $origin ) )
+			if ( false === ( $_whiteParts = $this->_parseUri( $_whiteGuy ) ) )
 			{
-				return true;
+				continue;
+			}
+
+			//	Is this origin on the whitelist?
+			if ( $this->_compareUris( $origin, $_whiteParts ) )
+			{
+				return $this->_normalizeUri( $origin );
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * @param array $first
+	 * @param array $second
+	 *
+	 * @return bool
+	 */
+	protected function _compareUris( $first, $second )
+	{
+		return ( $first['scheme'] == $second['scheme'] ) &&
+			   ( $first['host'] == $second['host'] ) &&
+			   ( $first['port'] == $second['port'] );
+	}
+
+	/**
+	 * @param string $uri
+	 *
+	 * @param bool   $normalize
+	 *
+	 * @return array
+	 */
+	protected function _parseUri( $uri, $normalize = false )
+	{
+		if ( false === ( $_parts = parse_url( $uri ) ) || !isset( $_parts['host'] ) )
+		{
+			return false;
+		}
+
+		$_uri = array(
+			'scheme' => Option::get( $_parts, 'scheme', 'http' . ( $_SERVER['HTTPS'] == 'on' ? 's' : null ) ),
+			'host'   => Option::get( $_parts, 'host' ),
+			'port'   => Option::get( $_parts, 'port' ),
+		);
+
+		return $normalize ? $this->_normalizeUri( $_uri ) : $_uri;
+	}
+
+	/**
+	 * @param array $parts Return from \parse_url
+	 *
+	 * @return string
+	 */
+	protected function _normalizeUri( $parts )
+	{
+		return
+			is_array( $parts )
+				?
+				( isset( $parts['scheme'] ) ? $parts['scheme'] : 'http' ) . '://' . $parts['host'] . ( isset( $parts['port'] ) ? ':' . $parts['port'] : null )
+				:
+				$parts;
 	}
 
 	/**

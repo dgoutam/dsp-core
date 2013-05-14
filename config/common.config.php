@@ -29,7 +29,7 @@
 /**
  * @var string
  */
-const DSP_VERSION = '1.0.2';
+const DSP_VERSION = '1.0.3';
 
 //	The base path of the project, where it's checked out basically
 $_basePath = dirname( __DIR__ );
