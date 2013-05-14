@@ -218,6 +218,18 @@ class SystemConfig extends RestResource
 			}
 
 			$results['dsp_version'] = Pii::getParam( 'dsp.version' );
+			// get cors data from config file
+			$allowedHosts = array();
+			$path = Pii::getParam('private_path');
+			if ( file_exists( $path . '/cors.config.json' ) )
+			{
+				$content = file_get_contents( $path . '/cors.config.json' );
+				if ( !empty( $content ) )
+				{
+					$allowedHosts = json_decode( $content, true );
+				}
+			}
+			$results['allowed_hosts'] = $allowedHosts;
 
 			return $results;
 		}
@@ -251,15 +263,32 @@ class SystemConfig extends RestResource
 	 *   )
 	 *
 	 * @param $record
-	 * @param $fields
+	 * @param $return_fields
 	 * @param $extras
 	 * @return array
 	 * @throws Exception
 	 */
-	protected static function updateConfig( $record, $fields, $extras )
+	protected static function updateConfig( $record, $return_fields, $extras )
 	{
 		UserSession::checkSessionPermission( 'update', 'system', 'config' );
 
+		if ( isset( $record['allowed_hosts'] ) )
+		{
+			$allowedHosts = $record['allowed_hosts'];
+			unset( $record['allowed_hosts'] );
+			$allowedHosts = json_encode( $allowedHosts );
+			$path = Pii::getParam('private_path');
+			// create directory if it doesn't exists
+			if ( !file_exists( $path ) )
+			{
+				@\mkdir($path, 0777, true);
+			}
+			// write new cors config
+			if (false === file_put_contents( $path . '/cors.config.json', $allowedHosts ) )
+			{
+				throw new Exception( "Failed to update CORS configuration." );
+			}
+		}
 		try
 		{
 			// try to local config record first
@@ -301,55 +330,7 @@ class SystemConfig extends RestResource
 			}
 			else
 			{
-				// get returnables
-				$obj->refresh();
-				$return_fields = $obj->getRetrievableAttributes( $return_fields );
-				$data = $obj->getAttributes( $return_fields );
-				if ( !empty( $extras ) )
-				{
-					$relations = $obj->relations();
-					$relatedData = array();
-					foreach ( $extras as $extra )
-					{
-						$extraName = $extra['name'];
-						if ( !isset( $relations[$extraName] ) )
-						{
-							throw new Exception( "Invalid relation '$extraName' requested.", ErrorCodes::BAD_REQUEST );
-						}
-						$extraFields = $extra['fields'];
-						$relatedRecords = $obj->getRelated( $extraName, true );
-						if ( is_array( $relatedRecords ) )
-						{
-							/**
-							 * @var BaseDspSystemModel[] $relatedRecords
-							 */
-							// an array of records
-							$tempData = array();
-							if ( !empty( $relatedRecords ) )
-							{
-								$relatedFields = $relatedRecords[0]->getRetrievableAttributes( $extraFields );
-								foreach ( $relatedRecords as $relative )
-								{
-									$tempData[] = $relative->getAttributes( $relatedFields );
-								}
-							}
-						}
-						else
-						{
-							$tempData = null;
-							if ( isset( $relatedRecords ) )
-							{
-								$relatedFields = $relatedRecords->getRetrievableAttributes( $extraFields );
-								$tempData = $relatedRecords->getAttributes( $relatedFields );
-							}
-						}
-						$relatedData[$extraName] = $tempData;
-					}
-					if ( !empty( $relatedData ) )
-					{
-						$data = array_merge( $data, $relatedData );
-					}
-				}
+				$data = static::retrieveConfig( $return_fields, false, $extras );
 			}
 
 			return $data;

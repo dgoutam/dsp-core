@@ -1591,7 +1591,7 @@ class SqlDbSvc extends BaseDbSvc
 				case 'user_id_on_create':
 					if ( !$for_update )
 					{
-						$userId = UserManager::getCurrentUserId();
+						$userId = UserSession::getCurrentUserId();
 						if ( isset( $userId ) )
 						{
 							$parsed[$name] = $userId;
@@ -1599,7 +1599,7 @@ class SqlDbSvc extends BaseDbSvc
 					}
 					break;
 				case 'user_id_on_update':
-					$userId = UserManager::getCurrentUserId();
+					$userId = UserSession::getCurrentUserId();
 					if ( isset( $userId ) )
 					{
 						$parsed[$name] = $userId;

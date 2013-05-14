@@ -50,11 +50,6 @@
 					"allow_null": false
 				},
 				{
-					"name":       "allowed_hosts",
-					"type":       "text",
-					"allow_null": true
-				},
-				{
 					"name":       "created_date",
 					"type":       "timestamp_on_create",
 					"validation": "api_read_only"

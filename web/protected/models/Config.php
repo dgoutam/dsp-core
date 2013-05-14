@@ -30,8 +30,6 @@
  * @property integer    $allow_guest_user
  * @property integer    $guest_role_id
  * @property string     $editable_profile_fields
- * @property string     $storage_id
- * @property string     $private_storage_id
  *
  * Relations
  *

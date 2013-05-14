@@ -100,7 +100,7 @@ abstract class BaseService implements iService
 	 */
 	protected function checkPermission( $request, $component = '' )
 	{
-		UserManager::checkSessionPermission( $request, $this->_apiName, $component );
+		UserSession::checkSessionPermission( $request, $this->_apiName, $component );
 	}
 
 	/**
