@@ -265,8 +265,9 @@ class PlatformWebApplication extends \CWebApplication
 			return false;
 		}
 
+		$_protocol = ( isset($_SERVER['HTTPS'] )  && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
 		$_uri = array(
-			'scheme' => Option::get( $_parts, 'scheme', 'http' . ( $_SERVER['HTTPS'] == 'on' ? 's' : null ) ),
+			'scheme' => Option::get( $_parts, 'scheme', $_protocol),
 			'host'   => Option::get( $_parts, 'host' ),
 			'port'   => Option::get( $_parts, 'port' ),
 		);
