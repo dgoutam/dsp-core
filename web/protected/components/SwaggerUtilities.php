@@ -112,7 +112,8 @@ class SwaggerUtilities
 			$paths[$key] = str_replace('.{format}', '', $api->path);
 			if ( $replacePath )
 			{
-				$paths[$key] = str_replace( $serviceName, $apiName, $api->path );
+				$api->path = str_replace( $serviceName, $apiName, $api->path );
+				$apis[$key] = $api;
 			}
 		}
 		array_multisort($paths, SORT_ASC, $apis);
