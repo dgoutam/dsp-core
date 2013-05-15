@@ -155,102 +155,37 @@ class PlatformWebApplication extends \CWebApplication
 		$_requestSource = $_SERVER['SERVER_NAME'];
 		$_origin = trim( Option::server( 'HTTP_ORIGIN' ) );
 		$_originUri = null;
-		$_allowedMethods = static::CORS_ALLOWED_METHODS;
 
-		//	Was an origin header passed or was it set to 'null' (testing from local files - no session)?
 //		Log::debug( 'The received origin: [' . $_origin . ']' );
+		//	Was an origin header passed? If not, don't do CORS.
 		if ( empty( $_origin ) )
 		{
 			return true;
 		}
-		if ( (0 != strcasecmp($_origin, 'null')) )
+
+		if ( false === ( $_originParts = $this->_parseUri( $_origin ) ) )
 		{
-			if ( false !== ( $_originParts = $this->_parseUri( $_origin ) ) )
+			// not parse-able, set to itself, check later (testing from local files - no session)?
+			Log::warning( 'Unable to parse received origin: [' . $_origin . ']' );
+			$_originParts = $_origin;
+		}
+
+		$_originUri = $this->_normalizeUri( $_originParts );
+		$_key = sha1( $_requestSource . $_originUri );
+
+		//	Not in cache, check it out...
+		if ( !in_array( $_key, $_cache ) )
+		{
+			$_allowedMethods = $this->_allowedOrigin( $_originParts, $_requestSource );
+			if ( false !== $_allowedMethods )
 			{
-				$_originUri = $this->_normalizeUri( $_originParts );
-				$_key = sha1( $_requestSource . $_originUri );
-
-				//	Not in cache, check it out...
-				if ( !in_array( $_key, $_cache ) )
-				{
-					$_allowedMethods = $this->_allowedOrigin( $_originParts, $_requestSource );
-					if ( false !== $_allowedMethods )
-					{
-//						Log::debug( 'Committing origin to the CORS cache > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
-						$_cache[$_key] = $_originUri;
-						$_cacheVerbs[$_key] = $_allowedMethods;
-					}
-					else
-					{
-						Log::error( 'Unauthorized origin rejected via CORS > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
-
-						/**
-						 * No sir, I didn't like it.
-						 *
-						 * @link http://www.youtube.com/watch?v=VRaoHi_xcWk
-						 */
-						header( 'HTTP/1.1 403 Forbidden' );
-
-						Pii::end();
-
-						//	If end fails for some unknown impossible reason...
-						return false;
-					}
-				}
-				else
-				{
-					$_originUri = $_cache[$_key];
-					$_allowedMethods = $_cacheVerbs[$_key];
-				}
+//				Log::debug( 'Committing origin to the CORS cache > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
+				$_cache[$_key] = $_originUri;
+				$_cacheVerbs[$_key] = $_allowedMethods;
 			}
 			else
 			{
-				Log::warning( 'Unable to parse received origin: [' . $_origin . ']' );
-			}
-		}
-		else
-		{
-//			Log::debug( 'No origin header specified > Source: ' . $_requestSource );
-			$_starFound = false;
-			foreach ( $this->_corsWhitelist as $_hostInfo )
-			{
-				$_allowedMethods = static::CORS_ALLOWED_METHODS;
-				if (is_array($_hostInfo))
-				{
-					// if is_enabled prop not there, assuming enabled.
-					if ( !boolval( Option::get($_hostInfo, 'is_enabled', true) ) )
-					{
-						continue;
-					}
-					if (empty($_hostInfo['host']))
-					{
-						Log::error("CORS whitelist info doesn't contain 'host' parameter!");
-						continue;
-					}
-
-					$_whiteGuy = $_hostInfo['host'];
-
-					if (!empty($_hostInfo['verbs']))
-					{
-						$_allowedMethods = implode(', ', $_hostInfo['verbs']);
-					}
-				}
-				else
-				{
-					$_whiteGuy = $_hostInfo;
-				}
-
-				//	All allowed?
-				if ( '*' == $_whiteGuy )
-				{
-					$_starFound = true;
-					header( 'Access-Control-Allow-Origin: *' );
-					break;
-				}
-			}
-			if ( !$_starFound )
-			{
-				Log::error( 'No origin header specified rejected via CORS > Source: ' . $_requestSource );
+				Log::error( 'Unauthorized origin rejected via CORS > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
 
 				/**
 				 * No sir, I didn't like it.
@@ -264,6 +199,11 @@ class PlatformWebApplication extends \CWebApplication
 				//	If end fails for some unknown impossible reason...
 				return false;
 			}
+		}
+		else
+		{
+			$_originUri = $_cache[$_key];
+			$_allowedMethods = $_cacheVerbs[$_key];
 		}
 
 		if ( !empty( $_originUri ) )
@@ -338,7 +278,7 @@ class PlatformWebApplication extends \CWebApplication
 			//	All allowed?
 			if ( '*' == $_whiteGuy )
 			{
-				return '$_allowedMethods';
+				return $_allowedMethods;
 			}
 
 			if ( false === ( $_whiteParts = $this->_parseUri( $_whiteGuy ) ) )
@@ -346,10 +286,14 @@ class PlatformWebApplication extends \CWebApplication
 				continue;
 			}
 
-			//	Is this origin on the whitelist?
-			if ( $this->_compareUris( $origin, $_whiteParts ) )
+			// check for un-parsed origin, 'null' sent when testing js files locally
+			if ( is_array( $origin ) )
 			{
-				return $_allowedMethods;
+				//	Is this origin on the whitelist?
+				if ( $this->_compareUris( $origin, $_whiteParts ) )
+				{
+					return $_allowedMethods;
+				}
 			}
 		}
 
