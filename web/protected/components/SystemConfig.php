@@ -218,6 +218,7 @@ class SystemConfig extends RestResource
 			}
 
 			$results['dsp_version'] = Pii::getParam( 'dsp.version' );
+
 			// get cors data from config file
 			$allowedHosts = array();
 			$path = Pii::getParam('private_path');

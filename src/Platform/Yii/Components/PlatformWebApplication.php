@@ -26,6 +26,19 @@ use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Yii\Utility\Pii;
 
+if ( !function_exists( 'boolval' ) )
+{
+	function boolval( $var )
+	{
+		if ( is_bool( $var ) ) {
+			return $var;
+		}
+
+		return filter_var( mb_strtolower( strval( $var ) ), FILTER_VALIDATE_BOOLEAN );
+	}
+}
+
+
 /**
  * PlatformWebApplication
  */
@@ -77,6 +90,20 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		parent::init();
 
+		// get cors data from config file
+		$path = Pii::getParam('private_path');
+		if ( file_exists( $path . '/cors.config.json' ) )
+		{
+			$content = file_get_contents( $path . '/cors.config.json' );
+			$allowedHosts = array();
+			if ( !empty( $content ) )
+			{
+				$allowedHosts = json_decode( $content, true );
+			}
+			$this->setCorsWhitelist( $allowedHosts );
+		}
+
+		// setup the request handler
 		Pii::app()->onBeginRequest = array( $this, 'checkRequestMethod' );
 	}
 
@@ -114,21 +141,29 @@ class PlatformWebApplication extends \CWebApplication
 	public function addCorsHeaders( $whitelist = array() )
 	{
 		static $_cache = array();
+		static $_cacheVerbs = array();
 
 		//	Reset the cache before processing...
 		if ( false === $whitelist )
 		{
 			$_cache = array();
+			$_cacheVerbs = array();
 
 			return true;
 		}
 
-		$_originUri = null;
 		$_requestSource = $_SERVER['SERVER_NAME'];
 		$_origin = trim( Option::server( 'HTTP_ORIGIN' ) );
+		$_originUri = null;
+		$_allowedMethods = static::CORS_ALLOWED_METHODS;
 
-		//	Was an origin header passed?
-		if ( !empty( $_origin ) )
+		//	Was an origin header passed or was it set to 'null' (testing from local files - no session)?
+//		Log::debug( 'The received origin: [' . $_origin . ']' );
+		if ( empty( $_origin ) )
+		{
+			return true;
+		}
+		if ( (0 != strcasecmp($_origin, 'null')) )
 		{
 			if ( false !== ( $_originParts = $this->_parseUri( $_origin ) ) )
 			{
@@ -138,10 +173,12 @@ class PlatformWebApplication extends \CWebApplication
 				//	Not in cache, check it out...
 				if ( !in_array( $_key, $_cache ) )
 				{
-					if ( false !== $this->_allowedOrigin( $_originParts, $_requestSource ) )
+					$_allowedMethods = $this->_allowedOrigin( $_originParts, $_requestSource );
+					if ( false !== $_allowedMethods )
 					{
 //						Log::debug( 'Committing origin to the CORS cache > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
 						$_cache[$_key] = $_originUri;
+						$_cacheVerbs[$_key] = $_allowedMethods;
 					}
 					else
 					{
@@ -163,6 +200,7 @@ class PlatformWebApplication extends \CWebApplication
 				else
 				{
 					$_originUri = $_cache[$_key];
+					$_allowedMethods = $_cacheVerbs[$_key];
 				}
 			}
 			else
@@ -173,16 +211,70 @@ class PlatformWebApplication extends \CWebApplication
 		else
 		{
 //			Log::debug( 'No origin header specified > Source: ' . $_requestSource );
-		}
+			$_starFound = false;
+			foreach ( $this->_corsWhitelist as $_hostInfo )
+			{
+				$_allowedMethods = static::CORS_ALLOWED_METHODS;
+				if (is_array($_hostInfo))
+				{
+					// if is_enabled prop not there, assuming enabled.
+					if ( !boolval( Option::get($_hostInfo, 'is_enabled', true) ) )
+					{
+						continue;
+					}
+					if (empty($_hostInfo['host']))
+					{
+						Log::error("CORS whitelist info doesn't contain 'host' parameter!");
+						continue;
+					}
 
-		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
-		header( 'Access-Control-Allow-Methods: ' . static::CORS_ALLOWED_METHODS );
-		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
+					$_whiteGuy = $_hostInfo['host'];
+
+					if (!empty($_hostInfo['verbs']))
+					{
+						$_allowedMethods = implode(', ', $_hostInfo['verbs']);
+					}
+				}
+				else
+				{
+					$_whiteGuy = $_hostInfo;
+				}
+
+				//	All allowed?
+				if ( '*' == $_whiteGuy )
+				{
+					$_starFound = true;
+					header( 'Access-Control-Allow-Origin: *' );
+					break;
+				}
+			}
+			if ( !$_starFound )
+			{
+				Log::error( 'No origin header specified rejected via CORS > Source: ' . $_requestSource );
+
+				/**
+				 * No sir, I didn't like it.
+				 *
+				 * @link http://www.youtube.com/watch?v=VRaoHi_xcWk
+				 */
+				header( 'HTTP/1.1 403 Forbidden' );
+
+				Pii::end();
+
+				//	If end fails for some unknown impossible reason...
+				return false;
+			}
+		}
 
 		if ( !empty( $_originUri ) )
 		{
 			header( 'Access-Control-Allow-Origin: ' . $_originUri );
 		}
+
+		header( 'Access-Control-Allow-Credentials: true' );
+		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
+		header( 'Access-Control-Allow-Methods: ' . $_allowedMethods );
+		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
 
 		if ( $this->_extendedHeaders )
 		{
@@ -192,7 +284,7 @@ class PlatformWebApplication extends \CWebApplication
 			{
 				if ( !empty( $this->_corsWhitelist ) )
 				{
-					header( 'X-DreamFactory-Full-Whitelist: ' . implode( ', ', $this->_corsWhitelist ) );
+//					header( 'X-DreamFactory-Full-Whitelist: ' . implode( ', ', $this->_corsWhitelist ) );
 				}
 
 				header( 'X-DreamFactory-Origin-Whitelisted: ' . preg_match( '/^([\w_-]+\.)*' . $_requestSource . '$/', $_originUri ) );
@@ -206,7 +298,7 @@ class PlatformWebApplication extends \CWebApplication
 	 * @param array $origin     The parse_url value of origin
 	 * @param array $additional Additional origins to allow
 	 *
-	 * @return bool
+	 * @return bool|array false if not allowed, otherwise array of verbs allowed
 	 */
 	protected function _allowedOrigin( $origin, $additional = array() )
 	{
@@ -215,12 +307,38 @@ class PlatformWebApplication extends \CWebApplication
 			$additional = array( $additional );
 		}
 
-		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_whiteGuy )
+		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_hostInfo )
 		{
+			$_allowedMethods = static::CORS_ALLOWED_METHODS;
+			if (is_array($_hostInfo))
+			{
+				// if is_enabled prop not there, assuming enabled.
+				if ( !boolval( Option::get($_hostInfo, 'is_enabled', true) ) )
+				{
+					continue;
+				}
+				if (empty($_hostInfo['host']))
+				{
+					Log::error("CORS whitelist info doesn't contain 'host' parameter!");
+					continue;
+				}
+
+				$_whiteGuy = $_hostInfo['host'];
+
+				if (!empty($_hostInfo['verbs']))
+				{
+					$_allowedMethods = implode(', ', $_hostInfo['verbs']);
+				}
+			}
+			else
+			{
+				$_whiteGuy = $_hostInfo;
+			}
+
 			//	All allowed?
 			if ( '*' == $_whiteGuy )
 			{
-				return '*';
+				return '$_allowedMethods';
 			}
 
 			if ( false === ( $_whiteParts = $this->_parseUri( $_whiteGuy ) ) )
@@ -231,7 +349,7 @@ class PlatformWebApplication extends \CWebApplication
 			//	Is this origin on the whitelist?
 			if ( $this->_compareUris( $origin, $_whiteParts ) )
 			{
-				return $this->_normalizeUri( $origin );
+				return $_allowedMethods;
 			}
 		}
 
