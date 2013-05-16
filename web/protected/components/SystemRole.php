@@ -34,10 +34,15 @@ use Swagger\Annotations as SWG;
  *   @SWG\Property(name="record",type="Array",items="$ref:Role",description="Array of system role records.")
  * )
  * @SWG\Model(id="Role",
+ *   @SWG\Property(name="id",type="int",description="Identifier of this role."),
  *   @SWG\Property(name="name",type="string",description="Displayable name of this role."),
- *   @SWG\Property(name="api_name",type="string",description="Name of the role to use in API transactions."),
  *   @SWG\Property(name="description",type="string",description="Description of this role."),
  *   @SWG\Property(name="is_active",type="boolean",description="Is this role active for use."),
+ *   @SWG\Property(name="default_app_id",type="int",description="Default launched app for this role."),
+ *   @SWG\Property(name="default_app",type="App",description="Related app by default_app_id."),
+ *   @SWG\Property(name="users",type="Array",items="$ref:string",description="Related users by User.role_id."),
+ *   @SWG\Property(name="apps",type="Array",items="$ref:string",description="Related apps by role assignment."),
+ *   @SWG\Property(name="services",type="Array",items="$ref:string",description="Related services by role assignment."),
  *   @SWG\Property(name="created_date",type="string",description="Date this role was created."),
  *   @SWG\Property(name="created_by_id",type="int",description="User Id of who created this role."),
  *   @SWG\Property(name="last_modified_date",type="string",description="Date this role was last modified."),

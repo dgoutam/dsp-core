@@ -34,10 +34,10 @@ use Swagger\Annotations as SWG;
  *   @SWG\Property(name="record",type="Array",items="$ref:AppGroup",description="Array of system application group records of the given resource.")
  * )
  * @SWG\Model(id="AppGroup",
+ *   @SWG\Property(name="id",type="int",description="Identifier of this application grouping."),
  *   @SWG\Property(name="name",type="string",description="Displayable name of this application group."),
- *   @SWG\Property(name="api_name",type="string",description="Name of the application group to use in API transactions."),
  *   @SWG\Property(name="description",type="string",description="Description of this application group."),
- *   @SWG\Property(name="is_active",type="boolean",description="Is this application group active for use."),
+ *   @SWG\Property(name="apps",type="Array",items="$ref:App",description="Related apps by app to group assignment."),
  *   @SWG\Property(name="created_date",type="string",description="Date this application group was created."),
  *   @SWG\Property(name="created_by_id",type="int",description="User Id of who created this application group."),
  *   @SWG\Property(name="last_modified_date",type="string",description="Date this application group was last modified."),

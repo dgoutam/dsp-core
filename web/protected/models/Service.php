@@ -39,6 +39,12 @@ use Kisma\Core\Exceptions\StorageException;
  * @property string  $base_url
  * @property string  $parameters
  * @property string  $headers
+ *
+ * Related:
+ *
+ * @property RoleServiceAccess[] $role_service_accesses
+ * @property App[] $apps
+ * @property Role[] $roles
  */
 class Service extends BaseDspSystemModel
 {

@@ -56,34 +56,22 @@ class RestController extends Controller
 	{
 		try
 		{
-			$command = Yii::app()->db->createCommand();
-
 			if ( $this->swagger )
 			{
-				$services = array(
-					array( 'path' => '/user', 'description' => 'User Login' ),
-					array( 'path' => '/system', 'description' => 'System Configuration' )
-				);
-				$command->select( 'api_name,description' )
-				->from( 'df_sys_service' )
-				->order( 'api_name' )
-				->where( 'type != :t', array( ':t' => 'Remote Web Service' ) );
-				$result = $command->queryAll();
-				foreach ( $result as $service )
-				{
-					$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
-				}
-				$result = SwaggerUtilities::getBaseInfo();
-				$result['apis'] = $services;
+				$result = SwaggerUtilities::getSwagger();
 			}
 			else
 			{
+				$command = Yii::app()->db->createCommand();
+				$result = $command->select( 'api_name,name' )
+					->from( 'df_sys_service' )
+					->order( 'api_name' )
+					->queryAll();
 				// add non-service managers
 				$services = array(
 					array( 'api_name' => 'user', 'name' => 'User Login' ),
 					array( 'api_name' => 'system', 'name' => 'System Configuration' )
 				);
-				$result = $command->select( 'api_name,name' )->from( 'df_sys_service' )->order( 'api_name' )->queryAll();
 				$result = array( 'resources' => array_merge( $services, $result ) );
 			}
 			$this->handleResults( $result );
@@ -101,13 +89,13 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			if ( $this->swagger )
 			{
-				$result = SwaggerUtilities::getSwaggerForService( $svcObj );
+				$result = SwaggerUtilities::getSwaggerForService( $this->service );
 			}
 			else
 			{
+				$svcObj = ServiceHandler::getServiceObject( $this->service );
 				$result = $svcObj->processRequest( $this->resource, 'GET' );
 			}
 			$this->handleResults( $result );
