@@ -237,7 +237,7 @@ class RestController extends Controller
 		}
 
 		// determine application if any
-		$appName = Utilities::getArrayValue( 'HTTP_X_APPLICATION_NAME', $_SERVER, '' );
+		$appName = Utilities::getArrayValue( 'HTTP_X_DREAMFACTORY_APPLICATION_NAME', $_SERVER, '' );
 		if ( empty( $appName ) )
 		{
 			$appName = Utilities::getArrayValue( 'app_name', $_REQUEST, '' );
