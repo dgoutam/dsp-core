@@ -202,7 +202,7 @@ class SiteController extends Controller
 	public function actionLogout()
 	{
 		Pii::user()->logout();
-		$this->redirect('/' );
+		$this->redirect( '/' );
 	}
 
 	/**
@@ -211,7 +211,7 @@ class SiteController extends Controller
 	public function actionInitSystem()
 	{
 		SystemManager::initSystem();
-		$this->redirect('/' );
+		$this->redirect( '/' );
 	}
 
 	/**
@@ -228,7 +228,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				$this->redirect('/' );
+				$this->redirect( '/' );
 			}
 
 			$this->refresh();
@@ -248,7 +248,7 @@ class SiteController extends Controller
 	public function actionInitAdmin()
 	{
 		SystemManager::initAdmin();
-		$this->redirect('/' );
+		$this->redirect( '/' );
 	}
 
 	/**
@@ -265,7 +265,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				$this->redirect('/' );
+				$this->redirect( '/' );
 			}
 
 			$this->refresh();
