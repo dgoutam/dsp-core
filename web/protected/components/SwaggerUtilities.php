@@ -19,6 +19,7 @@
  */
 use Swagger\Swagger;
 use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Log;
 
 /**
  * SwaggerUtilities
@@ -31,33 +32,34 @@ class SwaggerUtilities
 	//*************************************************************************
 
 	/**
-	 * Swagger base response used by Swagger-UI
-	 *
-	 * @param string $service
-	 *
+	 * Internal building method builds all static services and some dynamic
+	 * services from file annotations, otherwise swagger info is loaded from
+	 * database or storage files for each service, if it exists.
 	 * @return array
+	 * @throws Exception
 	 */
-	public static function getBaseInfo( $service = '' )
-	{
-		$swagger = array(
-			'apiVersion'     => Versions::API_VERSION,
-			'swaggerVersion' => '1.1',
-			'basePath'       => Yii::app()->getRequest()->getHostInfo() . '/rest'
-		);
-
-		if ( !empty( $service ) )
-		{
-			$swagger['resourcePath'] = '/' . $service;
-		}
-
-		return $swagger;
-	}
-
 	protected static function buildSwagger()
 	{
-		$basePath = Yii::app()->getRequest()->getHostInfo() . '/rest';
+		$_basePath = Yii::app()->getRequest()->getHostInfo() . '/rest';
+		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
 
-		// build services from database
+		// create root directory if it doesn't exists
+		if ( !file_exists( $_swaggerPath ) )
+		{
+			@\mkdir( $_swaggerPath, 0777, true );
+		}
+
+		// generate swagger output from file annotations
+		$_scanPath = Yii::app()->basePath . '/components';
+		$_swagger = Swagger::discover( $_scanPath );
+		$_swagger->setDefaultBasePath( $_basePath );
+		$_swagger->setDefaultApiVersion( Versions::API_VERSION );
+
+		/**
+		 * build services from database
+		 *
+		 * @var CDbCommand $command
+		 */
 		$command = Yii::app()->db->createCommand();
 		$result = $command->select( 'api_name,type,description' )
 			->from( 'df_sys_service' )
@@ -65,44 +67,24 @@ class SwaggerUtilities
 			->where( 'type != :t', array( ':t' => 'Remote Web Service' ) )
 			->queryAll();
 
-		$services = array(
-			array( 'path' => '/user', 'description' => 'User Login' ),
-			array( 'path' => '/system', 'description' => 'System Configuration' )
-		);
-		foreach ( $result as $service )
-		{
-			$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
-		}
-
-		$_out = SwaggerUtilities::getBaseInfo();
-		$_out['apis'] = $services;
-
-		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
-		// create root directory if it doesn't exists
-		if ( !file_exists( $_swaggerPath ) )
-		{
-			@\mkdir($_swaggerPath, 0777, true);
-		}
-
-		file_put_contents( $_swaggerPath . '_.json', json_encode( $_out ) );
-
-		// generate swagger output from file annotations
-		$path = Yii::app()->basePath . '/components';
-		$swagger = Swagger::discover($path);
-
 		// add static services
 		$other = array(
-			array( 'api_name' => 'user', 'type' => 'user' ),
-			array( 'api_name' => 'system', 'type' => 'system' )
+			array( 'api_name' => 'user', 'type' => 'user', 'description' => 'User Login' ),
+			array( 'api_name' => 'system', 'type' => 'system', 'description' => 'System Configuration' )
 		);
 		$result = array_merge( $other, $result );
 
 		// gather the services
+		$services = array();
 		foreach ( $result as $service )
 		{
-			$serviceName = $apiName = Option::get($service, 'api_name', '');
+			$services[] = array(
+				'path' => '/' . $service['api_name'],
+				'description' => $service['description']
+			);
+			$serviceName = $apiName = Option::get( $service, 'api_name', '' );
 			$replacePath = false;
-			$_type = Option::get($service, 'type', '');
+			$_type = Option::get( $service, 'type', '' );
 			switch ( $_type )
 			{
 				case 'Remote Web Service':
@@ -133,44 +115,46 @@ class SwaggerUtilities
 				default:
 					break;
 			}
-			if ( !array_key_exists('/'.$serviceName, $swagger->registry) )
+
+			if ( false === ( $_content = $_swagger->getResource( '/' . $serviceName ) ) )
 			{
-				throw new Exception("No swagger info");
+				Log::error( "No swagger info for service $apiName." );
 			}
-			$resource = $swagger->registry['/'.$serviceName];
 
-			$resource->resourcePath = str_replace( $serviceName, $apiName, $resource->resourcePath );
-
-//			$swagger->applyDefaults($resource);
-			$resource->apiVersion = Versions::API_VERSION;
-			$resource->basePath = $basePath;
-
-			// from $swagger->getResource();
-			// Sort operation paths alphabetically with shortest first
-			$apis = $resource->apis;
-
-			$paths = array();
-			foreach ($apis as $key => $api) {
-				$paths[$key] = str_replace('.{format}', '', $api->path);
-				if ( $replacePath )
-				{
-					$api->path = str_replace( $serviceName, $apiName, $api->path );
-					$apis[$key] = $api;
-				}
+			if ( $replacePath )
+			{
+				// replace service type placeholder with api name for this service instance
+				$_content = str_replace( '/' . $serviceName, '/' . $apiName, $_content );
 			}
-			array_multisort($paths, SORT_ASC, $apis);
-			$resource->apis = $apis;
 
-			// cache to a file for later retrieves
-			$_content = $swagger->jsonEncode($resource, true);
-
+			// cache it to a file for later access
 			$_filePath = $_swaggerPath . $apiName . '.json';
-			file_put_contents( $_filePath, $_content );
+			if (false === file_put_contents( $_filePath, $_content ) )
+			{
+				Log::error( "Failed to write cache file $_filePath." );
+			}
+		}
+
+		// cache main api listing file
+		$_out = array(
+			'apiVersion'     => Versions::API_VERSION,
+			'swaggerVersion' => '1.1',
+			'basePath'       => $_basePath,
+			'apis'           => $services
+		);
+		$_filePath = $_swaggerPath . '_.json';
+		if (false === file_put_contents( $_filePath, $_swagger->jsonEncode( $_out ) ) )
+		{
+			Log::error( "Failed to write cache file $_filePath." );
 		}
 
 		return $_out;
 	}
 
+	/**
+	 * @return array|mixed
+	 * @throws InternalServerErrorException
+	 */
 	public static function getSwagger()
 	{
 		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
@@ -180,7 +164,7 @@ class SwaggerUtilities
 			static::buildSwagger();
 			if ( !file_exists( $_filePath ) )
 			{
-				throw new Exception( "Failed to create swagger cache.", ErrorCodes::INTERNAL_SERVER_ERROR );
+				throw new InternalServerErrorException( "Failed to create swagger cache." );
 			}
 		}
 
@@ -195,9 +179,11 @@ class SwaggerUtilities
 	}
 
 	/**
+	 * Main retrieve point for each service
+	 *
 	 * @param string $service
 	 *
-	 * @throws Exception
+	 * @throws InternalServerErrorException
 	 * @return array
 	 */
 	public static function getSwaggerForService( $service )
@@ -209,7 +195,7 @@ class SwaggerUtilities
 			static::buildSwagger();
 			if ( !file_exists( $_filePath ) )
 			{
-				throw new Exception( "Failed to create swagger cache.", ErrorCodes::INTERNAL_SERVER_ERROR );
+				throw new InternalServerErrorException( "Failed to create swagger cache." );
 			}
 		}
 
