@@ -148,9 +148,8 @@ class Fabric extends SeedUtility
 
 			if ( HttpResponse::NotFound == \Curl::getLastHttpCode() )
 			{
-				Pii::redirect( '/site/your-new-dsp' );
-
-				return;
+				header( 'Location: http://dreamfactory.com/' );
+				exit();
 			}
 
 			if ( is_object( $_response ) && isset( $_response->details, $_response->details->code ) && HttpResponse::NotFound == $_response->details->code )
