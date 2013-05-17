@@ -59,9 +59,13 @@ class RestController extends Controller
 			if ( $this->swagger )
 			{
 				$result = SwaggerUtilities::getSwagger();
+				RestResponse::sendResults( $result, 200, 'json', $this->format );
 			}
 			else
 			{
+				/**
+				 * @var CDbCommand $command
+				 */
 				$command = Yii::app()->db->createCommand();
 				$result = $command->select( 'api_name,name' )
 					->from( 'df_sys_service' )
@@ -73,12 +77,12 @@ class RestController extends Controller
 					array( 'api_name' => 'system', 'name' => 'System Configuration' )
 				);
 				$result = array( 'resources' => array_merge( $services, $result ) );
+				RestResponse::sendResults( $result, 200, null, $this->format );
 			}
-			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
 		{
-			$this->handleErrors( $ex );
+			RestResponse::sendErrors( $ex );
 		}
 	}
 
@@ -92,17 +96,18 @@ class RestController extends Controller
 			if ( $this->swagger )
 			{
 				$result = SwaggerUtilities::getSwaggerForService( $this->service );
+				RestResponse::sendResults( $result, 200, 'json', $this->format );
 			}
 			else
 			{
 				$svcObj = ServiceHandler::getServiceObject( $this->service );
 				$result = $svcObj->processRequest( $this->resource, 'GET' );
+				RestResponse::sendResults( $result, 200, null, $this->format );
 			}
-			$this->handleResults( $result );
 		}
 		catch ( Exception $ex )
 		{
-			$this->handleErrors( $ex );
+			RestResponse::sendErrors( $ex );
 		}
 	}
 
@@ -149,11 +154,11 @@ class RestController extends Controller
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'POST' );
 			$code = ErrorCodes::CREATED;
-			$this->handleResults( $result, $code );
+			RestResponse::sendResults( $result, $code, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
-			$this->handleErrors( $ex );
+			RestResponse::sendErrors( $ex );
 		}
 	}
 
@@ -166,11 +171,11 @@ class RestController extends Controller
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'MERGE' );
-			$this->handleResults( $result );
+			RestResponse::sendResults( $result, 200, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
-			$this->handleErrors( $ex );
+			RestResponse::sendErrors( $ex );
 		}
 	}
 
@@ -183,11 +188,11 @@ class RestController extends Controller
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'PUT' );
-			$this->handleResults( $result );
+			RestResponse::sendResults( $result, 200, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
-			$this->handleErrors( $ex );
+			RestResponse::sendErrors( $ex );
 		}
 	}
 
@@ -200,11 +205,11 @@ class RestController extends Controller
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'DELETE' );
-			$this->handleResults( $result );
+			RestResponse::sendResults( $result, 200, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
-			$this->handleErrors( $ex );
+			RestResponse::sendErrors( $ex );
 		}
 	}
 
@@ -214,7 +219,7 @@ class RestController extends Controller
 	 * @param CAction $action
 	 *
 	 * @return bool
-	 * @throws CHttpException
+	 * @throws Exception
 	 */
 	protected function beforeAction( $action )
 	{
@@ -240,8 +245,8 @@ class RestController extends Controller
 			}
 			else
 			{
-				$ex = new Exception( "No application name header or parameter value in REST request.", ErrorCodes::BAD_REQUEST );
-				$this->handleErrors( $ex );
+				$ex = new BadRequestException( "No application name header or parameter value in REST request." );
+				RestResponse::sendErrors( $ex );
 			}
 		}
 		$GLOBALS['app_name'] = $appName;
@@ -260,7 +265,7 @@ class RestController extends Controller
 			// fix removal of trailing slashes from resource
 			if ( !empty( $this->resource ) )
 			{
-				$requestUri = yii::app()->request->requestUri;
+				$requestUri = Yii::app()->request->requestUri;
 				if ( ( false === strpos( $requestUri, '?' ) &&
 					   '/' === substr( $requestUri, strlen( $requestUri ) - 1, 1 ) ) ||
 					 ( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
@@ -274,49 +279,5 @@ class RestController extends Controller
 		$_GET['resource'] = $this->resource;
 
 		return parent::beforeAction( $action );
-	}
-
-	/**
-	 * @param Exception $ex
-	 */
-	protected function handleErrors( Exception $ex )
-	{
-		$result = array(
-			"error" => array(
-				array(
-					"message" => htmlentities( $ex->getMessage() ),
-					"code"    => $ex->getCode()
-				)
-			)
-		);
-		$this->handleResults( $result, $ex->getCode() );
-	}
-
-	/**
-	 * @param     $result
-	 * @param int $code
-	 */
-	protected function handleResults( $result, $code = 200 )
-	{
-		$code = ErrorCodes::getHttpStatusCode( $code );
-		$title = ErrorCodes::getHttpStatusCodeTitle( $code );
-		header( "HTTP/1.1 $code $title" );
-		switch ( $this->format )
-		{
-			case 'json':
-				$result = json_encode( $result );
-				Utilities::sendJsonResponse( $result );
-				break;
-			case 'xml':
-				$result = Utilities::arrayToXml( '', $result );
-				Utilities::sendXmlResponse( $result );
-				break;
-		}
-		/**
-		 * @var \Platform\Yii\Components\PlatformWebApplication $app
-		 */
-		$app = Yii::app();
-		$app->addCorsHeaders(  );
-		$app->end();
 	}
 }

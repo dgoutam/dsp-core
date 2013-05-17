@@ -169,14 +169,12 @@ class SwaggerUtilities
 			}
 		}
 
-		$_content = file_get_contents( $_filePath );
-		$_out = array();
-		if ( !empty( $_content ) )
+		if ( false === ( $_content = file_get_contents( $_filePath ) ) )
 		{
-			$_out = json_decode( $_content, true );
+			throw new InternalServerErrorException( "Failed to retrieve swagger cache." );
 		}
 
-		return $_out;
+		return $_content;
 	}
 
 	/**
@@ -200,14 +198,12 @@ class SwaggerUtilities
 			}
 		}
 
-		$_content = file_get_contents( $_filePath );
-		$_out = array();
-		if ( !empty( $_content ) )
+		if ( false === ( $_content = file_get_contents( $_filePath ) ) )
 		{
-			$_out = json_decode( $_content, true );
+			throw new InternalServerErrorException( "Failed to retrieve swagger cache." );
 		}
 
-		return $_out;
+		return $_content;
 	}
 
 }

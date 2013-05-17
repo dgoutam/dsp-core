@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
@@ -182,7 +183,6 @@ class SystemConfig extends RestResource
 							/**
 							 * @var BaseDspSystemModel[] $relatedRecords
 							 */
-							// an array of records
 							$tempData = array();
 							if ( !empty( $relatedRecords ) )
 							{
@@ -278,12 +278,14 @@ class SystemConfig extends RestResource
 		{
 			$allowedHosts = $record['allowed_hosts'];
 			unset( $record['allowed_hosts'] );
-			$allowedHosts = json_encode( $allowedHosts );
+
+			static::validateHosts( $allowedHosts );
+			$allowedHosts = DataFormat::jsonEncode( $allowedHosts, true );
 			$path = Pii::getParam('private_path');
 			// create directory if it doesn't exists
 			if ( !file_exists( $path ) )
 			{
-				@\mkdir($path, 0777, true);
+				@\mkdir( $path, 0777, true );
 			}
 			// write new cors config
 			if (false === file_put_contents( $path . '/cors.config.json', $allowedHosts ) )
@@ -343,4 +345,20 @@ class SystemConfig extends RestResource
 		}
 	}
 
+	/**
+	 * @param $allowed_hosts
+	 *
+	 * @throws BadRequestException
+	 */
+	protected static function validateHosts( $allowed_hosts )
+	{
+		foreach ( $allowed_hosts as $_hostInfo )
+		{
+			$_host = Option::get( $_hostInfo, 'host', '' );
+			if ( empty( $_host ) )
+			{
+				throw new BadRequestException( "Allowed hosts contains an empty host name." );
+			}
+		}
+	}
 }

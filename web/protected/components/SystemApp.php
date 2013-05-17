@@ -603,7 +603,7 @@ class SystemApp extends SystemResource
 		{
 			throw new Exception( 'No application description file in this package file.' );
 		}
-		$record = Utilities::jsonToArray( $data );
+		$record = DataFormat::jsonToArray( $data );
 		if ( !empty( $import_url ) )
 		{
 			$record['import_url'] = $import_url;
@@ -623,7 +623,7 @@ class SystemApp extends SystemResource
 			$data = $zip->getFromName( 'services.json' );
 			if ( false !== $data )
 			{
-				$data = Utilities::jsonToArray( $data );
+				$data = DataFormat::jsonToArray( $data );
 				try
 				{
 					$result = static::createRecords( 'service', $data, true );
@@ -637,7 +637,7 @@ class SystemApp extends SystemResource
 			$data = $zip->getFromName( 'schema.json' );
 			if ( false !== $data )
 			{
-				$data = Utilities::jsonToArray( $data );
+				$data = DataFormat::jsonToArray( $data );
 				$services = Utilities::getArrayValue( 'service', $data, array() );
 				if ( !empty( $services ) )
 				{
@@ -698,7 +698,7 @@ class SystemApp extends SystemResource
 			$data = $zip->getFromName( 'data.json' );
 			if ( false !== $data )
 			{
-				$data = Utilities::jsonToArray( $data );
+				$data = DataFormat::jsonToArray( $data );
 				$services = Utilities::getArrayValue( 'service', $data, array() );
 				if ( !empty( $services ) )
 				{

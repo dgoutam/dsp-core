@@ -177,7 +177,7 @@ class SystemManager extends RestService
 
 		if ( !empty( $contents ) )
 		{
-			$contents = Utilities::jsonToArray( $contents );
+			$contents = DataFormat::jsonToArray( $contents );
 
 			// check for any missing necessary tables
 			$needed = Utilities::getArrayValue( 'table', $contents, array() );
@@ -254,7 +254,7 @@ class SystemManager extends RestService
 				throw new \Exception( "Empty or no system schema file found." );
 			}
 
-			$contents = Utilities::jsonToArray( $contents );
+			$contents = DataFormat::jsonToArray( $contents );
 			$version = Utilities::getArrayValue( 'version', $contents );
 
 			$command = $_db->createCommand();
@@ -411,7 +411,7 @@ class SystemManager extends RestService
 		{
 			throw new \Exception( "Empty or no system data file found." );
 		}
-		$contents = Utilities::jsonToArray( $contents );
+		$contents = DataFormat::jsonToArray( $contents );
 		foreach ( $contents as $table => $content )
 		{
 			switch ( $table )
@@ -445,7 +445,7 @@ class SystemManager extends RestService
 		$contents = file_get_contents( Yii::app()->basePath . '/data/sample_data.json' );
 		if ( !empty( $contents ) )
 		{
-			$contents = Utilities::jsonToArray( $contents );
+			$contents = DataFormat::jsonToArray( $contents );
 			foreach ( $contents as $table => $content )
 			{
 				switch ( $table )
@@ -1830,7 +1830,7 @@ class SystemManager extends RestService
 		{
 			throw new Exception( 'No application description file in this package file.' );
 		}
-		$record = Utilities::jsonToArray( $data );
+		$record = DataFormat::jsonToArray( $data );
 		if ( !empty( $import_url ) )
 		{
 			$record['import_url'] = $import_url;
@@ -1850,7 +1850,7 @@ class SystemManager extends RestService
 			$data = $zip->getFromName( 'services.json' );
 			if ( false !== $data )
 			{
-				$data = Utilities::jsonToArray( $data );
+				$data = DataFormat::jsonToArray( $data );
 				try
 				{
 					$result = static::createRecords( 'service', $data, true );
@@ -1864,7 +1864,7 @@ class SystemManager extends RestService
 			$data = $zip->getFromName( 'schema.json' );
 			if ( false !== $data )
 			{
-				$data = Utilities::jsonToArray( $data );
+				$data = DataFormat::jsonToArray( $data );
 				$services = Utilities::getArrayValue( 'service', $data, array() );
 				if ( !empty( $services ) )
 				{
@@ -1925,7 +1925,7 @@ class SystemManager extends RestService
 			$data = $zip->getFromName( 'data.json' );
 			if ( false !== $data )
 			{
-				$data = Utilities::jsonToArray( $data );
+				$data = DataFormat::jsonToArray( $data );
 				$services = Utilities::getArrayValue( 'service', $data, array() );
 				if ( !empty( $services ) )
 				{
