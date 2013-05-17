@@ -30,14 +30,14 @@ if ( !function_exists( 'boolval' ) )
 {
 	function boolval( $var )
 	{
-		if ( is_bool( $var ) ) {
+		if ( is_bool( $var ) )
+		{
 			return $var;
 		}
 
 		return filter_var( mb_strtolower( strval( $var ) ), FILTER_VALIDATE_BOOLEAN );
 	}
 }
-
 
 /**
  * PlatformWebApplication
@@ -91,7 +91,7 @@ class PlatformWebApplication extends \CWebApplication
 		parent::init();
 
 		// get cors data from config file
-		$path = Pii::getParam('private_path');
+		$path = Pii::getParam( 'private_path' );
 		if ( file_exists( $path . '/cors.config.json' ) )
 		{
 			$content = file_get_contents( $path . '/cors.config.json' );
@@ -250,24 +250,24 @@ class PlatformWebApplication extends \CWebApplication
 		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_hostInfo )
 		{
 			$_allowedMethods = static::CORS_ALLOWED_METHODS;
-			if (is_array($_hostInfo))
+			if ( is_array( $_hostInfo ) )
 			{
 				// if is_enabled prop not there, assuming enabled.
-				if ( !boolval( Option::get($_hostInfo, 'is_enabled', true) ) )
+				if ( !boolval( Option::get( $_hostInfo, 'is_enabled', true ) ) )
 				{
 					continue;
 				}
-				if (empty($_hostInfo['host']))
+				if ( empty( $_hostInfo['host'] ) )
 				{
-					Log::error("CORS whitelist info doesn't contain 'host' parameter!");
+					Log::error( "CORS whitelist info doesn't contain 'host' parameter!" );
 					continue;
 				}
 
 				$_whiteGuy = $_hostInfo['host'];
 
-				if (!empty($_hostInfo['verbs']))
+				if ( !empty( $_hostInfo['verbs'] ) )
 				{
-					$_allowedMethods = implode(', ', $_hostInfo['verbs']);
+					$_allowedMethods = implode( ', ', $_hostInfo['verbs'] );
 				}
 			}
 			else
@@ -322,14 +322,20 @@ class PlatformWebApplication extends \CWebApplication
 	 */
 	protected function _parseUri( $uri, $normalize = false )
 	{
-		if ( false === ( $_parts = parse_url( $uri ) ) || !isset( $_parts['host'] ) )
+		if ( false === ( $_parts = parse_url( $uri ) ) || !isset( $_parts['host'], $_parts['path'] ) )
 		{
 			return false;
 		}
 
-		$_protocol = ( isset($_SERVER['HTTPS'] )  && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
+		if ( isset( $_parts['path'] ) && !isset( $_parts['host'] ) )
+		{
+			$_parts['host'] = $_parts['path'];
+			unset( $_parts['path'] );
+		}
+
+		$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
 		$_uri = array(
-			'scheme' => Option::get( $_parts, 'scheme', $_protocol),
+			'scheme' => Option::get( $_parts, 'scheme', $_protocol ),
 			'host'   => Option::get( $_parts, 'host' ),
 			'port'   => Option::get( $_parts, 'port' ),
 		);
