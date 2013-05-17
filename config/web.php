@@ -55,6 +55,9 @@ return array(
 		'application.components.blobs.*',
 		'application.components.services.*',
 		'application.exceptions.*',
+		'Platform.Yii.*'           => $_basePath . '/src/Platform/Yii',
+		'Platform.Yii.Behaviors.*' => $_basePath . '/src/Platform/Yii/Behaviors',
+		'Platform.Yii.Utility.*'   => $_basePath . '/src/Platform/Yii/Utility',
 	),
 	/**    Components */
 	'components'      => array(

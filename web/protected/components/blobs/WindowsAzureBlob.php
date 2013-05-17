@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use Platform\Exceptions\BlobServiceException;
+use Platform\Yii\Utility\Pii;
 use WindowsAzure\Blob\Models\CreateBlobOptions;
 use WindowsAzure\Blob\Models\CreateContainerOptions;
 use WindowsAzure\Blob\Models\ListBlobsOptions;

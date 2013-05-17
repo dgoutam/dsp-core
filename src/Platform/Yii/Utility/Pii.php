@@ -111,6 +111,14 @@ class Pii extends \Yii
 		static::alias( 'application.config', $_configPath );
 		static::alias( 'application.log', $_logPath );
 
+		//	Load up any other aliases
+		if ( file_exists( $_configPath . '/aliases.config.php' ) )
+		{
+			/** @noinspection PhpIncludeInspection */
+			@include_once( $_configPath . '/aliases.config.php' );
+		}
+
+		//	App Settings
 		\Kisma::set( 'app.app_path', $_basePath . '/web' );
 		\Kisma::set( 'app.config_path', $_configPath );
 		\Kisma::set( 'app.log_path', $_logPath );
@@ -119,6 +127,12 @@ class Pii extends \Yii
 		\Kisma::set( 'app.vendor_path', $_basePath . '/vendor' );
 		\Kisma::set( 'app.autoloader', $autoloader );
 		\Kisma::set( 'app.host_name', $_hostName );
+		\Kisma::set( 'app.app_class', $_appClass = $className ? : ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
+		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
+
+		//	Platform Settings
+		\Kisma::set( 'platform.host_name', $_hostName );
+
 		\Kisma::set(
 			'platform.fabric_hosted',
 			$_isFabric = (
@@ -130,19 +144,6 @@ class Pii extends \Yii
 			)
 		);
 
-		\Kisma::set( 'app.app_class', $_appClass = $className ? : ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
-		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
-
-		//	Register the autoloader cuz I don't think it's in there...
-		try
-		{
-			@\spl_autoload_register( array( $autoloader, 'loadClass' ), true, $prependAutoloader );
-		}
-		catch ( \Exception $_ex )
-		{
-			Log::error( 'Failed to add Composer to SPL autoload chain.' );
-		}
-
 		//	Just return the app if there is one...
 		if ( true !== $autoRun )
 		{
@@ -150,7 +151,7 @@ class Pii extends \Yii
 		}
 
 		//	Load configuration if not specified
-		if ( true !== static::ENABLE_CONFIG_CACHE )
+		if ( defined( 'YII_DEBUG' ) || true !== static::ENABLE_CONFIG_CACHE )
 		{
 			/** @noinspection PhpIncludeInspection */
 			$_config = $config ? : require( $_configFile );
@@ -162,6 +163,12 @@ class Pii extends \Yii
 				/** @noinspection PhpIncludeInspection */
 				DataCache::store( $_key, $_config = require( $_configFile ) );
 			}
+		}
+
+		//	Register the autoloader cuz Yii clobbers it somehow
+		if ( $autoloader )
+		{
+			static::registerAutoloader( array( $autoloader, 'loadClass' ), !$prependAutoloader );
 		}
 
 		//	Instantiate and run baby!

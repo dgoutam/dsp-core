@@ -19,6 +19,7 @@
  */
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
+use Platform\Yii\Utility\Pii;
 
 require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/DataFormatBehavior.php';
 require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/TimestampBehavior.php';

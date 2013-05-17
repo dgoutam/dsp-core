@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Platform\Yii\Utility\Pii;
+
 /**
  * Role.php
  * The system role model for the DSP

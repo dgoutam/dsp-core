@@ -20,6 +20,7 @@
 use Aws\S3\S3Client;
 use Kisma\Core\Enums\HttpResponse;
 use Platform\Exceptions\BlobServiceException;
+use Platform\Yii\Utility\Pii;
 
 /**
  * AwsS3Blob.php
