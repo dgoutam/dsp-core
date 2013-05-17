@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 use Platform\Interfaces\PermissionTypes;
 use Swagger\Annotations as SWG;
@@ -533,6 +534,26 @@ class UserSession extends RestResource
 			return Pii::user()->getId();
 		}
 
+		// helper for non-browser-managed sessions
+		$_sessionId = Utilities::getArrayValue( 'HTTP_X_DREAMFACTORY_SESSION_TOKEN', $_SERVER, '' );
+//		Log::debug('passed in session ' . $_sessionId);
+		if ( !empty( $_sessionId ) )
+		{
+			session_write_close();
+			session_id( $_sessionId );
+			if ( session_start() )
+			{
+				if ( !Pii::guest() && false === Pii::getState( 'df_authenticated', false ) )
+				{
+					return Pii::user()->getId();
+				}
+			}
+			else
+			{
+				Log::error( 'Failed to start session from header ' . $_sessionId );
+			}
+		}
+
 		throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
 	}
 
@@ -788,10 +809,8 @@ class UserSession extends RestResource
 	{
 		if ( empty( static::$_cache ) )
 		{
-			if ( !Pii::guest() && false === Pii::getState( 'df_authenticated', false ) )
-			{
-				static::$_cache = static::generateSessionDataFromUser( Pii::user()->getId() );
-			}
+			$userId = static::validateSession();
+			static::$_cache = static::generateSessionDataFromUser( $userId );
 		}
 	}
 

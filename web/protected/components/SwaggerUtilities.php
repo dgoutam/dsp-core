@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use Swagger\Swagger;
+use Kisma\Core\Utility\Option;
 
 /**
  * SwaggerUtilities
@@ -52,77 +53,174 @@ class SwaggerUtilities
 		return $swagger;
 	}
 
+	protected static function buildSwagger()
+	{
+		$basePath = Yii::app()->getRequest()->getHostInfo() . '/rest';
+
+		// build services from database
+		$command = Yii::app()->db->createCommand();
+		$result = $command->select( 'api_name,type,description' )
+			->from( 'df_sys_service' )
+			->order( 'api_name' )
+			->where( 'type != :t', array( ':t' => 'Remote Web Service' ) )
+			->queryAll();
+
+		$services = array(
+			array( 'path' => '/user', 'description' => 'User Login' ),
+			array( 'path' => '/system', 'description' => 'System Configuration' )
+		);
+		foreach ( $result as $service )
+		{
+			$services[] = array( 'path' => '/' . $service['api_name'], 'description' => $service['description'] );
+		}
+
+		$_out = SwaggerUtilities::getBaseInfo();
+		$_out['apis'] = $services;
+
+		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
+		// create root directory if it doesn't exists
+		if ( !file_exists( $_swaggerPath ) )
+		{
+			@\mkdir($_swaggerPath, 0777, true);
+		}
+
+		file_put_contents( $_swaggerPath . '_.json', json_encode( $_out ) );
+
+		// generate swagger output from file annotations
+		$path = Yii::app()->basePath . '/components';
+		$swagger = Swagger::discover($path);
+
+		// add static services
+		$other = array(
+			array( 'api_name' => 'user', 'type' => 'user' ),
+			array( 'api_name' => 'system', 'type' => 'system' )
+		);
+		$result = array_merge( $other, $result );
+
+		// gather the services
+		foreach ( $result as $service )
+		{
+			$serviceName = $apiName = Option::get($service, 'api_name', '');
+			$replacePath = false;
+			$_type = Option::get($service, 'type', '');
+			switch ( $_type )
+			{
+				case 'Remote Web Service':
+					$serviceName = '{web}';
+					$replacePath = true;
+					// look up definition file and return it
+					break;
+				case 'Local File Storage':
+				case 'Remote File Storage':
+					$serviceName = '{file}';
+					$replacePath = true;
+					break;
+				case 'Local SQL DB':
+				case 'Remote SQL DB':
+					$serviceName = '{sql_db}';
+					$replacePath = true;
+					break;
+				case 'Local SQL DB Schema':
+				case 'Remote SQL DB Schema':
+					$serviceName = '{sql_schema}';
+					$replacePath = true;
+					break;
+				case 'Local Email Service':
+				case 'Remote Email Service':
+					$serviceName = '{email}';
+					$replacePath = true;
+					break;
+				default:
+					break;
+			}
+			if ( !array_key_exists('/'.$serviceName, $swagger->registry) )
+			{
+				throw new Exception("No swagger info");
+			}
+			$resource = $swagger->registry['/'.$serviceName];
+
+			$resource->resourcePath = str_replace( $serviceName, $apiName, $resource->resourcePath );
+
+//			$swagger->applyDefaults($resource);
+			$resource->apiVersion = Versions::API_VERSION;
+			$resource->basePath = $basePath;
+
+			// from $swagger->getResource();
+			// Sort operation paths alphabetically with shortest first
+			$apis = $resource->apis;
+
+			$paths = array();
+			foreach ($apis as $key => $api) {
+				$paths[$key] = str_replace('.{format}', '', $api->path);
+				if ( $replacePath )
+				{
+					$api->path = str_replace( $serviceName, $apiName, $api->path );
+					$apis[$key] = $api;
+				}
+			}
+			array_multisort($paths, SORT_ASC, $apis);
+			$resource->apis = $apis;
+
+			// cache to a file for later retrieves
+			$_content = $swagger->jsonEncode($resource, true);
+
+			$_filePath = $_swaggerPath . $apiName . '.json';
+			file_put_contents( $_filePath, $_content );
+		}
+
+		return $_out;
+	}
+
+	public static function getSwagger()
+	{
+		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
+		$_filePath = $_swaggerPath . '_.json';
+		if ( !file_exists( $_filePath ) )
+		{
+			static::buildSwagger();
+			if ( !file_exists( $_filePath ) )
+			{
+				throw new Exception( "Failed to create swagger cache.", ErrorCodes::INTERNAL_SERVER_ERROR );
+			}
+		}
+
+		$_content = file_get_contents( $_filePath );
+		$_out = array();
+		if ( !empty( $_content ) )
+		{
+			$_out = json_decode( $_content, true );
+		}
+
+		return $_out;
+	}
+
 	/**
-	 * @param RestService $service
+	 * @param string $service
 	 *
 	 * @throws Exception
 	 * @return array
 	 */
 	public static function getSwaggerForService( $service )
 	{
-		$path = Yii::app()->basePath . '/components';
-		$swagger = Swagger::discover($path);
-		$swagger->setDefaultApiVersion( Versions::API_VERSION );
-		$swagger->setDefaultBasePath( Yii::app()->getRequest()->getHostInfo() . '/rest' );
-
-		$serviceName = $apiName = $service->getApiName();
-		$replacePath = false;
-		switch ($service->getType())
+		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
+		$_filePath = $_swaggerPath . $service . '.json';
+		if ( !file_exists( $_filePath ) )
 		{
-			case 'Remote Web Service':
-				$serviceName = '{web}';
-				$replacePath = true;
-				// look up definition file and return it
-				break;
-			case 'Local File Storage':
-			case 'Remote File Storage':
-				$serviceName = '{file}';
-				$replacePath = true;
-				break;
-			case 'Local SQL DB':
-			case 'Remote SQL DB':
-				$serviceName = '{sql_db}';
-				$replacePath = true;
-				break;
-			case 'Local SQL DB Schema':
-			case 'Remote SQL DB Schema':
-				$serviceName = '{sql_schema}';
-				$replacePath = true;
-				break;
-			case 'Local Email Service':
-			case 'Remote Email Service':
-				$serviceName = '{email}';
-				$replacePath = true;
-				break;
-			default:
-				break;
-		}
-		if ( !array_key_exists('/'.$serviceName, $swagger->registry) )
-		{
-			throw new Exception("No swagger info");
-		}
-		$resource = $swagger->registry['/'.$serviceName];
-		// from $swagger->getResource();
-//		$swagger->applyDefaults($resource);
-		// Sort operation paths alphabetically with shortest first
-		$apis = $resource->apis;
-
-		$paths = array();
-		foreach ($apis as $key => $api) {
-			$paths[$key] = str_replace('.{format}', '', $api->path);
-			if ( $replacePath )
+			static::buildSwagger();
+			if ( !file_exists( $_filePath ) )
 			{
-				$api->path = str_replace( $serviceName, $apiName, $api->path );
-				$apis[$key] = $api;
+				throw new Exception( "Failed to create swagger cache.", ErrorCodes::INTERNAL_SERVER_ERROR );
 			}
 		}
-		array_multisort($paths, SORT_ASC, $apis);
 
-		$resource->apis = $apis;
-		$result = $swagger->export($resource);
-//		$result = $swagger->jsonEncode($resource, true);
+		$_content = file_get_contents( $_filePath );
+		$_out = array();
+		if ( !empty( $_content ) )
+		{
+			$_out = json_decode( $_content, true );
+		}
 
-		return $result;
+		return $_out;
 	}
 
 }

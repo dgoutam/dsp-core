@@ -154,167 +154,62 @@ class RemoteWebSvc extends RestService
 		return $options;
 	}
 
-	// Controller based methods
-
-	/**
-	 * @throws Exception
-	 */
-	public function actionGet()
+	protected function _handleResource()
 	{
-		$this->checkPermission( 'read' );
-
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$param_str = $this->buildParameterString( Curl::Get );
-		$url = $this->_baseUrl . $path . '?' . $param_str;
+		$param_str = $this->buildParameterString( $this->_action );
+		$url = $this->_baseUrl . $this->_resourcePath . '?' . $param_str;
 
 		$co = array();
 		$co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
 		$co[CURLOPT_HEADER] = false; // don't include headers in payload
 
 		// set additional headers
-		$co = $this->addHeaders( Curl::Get, $co );
+		$co = $this->addHeaders( $this->_action, $co );
 
-		Utilities::markTimeStart( 'WS_TIME' );
-		if ( false === Curl::get( $url, array(), $co ) )
+		switch ( $this->_action )
+		{
+			case self::Get:
+				$this->checkPermission( 'read' );
+
+				$results = Curl::get( $url, array(), $co );
+				break;
+			case self::Post:
+				$this->checkPermission( 'create' );
+				$results = Curl::post( $url, array(), $co );
+				break;
+			case self::Put:
+				$this->checkPermission( 'update' );
+				$results = Curl::put( $url, array(), $co );
+				break;
+			case self::Patch:
+				$this->checkPermission( 'update' );
+				$results = Curl::patch( $url, array(), $co );
+				break;
+			case self::Merge:
+				$this->checkPermission( 'update' );
+				$results = Curl::merge( $url, array(), $co );
+				break;
+			case self::Delete:
+				$this->checkPermission( 'delete' );
+				$results = Curl::delete( $url, array(), $co );
+				break;
+			default:
+				return false;
+		}
+
+		if ( false === $results )
 		{
 			$err = Curl::getError();
 			throw new Exception( Utilities::getArrayValue( 'message', $err ),
 								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
-		Utilities::markTimeStop( 'WS_TIME' );
-		Utilities::markTimeStop( 'API_TIME' );
-//      Utilities::logTimers();
+
+		// future support should be in post processing
+//		if ( 0 !== strcasecmp( $this->_nativeFormat, $this->format ) )
+//		{
+//			// reformat the response here
+//		}
 
 		exit; // bail to avoid header error, unless we are reformatting the data
 	}
-
-	/**
-	 * @throws Exception
-	 */
-	public function actionPost()
-	{
-		$this->checkPermission( 'create' );
-
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$param_str = $this->buildParameterString( 'POST' );
-		$url = $this->_baseUrl . $path . '?' . $param_str;
-
-		$co = array();
-		$co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
-		$co[CURLOPT_HEADER] = false; // don't include headers in payload
-
-		// set additional headers
-		$co = $this->addHeaders( Curl::Post, $co );
-
-		Utilities::markTimeStart( 'WS_TIME' );
-		if ( false === Curl::post( $url, array(), $co ) )
-		{
-			$err = Curl::getError();
-			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-								 Utilities::getArrayValue( 'code', $err, 500 ) );
-		}
-		Utilities::markTimeStop( 'WS_TIME' );
-
-		Utilities::markTimeStop( 'API_TIME' );
-//      Utilities::logTimers();
-
-		exit; // bail to avoid header error, unless we are reformatting the data
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	public function actionPut()
-	{
-		$this->checkPermission( 'update' );
-
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$param_str = $this->buildParameterString( 'PUT' );
-		$url = $this->_baseUrl . $path . '?' . $param_str;
-
-		$co = array();
-		$co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
-		$co[CURLOPT_HEADER] = false; // don't include headers in payload
-
-		// set additional headers
-		$co = $this->addHeaders( Curl::Put, $co );
-
-		Utilities::markTimeStart( 'WS_TIME' );
-		if ( false === Curl::put( $url, array(), $co ) )
-		{
-			$err = Curl::getError();
-			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-								 Utilities::getArrayValue( 'code', $err, 500 ) );
-		}
-		Utilities::markTimeStop( 'WS_TIME' );
-		Utilities::markTimeStop( 'API_TIME' );
-//      Utilities::logTimers();
-
-		exit; // bail to avoid header error, unless we are reformatting the data
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	public function actionMerge()
-	{
-		$this->checkPermission( 'update' );
-
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$param_str = $this->buildParameterString( 'PATCH' );
-		$url = $this->_baseUrl . $path . '?' . $param_str;
-
-		$co = array();
-		$co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
-		$co[CURLOPT_HEADER] = false; // don't include headers in payload
-
-		// set additional headers
-		$co = $this->addHeaders( Curl::Merge, $co );
-
-		Utilities::markTimeStart( 'WS_TIME' );
-		if ( false === Curl::merge( $url, array(), $co ) )
-		{
-			$err = Curl::getError();
-			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-								 Utilities::getArrayValue( 'code', $err, 500 ) );
-		}
-		Utilities::markTimeStop( 'WS_TIME' );
-		Utilities::markTimeStop( 'API_TIME' );
-//      Utilities::logTimers();
-
-		exit; // bail to avoid header error, unless we are reformatting the data
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	public function actionDelete()
-	{
-		$this->checkPermission( 'delete' );
-
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$param_str = $this->buildParameterString( 'DELETE' );
-		$url = $this->_baseUrl . $path . '?' . $param_str;
-
-		$co = array();
-		$co[CURLOPT_RETURNTRANSFER] = false; // return results directly to browser
-		$co[CURLOPT_HEADER] = false; // don't include headers in payload
-
-		// set additional headers
-		$co = $this->addHeaders( Curl::Delete, $co );
-
-		Utilities::markTimeStart( 'WS_TIME' );
-		if ( false === Curl::delete( $url, array(), $co ) )
-		{
-			$err = Curl::getError();
-			throw new Exception( Utilities::getArrayValue( 'message', $err ),
-								 Utilities::getArrayValue( 'code', $err, 500 ) );
-		}
-		Utilities::markTimeStop( 'WS_TIME' );
-		Utilities::markTimeStop( 'API_TIME' );
-//      Utilities::logTimers();
-
-		exit; // bail to avoid header error, unless we are reformatting the data
-	}
-
 }

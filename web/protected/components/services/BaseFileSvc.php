@@ -312,37 +312,37 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 
 		return $swagger;
 	}
-/*
- * 	"httpMethod"     => "GET",
-	"summary"        => "List folders and files in the given folder.",
-	"notes"          => "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
-	"nickname"       => "getFoldersAndFiles",
-	"parameters"     => static::swaggerParameters(
-	array('folder','folders_only','files_only','full_tree','zip')
+	/*
+	 * 	"httpMethod"     => "GET",
+		"summary"        => "List folders and files in the given folder.",
+		"notes"          => "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
+		"nickname"       => "getFoldersAndFiles",
+		"parameters"     => static::swaggerParameters(
+		array('folder','folders_only','files_only','full_tree','zip')
 
-	"httpMethod"     => "POST",
-	"summary"        => "Create one or more folders and/or files from posted data.",
-	"notes"          => "Post data as an array of folders and/or files.",
-	"responseClass"  => "array",
-	"nickname"       => "createFoldersAndFiles",
-	"parameters"     => static::swaggerParameters(
-	array('folder','url','extract','clean','check_exist')
+		"httpMethod"     => "POST",
+		"summary"        => "Create one or more folders and/or files from posted data.",
+		"notes"          => "Post data as an array of folders and/or files.",
+		"responseClass"  => "array",
+		"nickname"       => "createFoldersAndFiles",
+		"parameters"     => static::swaggerParameters(
+		array('folder','url','extract','clean','check_exist')
 
-	"httpMethod"     => "PUT",
-	"summary"        => "Update one or more folders and/or files",
-	"notes"          => "Post data as an array of folders and/or files.",
-	"responseClass"  => "array",
-	"nickname"       => "updateFoldersAndFiles",
-	"parameters"     => static::swaggerParameters(
-	array('folder','url','extract','clean','check_exist')
-	 *
-	"httpMethod"     => "DELETE",
-	"summary"        => "Delete one or more folders and/or files",
-	"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
-	"nickname"       => "deleteFoldersAndFiles",
-	"parameters"     => static::swaggerParameters( array( 'folder' ) ),
+		"httpMethod"     => "PUT",
+		"summary"        => "Update one or more folders and/or files",
+		"notes"          => "Post data as an array of folders and/or files.",
+		"responseClass"  => "array",
+		"nickname"       => "updateFoldersAndFiles",
+		"parameters"     => static::swaggerParameters(
+		array('folder','url','extract','clean','check_exist')
+		 *
+		"httpMethod"     => "DELETE",
+		"summary"        => "Delete one or more folders and/or files",
+		"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
+		"nickname"       => "deleteFoldersAndFiles",
+		"parameters"     => static::swaggerParameters( array( 'folder' ) ),
 
- */
+	 */
 	/**
 	 * @SWG\Api(
 	 *   path="/{file}", description="Operations available for SQL DB Schemas.",
@@ -545,1263 +545,878 @@ abstract class BaseFileSvc extends RestService implements iFileManager
 	 * @return array
 	 * @throws Exception
 	 */
-	public function actionGet()
+	protected function _handleResource()
 	{
-		$this->checkPermission( 'read' );
-		$result = array();
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path ) ) ? explode( '/', $path ) : array();
-		if ( empty( $path ) || empty( $path_array[count( $path_array ) - 1] ) )
+		switch ($this->_action)
 		{
-			// list from root
-			// or if ending in '/' then resource is a folder
-			try
-			{
-				if ( isset( $_REQUEST['properties'] ) )
+			case self::Get:
+				$this->checkPermission( 'read' );
+				$result = array();
+				if ( empty( $this->_resourcePath ) || empty( $this->_resourceArray[count( $this->_resourceArray ) - 1] ) )
 				{
-					// just properties of the directory itself
-					$result = $this->getFolderProperties( $path );
-				}
-				else
-				{
-					$asZip = Utilities::boolval( Utilities::getArrayValue( 'zip', $_REQUEST, false ) );
-					if ( $asZip )
+					// list from root
+					// or if ending in '/' then resource is a folder
+					try
 					{
-						$zipFileName = $this->getFolderAsZip( $path );
-						$fd = fopen( $zipFileName, "r" );
-						if ( $fd )
+						if ( isset( $_REQUEST['properties'] ) )
 						{
-							$fsize = filesize( $zipFileName );
-							$path_parts = pathinfo( $zipFileName );
-							header( "Content-type: application/zip" );
-							header( "Content-Disposition: filename=\"" . $path_parts["basename"] . "\"" );
-							header( "Content-length: $fsize" );
-							header( "Cache-control: private" ); //use this to open files directly
-							while ( !feof( $fd ) )
-							{
-								$buffer = fread( $fd, 2048 );
-								echo $buffer;
-							}
-						}
-						fclose( $fd );
-						unlink( $zipFileName );
-						Yii::app()->end();
-					}
-					else
-					{
-						$full_tree = ( isset( $_REQUEST['full_tree'] ) ) ? true : false;
-						$include_files = true;
-						$include_folders = true;
-						if ( isset( $_REQUEST['files_only'] ) )
-						{
-							$include_folders = false;
-						}
-						elseif ( isset( $_REQUEST['folders_only'] ) )
-						{
-							$include_files = false;
-						}
-						$result = $this->getFolderContent( $path, $include_files, $include_folders, $full_tree );
-					}
-				}
-			}
-			catch ( Exception $ex )
-			{
-				throw new Exception( "Failed to retrieve folder content for '$path'.\n{$ex->getMessage()}", $ex->getCode() );
-			}
-		}
-		else
-		{
-			// resource is a file
-			try
-			{
-				if ( isset( $_REQUEST['properties'] ) )
-				{
-					// just properties of the file itself
-					$content = Utilities::boolval( Utilities::getArrayValue( 'content', $_REQUEST, false ) );
-					$result = $this->getFileProperties( $path, $content );
-				}
-				else
-				{
-					$download = Utilities::boolval( Utilities::getArrayValue( 'download', $_REQUEST, false ) );
-					if ( $download )
-					{
-						// stream the file, exits processing
-						$this->downloadFile( $path );
-					}
-					else
-					{
-						// stream the file, exits processing
-						$this->streamFile( $path );
-					}
-				}
-			}
-			catch ( Exception $ex )
-			{
-				throw new Exception( "Failed to retrieve file '$path''.\n{$ex->getMessage()}" );
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionPost()
-	{
-		$this->checkPermission( 'create' );
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path ) ) ? explode( '/', $path ) : array();
-		$result = array();
-		// possible file handling parameters
-		$extract = Utilities::boolval( Utilities::getArrayValue( 'extract', $_REQUEST, false ) );
-		$clean = Utilities::boolval( Utilities::getArrayValue( 'clean', $_REQUEST, false ) );
-		$checkExist = Utilities::boolval( Utilities::getArrayValue( 'check_exist', $_REQUEST, true ) );
-		if ( empty( $path ) || empty( $path_array[count( $path_array ) - 1] ) )
-		{
-			// if ending in '/' then create files or folders in the directory
-			if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
-			{
-				// html5 single posting for file create
-				$name = $_SERVER['HTTP_X_FILE_NAME'];
-				$fullPathName = $path . $name;
-				try
-				{
-					$content = Utilities::getPostData();
-					if ( empty( $content ) )
-					{
-						// empty post?
-						error_log( "Empty content in create file $fullPathName." );
-					}
-					$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
-					$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to create file $fullPathName.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
-			{
-				// html5 single posting for folder create
-				$name = $_SERVER['HTTP_X_FOLDER_NAME'];
-				$fullPathName = $path . $name;
-				try
-				{
-					$content = Utilities::getPostDataAsArray();
-					$this->createFolder( $fullPathName, true, $content, true );
-					$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to create folder $fullPathName.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-			{
-				// older html multi-part/form-data post, single or multiple files
-				$files = $_FILES['files'];
-				if ( !is_array( $files['error'] ) )
-				{
-					// single file
-					$name = $files['name'];
-					$fullPathName = $path . $name;
-					$error = $files['error'];
-					if ( $error == UPLOAD_ERR_OK )
-					{
-						$tmpName = $files['tmp_name'];
-						$contentType = $files['type'];
-						$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-					}
-					else
-					{
-						$result = array(
-							'code'    => 500,
-							'message' => "Failed to create file $fullPathName.\n$error"
-						);
-					}
-				}
-				else
-				{
-					$out = array();
-					//$files = Utilities::reorgFilePostArray($files);
-					foreach ( $files['error'] as $key => $error )
-					{
-						$name = $files['name'][$key];
-						$fullPathName = $path . $name;
-						if ( $error == UPLOAD_ERR_OK )
-						{
-							$tmpName = $files['tmp_name'][$key];
-							$contentType = $files['type'][$key];
-							$tmp = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-							$out[$key] = ( isset( $tmp['file'] ) ? $tmp['file'] : array() );
+							// just properties of the directory itself
+							$result = $this->getFolderProperties( $this->_resourcePath );
 						}
 						else
 						{
-							$out[$key]['error'] = array(
-								'code'    => 500,
-								'message' => "Failed to create file $fullPathName.\n$error"
-							);
+							$asZip = Utilities::boolval( Utilities::getArrayValue( 'zip', $_REQUEST, false ) );
+							if ( $asZip )
+							{
+								$zipFileName = $this->getFolderAsZip( $this->_resourcePath );
+								$fd = fopen( $zipFileName, "r" );
+								if ( $fd )
+								{
+									$fsize = filesize( $zipFileName );
+									$path_parts = pathinfo( $zipFileName );
+									header( "Content-type: application/zip" );
+									header( "Content-Disposition: filename=\"" . $path_parts["basename"] . "\"" );
+									header( "Content-length: $fsize" );
+									header( "Cache-control: private" ); //use this to open files directly
+									while ( !feof( $fd ) )
+									{
+										$buffer = fread( $fd, 2048 );
+										echo $buffer;
+									}
+								}
+								fclose( $fd );
+								unlink( $zipFileName );
+								Yii::app()->end();
+							}
+							else
+							{
+								$full_tree = ( isset( $_REQUEST['full_tree'] ) ) ? true : false;
+								$include_files = true;
+								$include_folders = true;
+								if ( isset( $_REQUEST['files_only'] ) )
+								{
+									$include_folders = false;
+								}
+								elseif ( isset( $_REQUEST['folders_only'] ) )
+								{
+									$include_files = false;
+								}
+								$result = $this->getFolderContent( $this->_resourcePath, $include_files, $include_folders, $full_tree );
+							}
 						}
-					}
-					$result = array( 'file' => $out );
-				}
-			}
-			else
-			{
-				// possibly xml or json post either of files or folders to create, copy or move
-				$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
-				if ( !empty( $fileUrl ) )
-				{
-					// upload a file from a url, could be expandable zip
-					$tmpName = FileUtilities::importUrlFileToTemp( $fileUrl );
-					try
-					{
-						$result = $this->handleFile( $path, '', $tmpName, '', $extract, $clean, $checkExist );
 					}
 					catch ( Exception $ex )
 					{
-						throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
+						throw new Exception( "Failed to retrieve folder content for '$this->_resourcePath'.\n{$ex->getMessage()}", $ex->getCode() );
 					}
 				}
 				else
 				{
+					// resource is a file
 					try
 					{
-						$data = Utilities::getPostDataAsArray();
-						if ( empty( $data ) )
+						if ( isset( $_REQUEST['properties'] ) )
 						{
-							// create folder from resource path
-							$this->createFolder( $path );
-							$result = array( 'folder' => array( array( 'path' => $path ) ) );
+							// just properties of the file itself
+							$content = Utilities::boolval( Utilities::getArrayValue( 'content', $_REQUEST, false ) );
+							$result = $this->getFileProperties( $this->_resourcePath, $content );
 						}
 						else
 						{
-							$out = array( 'folder' => array(), 'file' => array() );
-							$folders = Utilities::getArrayValue( 'folder', $data, null );
-							if ( empty( $folders ) )
+							$download = Utilities::boolval( Utilities::getArrayValue( 'download', $_REQUEST, false ) );
+							if ( $download )
 							{
-								$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+								// stream the file, exits processing
+								$this->downloadFile( $this->_resourcePath );
 							}
-							if ( !empty( $folders ) )
+							else
 							{
-								if ( !isset( $folders[0] ) )
+								// stream the file, exits processing
+								$this->streamFile( $this->_resourcePath );
+							}
+						}
+					}
+					catch ( Exception $ex )
+					{
+						throw new Exception( "Failed to retrieve file '$this->_resourcePath''.\n{$ex->getMessage()}" );
+					}
+				}
+				break;
+			case self::Post:
+				$this->checkPermission( 'create' );
+				$result = array();
+				// possible file handling parameters
+				$extract = Utilities::boolval( Utilities::getArrayValue( 'extract', $_REQUEST, false ) );
+				$clean = Utilities::boolval( Utilities::getArrayValue( 'clean', $_REQUEST, false ) );
+				$checkExist = Utilities::boolval( Utilities::getArrayValue( 'check_exist', $_REQUEST, true ) );
+				if ( empty( $this->_resourcePath ) || empty( $this->_resourceArray[count( $this->_resourceArray ) - 1] ) )
+				{
+					// if ending in '/' then create files or folders in the directory
+					if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
+					{
+						// html5 single posting for file create
+						$name = $_SERVER['HTTP_X_FILE_NAME'];
+						$fullPathName = $this->_resourcePath . $name;
+						try
+						{
+							$content = Utilities::getPostData();
+							if ( empty( $content ) )
+							{
+								// empty post?
+								error_log( "Empty content in create file $fullPathName." );
+							}
+							$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
+							$result = $this->handleFileContent( $this->_resourcePath, $name, $content, $contentType, $extract, $clean, $checkExist );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to create file $fullPathName.\n{$ex->getMessage()}" );
+						}
+					}
+					elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
+					{
+						// html5 single posting for folder create
+						$name = $_SERVER['HTTP_X_FOLDER_NAME'];
+						$fullPathName = $this->_resourcePath . $name;
+						try
+						{
+							$content = Utilities::getPostDataAsArray();
+							$this->createFolder( $fullPathName, true, $content, true );
+							$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to create folder $fullPathName.\n{$ex->getMessage()}" );
+						}
+					}
+					elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
+					{
+						// older html multi-part/form-data post, single or multiple files
+						$files = $_FILES['files'];
+						if ( !is_array( $files['error'] ) )
+						{
+							// single file
+							$name = $files['name'];
+							$fullPathName = $this->_resourcePath . $name;
+							$error = $files['error'];
+							if ( $error == UPLOAD_ERR_OK )
+							{
+								$tmpName = $files['tmp_name'];
+								$contentType = $files['type'];
+								$result = $this->handleFile( $this->_resourcePath, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
+							}
+							else
+							{
+								$result = array(
+									'code'    => 500,
+									'message' => "Failed to create file $fullPathName.\n$error"
+								);
+							}
+						}
+						else
+						{
+							$out = array();
+							//$files = Utilities::reorgFilePostArray($files);
+							foreach ( $files['error'] as $key => $error )
+							{
+								$name = $files['name'][$key];
+								$fullPathName = $this->_resourcePath . $name;
+								if ( $error == UPLOAD_ERR_OK )
 								{
-									// single folder, make into array
-									$folders = array( $folders );
+									$tmpName = $files['tmp_name'][$key];
+									$contentType = $files['type'][$key];
+									$tmp = $this->handleFile( $this->_resourcePath, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
+									$out[$key] = ( isset( $tmp['file'] ) ? $tmp['file'] : array() );
 								}
-								foreach ( $folders as $key => $folder )
+								else
 								{
-									$name = Utilities::getArrayValue( 'name', $folder, '' );
-									if ( isset( $folder['source_path'] ) )
+									$out[$key]['error'] = array(
+										'code'    => 500,
+										'message' => "Failed to create file $fullPathName.\n$error"
+									);
+								}
+							}
+							$result = array( 'file' => $out );
+						}
+					}
+					else
+					{
+						// possibly xml or json post either of files or folders to create, copy or move
+						$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
+						if ( !empty( $fileUrl ) )
+						{
+							// upload a file from a url, could be expandable zip
+							$tmpName = FileUtilities::importUrlFileToTemp( $fileUrl );
+							try
+							{
+								$result = $this->handleFile( $this->_resourcePath, '', $tmpName, '', $extract, $clean, $checkExist );
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
+							}
+						}
+						else
+						{
+							try
+							{
+								$data = Utilities::getPostDataAsArray();
+								if ( empty( $data ) )
+								{
+									// create folder from resource path
+									$this->createFolder( $this->_resourcePath );
+									$result = array( 'folder' => array( array( 'path' => $this->_resourcePath ) ) );
+								}
+								else
+								{
+									$out = array( 'folder' => array(), 'file' => array() );
+									$folders = Utilities::getArrayValue( 'folder', $data, null );
+									if ( empty( $folders ) )
 									{
-										// copy or move
-										$srcPath = $folder['source_path'];
-										if ( empty( $name ) )
+										$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+									}
+									if ( !empty( $folders ) )
+									{
+										if ( !isset( $folders[0] ) )
 										{
-											$name = FileUtilities::getNameFromPath( $srcPath );
+											// single folder, make into array
+											$folders = array( $folders );
 										}
-										$fullPathName = $path . $name . '/';
-										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
+										foreach ( $folders as $key => $folder )
 										{
-											$this->copyFolder( $fullPathName, $srcPath, true );
-											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
-											if ( $deleteSource )
+											$name = Utilities::getArrayValue( 'name', $folder, '' );
+											if ( isset( $folder['source_path'] ) )
 											{
-												$this->deleteFolder( $srcPath, true );
+												// copy or move
+												$srcPath = $folder['source_path'];
+												if ( empty( $name ) )
+												{
+													$name = FileUtilities::getNameFromPath( $srcPath );
+												}
+												$fullPathName = $this->_resourcePath . $name . '/';
+												$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												try
+												{
+													$this->copyFolder( $fullPathName, $srcPath, true );
+													$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
+													if ( $deleteSource )
+													{
+														$this->deleteFolder( $srcPath, true );
+													}
+												}
+												catch ( Exception $ex )
+												{
+													$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
+											}
+											else
+											{
+												$fullPathName = $this->_resourcePath . $name;
+												$content = Utilities::getArrayValue( 'content', $folder, '' );
+												$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $folder, false ) );
+												if ( $isBase64 )
+												{
+													$content = base64_decode( $content );
+												}
+												$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												try
+												{
+													$this->createFolder( $fullPathName, true, $content );
+												}
+												catch ( Exception $ex )
+												{
+													$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
 											}
 										}
-										catch ( Exception $ex )
-										{
-											$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
 									}
-									else
+									$files = Utilities::getArrayValue( 'file', $data, null );
+									if ( empty( $files ) )
 									{
-										$fullPathName = $path . $name;
-										$content = Utilities::getArrayValue( 'content', $folder, '' );
-										$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $folder, false ) );
-										if ( $isBase64 )
-										{
-											$content = base64_decode( $content );
-										}
-										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->createFolder( $fullPathName, true, $content );
-										}
-										catch ( Exception $ex )
-										{
-											$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
+										$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
 									}
-								}
-							}
-							$files = Utilities::getArrayValue( 'file', $data, null );
-							if ( empty( $files ) )
-							{
-								$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
-							}
-							if ( !empty( $files ) )
-							{
-								if ( !isset( $files[0] ) )
-								{
-									// single file, make into array
-									$files = array( $files );
-								}
-								foreach ( $files as $key => $file )
-								{
-									$name = Utilities::getArrayValue( 'name', $file, '' );
-									if ( isset( $file['source_path'] ) )
+									if ( !empty( $files ) )
 									{
-										// copy or move
-										$srcPath = $file['source_path'];
-										if ( empty( $name ) )
+										if ( !isset( $files[0] ) )
 										{
-											$name = FileUtilities::getNameFromPath( $srcPath );
+											// single file, make into array
+											$files = array( $files );
 										}
-										$fullPathName = $path . $name;
-										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
+										foreach ( $files as $key => $file )
 										{
-											$this->copyFile( $fullPathName, $srcPath, true );
-											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
-											if ( $deleteSource )
+											$name = Utilities::getArrayValue( 'name', $file, '' );
+											if ( isset( $file['source_path'] ) )
 											{
-												$this->deleteFile( $srcPath );
+												// copy or move
+												$srcPath = $file['source_path'];
+												if ( empty( $name ) )
+												{
+													$name = FileUtilities::getNameFromPath( $srcPath );
+												}
+												$fullPathName = $this->_resourcePath . $name;
+												$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												try
+												{
+													$this->copyFile( $fullPathName, $srcPath, true );
+													$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
+													if ( $deleteSource )
+													{
+														$this->deleteFile( $srcPath );
+													}
+												}
+												catch ( Exception $ex )
+												{
+													$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
+											}
+											elseif ( isset( $file['content'] ) )
+											{
+												$fullPathName = $this->_resourcePath . $name;
+												$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												$content = Utilities::getArrayValue( 'content', $file, '' );
+												$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $file, false ) );
+												if ( $isBase64 )
+												{
+													$content = base64_decode( $content );
+												}
+												try
+												{
+													$this->writeFile( $fullPathName, $content );
+												}
+												catch ( Exception $ex )
+												{
+													$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
 											}
 										}
-										catch ( Exception $ex )
-										{
-											$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
 									}
-									elseif ( isset( $file['content'] ) )
-									{
-										$fullPathName = $path . $name;
-										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										$content = Utilities::getArrayValue( 'content', $file, '' );
-										$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $file, false ) );
-										if ( $isBase64 )
-										{
-											$content = base64_decode( $content );
-										}
-										try
-										{
-											$this->writeFile( $fullPathName, $content );
-										}
-										catch ( Exception $ex )
-										{
-											$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
+									$result = $out;
 								}
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to create folders or files from request.\n{$ex->getMessage()}" );
+							}
+						}
+					}
+				}
+				else
+				{
+					// if ending in file name, create the file or folder
+					$name = substr( $this->_resourcePath, strripos( $this->_resourcePath, '/' ) + 1 );
+					if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
+					{
+						$x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
+						if ( 0 !== strcasecmp( $name, $x_file_name ) )
+						{
+							throw new Exception( "Header file name '$x_file_name' mismatched with REST resource '$name'." );
+						}
+						try
+						{
+							$content = Utilities::getPostData();
+							if ( empty( $content ) )
+							{
+								// empty post?
+								error_log( "Empty content in write file $this->_resourcePath to storage." );
+							}
+							$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
+							$path = substr( $this->_resourcePath, 0, strripos( $this->_resourcePath, '/' ) + 1 );
+							$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to create file $this->_resourcePath.\n{$ex->getMessage()}" );
+						}
+					}
+					elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
+					{
+						$x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
+						if ( 0 !== strcasecmp( $name, $x_folder_name ) )
+						{
+							throw new Exception( "Header folder name '$x_folder_name' mismatched with REST resource '$name'." );
+						}
+						try
+						{
+							$content = Utilities::getPostDataAsArray();
+							$this->createFolder( $this->_resourcePath, true, $content );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to create file $this->_resourcePath.\n{$ex->getMessage()}" );
+						}
+						$result = array( 'folder' => array( array( 'name' => $name, 'path' => $this->_resourcePath ) ) );
+					}
+					elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
+					{
+						// older html multipart/form-data post, should be single file
+						$files = $_FILES['files'];
+						//$files = Utilities::reorgFilePostArray($files);
+						if ( 1 < count( $files['error'] ) )
+						{
+							throw new Exception( "Multiple files uploaded to a single REST resource '$name'." );
+						}
+						$name = $files['name'][0];
+						$fullPathName = $this->_resourcePath;
+						$path = substr( $this->_resourcePath, 0, strripos( $this->_resourcePath, '/' ) + 1 );
+						$error = $files['error'][0];
+						if ( UPLOAD_ERR_OK == $error )
+						{
+							$tmpName = $files["tmp_name"][0];
+							$contentType = $files['type'][0];
+							try
+							{
+								$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to create file $fullPathName.\n{$ex->getMessage()}" );
+							}
+						}
+						else
+						{
+							throw new Exception( "Failed to upload file $name.\n$error" );
+						}
+					}
+					else
+					{
+						// possibly xml or json post either of file or folder to create, copy or move
+						try
+						{
+							$data = Utilities::getPostDataAsArray();
+							error_log( print_r( $data, true ) );
+							//$this->addFiles($path, $data['files']);
+							$result = array();
+						}
+						catch ( Exception $ex )
+						{
+
+						}
+					}
+				}
+				break;
+			case self::Put:
+			case self::Patch:
+			case self::Merge:
+				$this->checkPermission( 'update' );
+				$result = array();
+				// possible file handling parameters
+				$extract = Utilities::boolval( Utilities::getArrayValue( 'extract', $_REQUEST, false ) );
+				$clean = Utilities::boolval( Utilities::getArrayValue( 'clean', $_REQUEST, false ) );
+				$checkExist = false;
+				if ( empty( $this->_resourcePath ) || empty( $this->_resourceArray[count( $this->_resourceArray ) - 1] ) )
+				{
+					// if ending in '/' then create files or folders in the directory
+					if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
+					{
+						// html5 single posting for file create
+						$name = $_SERVER['HTTP_X_FILE_NAME'];
+						$fullPathName = $this->_resourcePath . $name;
+						try
+						{
+							$content = Utilities::getPostData();
+							if ( empty( $content ) )
+							{
+								// empty post?
+								error_log( "Empty content in update file $fullPathName." );
+							}
+							$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
+							$result = $this->handleFileContent( $this->_resourcePath, $name, $content, $contentType, $extract, $clean, $checkExist );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to update file $fullPathName.\n{$ex->getMessage()}" );
+						}
+					}
+					elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
+					{
+						// html5 single posting for folder create
+						$name = $_SERVER['HTTP_X_FOLDER_NAME'];
+						$fullPathName = $this->_resourcePath . $name;
+						try
+						{
+							$content = Utilities::getPostDataAsArray();
+							$this->createFolder( $fullPathName, true, $content, true );
+							$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to update folder $fullPathName.\n{$ex->getMessage()}" );
+						}
+					}
+					elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
+					{
+						// older html multi-part/form-data post, single or multiple files
+						$files = $_FILES['files'];
+						if ( !is_array( $files['error'] ) )
+						{
+							// single file
+							$name = $files['name'];
+							$fullPathName = $this->_resourcePath . $name;
+							$error = $files['error'];
+							if ( $error == UPLOAD_ERR_OK )
+							{
+								$tmpName = $files['tmp_name'];
+								$contentType = $files['type'];
+								$result = $this->handleFile( $this->_resourcePath, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
+							}
+							else
+							{
+								$result = array(
+									'code'    => 500,
+									'message' => "Failed to update file $fullPathName.\n$error"
+								);
+							}
+						}
+						else
+						{
+							$out = array();
+							//$files = Utilities::reorgFilePostArray($files);
+							foreach ( $files['error'] as $key => $error )
+							{
+								$name = $files['name'][$key];
+								$fullPathName = $this->_resourcePath . $name;
+								if ( $error == UPLOAD_ERR_OK )
+								{
+									$tmpName = $files['tmp_name'][$key];
+									$contentType = $files['type'][$key];
+									$tmp = $this->handleFile( $this->_resourcePath, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
+									$out[$key] = ( isset( $tmp['file'] ) ? $tmp['file'] : array() );
+								}
+								else
+								{
+									$out[$key]['error'] = array(
+										'code'    => 500,
+										'message' => "Failed to update file $fullPathName.\n$error"
+									);
+								}
+							}
+							$result = array( 'file' => $out );
+						}
+					}
+					else
+					{
+						$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
+						if ( !empty( $fileUrl ) )
+						{
+							// upload a file from a url, could be expandable zip
+							$tmpName = FileUtilities::importUrlFileToTemp( $fileUrl );
+							try
+							{
+								$result = $this->handleFile( $this->_resourcePath, '', $tmpName, '', $extract, $clean, $checkExist );
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
+							}
+						}
+						else
+						{
+							try
+							{
+								$data = Utilities::getPostDataAsArray();
+								if ( empty( $data ) )
+								{
+									// create folder from resource path
+									$this->createFolder( $this->_resourcePath );
+									$result = array( 'folder' => array( array( 'path' => $this->_resourcePath ) ) );
+								}
+								else
+								{
+									$out = array( 'folder' => array(), 'file' => array() );
+									$folders = Utilities::getArrayValue( 'folder', $data, null );
+									if ( empty( $folders ) )
+									{
+										$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+									}
+									if ( !empty( $folders ) )
+									{
+										if ( !isset( $folders[0] ) )
+										{
+											// single folder, make into array
+											$folders = array( $folders );
+										}
+										foreach ( $folders as $key => $folder )
+										{
+											$name = Utilities::getArrayValue( 'name', $folder, '' );
+											if ( isset( $folder['source_path'] ) )
+											{
+												// copy or move
+												$srcPath = $folder['source_path'];
+												if ( empty( $name ) )
+												{
+													$name = FileUtilities::getNameFromPath( $srcPath );
+												}
+												$fullPathName = $this->_resourcePath . $name . '/';
+												$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												try
+												{
+													$this->copyFolder( $fullPathName, $srcPath, true );
+													$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
+													if ( $deleteSource )
+													{
+														$this->deleteFolder( $srcPath, true );
+													}
+												}
+												catch ( Exception $ex )
+												{
+													$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
+											}
+											else
+											{
+												$fullPathName = $this->_resourcePath . $name;
+												$content = Utilities::getArrayValue( 'content', $folder, '' );
+												$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $folder, false ) );
+												if ( $isBase64 )
+												{
+													$content = base64_decode( $content );
+												}
+												$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												try
+												{
+													$this->createFolder( $fullPathName, true, $content );
+												}
+												catch ( Exception $ex )
+												{
+													$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
+											}
+										}
+									}
+									$files = Utilities::getArrayValue( 'file', $data, null );
+									if ( empty( $files ) )
+									{
+										$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
+									}
+									if ( !empty( $files ) )
+									{
+										if ( !isset( $files[0] ) )
+										{
+											// single file, make into array
+											$files = array( $files );
+										}
+										foreach ( $files as $key => $file )
+										{
+											$name = Utilities::getArrayValue( 'name', $file, '' );
+											if ( isset( $file['source_path'] ) )
+											{
+												// copy or move
+												$srcPath = $file['source_path'];
+												if ( empty( $name ) )
+												{
+													$name = FileUtilities::getNameFromPath( $srcPath );
+												}
+												$fullPathName = $this->_resourcePath . $name;
+												$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												try
+												{
+													$this->copyFile( $fullPathName, $srcPath, true );
+													$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
+													if ( $deleteSource )
+													{
+														$this->deleteFile( $srcPath );
+													}
+												}
+												catch ( Exception $ex )
+												{
+													$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
+											}
+											elseif ( isset( $file['content'] ) )
+											{
+												$fullPathName = $this->_resourcePath . $name;
+												$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+												$content = Utilities::getArrayValue( 'content', $file, '' );
+												$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $file, false ) );
+												if ( $isBase64 )
+												{
+													$content = base64_decode( $content );
+												}
+												try
+												{
+													$this->writeFile( $fullPathName, $content );
+												}
+												catch ( Exception $ex )
+												{
+													$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
+												}
+											}
+										}
+									}
+									$result = $out;
+								}
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
+							}
+						}
+					}
+				}
+				else
+				{
+					// if ending in file name, update the file or folder
+					$name = substr( $this->_resourcePath, strripos( $this->_resourcePath, '/' ) + 1 );
+					if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
+					{
+						$x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
+						if ( 0 !== strcasecmp( $name, $x_file_name ) )
+						{
+							throw new Exception( "Header file name '$x_file_name' mismatched with REST resource '$name'." );
+						}
+						try
+						{
+							$content = Utilities::getPostData();
+							if ( empty( $content ) )
+							{
+								// empty post?
+								error_log( "Empty content in write file $this->_resourcePath to storage." );
+							}
+							$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
+							$this->_resourcePath = substr( $this->_resourcePath, 0, strripos( $this->_resourcePath, '/' ) + 1 );
+							$result = $this->handleFileContent( $this->_resourcePath, $name, $content, $contentType, $extract, $clean, $checkExist );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to update file $this->_resourcePath.\n{$ex->getMessage()}" );
+						}
+					}
+					elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
+					{
+						$x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
+						if ( 0 !== strcasecmp( $name, $x_folder_name ) )
+						{
+							throw new Exception( "Header folder name '$x_folder_name' mismatched with REST resource '$name'." );
+						}
+						try
+						{
+							$content = Utilities::getPostDataAsArray();
+							$this->updateFolderProperties( $this->_resourcePath, $content );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to update folder $this->_resourcePath.\n{$ex->getMessage()}" );
+						}
+						$result = array( 'folder' => array( array( 'name' => $name, 'path' => $this->_resourcePath ) ) );
+					}
+					elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
+					{
+						// older html multipart/form-data post, should be single file
+						$files = $_FILES['files'];
+						//$files = Utilities::reorgFilePostArray($files);
+						if ( 1 < count( $files['error'] ) )
+						{
+							throw new Exception( "Multiple files uploaded to a single REST resource '$name'." );
+						}
+						$name = $files['name'][0];
+						$fullPathName = $this->_resourcePath;
+						$this->_resourcePath = substr( $this->_resourcePath, 0, strripos( $this->_resourcePath, '/' ) + 1 );
+						$error = $files['error'][0];
+						if ( UPLOAD_ERR_OK == $error )
+						{
+							$tmpName = $files["tmp_name"][0];
+							$contentType = $files['type'][0];
+							try
+							{
+								$result = $this->handleFile( $this->_resourcePath, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
+							}
+							catch ( Exception $ex )
+							{
+								throw new Exception( "Failed to update file $fullPathName.\n{$ex->getMessage()}" );
+							}
+						}
+						else
+						{
+							throw new Exception( "Failed to upload file $name.\n$error" );
+						}
+					}
+					else
+					{
+						// possibly xml or json post either of file or folder to create, copy or move
+						try
+						{
+							$data = Utilities::getPostDataAsArray();
+							error_log( print_r( $data, true ) );
+							//$this->addFiles($this->_resourcePath, $data['files']);
+							$result = array();
+						}
+						catch ( Exception $ex )
+						{
+
+						}
+					}
+				}
+				break;
+			case self::Delete:
+				$this->checkPermission( 'delete' );
+				if ( empty( $this->_resourcePath ) || empty( $this->_resourceArray[count( $this->_resourceArray ) - 1] ) )
+				{
+					// delete directory of files and the directory itself
+					$force = Utilities::boolval( Utilities::getArrayValue( 'force', $_REQUEST, false ) );
+					// multi-file or folder delete via post data
+					try
+					{
+						$content = Utilities::getPostDataAsArray();
+					}
+					catch ( Exception $ex )
+					{
+						throw new Exception( "Failed to delete storage folders.\n{$ex->getMessage()}" );
+					}
+					if ( empty( $content ) )
+					{
+						if ( empty( $this->_resourcePath ) )
+						{
+							throw new Exception( "Empty file or folder path given for storage delete." );
+						}
+						try
+						{
+							$this->deleteFolder( $this->_resourcePath, $force );
+							$result = array( 'folder' => array( array( 'path' => $this->_resourcePath ) ) );
+						}
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to delete storage folder '$this->_resourcePath'.\n{$ex->getMessage()}" );
+						}
+					}
+					else
+					{
+						try
+						{
+							$out = array();
+							if ( isset( $content['file'] ) )
+							{
+								$files = $content['file'];
+								$out['file'] = $this->deleteFiles( $files, $this->_resourcePath );
+							}
+							if ( isset( $content['folder'] ) )
+							{
+								$folders = $content['folder'];
+								$out['folder'] = $this->deleteFolders( $folders, $this->_resourcePath, $force );
 							}
 							$result = $out;
 						}
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to create folders or files from request.\n{$ex->getMessage()}" );
-					}
-				}
-			}
-		}
-		else
-		{
-			// if ending in file name, create the file or folder
-			$name = substr( $path, strripos( $path, '/' ) + 1 );
-			if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
-			{
-				$x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
-				if ( 0 !== strcasecmp( $name, $x_file_name ) )
-				{
-					throw new Exception( "Header file name '$x_file_name' mismatched with REST resource '$name'." );
-				}
-				try
-				{
-					$content = Utilities::getPostData();
-					if ( empty( $content ) )
-					{
-						// empty post?
-						error_log( "Empty content in write file $path to storage." );
-					}
-					$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
-					$path = substr( $path, 0, strripos( $path, '/' ) + 1 );
-					$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to create file $path.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
-			{
-				$x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
-				if ( 0 !== strcasecmp( $name, $x_folder_name ) )
-				{
-					throw new Exception( "Header folder name '$x_folder_name' mismatched with REST resource '$name'." );
-				}
-				try
-				{
-					$content = Utilities::getPostDataAsArray();
-					$this->createFolder( $path, true, $content );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to create file $path.\n{$ex->getMessage()}" );
-				}
-				$result = array( 'folder' => array( array( 'name' => $name, 'path' => $path ) ) );
-			}
-			elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-			{
-				// older html multipart/form-data post, should be single file
-				$files = $_FILES['files'];
-				//$files = Utilities::reorgFilePostArray($files);
-				if ( 1 < count( $files['error'] ) )
-				{
-					throw new Exception( "Multiple files uploaded to a single REST resource '$name'." );
-				}
-				$name = $files['name'][0];
-				$fullPathName = $path;
-				$path = substr( $path, 0, strripos( $path, '/' ) + 1 );
-				$error = $files['error'][0];
-				if ( UPLOAD_ERR_OK == $error )
-				{
-					$tmpName = $files["tmp_name"][0];
-					$contentType = $files['type'][0];
-					try
-					{
-						$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to create file $fullPathName.\n{$ex->getMessage()}" );
+						catch ( Exception $ex )
+						{
+							throw new Exception( "Failed to delete storage folders.\n{$ex->getMessage()}" );
+						}
 					}
 				}
 				else
 				{
-					throw new Exception( "Failed to upload file $name.\n$error" );
-				}
-			}
-			else
-			{
-				// possibly xml or json post either of file or folder to create, copy or move
-				try
-				{
-					$data = Utilities::getPostDataAsArray();
-					error_log( print_r( $data, true ) );
-					//$this->addFiles($path, $data['files']);
-					$result = array();
-				}
-				catch ( Exception $ex )
-				{
-
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionPut()
-	{
-		$this->checkPermission( 'update' );
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path ) ) ? explode( '/', $path ) : array();
-		$result = array();
-		// possible file handling parameters
-		$extract = Utilities::boolval( Utilities::getArrayValue( 'extract', $_REQUEST, false ) );
-		$clean = Utilities::boolval( Utilities::getArrayValue( 'clean', $_REQUEST, false ) );
-		$checkExist = false;
-		if ( empty( $path ) || empty( $path_array[count( $path_array ) - 1] ) )
-		{
-			// if ending in '/' then create files or folders in the directory
-			if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
-			{
-				// html5 single posting for file create
-				$name = $_SERVER['HTTP_X_FILE_NAME'];
-				$fullPathName = $path . $name;
-				try
-				{
-					$content = Utilities::getPostData();
-					if ( empty( $content ) )
-					{
-						// empty post?
-						error_log( "Empty content in update file $fullPathName." );
-					}
-					$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
-					$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update file $fullPathName.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
-			{
-				// html5 single posting for folder create
-				$name = $_SERVER['HTTP_X_FOLDER_NAME'];
-				$fullPathName = $path . $name;
-				try
-				{
-					$content = Utilities::getPostDataAsArray();
-					$this->createFolder( $fullPathName, true, $content, true );
-					$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update folder $fullPathName.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-			{
-				// older html multi-part/form-data post, single or multiple files
-				$files = $_FILES['files'];
-				if ( !is_array( $files['error'] ) )
-				{
-					// single file
-					$name = $files['name'];
-					$fullPathName = $path . $name;
-					$error = $files['error'];
-					if ( $error == UPLOAD_ERR_OK )
-					{
-						$tmpName = $files['tmp_name'];
-						$contentType = $files['type'];
-						$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-					}
-					else
-					{
-						$result = array(
-							'code'    => 500,
-							'message' => "Failed to update file $fullPathName.\n$error"
-						);
-					}
-				}
-				else
-				{
-					$out = array();
-					//$files = Utilities::reorgFilePostArray($files);
-					foreach ( $files['error'] as $key => $error )
-					{
-						$name = $files['name'][$key];
-						$fullPathName = $path . $name;
-						if ( $error == UPLOAD_ERR_OK )
-						{
-							$tmpName = $files['tmp_name'][$key];
-							$contentType = $files['type'][$key];
-							$tmp = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-							$out[$key] = ( isset( $tmp['file'] ) ? $tmp['file'] : array() );
-						}
-						else
-						{
-							$out[$key]['error'] = array(
-								'code'    => 500,
-								'message' => "Failed to update file $fullPathName.\n$error"
-							);
-						}
-					}
-					$result = array( 'file' => $out );
-				}
-			}
-			else
-			{
-				$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
-				if ( !empty( $fileUrl ) )
-				{
-					// upload a file from a url, could be expandable zip
-					$tmpName = FileUtilities::importUrlFileToTemp( $fileUrl );
+					// delete file from permanent storage
 					try
 					{
-						$result = $this->handleFile( $path, '', $tmpName, '', $extract, $clean, $checkExist );
+						$this->deleteFile( $this->_resourcePath );
+						$result = array( 'file' => array( array( 'path' => $this->_resourcePath ) ) );
 					}
 					catch ( Exception $ex )
 					{
-						throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
+						throw new Exception( "Failed to delete storage file '$this->_resourcePath'.\n{$ex->getMessage()}" );
 					}
 				}
-				else
-				{
-					try
-					{
-						$data = Utilities::getPostDataAsArray();
-						if ( empty( $data ) )
-						{
-							// create folder from resource path
-							$this->createFolder( $path );
-							$result = array( 'folder' => array( array( 'path' => $path ) ) );
-						}
-						else
-						{
-							$out = array( 'folder' => array(), 'file' => array() );
-							$folders = Utilities::getArrayValue( 'folder', $data, null );
-							if ( empty( $folders ) )
-							{
-								$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
-							}
-							if ( !empty( $folders ) )
-							{
-								if ( !isset( $folders[0] ) )
-								{
-									// single folder, make into array
-									$folders = array( $folders );
-								}
-								foreach ( $folders as $key => $folder )
-								{
-									$name = Utilities::getArrayValue( 'name', $folder, '' );
-									if ( isset( $folder['source_path'] ) )
-									{
-										// copy or move
-										$srcPath = $folder['source_path'];
-										if ( empty( $name ) )
-										{
-											$name = FileUtilities::getNameFromPath( $srcPath );
-										}
-										$fullPathName = $path . $name . '/';
-										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->copyFolder( $fullPathName, $srcPath, true );
-											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
-											if ( $deleteSource )
-											{
-												$this->deleteFolder( $srcPath, true );
-											}
-										}
-										catch ( Exception $ex )
-										{
-											$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-									else
-									{
-										$fullPathName = $path . $name;
-										$content = Utilities::getArrayValue( 'content', $folder, '' );
-										$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $folder, false ) );
-										if ( $isBase64 )
-										{
-											$content = base64_decode( $content );
-										}
-										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->createFolder( $fullPathName, true, $content );
-										}
-										catch ( Exception $ex )
-										{
-											$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-								}
-							}
-							$files = Utilities::getArrayValue( 'file', $data, null );
-							if ( empty( $files ) )
-							{
-								$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
-							}
-							if ( !empty( $files ) )
-							{
-								if ( !isset( $files[0] ) )
-								{
-									// single file, make into array
-									$files = array( $files );
-								}
-								foreach ( $files as $key => $file )
-								{
-									$name = Utilities::getArrayValue( 'name', $file, '' );
-									if ( isset( $file['source_path'] ) )
-									{
-										// copy or move
-										$srcPath = $file['source_path'];
-										if ( empty( $name ) )
-										{
-											$name = FileUtilities::getNameFromPath( $srcPath );
-										}
-										$fullPathName = $path . $name;
-										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->copyFile( $fullPathName, $srcPath, true );
-											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
-											if ( $deleteSource )
-											{
-												$this->deleteFile( $srcPath );
-											}
-										}
-										catch ( Exception $ex )
-										{
-											$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-									elseif ( isset( $file['content'] ) )
-									{
-										$fullPathName = $path . $name;
-										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										$content = Utilities::getArrayValue( 'content', $file, '' );
-										$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $file, false ) );
-										if ( $isBase64 )
-										{
-											$content = base64_decode( $content );
-										}
-										try
-										{
-											$this->writeFile( $fullPathName, $content );
-										}
-										catch ( Exception $ex )
-										{
-											$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-								}
-							}
-							$result = $out;
-						}
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
-					}
-				}
-			}
-		}
-		else
-		{
-			// if ending in file name, update the file or folder
-			$name = substr( $path, strripos( $path, '/' ) + 1 );
-			if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
-			{
-				$x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
-				if ( 0 !== strcasecmp( $name, $x_file_name ) )
-				{
-					throw new Exception( "Header file name '$x_file_name' mismatched with REST resource '$name'." );
-				}
-				try
-				{
-					$content = Utilities::getPostData();
-					if ( empty( $content ) )
-					{
-						// empty post?
-						error_log( "Empty content in write file $path to storage." );
-					}
-					$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
-					$path = substr( $path, 0, strripos( $path, '/' ) + 1 );
-					$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update file $path.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
-			{
-				$x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
-				if ( 0 !== strcasecmp( $name, $x_folder_name ) )
-				{
-					throw new Exception( "Header folder name '$x_folder_name' mismatched with REST resource '$name'." );
-				}
-				try
-				{
-					$content = Utilities::getPostDataAsArray();
-					$this->updateFolderProperties( $path, $content );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update folder $path.\n{$ex->getMessage()}" );
-				}
-				$result = array( 'folder' => array( array( 'name' => $name, 'path' => $path ) ) );
-			}
-			elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-			{
-				// older html multipart/form-data post, should be single file
-				$files = $_FILES['files'];
-				//$files = Utilities::reorgFilePostArray($files);
-				if ( 1 < count( $files['error'] ) )
-				{
-					throw new Exception( "Multiple files uploaded to a single REST resource '$name'." );
-				}
-				$name = $files['name'][0];
-				$fullPathName = $path;
-				$path = substr( $path, 0, strripos( $path, '/' ) + 1 );
-				$error = $files['error'][0];
-				if ( UPLOAD_ERR_OK == $error )
-				{
-					$tmpName = $files["tmp_name"][0];
-					$contentType = $files['type'][0];
-					try
-					{
-						$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to update file $fullPathName.\n{$ex->getMessage()}" );
-					}
-				}
-				else
-				{
-					throw new Exception( "Failed to upload file $name.\n$error" );
-				}
-			}
-			else
-			{
-				// possibly xml or json post either of file or folder to create, copy or move
-				try
-				{
-					$data = Utilities::getPostDataAsArray();
-					error_log( print_r( $data, true ) );
-					//$this->addFiles($path, $data['files']);
-					$result = array();
-				}
-				catch ( Exception $ex )
-				{
-
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionMerge()
-	{
-		$this->checkPermission( 'update' );
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path ) ) ? explode( '/', $path ) : array();
-		$result = array();
-		// possible file handling parameters
-		$extract = Utilities::boolval( Utilities::getArrayValue( 'extract', $_REQUEST, false ) );
-		$clean = Utilities::boolval( Utilities::getArrayValue( 'clean', $_REQUEST, false ) );
-		$checkExist = false;
-		if ( empty( $path ) || empty( $path_array[count( $path_array ) - 1] ) )
-		{
-			// if ending in '/' then create files or folders in the directory
-			if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
-			{
-				// html5 single posting for file create
-				$name = $_SERVER['HTTP_X_FILE_NAME'];
-				$fullPathName = $path . $name;
-				try
-				{
-					$content = Utilities::getPostData();
-					if ( empty( $content ) )
-					{
-						// empty post?
-						error_log( "Empty content in update file $fullPathName." );
-					}
-					$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
-					$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update file $fullPathName.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
-			{
-				// html5 single posting for folder create
-				$name = $_SERVER['HTTP_X_FOLDER_NAME'];
-				$fullPathName = $path . $name;
-				try
-				{
-					$content = Utilities::getPostDataAsArray();
-					$this->createFolder( $fullPathName, true, $content, true );
-					$result = array( 'folder' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update folder $fullPathName.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-			{
-				// older html multi-part/form-data post, single or multiple files
-				$files = $_FILES['files'];
-				if ( !is_array( $files['error'] ) )
-				{
-					// single file
-					$name = $files['name'];
-					$fullPathName = $path . $name;
-					$error = $files['error'];
-					if ( $error == UPLOAD_ERR_OK )
-					{
-						$tmpName = $files['tmp_name'];
-						$contentType = $files['type'];
-						$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-					}
-					else
-					{
-						$result = array(
-							'code'    => 500,
-							'message' => "Failed to update file $fullPathName.\n$error"
-						);
-					}
-				}
-				else
-				{
-					$out = array();
-					//$files = Utilities::reorgFilePostArray($files);
-					foreach ( $files['error'] as $key => $error )
-					{
-						$name = $files['name'][$key];
-						$fullPathName = $path . $name;
-						if ( $error == UPLOAD_ERR_OK )
-						{
-							$tmpName = $files['tmp_name'][$key];
-							$contentType = $files['type'][$key];
-							$tmp = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-							$out[$key] = ( isset( $tmp['file'] ) ? $tmp['file'] : array() );
-						}
-						else
-						{
-							$out[$key]['error'] = array(
-								'code'    => 500,
-								'message' => "Failed to update file $fullPathName.\n$error"
-							);
-						}
-					}
-					$result = array( 'file' => $out );
-				}
-			}
-			else
-			{
-				// possibly xml or json post either of files or folders to create, copy or move
-				$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
-				if ( !empty( $fileUrl ) )
-				{
-					// upload a file from a url, could be expandable zip
-					$tmpName = FileUtilities::importUrlFileToTemp( $fileUrl );
-					try
-					{
-						$result = $this->handleFile( $path, '', $tmpName, '', $extract, $clean, $checkExist );
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
-					}
-				}
-				else
-				{
-					try
-					{
-						$data = Utilities::getPostDataAsArray();
-						if ( empty( $data ) )
-						{
-							// create folder from resource path
-							$this->createFolder( $path );
-							$result = array( 'folder' => array( array( 'path' => $path ) ) );
-						}
-						else
-						{
-							$out = array( 'folder' => array(), 'file' => array() );
-							$folders = Utilities::getArrayValue( 'folder', $data, null );
-							if ( empty( $folders ) )
-							{
-								$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
-							}
-							if ( !empty( $folders ) )
-							{
-								if ( !isset( $folders[0] ) )
-								{
-									// single folder, make into array
-									$folders = array( $folders );
-								}
-								foreach ( $folders as $key => $folder )
-								{
-									$name = Utilities::getArrayValue( 'name', $folder, '' );
-									if ( isset( $folder['source_path'] ) )
-									{
-										// copy or move
-										$srcPath = $folder['source_path'];
-										if ( empty( $name ) )
-										{
-											$name = FileUtilities::getNameFromPath( $srcPath );
-										}
-										$fullPathName = $path . $name . '/';
-										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->copyFolder( $fullPathName, $srcPath, true );
-											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $folder, false ) );
-											if ( $deleteSource )
-											{
-												$this->deleteFolder( $srcPath, true );
-											}
-										}
-										catch ( Exception $ex )
-										{
-											$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-									else
-									{
-										$fullPathName = $path . $name;
-										$content = Utilities::getArrayValue( 'content', $folder, '' );
-										$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $folder, false ) );
-										if ( $isBase64 )
-										{
-											$content = base64_decode( $content );
-										}
-										$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->createFolder( $fullPathName, true, $content );
-										}
-										catch ( Exception $ex )
-										{
-											$out['folder'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-								}
-							}
-							$files = Utilities::getArrayValue( 'file', $data, null );
-							if ( empty( $files ) )
-							{
-								$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
-							}
-							if ( !empty( $files ) )
-							{
-								if ( !isset( $files[0] ) )
-								{
-									// single file, make into array
-									$files = array( $files );
-								}
-								foreach ( $files as $key => $file )
-								{
-									$name = Utilities::getArrayValue( 'name', $file, '' );
-									if ( isset( $file['source_path'] ) )
-									{
-										// copy or move
-										$srcPath = $file['source_path'];
-										if ( empty( $name ) )
-										{
-											$name = FileUtilities::getNameFromPath( $srcPath );
-										}
-										$fullPathName = $path . $name;
-										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										try
-										{
-											$this->copyFile( $fullPathName, $srcPath, true );
-											$deleteSource = Utilities::boolval( Utilities::getArrayValue( 'delete_source', $file, false ) );
-											if ( $deleteSource )
-											{
-												$this->deleteFile( $srcPath );
-											}
-										}
-										catch ( Exception $ex )
-										{
-											$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-									elseif ( isset( $file['content'] ) )
-									{
-										$fullPathName = $path . $name;
-										$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
-										$content = Utilities::getArrayValue( 'content', $file, '' );
-										$isBase64 = Utilities::boolval( Utilities::getArrayValue( 'is_base64', $file, false ) );
-										if ( $isBase64 )
-										{
-											$content = base64_decode( $content );
-										}
-										try
-										{
-											$this->writeFile( $fullPathName, $content );
-										}
-										catch ( Exception $ex )
-										{
-											$out['file'][$key]['error'] = array( 'message' => $ex->getMessage() );
-										}
-									}
-								}
-							}
-							$result = $out;
-						}
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to update folders or files from request.\n{$ex->getMessage()}" );
-					}
-				}
-			}
-		}
-		else
-		{
-			// if ending in file name, create the file or folder
-			$name = substr( $path, strripos( $path, '/' ) + 1 );
-			if ( isset( $_SERVER['HTTP_X_FILE_NAME'] ) && !empty( $_SERVER['HTTP_X_FILE_NAME'] ) )
-			{
-				$x_file_name = $_SERVER['HTTP_X_FILE_NAME'];
-				if ( 0 !== strcasecmp( $name, $x_file_name ) )
-				{
-					throw new Exception( "Header file name '$x_file_name' mismatched with REST resource '$name'." );
-				}
-				try
-				{
-					$content = Utilities::getPostData();
-					if ( empty( $content ) )
-					{
-						// empty post?
-						error_log( "Empty content in write file $path to storage." );
-					}
-					$contentType = Utilities::getArrayValue( 'CONTENT_TYPE', $_SERVER, '' );
-					$path = substr( $path, 0, strripos( $path, '/' ) + 1 );
-					$result = $this->handleFileContent( $path, $name, $content, $contentType, $extract, $clean, $checkExist );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update file $path.\n{$ex->getMessage()}" );
-				}
-			}
-			elseif ( isset( $_SERVER['HTTP_X_FOLDER_NAME'] ) && !empty( $_SERVER['HTTP_X_FOLDER_NAME'] ) )
-			{
-				$x_folder_name = $_SERVER['HTTP_X_FOLDER_NAME'];
-				if ( 0 !== strcasecmp( $name, $x_folder_name ) )
-				{
-					throw new Exception( "Header folder name '$x_folder_name' mismatched with REST resource '$name'." );
-				}
-				try
-				{
-					$content = Utilities::getPostDataAsArray();
-					$this->updateFolderProperties( $path, $content );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to update folder $path.\n{$ex->getMessage()}" );
-				}
-				$result = array( 'folder' => array( array( 'name' => $name, 'path' => $path ) ) );
-			}
-			elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
-			{
-				// older html multipart/form-data post, should be single file
-				$files = $_FILES['files'];
-				//$files = Utilities::reorgFilePostArray($files);
-				if ( 1 < count( $files['error'] ) )
-				{
-					throw new Exception( "Multiple files uploaded to a single REST resource '$name'." );
-				}
-				$name = $files['name'][0];
-				$fullPathName = $path;
-				$path = substr( $path, 0, strripos( $path, '/' ) + 1 );
-				$error = $files['error'][0];
-				if ( UPLOAD_ERR_OK == $error )
-				{
-					$tmpName = $files["tmp_name"][0];
-					$contentType = $files['type'][0];
-					try
-					{
-						$result = $this->handleFile( $path, $name, $tmpName, $contentType, $extract, $clean, $checkExist );
-					}
-					catch ( Exception $ex )
-					{
-						throw new Exception( "Failed to update file $fullPathName.\n{$ex->getMessage()}" );
-					}
-				}
-				else
-				{
-					throw new Exception( "Failed to upload file $name.\n$error" );
-				}
-			}
-			else
-			{
-				// possibly xml or json post either of file or folder to create, copy or move
-				try
-				{
-					$data = Utilities::getPostDataAsArray();
-					error_log( print_r( $data, true ) );
-					//$this->addFiles($path, $data['files']);
-					$result = array();
-				}
-				catch ( Exception $ex )
-				{
-
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * @return array
-	 * @throws Exception
-	 */
-	public function actionDelete()
-	{
-		$this->checkPermission( 'delete' );
-		$path = Utilities::getArrayValue( 'resource', $_GET, '' );
-		$path_array = ( !empty( $path ) ) ? explode( '/', $path ) : array();
-		if ( empty( $path ) || empty( $path_array[count( $path_array ) - 1] ) )
-		{
-			// delete directory of files and the directory itself
-			$force = Utilities::boolval( Utilities::getArrayValue( 'force', $_REQUEST, false ) );
-			// multi-file or folder delete via post data
-			try
-			{
-				$content = Utilities::getPostDataAsArray();
-			}
-			catch ( Exception $ex )
-			{
-				throw new Exception( "Failed to delete storage folders.\n{$ex->getMessage()}" );
-			}
-			if ( empty( $content ) )
-			{
-				if ( empty( $path ) )
-				{
-					throw new Exception( "Empty file or folder path given for storage delete." );
-				}
-				try
-				{
-					$this->deleteFolder( $path, $force );
-					$result = array( 'folder' => array( array( 'path' => $path ) ) );
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to delete storage folder '$path'.\n{$ex->getMessage()}" );
-				}
-			}
-			else
-			{
-				try
-				{
-					$out = array();
-					if ( isset( $content['file'] ) )
-					{
-						$files = $content['file'];
-						$out['file'] = $this->deleteFiles( $files, $path );
-					}
-					if ( isset( $content['folder'] ) )
-					{
-						$folders = $content['folder'];
-						$out['folder'] = $this->deleteFolders( $folders, $path, $force );
-					}
-					$result = $out;
-				}
-				catch ( Exception $ex )
-				{
-					throw new Exception( "Failed to delete storage folders.\n{$ex->getMessage()}" );
-				}
-			}
-		}
-		else
-		{
-			// delete file from permanent storage
-			try
-			{
-				$this->deleteFile( $path );
-				$result = array( 'file' => array( array( 'path' => $path ) ) );
-			}
-			catch ( Exception $ex )
-			{
-				throw new Exception( "Failed to delete storage file '$path'.\n{$ex->getMessage()}" );
-			}
+				break;
+			default:
+				return false;
 		}
 
 		return $result;

@@ -24,20 +24,8 @@ use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Scalar;
 use Platform\Yii\Utility\Pii;
-
-if ( !function_exists( 'boolval' ) )
-{
-	function boolval( $var )
-	{
-		if ( is_bool( $var ) )
-		{
-			return $var;
-		}
-
-		return filter_var( mb_strtolower( strval( $var ) ), FILTER_VALIDATE_BOOLEAN );
-	}
-}
 
 /**
  * PlatformWebApplication
@@ -55,11 +43,15 @@ class PlatformWebApplication extends \CWebApplication
 	/**
 	 * @var string The allowed HTTP headers
 	 */
-	const CORS_ALLOWED_HEADERS = 'x-requested-with';
+	const CORS_ALLOWED_HEADERS = 'X-Requested-With, X-DreamFactory-Application-Name, X-DreamFactory-Session-Token';
 	/**
 	 * @var int The default number of seconds to allow this to be cached. Default is 15 minutes.
 	 */
 	const CORS_DEFAULT_MAX_AGE = 900;
+	/**
+	 * @var string The private CORS configuration file
+	 */
+	const CORS_DEFAULT_CONFIG_FILE = '/cors.config.json';
 
 	//*************************************************************************
 	//	Members
@@ -90,17 +82,20 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		parent::init();
 
-		// get cors data from config file
-		$path = Pii::getParam( 'private_path' );
-		if ( file_exists( $path . '/cors.config.json' ) )
+		//	Get CORS data from config file
+		$_config = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+
+		if ( file_exists( $_config ) )
 		{
-			$content = file_get_contents( $path . '/cors.config.json' );
-			$allowedHosts = array();
-			if ( !empty( $content ) )
+			$_allowedHosts = array();
+			$_content = @file_get_contents( $_config );
+
+			if ( !empty( $_content ) )
 			{
-				$allowedHosts = json_decode( $content, true );
+				$_allowedHosts = json_decode( $_content, true );
 			}
-			$this->setCorsWhitelist( $allowedHosts );
+
+			$this->setCorsWhitelist( $_allowedHosts );
 		}
 
 		// setup the request handler
@@ -154,9 +149,10 @@ class PlatformWebApplication extends \CWebApplication
 
 		$_requestSource = $_SERVER['SERVER_NAME'];
 		$_origin = trim( Option::server( 'HTTP_ORIGIN' ) );
+//		Log::debug( 'The received origin: [' . $_origin . ']' );
+
 		$_originUri = null;
 
-//		Log::debug( 'The received origin: [' . $_origin . ']' );
 		//	Was an origin header passed? If not, don't do CORS.
 		if ( empty( $_origin ) )
 		{
@@ -165,7 +161,7 @@ class PlatformWebApplication extends \CWebApplication
 
 		if ( false === ( $_originParts = $this->_parseUri( $_origin ) ) )
 		{
-			// not parse-able, set to itself, check later (testing from local files - no session)?
+			//	Not parse-able, set to itself, check later (testing from local files - no session)?
 			Log::warning( 'Unable to parse received origin: [' . $_origin . ']' );
 			$_originParts = $_origin;
 		}
@@ -176,14 +172,7 @@ class PlatformWebApplication extends \CWebApplication
 		//	Not in cache, check it out...
 		if ( !in_array( $_key, $_cache ) )
 		{
-			$_allowedMethods = $this->_allowedOrigin( $_originParts, $_requestSource );
-			if ( false !== $_allowedMethods )
-			{
-//				Log::debug( 'Committing origin to the CORS cache > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
-				$_cache[$_key] = $_originUri;
-				$_cacheVerbs[$_key] = $_allowedMethods;
-			}
-			else
+			if ( false === ( $_allowedMethods = $this->_allowedOrigin( $_originParts, $_requestSource ) ) )
 			{
 				Log::error( 'Unauthorized origin rejected via CORS > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
 
@@ -199,6 +188,10 @@ class PlatformWebApplication extends \CWebApplication
 				//	If end fails for some unknown impossible reason...
 				return false;
 			}
+
+//			Log::debug( 'Committing origin to the CORS cache > Source: ' . $_requestSource . ' > Origin: ' . $_originUri );
+			$_cache[$_key] = $_originUri;
+			$_cacheVerbs[$_key] = $_allowedMethods;
 		}
 		else
 		{
@@ -235,37 +228,32 @@ class PlatformWebApplication extends \CWebApplication
 	}
 
 	/**
-	 * @param array $origin     The parse_url value of origin
-	 * @param array $additional Additional origins to allow
+	 * @param string|array $origin     The parse_url value of origin
+	 * @param array        $additional Additional origins to allow
 	 *
 	 * @return bool|array false if not allowed, otherwise array of verbs allowed
 	 */
 	protected function _allowedOrigin( $origin, $additional = array() )
 	{
-		if ( !is_array( $additional ) )
-		{
-			$additional = array( $additional );
-		}
-
-		foreach ( array_merge( $this->_corsWhitelist, $additional ) as $_hostInfo )
+		foreach ( array_merge( $this->_corsWhitelist, Option::clean( $additional ) ) as $_hostInfo )
 		{
 			$_allowedMethods = static::CORS_ALLOWED_METHODS;
+
 			if ( is_array( $_hostInfo ) )
 			{
-				// if is_enabled prop not there, assuming enabled.
-				if ( !boolval( Option::get( $_hostInfo, 'is_enabled', true ) ) )
+				//	If is_enabled prop not there, assuming enabled.
+				if ( !Scalar::boolval( Option::get( $_hostInfo, 'is_enabled', true ) ) )
 				{
 					continue;
 				}
-				if ( empty( $_hostInfo['host'] ) )
+
+				if ( null === ( $_whiteGuy = Option::get( $_hostInfo, 'host' ) ) )
 				{
-					Log::error( "CORS whitelist info doesn't contain 'host' parameter!" );
+					Log::error( 'CORS whitelist info does not contain a "host" parameter!' );
 					continue;
 				}
 
-				$_whiteGuy = $_hostInfo['host'];
-
-				if ( !empty( $_hostInfo['verbs'] ) )
+				if ( isset( $_hostInfo['verbs'] ) )
 				{
 					$_allowedMethods = implode( ', ', $_hostInfo['verbs'] );
 				}
@@ -286,7 +274,7 @@ class PlatformWebApplication extends \CWebApplication
 				continue;
 			}
 
-			// check for un-parsed origin, 'null' sent when testing js files locally
+			//	Check for un-parsed origin, 'null' sent when testing js files locally
 			if ( is_array( $origin ) )
 			{
 				//	Is this origin on the whitelist?
@@ -315,25 +303,30 @@ class PlatformWebApplication extends \CWebApplication
 
 	/**
 	 * @param string $uri
-	 *
 	 * @param bool   $normalize
 	 *
 	 * @return array
 	 */
 	protected function _parseUri( $uri, $normalize = false )
 	{
-		if ( false === ( $_parts = parse_url( $uri ) ) || !isset( $_parts['host'], $_parts['path'] ) )
+		if ( false === ( $_parts = parse_url( $uri ) ) || !( isset( $_parts['host'] ) || isset( $_parts['path'] ) ) )
 		{
 			return false;
 		}
 
 		if ( isset( $_parts['path'] ) && !isset( $_parts['host'] ) )
 		{
+			//	Special case, handle this generically later
+			if ( 'null' == $_parts['path'] )
+			{
+				return 'null';
+			}
 			$_parts['host'] = $_parts['path'];
 			unset( $_parts['path'] );
 		}
 
 		$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
+
 		$_uri = array(
 			'scheme' => Option::get( $_parts, 'scheme', $_protocol ),
 			'host'   => Option::get( $_parts, 'host' ),
