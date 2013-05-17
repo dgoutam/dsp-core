@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Platform\Yii\Utility\Pii;
+
 /**
  * LoginForm class.
  * LoginForm is the data structure for keeping

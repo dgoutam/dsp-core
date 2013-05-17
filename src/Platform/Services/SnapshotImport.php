@@ -25,6 +25,7 @@ use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Seed;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\Log;
+use Platform\Yii\Utility\Pii;
 
 /**
  * SnapshotImport.php
@@ -118,8 +119,8 @@ class SnapshotImport
 		//	1. Get the goodies
 		list( $_tempPath, $_workPath, $_workFile, $_snapshot ) = $this->_openSnapshot();
 
-		$_storagePath = \Pii::getParam( 'storage_path' );
-		$_dbName = \Pii::getParam( 'dsp_name' );
+		$_storagePath = Pii::getParam( 'storage_path' );
+		$_dbName = Pii::getParam( 'dsp_name' );
 
 		if ( empty( $_storagePath ) || ( false === strpos( $_storagePath, '/data/storage/', 0 ) && $_storagePath != '/../storage' ) )
 		{
@@ -146,8 +147,8 @@ class SnapshotImport
 		}
 
 		//	3. Clean out the database...
-		$_pdo = \Pii::pdo();
-		$_schema = \Pii::db()->getSchema();
+		$_pdo = Pii::pdo();
+		$_schema = Pii::db()->getSchema();
 		$_schema->refresh();
 
 		foreach ( $_schema->getTables() as $_tableName => $_info )
@@ -202,7 +203,7 @@ class SnapshotImport
 	protected function _validateInstance()
 	{
 		$_instance =
-			Curl::post( static::API_ENDPOINT . '/locate', array('user_name' => \Pii::db()->username, 'password' => \Pii::db()->password) );
+			Curl::post( static::API_ENDPOINT . '/locate', array('user_name' => Pii::db()->username, 'password' => Pii::db()->password) );
 
 		if ( empty( $_instance ) )
 		{

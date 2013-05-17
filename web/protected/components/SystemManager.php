@@ -19,6 +19,7 @@
  */
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
+use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
 
 /**
@@ -502,9 +503,9 @@ class SystemManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/system", description="Operations available for system management.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 *       path="/system", description="Operations available for system management.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for system management.",
 	 *       notes="See listed operations for each resource available.",
 	 *       responseClass="Resources", nickname="getResources"
@@ -550,7 +551,8 @@ class SystemManager extends RestService
 				break;
 			case 'config':
 				$obj = new SystemConfig();
-				return $obj->processRequest($this->_action);
+
+				return $obj->processRequest( $this->_action );
 				break;
 			case 'app':
 			case 'app_group':
@@ -558,7 +560,7 @@ class SystemManager extends RestService
 			case 'service':
 			case 'user':
 			case 'email_template':
-				return static::getNewResource( $this->_resource )->processRequest($this->_action);
+				return static::getNewResource( $this->_resource )->processRequest( $this->_action );
 				break;
 			default:
 				return false;

@@ -20,6 +20,7 @@
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 use Platform\Interfaces\PermissionTypes;
+use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
 
 /**

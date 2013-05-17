@@ -24,10 +24,10 @@ use Kisma\Core\SeedUtility;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
+use Platform\Yii\Utility\Pii;
 
 require_once __DIR__ . '/HttpMethod.php';
 require_once __DIR__ . '/Curl.php';
-require_once __DIR__ . '/Pii.php';
 
 /**
  * Fabric.php
@@ -42,7 +42,7 @@ class Fabric extends SeedUtility
 	/**
 	 * @var string
 	 */
-	const AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials';
+	const DEFAULT_AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials';
 	/**
 	 * @var string
 	 */
@@ -96,7 +96,8 @@ class Fabric extends SeedUtility
 		/**
 		 * Add host names to this list to white-list...
 		 */
-		static $_allowedHosts = array(
+		static $_allowedHosts
+		= array(
 			'launchpad-dev.dreamfactory.com',
 		);
 
@@ -143,7 +144,7 @@ class Fabric extends SeedUtility
 
 			//	Otherwise, get the credentials from the auth server...
 //			Log::info( 'Credentials pull' );
-			$_response = \Curl::get( static::AUTH_ENDPOINT . '/' . $_dspName . '/database' );
+			$_response = \Curl::get( Pii::getParam( 'dsp.auth_endpoint', static::DEFAULT_AUTH_ENDPOINT ) . '/' . $_dspName . '/database' );
 
 			if ( HttpResponse::NotFound == \Curl::getLastHttpCode() )
 			{

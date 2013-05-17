@@ -24,6 +24,9 @@
 //	Load up composer...
 $_autoloader = require_once( __DIR__ . '/../vendor/autoload.php' );
 
+//	Load up Yii
+require_once __DIR__ . '/../vendor/dreamfactory/yii/framework/yii.php';
+
 //	Yii debug settings
 defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );

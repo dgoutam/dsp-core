@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use Kisma\Core\Utility\Sql;
+use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
 
 /**

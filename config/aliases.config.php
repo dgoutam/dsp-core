@@ -23,6 +23,13 @@
  */
 use Platform\Yii\Utility\Pii;
 
+$_basePath = dirname( __DIR__ );
+$_vendorPath = $_basePath . '/vendor';
+
+Pii::setPathOfAlias( 'vendor', $_vendorPath );
+
 Pii::alias( 'Platform', $_basePath . '/src/Platform' );
+Pii::alias( 'Platform.Yii.Behaviors', $_basePath . '/src/Platform/Yii/Behaviors' );
+Pii::alias( 'Platform.Yii.Components', $_basePath . '/src/Platform/Yii/Components' );
+Pii::alias( 'Platform.Yii.Utility', $_basePath . '/src/Platform/Yii/Utility' );
 Pii::alias( 'Swift', $_vendorPath . '/swiftmailer/swiftmailer/lib/classes' );
-Pii::alias( 'vendor', $_vendorPath );
