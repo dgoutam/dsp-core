@@ -89,9 +89,11 @@ class Fabric extends SeedUtility
 	}
 
 	/**
+	 * @param string $host
+	 *
 	 * @return bool
 	 */
-	public static function hostedPrivatePlatform()
+	public static function hostedPrivatePlatform( $host = null )
 	{
 		/**
 		 * Add host names to this list to white-list...
@@ -101,7 +103,7 @@ class Fabric extends SeedUtility
 			'launchpad-dev.dreamfactory.com',
 		);
 
-		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+		$_host = $host ? : FilterInput::server( 'HTTP_HOST', gethostname() );
 
 		return in_array( $_host, $_allowedHosts );
 	}
@@ -118,7 +120,7 @@ class Fabric extends SeedUtility
 		//	If this isn't a cloud request, bail
 		$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
 
-		if ( false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) )
+		if ( false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) && !static::hostedPrivatePlatform( $_host ) )
 		{
 			Log::error( 'Attempt to access system from non-provisioned host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
