@@ -47,7 +47,7 @@ class PlatformWebApplication extends \CWebApplication
 	/**
 	 * @var string The allowed HTTP headers
 	 */
-	const CORS_DEFAULT_ALLOWED_HEADERS = 'X-Requested-With, X-DreamFactory-Application-Name, X-DreamFactory-Session-Token';
+	const CORS_DEFAULT_ALLOWED_HEADERS = 'Content-Type, X-Requested-With, X-DreamFactory-Application-Name, X-DreamFactory-Session-Token';
 	/**
 	 * @var int The default number of seconds to allow this to be cached. Default is 15 minutes.
 	 */
