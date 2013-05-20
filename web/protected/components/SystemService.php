@@ -320,4 +320,14 @@ class SystemService extends SystemResource
 		return parent::_handleAction();
 	}
 
+	protected function _postProcess( $results = null )
+	{
+		if ( self::Get != $this->_action )
+		{
+			// clear swagger cache upon any service changes.
+			SwaggerUtilities::clearCache();
+		}
+
+		parent::_postProcess( $results );
+	}
 }

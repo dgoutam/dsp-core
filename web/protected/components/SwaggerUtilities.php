@@ -29,6 +29,15 @@ use Kisma\Core\Utility\Log;
 class SwaggerUtilities
 {
 	//*************************************************************************
+	//	Constants
+	//*************************************************************************
+
+	/**
+	 * @var string The private CORS configuration file
+	 */
+	const SWAGGER_CACHE_DIR = '/swagger/';
+
+	//*************************************************************************
 	//	Methods
 	//*************************************************************************
 
@@ -36,13 +45,14 @@ class SwaggerUtilities
 	 * Internal building method builds all static services and some dynamic
 	 * services from file annotations, otherwise swagger info is loaded from
 	 * database or storage files for each service, if it exists.
+	 *
 	 * @return array
 	 * @throws Exception
 	 */
 	protected static function buildSwagger()
 	{
 		$_basePath = Yii::app()->getRequest()->getHostInfo() . '/rest';
-		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
+		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
 
 		// create root directory if it doesn't exists
 		if ( !file_exists( $_swaggerPath ) )
@@ -80,7 +90,7 @@ class SwaggerUtilities
 		foreach ( $result as $service )
 		{
 			$services[] = array(
-				'path' => '/' . $service['api_name'],
+				'path'        => '/' . $service['api_name'],
 				'description' => $service['description']
 			);
 			$serviceName = $apiName = Option::get( $service, 'api_name', '' );
@@ -130,7 +140,7 @@ class SwaggerUtilities
 
 			// cache it to a file for later access
 			$_filePath = $_swaggerPath . $apiName . '.json';
-			if (false === file_put_contents( $_filePath, $_content ) )
+			if ( false === file_put_contents( $_filePath, $_content ) )
 			{
 				Log::error( "Failed to write cache file $_filePath." );
 			}
@@ -144,7 +154,7 @@ class SwaggerUtilities
 			'apis'           => $services
 		);
 		$_filePath = $_swaggerPath . '_.json';
-		if (false === file_put_contents( $_filePath, $_swagger->jsonEncode( $_out ) ) )
+		if ( false === file_put_contents( $_filePath, $_swagger->jsonEncode( $_out ) ) )
 		{
 			Log::error( "Failed to write cache file $_filePath." );
 		}
@@ -153,12 +163,15 @@ class SwaggerUtilities
 	}
 
 	/**
-	 * @return array|mixed
+	 * Main retrieve point for a list of swagger-able services
+	 * This builds the full swagger cache if it does not exist
+	 *
+	 * @return string The JSON contents of the swagger api listing.
 	 * @throws InternalServerErrorException
 	 */
 	public static function getSwagger()
 	{
-		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
+		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
 		$_filePath = $_swaggerPath . '_.json';
 		if ( !file_exists( $_filePath ) )
 		{
@@ -180,14 +193,14 @@ class SwaggerUtilities
 	/**
 	 * Main retrieve point for each service
 	 *
-	 * @param string $service
+	 * @param string $service Which service (api_name) to retrieve.
 	 *
 	 * @throws InternalServerErrorException
-	 * @return array
+	 * @return string The JSON contents of the swagger service.
 	 */
 	public static function getSwaggerForService( $service )
 	{
-		$_swaggerPath = Pii::getParam( 'private_path' ) . '/swagger/';
+		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
 		$_filePath = $_swaggerPath . $service . '.json';
 		if ( !file_exists( $_filePath ) )
 		{
@@ -206,4 +219,19 @@ class SwaggerUtilities
 		return $_content;
 	}
 
+	/**
+	 * Clears the cached files produced by the swagger annotations
+	 */
+	public static function clearCache()
+	{
+		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
+		if ( file_exists( $_swaggerPath ) )
+		{
+			$files = array_diff( scandir( $_swaggerPath ), array( '.', '..' ) );
+			foreach ( $files as $file )
+			{
+				@unlink( $_swaggerPath . $file );
+			}
+		}
+	}
 }
