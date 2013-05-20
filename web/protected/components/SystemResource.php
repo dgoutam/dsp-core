@@ -43,7 +43,7 @@ class SystemResource extends RestResource
 	//*************************************************************************
 
 	/**
-	 * @var int
+	 * @var array
 	 */
 	protected $_resourceArray;
 	/**
@@ -126,6 +126,14 @@ class SystemResource extends RestResource
 	public function setName( $name )
 	{
 		throw new Exception( 'SystemResource name can not be changed.' );
+	}
+
+	/**
+	 * @param int $resourceArray
+	 */
+	public function setResourceArray( $resourceArray )
+	{
+		$this->_resourceArray = $resourceArray;
 	}
 
 	// REST interface implementation

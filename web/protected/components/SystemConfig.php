@@ -304,10 +304,6 @@ class SystemConfig extends RestResource
 			}
 
 			$obj->setAttributes( $record );
-
-			$obj->storage_id = Pii::getParam( 'dsp.storage_id' );
-			$obj->private_storage_id = Pii::getParam( 'dsp.private_storage_id' );
-
 			$obj->save();
 		}
 		catch ( Exception $ex )
