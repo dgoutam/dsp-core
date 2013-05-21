@@ -55,7 +55,7 @@
 ##	Initial settings
 ##
 
-VERSION=1.1.4
+VERSION=1.1.5
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=${HOME}/bin
 COMPOSER=composer.phar
