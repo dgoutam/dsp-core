@@ -278,7 +278,7 @@ class AppLocalFileSvc extends LocalFileSvc
 					// for application management at root directory,
 					throw new Exception( "Application service root directory is not available for file deletes." );
 				}
-				$more = ( isset( $$this->_resourceArray[1] ) ? $this->_resourceArray[1] : '' );
+				$more = ( isset( $this->_resourceArray[1] ) ? $this->_resourceArray[1] : '' );
 				if ( empty( $more ) )
 				{
 					// dealing only with application root here
