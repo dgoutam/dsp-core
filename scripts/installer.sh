@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.1.5
+#   Restored pull of submodules
+#
 # v1.1.4
 #   chmod 777 scripts for Macs
 #
@@ -175,6 +178,9 @@ fi
 [ -d "${APPS_DIR}" ] && rm -rf "${APPS_DIR}" >/dev/null 2>&1  && echo "  * Removed bogus apps directory \"${APPS_DIR}\""
 [ ! -d "${LIB_DIR}" ] && mkdir "${LIB_DIR}" >/dev/null 2>&1  && echo "  * Created ${LIB_DIR}"
 [ ! -d "${SHARE_DIR}" ] && mkdir "${SHARE_DIR}" >/dev/null 2>&1  && echo "  * Created ${SHARE_DIR}"
+
+# Git submodules
+/usr/bin/git submodule update --init -q >/dev/null 2>&1 && echo "  * External modules updated"
 
 ##
 ## Check directory permissions...
