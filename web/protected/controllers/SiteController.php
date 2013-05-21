@@ -68,10 +68,10 @@ class SiteController extends Controller
 				'actions' => array( 'initSystem', 'initAdmin', 'environment', 'initSchema', 'upgradeSchema', 'initData', 'metrics', 'fileTree', 'logout' ),
 				'users'   => array( '@' ),
 			),
-			//	Deny all others access to init commands
-			array(
+//			//	Deny all others access to init commands
+//			array(
 //				'deny',
-			),
+//			),
 		);
 	}
 
