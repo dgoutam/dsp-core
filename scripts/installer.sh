@@ -21,6 +21,12 @@
 #
 # CHANGELOG:
 #
+# v1.1.5
+#   Restored pull of submodules
+#
+# v1.1.4
+#   chmod 777 scripts for Macs
+#
 # v1.1.3
 #	Silence irrelevant errors on chown/chmod
 #
@@ -49,7 +55,7 @@
 ##	Initial settings
 ##
 
-VERSION=1.1.3
+VERSION=1.1.5
 SYSTEM_TYPE=`uname -s`
 INSTALL_DIR=${HOME}/bin
 COMPOSER=composer.phar
@@ -112,7 +118,7 @@ while true ;  do
 					fi
 				fi
 			else
-				echo "  * ${B1}Did not remove composer.phar as we did not install it."
+				echo "  * ${B1}Did not remove composer.phar as we did not install it.${B2}"
 			fi
 
 			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null 2>&1
@@ -173,14 +179,17 @@ fi
 [ ! -d "${LIB_DIR}" ] && mkdir "${LIB_DIR}" >/dev/null 2>&1  && echo "  * Created ${LIB_DIR}"
 [ ! -d "${SHARE_DIR}" ] && mkdir "${SHARE_DIR}" >/dev/null 2>&1  && echo "  * Created ${SHARE_DIR}"
 
+# Git submodules
+/usr/bin/git submodule update --init -q >/dev/null 2>&1 && echo "  * External modules updated"
+
 ##
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${USER} * .git* >/dev/null 2>&1
+chown -R ${USER}:${WEB_USER} * .git* >/dev/null 2>&1
 find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
-find ./ -name '*.sh' -exec chmod 0750 {}  >/dev/null 2>&1 \;
+find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
 rm -rf ~${HOME}/.composer/
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
