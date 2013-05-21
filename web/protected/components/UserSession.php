@@ -578,6 +578,28 @@ class UserSession extends RestResource
 	{
 		static::_checkCache();
 
+		if ( empty( static::$_cache ) )
+		{
+			// special case for possible guest user
+			$theConfig = Config::model()->with(
+							 'guest_role.role_service_accesses',
+							 'guest_role.apps',
+							 'guest_role.services'
+						 )->find();
+
+			if ( empty( $theConfig ) )
+			{
+				throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+			}
+
+			if ( !Utilities::boolval( $theConfig->getAttribute( 'allow_guest_user' ) ) )
+			{
+				throw new Exception( "There is no valid session for the current request.", ErrorCodes::UNAUTHORIZED );
+			}
+
+			static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
+		}
+
 		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
 
 		$admin = Utilities::getArrayValue( 'is_sys_admin', $_public, false );
@@ -788,32 +810,8 @@ class UserSession extends RestResource
 	{
 		if ( empty( static::$_cache ) )
 		{
-			try
-			{
-				$userId = static::validateSession();
-				static::$_cache = static::generateSessionDataFromUser( $userId );
-			}
-			catch ( Exception $ex )
-			{
-				// special case for possible guest user
-				$theConfig = Config::model()->with(
-					'guest_role.role_service_accesses',
-					'guest_role.apps',
-					'guest_role.services'
-				)->find();
-
-				if ( !empty( $theConfig ) )
-				{
-					if ( Utilities::boolval( $theConfig->allow_guest_user ) )
-					{
-						static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
-						return;
-					}
-				}
-
-				// otherwise throw original exception
-				throw $ex;
-			}
+			$userId = static::validateSession();
+			static::$_cache = static::generateSessionDataFromUser( $userId );
 		}
 	}
 

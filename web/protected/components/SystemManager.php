@@ -560,10 +560,7 @@ class SystemManager extends RestService
 			case 'service':
 			case 'user':
 			case 'email_template':
-				$_resource = static::getNewResource( $this->_resource );
-				$_resource->setResourceArray( $this->_resourceArray );
-
-				return $_resource->processRequest( $this->_action );
+				return static::getNewResource( $this->_resource )->processRequest( $this->_action );
 				break;
 			default:
 				return false;

@@ -81,8 +81,7 @@ abstract class RestResource extends BaseResource implements HttpMethod
 	 * @param string $action
 	 *
 	 * @return bool
-	 */
-	public function processRequest( $action = self::Get)
+	 */public function processRequest( $action = self::Get)
 	{
 		$this->_setAction( $action );
 		$this->_detectResourceMembers();

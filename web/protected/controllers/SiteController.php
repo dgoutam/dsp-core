@@ -119,11 +119,11 @@ class SiteController extends Controller
 
 				case PlatformStates::SCHEMA_REQUIRED:
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect('site/upgradeSchema' );
+					$this->redirect( 'site/upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect('site/initData' );
+					$this->redirect( 'site/initData' );
 					break;
 			}
 		}
@@ -202,7 +202,7 @@ class SiteController extends Controller
 	public function actionLogout()
 	{
 		Pii::user()->logout();
-		$this->redirect( '/' );
+		$this->redirect( '/site/index' );
 	}
 
 	/**
@@ -211,7 +211,7 @@ class SiteController extends Controller
 	public function actionInitSystem()
 	{
 		SystemManager::initSystem();
-		$this->redirect( '/' );
+		$this->redirect( '/site/index' );
 	}
 
 	/**
@@ -228,7 +228,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				$this->redirect( '/' );
+				$this->redirect( '/site/index' );
 			}
 
 			$this->refresh();
@@ -248,7 +248,7 @@ class SiteController extends Controller
 	public function actionInitAdmin()
 	{
 		SystemManager::initAdmin();
-		$this->redirect( '/' );
+		$this->redirect( '/site/index' );
 	}
 
 	/**
@@ -265,7 +265,7 @@ class SiteController extends Controller
 			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				$this->redirect( '/' );
+				$this->redirect( '/site/index' );
 			}
 
 			$this->refresh();
