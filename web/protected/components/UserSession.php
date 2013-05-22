@@ -126,18 +126,18 @@ class UserSession extends RestResource
 	{
 		switch ( $this->_action )
 		{
-			case self::Get:
+			case static::Get:
 				$ticket = Utilities::getArrayValue( 'ticket', $_REQUEST, '' );
 				$result = $this->userSession( $ticket );
 				break;
-			case self::Post:
+			case static::Post:
 				$data = Utilities::getPostDataAsArray();
 				$email = Utilities::getArrayValue( 'email', $data, '' );
 				$password = Utilities::getArrayValue( 'password', $data, '' );
 				//$password = Utilities::decryptPassword($password);
 				$result = $this->userLogin( $email, $password );
 				break;
-			case self::Delete:
+			case static::Delete:
 				$this->userLogout();
 				$result = array( 'success' => true );
 				break;

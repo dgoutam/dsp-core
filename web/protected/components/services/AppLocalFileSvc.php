@@ -69,7 +69,7 @@ class AppLocalFileSvc extends LocalFileSvc
 			);
 		}
 
-		return array_merge( $swagger, parent::swaggerParameters( $parameters, $method ));
+		return array_merge( $swagger, parent::swaggerParameters( $parameters, $method ) );
 	}
 
 	/**
@@ -243,9 +243,9 @@ class AppLocalFileSvc extends LocalFileSvc
 	 */
 	protected function _handleResource()
 	{
-		switch ($this->_action)
+		switch ( $this->_action )
 		{
-			case self::Get:
+			case static::Get:
 				$this->checkPermission( 'read' );
 				if ( empty( $this->_resource ) )
 				{
@@ -253,7 +253,8 @@ class AppLocalFileSvc extends LocalFileSvc
 					return $this->getFolderContent( '', false, true, false );
 				}
 				break;
-			case self::Post:
+
+			case static::Post:
 				$this->checkPermission( 'create' );
 				if ( empty( $this->_resource ) )
 				{
@@ -261,9 +262,10 @@ class AppLocalFileSvc extends LocalFileSvc
 					throw new Exception( "Application service root directory is not available for file creation." );
 				}
 				break;
-			case self::Put:
-			case self::Patch:
-			case self::Merge:
+
+			case static::Put:
+			case static::Patch:
+			case static::Merge:
 				$this->checkPermission( 'update' );
 				if ( empty( $this->_resource ) || ( ( 1 === count( $this->_resourceArray ) ) && empty( $this->_resourceArray[0] ) ) )
 				{
@@ -271,7 +273,8 @@ class AppLocalFileSvc extends LocalFileSvc
 					throw new Exception( "Application service root directory is not available for file updates." );
 				}
 				break;
-			case self::Delete:
+
+			case static::Delete:
 				$this->checkPermission( 'delete' );
 				if ( empty( $this->_resource ) )
 				{

@@ -73,10 +73,10 @@ class SwaggerUtilities
 		 */
 		$command = Yii::app()->db->createCommand();
 		$result = $command->select( 'api_name,type,description' )
-			->from( 'df_sys_service' )
-			->order( 'api_name' )
-			->where( 'type != :t', array( ':t' => 'Remote Web Service' ) )
-			->queryAll();
+				  ->from( 'df_sys_service' )
+				  ->order( 'api_name' )
+				  ->where( 'type != :t', array( ':t' => 'Remote Web Service' ) )
+				  ->queryAll();
 
 		// add static services
 		$other = array(
@@ -167,7 +167,7 @@ class SwaggerUtilities
 	 * This builds the full swagger cache if it does not exist
 	 *
 	 * @return string The JSON contents of the swagger api listing.
-	 * @throws InternalServerErrorException
+	 * @throws \InternalServerErrorException
 	 */
 	public static function getSwagger()
 	{
@@ -178,13 +178,13 @@ class SwaggerUtilities
 			static::buildSwagger();
 			if ( !file_exists( $_filePath ) )
 			{
-				throw new InternalServerErrorException( "Failed to create swagger cache." );
+				throw new \InternalServerErrorException( "Failed to create swagger cache." );
 			}
 		}
 
 		if ( false === ( $_content = file_get_contents( $_filePath ) ) )
 		{
-			throw new InternalServerErrorException( "Failed to retrieve swagger cache." );
+			throw new \InternalServerErrorException( "Failed to retrieve swagger cache." );
 		}
 
 		return $_content;
@@ -195,7 +195,7 @@ class SwaggerUtilities
 	 *
 	 * @param string $service Which service (api_name) to retrieve.
 	 *
-	 * @throws InternalServerErrorException
+	 * @throws \InternalServerErrorException
 	 * @return string The JSON contents of the swagger service.
 	 */
 	public static function getSwaggerForService( $service )
@@ -207,13 +207,13 @@ class SwaggerUtilities
 			static::buildSwagger();
 			if ( !file_exists( $_filePath ) )
 			{
-				throw new InternalServerErrorException( "Failed to create swagger cache." );
+				throw new \InternalServerErrorException( "Failed to create swagger cache." );
 			}
 		}
 
 		if ( false === ( $_content = file_get_contents( $_filePath ) ) )
 		{
-			throw new InternalServerErrorException( "Failed to retrieve swagger cache." );
+			throw new \InternalServerErrorException( "Failed to retrieve swagger cache." );
 		}
 
 		return $_content;

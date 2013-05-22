@@ -35,32 +35,24 @@ use Swagger\Annotations as SWG;
  * )
  *
  * @SWG\Model(id="Config",
- *   @SWG\Property(name="dsp_version",type="string",description="Version of the DSP software."),
- *   @SWG\Property(name="db_version",type="string",description="Version of the database schema."),
- *   @SWG\Property(name="allow_open_registration",type="boolean",description="Allow guests to register for a user account."),
- *   @SWG\Property(name="open_reg_role_id",type="int",description="Default Role Id assigned to newly registered users."),
- *   @SWG\Property(name="allow_guest_user",type="boolean",description="Allow app access for non-authenticated users."),
- *   @SWG\Property(name="guest_role_id",type="int",description="Role Id assigned for all guest sessions."),
- *   @SWG\Property(name="editable_profile_fields",type="string",description="Comma-delimited list of fields the user is allowed to edit."),
- *   @SWG\Property(name="allowed_hosts",type="Array",items="$ref:HostInfo",description="CORS whitelist of allowed remote hosts.")
+ * @SWG\Property(name="dsp_version",type="string",description="Version of the DSP software."),
+ * @SWG\Property(name="db_version",type="string",description="Version of the database schema."),
+ * @SWG\Property(name="allow_open_registration",type="boolean",description="Allow guests to register for a user account."),
+ * @SWG\Property(name="open_reg_role_id",type="int",description="Default Role Id assigned to newly registered users."),
+ * @SWG\Property(name="allow_guest_user",type="boolean",description="Allow app access for non-authenticated users."),
+ * @SWG\Property(name="guest_role_id",type="int",description="Role Id assigned for all guest sessions."),
+ * @SWG\Property(name="editable_profile_fields",type="string",description="Comma-delimited list of fields the user is allowed to edit."),
+ * @SWG\Property(name="allowed_hosts",type="Array",items="$ref:HostInfo",description="CORS whitelist of allowed remote hosts.")
  * )
  * @SWG\Model(id="HostInfo",
- *   @SWG\Property(name="host",type="string",description="URL, server name, or * to define the CORS host."),
- *   @SWG\Property(name="is_enabled",type="boolean",description="Allow this host's configuration to be used by CORS."),
- *   @SWG\Property(name="verbs",type="Array",items="$ref:string",description="Allowed HTTP verbs for this host.")
+ * @SWG\Property(name="host",type="string",description="URL, server name, or * to define the CORS host."),
+ * @SWG\Property(name="is_enabled",type="boolean",description="Allow this host's configuration to be used by CORS."),
+ * @SWG\Property(name="verbs",type="Array",items="$ref:string",description="Allowed HTTP verbs for this host.")
  * )
  *
  */
 class SystemConfig extends RestResource
 {
-	//*************************************************************************
-	//	Constants
-	//*************************************************************************
-
-	//*************************************************************************
-	//	Members
-	//*************************************************************************
-
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
@@ -73,12 +65,12 @@ class SystemConfig extends RestResource
 	public function __construct()
 	{
 		$config = array(
-			'service_name'=> 'system',
-			'name'        => 'Configuration',
-			'api_name'    => 'config',
-			'type'        => 'System',
-			'description' => 'System general configuration.',
-			'is_active'   => true,
+			'service_name' => 'system',
+			'name'         => 'Configuration',
+			'api_name'     => 'config',
+			'type'         => 'System',
+			'description'  => 'System general configuration.',
+			'is_active'    => true,
 		);
 
 		parent::__construct( $config );
@@ -112,14 +104,15 @@ class SystemConfig extends RestResource
 
 		switch ( $this->_action )
 		{
-			case self::Get:
+			case static::Get:
 				$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
 				$result = static::retrieveConfig( $fields, $include_schema, $extras );
 				break;
-			case self::Post:
-			case self::Put:
-			case self::Patch:
-			case self::Merge:
+
+			case static::Post:
+			case static::Put:
+			case static::Patch:
+			case static::Merge:
 				$data = Utilities::getPostDataAsArray();
 				if ( empty( $data ) )
 				{
@@ -127,6 +120,7 @@ class SystemConfig extends RestResource
 				}
 				$result = static::updateConfig( $data, $fields, $extras );
 				break;
+
 			default:
 				return false;
 		}
@@ -138,10 +132,10 @@ class SystemConfig extends RestResource
 	// records is an array of field arrays
 
 	/**
-	 *   @SWG\Api(
-	 *     path="/system/config", description="Operations for system configuration options.",
-	 *     @SWG\Operations(
-	 *       @SWG\Operation(
+	 * @SWG\Api(
+	 *         path="/system/config", description="Operations for system configuration options.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *         httpMethod="GET", summary="Retrieve system configuration options.",
 	 *         notes="The retrieved properties control how the system behaves.",
 	 *         responseClass="Config", nickname="getConfig"
@@ -227,7 +221,7 @@ class SystemConfig extends RestResource
 
 			// get cors data from config file
 			$allowedHosts = array();
-			$path = Pii::getParam('private_path');
+			$path = Pii::getParam( 'private_path' );
 			if ( file_exists( $path . '/cors.config.json' ) )
 			{
 				$content = file_get_contents( $path . '/cors.config.json' );
@@ -244,26 +238,26 @@ class SystemConfig extends RestResource
 		{
 			throw new Exception( "Error retrieving configuration record.\n{$ex->getMessage()}" );
 		}
-}
+	}
 
 	/**
-	 *   @SWG\Api(
-	 *     path="/system/config", description="Operations for system configuration options.",
-	 *     @SWG\Operations(
-	 *       @SWG\Operation(
-	 *         httpMethod="POST", summary="Update one or more system configuration properties.",
-	 *         notes="Post data should be an array of properties.",
-	 *         responseClass="Success", nickname="setConfig",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Api(
+	 *             path="/system/config", description="Operations for system configuration options.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *             httpMethod="POST", summary="Update one or more system configuration properties.",
+	 *             notes="Post data should be an array of properties.",
+	 *             responseClass="Success", nickname="setConfig",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="config", description="Data containing name-value pairs of properties to set.",
 	 *             paramType="body", required="true", allowMultiple=false, dataType="Config"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       )
 	 *     )
@@ -272,6 +266,7 @@ class SystemConfig extends RestResource
 	 * @param $record
 	 * @param $return_fields
 	 * @param $extras
+	 *
 	 * @return array
 	 * @throws Exception
 	 */
@@ -286,14 +281,14 @@ class SystemConfig extends RestResource
 
 			static::validateHosts( $allowedHosts );
 			$allowedHosts = DataFormat::jsonEncode( $allowedHosts, true );
-			$path = Pii::getParam('private_path');
+			$path = Pii::getParam( 'private_path' );
 			// create directory if it doesn't exists
 			if ( !file_exists( $path ) )
 			{
 				@\mkdir( $path, 0777, true );
 			}
 			// write new cors config
-			if (false === file_put_contents( $path . '/cors.config.json', $allowedHosts ) )
+			if ( false === file_put_contents( $path . '/cors.config.json', $allowedHosts ) )
 			{
 				throw new Exception( "Failed to update CORS configuration." );
 			}
@@ -360,9 +355,10 @@ class SystemConfig extends RestResource
 		foreach ( $allowed_hosts as $_hostInfo )
 		{
 			$_host = Option::get( $_hostInfo, 'host', '' );
+
 			if ( empty( $_host ) )
 			{
-				throw new BadRequestException( "Allowed hosts contains an empty host name." );
+				throw new \BadRequestException( "Allowed hosts contains an empty host name." );
 			}
 		}
 	}
