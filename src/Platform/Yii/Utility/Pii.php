@@ -296,7 +296,7 @@ class Pii extends \Yii
 	 */
 	public static function controller()
 	{
-		return static::$_thisController ? : ( static::$_thisController = static::app()->getController() );
+		return static::app()->getController();
 	}
 
 	/**
@@ -357,12 +357,7 @@ class Pii extends \Yii
 	 */
 	public static function clientScript()
 	{
-		if ( null === static::$_clientScript )
-		{
-			static::$_clientScript = static::app()->getClientScript();
-		}
-
-		return static::$_clientScript;
+		return static::app()->getClientScript();
 	}
 
 	/**
@@ -544,7 +539,7 @@ class Pii extends \Yii
 	 */
 	public static function request()
 	{
-		return static::$_thisRequest;
+		return static::app()->getRequest();
 	}
 
 	/**
@@ -924,7 +919,7 @@ class Pii extends \Yii
 	 */
 	public static function getState( $name, $defaultValue = null )
 	{
-		return static::$_thisUser ? static::$_thisUser->getState( $name, $defaultValue ) : false;
+		return static::app()->getUser()->getState( $name, $defaultValue );
 	}
 
 	/**
@@ -934,10 +929,7 @@ class Pii extends \Yii
 	 */
 	public static function setState( $name, $value, $defaultValue = null )
 	{
-		if ( static::$_thisUser )
-		{
-			static::$_thisUser->setState( $name, $value, $defaultValue );
-		}
+		static::app()->getUser()->setState( $name, $value, $defaultValue );
 	}
 
 	/**
@@ -945,7 +937,7 @@ class Pii extends \Yii
 	 */
 	public static function clearState( $name )
 	{
-		static::$_thisUser->setState( $name, null, null );
+		static::app()->getUser()->setState( $name, null, null );
 	}
 
 	/**
@@ -958,7 +950,7 @@ class Pii extends \Yii
 	 */
 	public static function setFlash( $key, $message = null, $defaultValue = null )
 	{
-		static::$_thisUser->setFlash( $key, $message, $defaultValue );
+		static::app()->getUser()->setFlash( $key, $message, $defaultValue );
 	}
 
 	/**
@@ -973,7 +965,7 @@ class Pii extends \Yii
 	 */
 	public static function getFlash( $key, $defaultValue = null, $delete = true )
 	{
-		return static::$_thisUser->getFlash( $key, $defaultValue, $delete );
+		return static::app()->getUser()->getFlash( $key, $defaultValue, $delete );
 	}
 
 	/**

@@ -92,6 +92,7 @@ class PlatformUserIdentity extends \CUserIdentity
 
 		$this->_user = $_user;
 		$this->_userId = $_user->id;
+
 		$this->setState( 'display_name', $_user->display_name );
 		$this->setState( 'email', $_user->email );
 		$this->setState( 'first_name', $_user->first_name );

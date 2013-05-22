@@ -19,6 +19,7 @@
  */
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use Platform\Yii\Utility\Pii;
 
 /**
  * DrupalUserIdentity
