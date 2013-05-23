@@ -59,17 +59,19 @@ class SiteController extends Controller
 		return array(
 			array(
 				'allow',
-				'users'   => array( '*' ),
 				'actions' => array( 'index', 'login', 'error', ),
+				'users'   => array( '?' ),
 			),
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'users'   => array( '@' ),
 				'actions' => array( 'initSystem', 'initAdmin', 'environment', 'initSchema', 'upgradeSchema', 'initData', 'metrics', 'fileTree', 'logout' ),
+				'users'   => array( '@' ),
 			),
-			//	Deny all others access to init commands
-			array( 'deny', ),
+//			//	Deny all others access to init commands
+//			array(
+//				'deny',
+//			),
 		);
 	}
 

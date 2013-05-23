@@ -51,6 +51,14 @@ use Swagger\Annotations as SWG;
 class SystemConfig extends RestResource
 {
 	//*************************************************************************
+	//	Constants
+	//*************************************************************************
+
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
+	//*************************************************************************
 	//	Methods
 	//*************************************************************************
 
@@ -101,15 +109,14 @@ class SystemConfig extends RestResource
 
 		switch ( $this->_action )
 		{
-			case static::Get:
+			case self::Get:
 				$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
 				$result = static::retrieveConfig( $fields, $include_schema, $extras );
 				break;
-
-			case static::Post:
-			case static::Put:
-			case static::Patch:
-			case static::Merge:
+			case self::Post:
+			case self::Put:
+			case self::Patch:
+			case self::Merge:
 				$data = Utilities::getPostDataAsArray();
 				if ( empty( $data ) )
 				{
@@ -117,7 +124,6 @@ class SystemConfig extends RestResource
 				}
 				$result = static::updateConfig( $data, $fields, $extras );
 				break;
-
 			default:
 				return false;
 		}
@@ -301,10 +307,6 @@ class SystemConfig extends RestResource
 			}
 
 			$obj->setAttributes( $record );
-
-			$obj->storage_id = Pii::getParam( 'dsp.storage_id' );
-			$obj->private_storage_id = Pii::getParam( 'dsp.private_storage_id' );
-
 			$obj->save();
 		}
 		catch ( Exception $ex )
@@ -352,10 +354,9 @@ class SystemConfig extends RestResource
 		foreach ( $allowed_hosts as $_hostInfo )
 		{
 			$_host = Option::get( $_hostInfo, 'host', '' );
-
 			if ( empty( $_host ) )
 			{
-				throw new \BadRequestException( "Allowed hosts contains an empty host name." );
+				throw new BadRequestException( "Allowed hosts contains an empty host name." );
 			}
 		}
 	}
