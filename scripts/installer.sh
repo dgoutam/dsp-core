@@ -246,23 +246,26 @@ fi
 # Into public dir, link shared apps and junk
 cd ${PUBLIC_DIR}
 
-if [ ! -d "${PUBLIC_DIR}/web-core" ] ; then
+if [ ! -L "${PUBLIC_DIR}/web-core" ] ; then
     ln -sf ${SHARE_DIR}/dreamfactory/web/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
-if [ ! -d "${PUBLIC_DIR}/launchpad" ] ; then
+if [ ! -L "${PUBLIC_DIR}/launchpad" ] ; then
     ln -sf ${SHARE_DIR}/dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
-if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
+if [ ! -L "${PUBLIC_DIR}/admin" ] ; then
     ln -sf ${SHARE_DIR}/dreamfactory/app/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
 
+# Up one and link shared...
 if [ ! -d "${WEB_DIR}/shared" ] ; then
+	cd ${WEB_DIR}
     ln -sf ${SHARE_DIR} shared >/dev/null 2>&1
+    cd ${PUBLIC_DIR}
     echo "  * Shared files linked"
 fi
 
