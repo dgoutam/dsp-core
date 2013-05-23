@@ -80,21 +80,16 @@ $_dbCache = $_dbCacheEnabled ?
 /**
  * Set up and return the common settings...
  */
-if ( Fabric::fabricHosted() && !empty( $_instance ) )
+if ( Fabric::fabricHosted() )
 {
-	if ( is_object( $_instance ) )
-	{
-		$_instance = (array)$_instance;
-	}
-
 	$_instanceSettings = array(
-		'storage_base_path'      => $_instance['storage_path'],
-		'private_path'           => $_instance['private_path'],
-		'storage_path'           => $_instance['blob_storage_path'],
-		'snapshot_path'          => $_instance['snapshot_path'],
-		'dsp_name'               => $_instance['instance']->instance_name_text,
-		'dsp.storage_id'         => $_instance['storage_key'],
-		'dsp.private_storage_id' => $_instance['private_storage_key'],
+		'storage_base_path'      => '/data/storage/' . \Kisma::get( 'platform.storage_key' ),
+		'private_path'           => \Kisma::get( 'platform.private_path' ),
+		'storage_path'           => '/data/storage/' . \Kisma::get( 'platform.storage_key' ) . '/blob',
+		'snapshot_path'          => \Kisma::get( 'platform.private_path' ) . '/snapshots',
+		'dsp_name'               => \Kisma::get( 'platform.dsp_name' ),
+		'dsp.storage_id'         => \Kisma::get( 'platform.storage_key' ),
+		'dsp.private_storage_id' => \Kisma::get( 'platform.private_storage_key' ),
 	);
 }
 else

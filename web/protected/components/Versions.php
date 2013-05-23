@@ -29,9 +29,9 @@ class Versions
 	/**
 	 * @var string
 	 */
-	const API_VERSION = '1.0.0';
+	const API_VERSION = '1.0';
 	/**
 	 * @var string
 	 */
-	const SOAP_VERSION = '1.0.0';
+	const SOAP_VERSION = '1.0';
 }

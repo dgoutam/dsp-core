@@ -582,14 +582,9 @@ class Pii extends \Yii
 	 */
 	public static function getParam( $paramName, $defaultValue = null )
 	{
-		if ( null === static::$_appParameters )
+		if ( static::app() )
 		{
-			static::app();
-		}
-
-		if ( null !== static::$_appParameters && static::$_appParameters->contains( $paramName ) )
-		{
-			return static::$_appParameters->itemAt( $paramName );
+			return Option::get( static::app()->getParams(), $paramName, $defaultValue );
 		}
 
 		return $defaultValue;

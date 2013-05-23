@@ -146,7 +146,7 @@ class Fabric extends SeedUtility
 
 			//	Otherwise, get the credentials from the auth server...
 //			Log::info( 'Credentials pull' );
-			$_response = \Curl::get( Pii::getParam( 'dsp.auth_endpoint', static::DEFAULT_AUTH_ENDPOINT ) . '/' . $_dspName . '/database' );
+			$_response = \Curl::get( static::DEFAULT_AUTH_ENDPOINT . '/' . $_dspName . '/database' );
 
 			if ( HttpResponse::NotFound == \Curl::getLastHttpCode() )
 			{

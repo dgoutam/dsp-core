@@ -52,7 +52,7 @@ class SwaggerUtilities
 	protected static function buildSwagger()
 	{
 		$_basePath = Yii::app()->getRequest()->getHostInfo() . '/rest';
-		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
+		$_swaggerPath = Pii::getParam( 'storage_base_path' ) . static::SWAGGER_CACHE_DIR;
 
 		// create root directory if it doesn't exists
 		if ( !file_exists( $_swaggerPath ) )
@@ -65,7 +65,7 @@ class SwaggerUtilities
 		$_swagger = Swagger::discover( $_scanPath );
 		$_swagger->setDefaultBasePath( $_basePath );
 		$_swagger->setDefaultApiVersion( Versions::API_VERSION );
-		$_swagger->setDefaultSwaggerVersion('1.1');
+		$_swagger->setDefaultSwaggerVersion( '1.1' );
 
 		/**
 		 * build services from database
@@ -172,7 +172,7 @@ class SwaggerUtilities
 	 */
 	public static function getSwagger()
 	{
-		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
+		$_swaggerPath = Pii::getParam( 'storage_base_path' ) . static::SWAGGER_CACHE_DIR;
 		$_filePath = $_swaggerPath . '_.json';
 		if ( !file_exists( $_filePath ) )
 		{
@@ -201,7 +201,7 @@ class SwaggerUtilities
 	 */
 	public static function getSwaggerForService( $service )
 	{
-		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
+		$_swaggerPath = Pii::getParam( 'storage_base_path' ) . static::SWAGGER_CACHE_DIR;
 		$_filePath = $_swaggerPath . $service . '.json';
 		if ( !file_exists( $_filePath ) )
 		{
@@ -225,7 +225,7 @@ class SwaggerUtilities
 	 */
 	public static function clearCache()
 	{
-		$_swaggerPath = Pii::getParam( 'private_path' ) . static::SWAGGER_CACHE_DIR;
+		$_swaggerPath = Pii::getParam( 'storage_base_path' ) . static::SWAGGER_CACHE_DIR;
 		if ( file_exists( $_swaggerPath ) )
 		{
 			$files = array_diff( scandir( $_swaggerPath ), array( '.', '..' ) );
