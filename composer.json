@@ -1,60 +1,66 @@
 {
-	"name":              "dreamfactory/web-csp",
-	"description":       "DreamFactory Services Platform(tm) Core",
-	"keywords":          [
-		"php",
-		"php5",
-		"rest",
-		"framework",
-		"cloud-computing",
-		"remote web services",
-		"library",
-		"dsp-core",
-		"dsp"
-	],
-	"type":              "library",
-	"license":           [
-		"Apache-2.0"
-	],
-	"authors":           [
-		{
-			"name":  "Lee Hicks",
-			"email": "leehicks@dreamfactory.com",
-			"role":  "Lead Developer, server-side"
-		},
-		{
-			"name":  "Jason Sykes",
-			"email": "jasonsykes@dreamfactory.com",
-			"role":  "Lead Developer, client-side"
-		},
-		{
-			"name":  "Todd Appleton",
-			"email": "toddappleton@dreamfactory.com",
-			"role":  "Lead Developer and QA, client-side"
-		},
-		{
-			"name":  "Jerry Ablan",
-			"email": "jerryablan@dreamfactory.com",
-			"role":  "Black Ops"
-		}
-	],
-	"minimum-stability": "dev",
-	"require":           {
-		"php":                        ">=5.3.8",
-		"kisma/kisma":                "dev-master",
-		"dreamfactory/yii":           "dev-master",
-		"dreamfactory/app-admin":     "dev-master",
-		"dreamfactory/app-launchpad": "dev-master",
-		"dreamfactory/web-core":      "dev-master",
-		"aws/aws-sdk-php":            "2.*",
-		"swiftmailer/swiftmailer":    "4.3.*",
-		"zircote/swagger-php":        "0.6.*@dev"
-	},
-	"autoload":          {
-		"psr-0": {
-			"WindowsAzure\\": "lib/microsoft/azure-sdk-for-php",
-			"Platform\\":     "src/"
-		}
-	}
+  "name":              "dreamfactory/web-csp",
+  "description":       "DreamFactory Services Platform(tm) Core",
+  "keywords":          [
+    "php",
+    "php5",
+    "rest",
+    "framework",
+    "cloud-computing",
+    "remote web services",
+    "library",
+    "dsp-core",
+    "dsp"
+  ],
+  "type":              "library",
+  "license":           [
+    "Apache-2.0"
+  ],
+  "authors":           [
+    {
+      "name":  "Lee Hicks",
+      "email": "leehicks@dreamfactory.com",
+      "role":  "Lead Developer, server-side"
+    },
+    {
+      "name":  "Jason Sykes",
+      "email": "jasonsykes@dreamfactory.com",
+      "role":  "Lead Developer, client-side"
+    },
+    {
+      "name":  "Todd Appleton",
+      "email": "toddappleton@dreamfactory.com",
+      "role":  "Lead Developer and QA, client-side"
+    },
+    {
+      "name":  "Jerry Ablan",
+      "email": "jerryablan@dreamfactory.com",
+      "role":  "Black Ops"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require":           {
+    "php":                        ">=5.3.8",
+    "kisma/kisma":                "dev-master",
+    "dreamfactory/yii":           "dev-master",
+    "dreamfactory/app-admin":     "dev-master",
+    "dreamfactory/app-launchpad": "dev-master",
+    "dreamfactory/web-core":      "dev-master",
+    "swiftmailer/swiftmailer":    "4.3.*",
+    "zircote/swagger-php":        "0.6.*@dev",
+    "aws/aws-sdk-php":            "2.*",
+    "microsoft/windowsazure":     "*"
+  },
+  "repositories":      [
+    {
+      "type": "pear",
+      "url":  "http://pear.php.net"
+    }
+  ],
+  "autoload":          {
+    "psr-0": {
+      "Platform\\": "src/"
+    }
+  }
 
 }

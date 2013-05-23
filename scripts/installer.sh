@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.1.6
+#   Removed separate lib directory for Azure
+#
 # v1.1.5
 #   Restored pull of submodules
 #
@@ -165,7 +168,6 @@ WEB_DIR=${BASE_PATH}/web
 PUBLIC_DIR=${WEB_DIR}/public
 ASSETS_DIR=${PUBLIC_DIR}/assets
 APPS_DIR=${BASE_PATH}/apps
-LIB_DIR=${BASE_PATH}/lib
 
 # Determine share location
 if [ -f "${FABRIC_MARKER}" ] ; then
@@ -176,7 +178,6 @@ fi
 
 # Make sure these are there...
 [ -d "${APPS_DIR}" ] && rm -rf "${APPS_DIR}" >/dev/null 2>&1  && echo "  * Removed bogus apps directory \"${APPS_DIR}\""
-[ ! -d "${LIB_DIR}" ] && mkdir "${LIB_DIR}" >/dev/null 2>&1  && echo "  * Created ${LIB_DIR}"
 [ ! -d "${SHARE_DIR}" ] && mkdir "${SHARE_DIR}" >/dev/null 2>&1  && echo "  * Created ${SHARE_DIR}"
 
 # Git submodules
@@ -258,6 +259,11 @@ fi
 if [ ! -d "${PUBLIC_DIR}/admin" ] ; then
     ln -sf ${SHARE_DIR}/dreamfactory/app/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
+fi
+
+if [ ! -d "${WEB_DIR}/shared" ] ; then
+    ln -sf ${SHARE_DIR} shared >/dev/null 2>&1
+    echo "  * Shared files linked"
 fi
 
 # Back

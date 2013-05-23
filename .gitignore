@@ -10,4 +10,6 @@ web/public/assets
 web/public/admin
 web/public/launchpad
 web/public/web-core
+web/public/dsp-core
+web/shared/
 id_deploy
