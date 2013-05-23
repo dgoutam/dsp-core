@@ -37,13 +37,17 @@ class PlatformWebApplication extends \CWebApplication
 	//*************************************************************************
 
 	/**
+	 * @var string The HTTP Option method
+	 */
+	const CORS_OPTION_METHOD = 'OPTIONS';
+	/**
 	 * @var string The allowed HTTP methods
 	 */
-	const CORS_ALLOWED_METHODS = 'GET, POST, PUT, DELETE, PATCH, MERGE, COPY, OPTIONS';
+	const CORS_DEFAULT_ALLOWED_METHODS = 'GET, POST, PUT, DELETE, PATCH, MERGE, COPY, OPTIONS';
 	/**
 	 * @var string The allowed HTTP headers
 	 */
-	const CORS_ALLOWED_HEADERS = 'X-Requested-With, X-DreamFactory-Application-Name, X-DreamFactory-Session-Token';
+	const CORS_DEFAULT_ALLOWED_HEADERS = 'Content-Type, X-Requested-With, X-DreamFactory-Application-Name, X-DreamFactory-Session-Token';
 	/**
 	 * @var int The default number of seconds to allow this to be cached. Default is 15 minutes.
 	 */
@@ -205,7 +209,7 @@ class PlatformWebApplication extends \CWebApplication
 		}
 
 		header( 'Access-Control-Allow-Credentials: true' );
-		header( 'Access-Control-Allow-Headers: ' . static::CORS_ALLOWED_HEADERS );
+		header( 'Access-Control-Allow-Headers: ' . static::CORS_DEFAULT_ALLOWED_HEADERS );
 		header( 'Access-Control-Allow-Methods: ' . $_allowedMethods );
 		header( 'Access-Control-Max-Age: ' . static::CORS_DEFAULT_MAX_AGE );
 
@@ -215,11 +219,6 @@ class PlatformWebApplication extends \CWebApplication
 
 			if ( $_origin )
 			{
-				if ( !empty( $this->_corsWhitelist ) )
-				{
-//					header( 'X-DreamFactory-Full-Whitelist: ' . implode( ', ', $this->_corsWhitelist ) );
-				}
-
 				header( 'X-DreamFactory-Origin-Whitelisted: ' . preg_match( '/^([\w_-]+\.)*' . $_requestSource . '$/', $_originUri ) );
 			}
 		}
@@ -237,7 +236,7 @@ class PlatformWebApplication extends \CWebApplication
 	{
 		foreach ( array_merge( $this->_corsWhitelist, Option::clean( $additional ) ) as $_hostInfo )
 		{
-			$_allowedMethods = static::CORS_ALLOWED_METHODS;
+			$_allowedMethods = static::CORS_DEFAULT_ALLOWED_METHODS;
 
 			if ( is_array( $_hostInfo ) )
 			{
@@ -255,6 +254,11 @@ class PlatformWebApplication extends \CWebApplication
 
 				if ( isset( $_hostInfo['verbs'] ) )
 				{
+					if (false === array_search(static::CORS_OPTION_METHOD, $_hostInfo['verbs']))
+					{
+						// add OPTION to allowed list
+						$_hostInfo['verbs'][] = static::CORS_OPTION_METHOD;
+					}
 					$_allowedMethods = implode( ', ', $_hostInfo['verbs'] );
 				}
 			}
