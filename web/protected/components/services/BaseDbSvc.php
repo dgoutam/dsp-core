@@ -24,9 +24,6 @@ use Swagger\Annotations as SWG;
  * A base service class to handle generic db services accessed through the REST API.
  *
  * @SWG\Resource(
- *   apiVersion="1.0.0",
- *   swaggerVersion="1.1",
- *   basePath="http://localhost/rest",
  *   resourcePath="/{sql_db}"
  * )
  *

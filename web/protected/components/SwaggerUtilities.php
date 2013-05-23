@@ -65,6 +65,7 @@ class SwaggerUtilities
 		$_swagger = Swagger::discover( $_scanPath );
 		$_swagger->setDefaultBasePath( $_basePath );
 		$_swagger->setDefaultApiVersion( Versions::API_VERSION );
+		$_swagger->setDefaultSwaggerVersion('1.1');
 
 		/**
 		 * build services from database

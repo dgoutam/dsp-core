@@ -24,9 +24,6 @@ use Swagger\Annotations as SWG;
  * Base File Storage Service giving REST access to file storage.
  *
  * @SWG\Resource(
- *   apiVersion="1.0.0",
- *   swaggerVersion="1.1",
- *   basePath="http://localhost/rest",
  *   resourcePath="/{file}"
  * )
  *

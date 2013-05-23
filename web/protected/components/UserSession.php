@@ -31,9 +31,6 @@ use Swagger\Annotations as SWG;
  * @category
  *
  * @SWG\Resource(
- *   apiVersion="1.0.0",
- *   swaggerVersion="1.1",
- *   basePath="http://localhost/rest",
  *   resourcePath="/user"
  * )
  *
