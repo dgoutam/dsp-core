@@ -233,7 +233,12 @@ class RestController extends Controller
 		$appName = Utilities::getArrayValue( 'HTTP_X_DREAMFACTORY_APPLICATION_NAME', $_SERVER, '' );
 		if ( empty( $appName ) )
 		{
-			$appName = Utilities::getArrayValue( 'app_name', $_REQUEST, '' );
+			// old non-name-spaced header
+			$appName = Utilities::getArrayValue( 'HTTP_X_APPLICATION_NAME', $_SERVER, '' );
+			if ( empty( $appName ) )
+			{
+				$appName = Utilities::getArrayValue( 'app_name', $_REQUEST, '' );
+			}
 		}
 		if ( empty( $appName ) )
 		{
