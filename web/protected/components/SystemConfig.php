@@ -54,6 +54,11 @@ class SystemConfig extends RestResource
 	//	Constants
 	//*************************************************************************
 
+	/**
+	 * @var string The private CORS configuration file
+	 */
+	const CORS_DEFAULT_CONFIG_FILE = '/cors.config.json';
+
 	//*************************************************************************
 	//	Members
 	//*************************************************************************
@@ -224,10 +229,15 @@ class SystemConfig extends RestResource
 
 			// get cors data from config file
 			$allowedHosts = array();
-			$path = Pii::getParam( 'private_path' );
-			if ( file_exists( $path . '/cors.config.json' ) )
+			$_config = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+			if ( !file_exists( $_config ) )
 			{
-				$content = file_get_contents( $path . '/cors.config.json' );
+				// old location
+				$_config = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+			}
+			if ( file_exists( $_config ) )
+			{
+				$content = file_get_contents( $_config );
 				if ( !empty( $content ) )
 				{
 					$allowedHosts = json_decode( $content, true );
@@ -284,14 +294,15 @@ class SystemConfig extends RestResource
 
 			static::validateHosts( $allowedHosts );
 			$allowedHosts = DataFormat::jsonEncode( $allowedHosts, true );
-			$path = Pii::getParam( 'private_path' );
+			$_path = Pii::getParam( 'storage_base_path' );
+			$_config = $_path . static::CORS_DEFAULT_CONFIG_FILE;
 			// create directory if it doesn't exists
-			if ( !file_exists( $path ) )
+			if ( !file_exists( $_path ) )
 			{
-				@\mkdir( $path, 0777, true );
+				@\mkdir( $_path, 0777, true );
 			}
 			// write new cors config
-			if ( false === file_put_contents( $path . '/cors.config.json', $allowedHosts ) )
+			if ( false === file_put_contents( $_config, $allowedHosts ) )
 			{
 				throw new Exception( "Failed to update CORS configuration." );
 			}
