@@ -90,10 +90,11 @@ class Fabric extends SeedUtility
 
 	/**
 	 * @param string $host
+	 * @param bool   $returnHost If true and the host is private, the host name is returned instead of TRUE. FALSE is still returned if false
 	 *
 	 * @return bool
 	 */
-	public static function hostedPrivatePlatform( $host = null )
+	public static function hostedPrivatePlatform( $host = null, $returnHost = false )
 	{
 		/**
 		 * Add host names to this list to white-list...
@@ -101,11 +102,12 @@ class Fabric extends SeedUtility
 		static $_allowedHosts
 		= array(
 			'launchpad-dev.dreamfactory.com',
+			'launchpad-demo.dreamfactory.com',
 		);
 
 		$_host = $host ? : FilterInput::server( 'HTTP_HOST', gethostname() );
 
-		return in_array( $_host, $_allowedHosts );
+		return in_array( $_host, $_allowedHosts ) ? ( $returnHost ? $_host : true ) : false;
 	}
 
 	/**
@@ -118,9 +120,7 @@ class Fabric extends SeedUtility
 		global $_dbName, $_instance, $_dspName;
 
 		//	If this isn't a cloud request, bail
-		$_host = isset( $_SERVER, $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : gethostname();
-
-		if ( false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) && !static::hostedPrivatePlatform( $_host ) )
+		if ( false !== ( $_host = static::hostedPrivatePlatform( true ) ) && false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) )
 		{
 			Log::error( 'Attempt to access system from non-provisioned host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
