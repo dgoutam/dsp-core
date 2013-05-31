@@ -31,7 +31,15 @@ if ( Fabric::fabricHosted() )
 	return Fabric::initialize();
 }
 
-$_dbName = 'dreamfactory';
+if ( false !== ( $_host = Fabric::hostedPrivatePlatform( true ) ) )
+{
+	$_dbName = 'hpp_' . str_ireplace( array( '.dreamfactory.com', '-', '.cloud', '.' ), array( null, '_', null, '_' ), $_host );
+}
+else
+{
+	$_dbName = 'dreamfactory';
+}
+
 $_dbUser = 'dsp_user';
 $_dbPassword = 'dsp_user';
 
