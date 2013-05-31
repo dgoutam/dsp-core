@@ -247,18 +247,20 @@ class SqlDbSvc extends BaseDbSvc
 	 */
 	protected function gatherExtrasFromRequest()
 	{
-		$extras = array();
-		$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
-		if ( !empty( $related ) )
+		$_extras = array();
+		$_relations = array();
+		$_related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
+		if ( !empty( $_related ) )
 		{
-			$related = array_map( 'trim', explode( ',', $related ) );
-			foreach ( $related as $relative )
+			$_related = array_map( 'trim', explode( ',', $_related ) );
+			foreach ( $_related as $_relative )
 			{
-				$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-				$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
-				$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
+				$_extraFields = Utilities::getArrayValue( $_relative . '_fields', $_REQUEST, '*' );
+				$_extraOrder = Utilities::getArrayValue( $_relative . '_order', $_REQUEST, '' );
+				$_relations[] = array( 'name' => $_relative, 'fields' => $_extraFields, 'order' => $_extraOrder );
 			}
 		}
+		$_extras['related'] = $_relations;
 
 		// todo get these from post data as well
 
@@ -268,7 +270,7 @@ class SqlDbSvc extends BaseDbSvc
 		$_extras['include_count'] = Utilities::boolval( Option::get( $_REQUEST, 'include_count', false ) );
 		$_extras['include_schema'] = Utilities::boolval( Option::get( $_REQUEST, 'include_schema', false ) );
 
-		return $extras;
+		return $_extras;
 	}
 
 	// REST service implementation
