@@ -89,12 +89,11 @@ class Fabric extends SeedUtility
 	}
 
 	/**
-	 * @param string $host
-	 * @param bool   $returnHost If true and the host is private, the host name is returned instead of TRUE. FALSE is still returned if false
+	 * @param bool $returnHost If true and the host is private, the host name is returned instead of TRUE. FALSE is still returned if false
 	 *
 	 * @return bool
 	 */
-	public static function hostedPrivatePlatform( $host = null, $returnHost = false )
+	public static function hostedPrivatePlatform( $returnHost = false )
 	{
 		/**
 		 * Add host names to this list to white-list...
@@ -105,7 +104,7 @@ class Fabric extends SeedUtility
 			'launchpad-demo.dreamfactory.com',
 		);
 
-		$_host = $host ? : FilterInput::server( 'HTTP_HOST', gethostname() );
+		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
 
 		return in_array( $_host, $_allowedHosts ) ? ( $returnHost ? $_host : true ) : false;
 	}
