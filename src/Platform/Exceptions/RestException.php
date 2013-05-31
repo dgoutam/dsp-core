@@ -17,53 +17,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Platform\Utility\ServiceHandler;
-use Platform\Yii\Utility\Pii;
+namespace Platform\Exceptions;
+
+use Kisma\Core\Interfaces\HttpResponse;
 
 /**
- *  Generic controller for streaming content from storage services
+ * RestException represents an exception caused by REST API operations of end-users.
+ *
+ * The HTTP error code can be obtained via {@link statusCode}.
  */
-class StorageController extends Controller
+class RestException extends PlatformException implements HttpResponse
 {
-
 	/**
-	 * @return array action filters
+	 * @var integer HTTP status code, such as 403, 404, 500, etc.
 	 */
-	public function filters()
-	{
-		return array();
-	}
+	public $statusCode;
 
 	/**
+	 * Constructor.
 	 *
+	 * @param integer $status  HTTP status code, such as 404, 500, etc.
+	 * @param string  $message error message
+	 * @param integer $code    error code
 	 */
-	public function actionGet()
+	public function __construct( $status, $message = null, $code = 0 )
 	{
-		$service = ( isset( $_GET['service'] ) ? $_GET['service'] : '' );
-		$path = ( isset( $_GET['path'] ) ? $_GET['path'] : '' );
-		try
-		{
-			$service = ServiceHandler::getServiceObject( $service );
-			switch ( $service->getType() )
-			{
-				case 'Local File Storage':
-				case 'Remote File Storage':
-					$service->streamFile( $path );
-					break;
-			}
-			Pii::end();
-		}
-		catch ( \Exception $ex )
-		{
-			die( $ex->getMessage() );
-		}
-	}
+		$this->statusCode = $status;
 
-	/**
-	 * Lists all models.
-	 */
-	public function actionIndex()
-	{
-		Pii::end();
+		parent::__construct( $message, $code );
 	}
 }

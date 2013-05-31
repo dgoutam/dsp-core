@@ -17,7 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Kisma\Core\Exceptions\StorageException;
+use Platform\Exceptions\BadRequestException;
+use Platform\Resources\UserSession;
+use Platform\Services\SystemManager;
+use Platform\Utility\Utilities;
+use Platform\Yii\Utility\Pii;
 
 /**
  * BaseDspSystemModel.php
@@ -192,15 +196,15 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 * @param string $many_field
 	 * @param array  $many_records
 	 *
-	 * @throws Kisma\Core\Exceptions\StorageException
 	 * @throws Exception
+	 * @throws Platform\Exceptions\BadRequestException
 	 * @return void
 	 */
 	protected function assignManyToOne( $one_id, $many_table, $many_field, $many_records = array() )
 	{
 		if ( empty( $one_id ) )
 		{
-			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
+			throw new BadRequestException( "The id can not be empty." );
 		}
 		try
 		{
@@ -208,7 +212,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$pkField = $manyObj->tableSchema->primaryKey;
 			$many_table = static::tableNamePrefix() . $many_table;
 			// use query builder
-			$command = Yii::app()->db->createCommand();
+			$command = Pii::db()->createCommand();
 			$command->select( "$pkField,$many_field" );
 			$command->from( $many_table );
 			$command->where( "$many_field = :oid" );
@@ -283,13 +287,14 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	 * @param array $many_records
 	 *
 	 * @throws Exception
+	 * @throws Platform\Exceptions\BadRequestException
 	 * @return void
 	 */
 	protected function assignManyToOneByMap( $one_id, $many_table, $map_table, $one_field, $many_field, $many_records = array() )
 	{
 		if ( empty( $one_id ) )
 		{
-			throw new Exception( "The id can not be empty.", ErrorCodes::BAD_REQUEST );
+			throw new BadRequestException( "The id can not be empty." );
 		}
 		$map_table = static::tableNamePrefix() . $map_table;
 		try
@@ -298,7 +303,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$pkManyField = $manyObj->tableSchema->primaryKey;
 			$pkMapField = 'id';
 			// use query builder
-			$command = Yii::app()->db->createCommand();
+			$command = Pii::db()->createCommand();
 			$command->select( $pkMapField . ',' . $many_field );
 			$command->from( $map_table );
 			$command->where( "$one_field = :id" );

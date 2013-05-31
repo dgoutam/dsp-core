@@ -87,7 +87,7 @@ class PlatformWebApplication extends \CWebApplication
 		parent::init();
 
 		//	Get CORS data from config file
-		$_config = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+		$_config = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
 
 		if ( file_exists( $_config ) )
 		{

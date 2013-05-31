@@ -17,53 +17,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Platform\Utility\ServiceHandler;
-use Platform\Yii\Utility\Pii;
+namespace Platform\Exceptions;
 
 /**
- *  Generic controller for streaming content from storage services
+ * BadRequestException
  */
-class StorageController extends Controller
+class BadRequestException extends RestException
 {
-
 	/**
-	 * @return array action filters
-	 */
-	public function filters()
-	{
-		return array();
-	}
-
-	/**
+	 * Constructor.
 	 *
+	 * @param string  $message error message
+	 * @param integer $code    error code
 	 */
-	public function actionGet()
+	public function __construct( $message = null, $code = 0 )
 	{
-		$service = ( isset( $_GET['service'] ) ? $_GET['service'] : '' );
-		$path = ( isset( $_GET['path'] ) ? $_GET['path'] : '' );
-		try
+		if ( 0 == $code )
 		{
-			$service = ServiceHandler::getServiceObject( $service );
-			switch ( $service->getType() )
-			{
-				case 'Local File Storage':
-				case 'Remote File Storage':
-					$service->streamFile( $path );
-					break;
-			}
-			Pii::end();
+			$code = static::BadRequest;
 		}
-		catch ( \Exception $ex )
-		{
-			die( $ex->getMessage() );
-		}
-	}
-
-	/**
-	 * Lists all models.
-	 */
-	public function actionIndex()
-	{
-		Pii::end();
+		parent::__construct( static::BadRequest, $message, $code );
 	}
 }

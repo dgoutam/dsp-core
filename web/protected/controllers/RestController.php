@@ -17,6 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Option;
+use Platform\Exceptions\BadRequestException;
+use Platform\Utility\RestResponse;
+use Platform\Utility\ServiceHandler;
+use Platform\Utility\SwaggerUtilities;
 
 /**
  * RestController
@@ -59,14 +64,14 @@ class RestController extends Controller
 			if ( $this->swagger )
 			{
 				$result = SwaggerUtilities::getSwagger();
-				RestResponse::sendResults( $result, 200, 'json', $this->format );
+				RestResponse::sendResults( $result, RestResponse::Ok, 'json', $this->format );
 			}
 			else
 			{
-				/**
-				 * @var CDbCommand $command
-				 */
-				$command = Yii::app()->db->createCommand();
+				/** @var CDbConnection $_db */
+				$_db = Yii::app()->db;
+				/** @var CDbCommand $command */
+				$command = $_db->createCommand();
 				$result = $command->select( 'api_name,name' )
 					->from( 'df_sys_service' )
 					->order( 'api_name' )
@@ -77,7 +82,7 @@ class RestController extends Controller
 					array( 'api_name' => 'system', 'name' => 'System Configuration' )
 				);
 				$result = array( 'resources' => array_merge( $services, $result ) );
-				RestResponse::sendResults( $result, 200, null, $this->format );
+				RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 			}
 		}
 		catch ( Exception $ex )
@@ -96,13 +101,13 @@ class RestController extends Controller
 			if ( $this->swagger )
 			{
 				$result = SwaggerUtilities::getSwaggerForService( $this->service );
-				RestResponse::sendResults( $result, 200, 'json', $this->format );
+				RestResponse::sendResults( $result, RestResponse::Ok, 'json', $this->format );
 			}
 			else
 			{
 				$svcObj = ServiceHandler::getServiceObject( $this->service );
 				$result = $svcObj->processRequest( $this->resource, 'GET' );
-				RestResponse::sendResults( $result, 200, null, $this->format );
+				RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 			}
 		}
 		catch ( Exception $ex )
@@ -119,10 +124,10 @@ class RestController extends Controller
 		try
 		{
 			// check for verb tunneling
-			$tunnel_method = Utilities::getArrayValue( 'HTTP_X_HTTP_METHOD', $_SERVER, '' );
+			$tunnel_method = Option::get( $_SERVER, 'HTTP_X_HTTP_METHOD', '' );
 			if ( empty( $tunnel_method ) )
 			{
-				$tunnel_method = Utilities::getArrayValue( 'method', $_REQUEST, '' );
+				$tunnel_method = Option::get( $_REQUEST, 'method', '' );
 			}
 			if ( !empty( $tunnel_method ) )
 			{
@@ -146,14 +151,14 @@ class RestController extends Controller
 					default:
 						if ( !empty( $tunnel_method ) )
 						{
-							throw new Exception( "Unknown tunneling verb '$tunnel_method' in REST request.", ErrorCodes::BAD_REQUEST );
+							throw new BadRequestException( "Unknown tunneling verb '$tunnel_method' in REST request." );
 						}
 						break;
 				}
 			}
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'POST' );
-			$code = ErrorCodes::CREATED;
+			$code = RestResponse::Created;
 			RestResponse::sendResults( $result, $code, null, $this->format );
 		}
 		catch ( Exception $ex )
@@ -171,7 +176,7 @@ class RestController extends Controller
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'MERGE' );
-			RestResponse::sendResults( $result, 200, null, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
@@ -188,7 +193,7 @@ class RestController extends Controller
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'PUT' );
-			RestResponse::sendResults( $result, 200, null, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
@@ -205,7 +210,7 @@ class RestController extends Controller
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
 			$result = $svcObj->processRequest( $this->resource, 'DELETE' );
-			RestResponse::sendResults( $result, 200, null, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}
 		catch ( Exception $ex )
 		{
@@ -223,22 +228,22 @@ class RestController extends Controller
 	 */
 	protected function beforeAction( $action )
 	{
-		$temp = strtolower( Utilities::getArrayValue( 'format', $_REQUEST, '' ) );
+		$temp = strtolower( Option::get( $_REQUEST, 'format', '' ) );
 		if ( !empty( $temp ) )
 		{
 			$this->format = $temp;
 		}
 
 		// determine application if any
-		$appName = Utilities::getArrayValue( 'HTTP_X_DREAMFACTORY_APPLICATION_NAME', $_SERVER, '' );
+		$appName = Option::get( $_SERVER, 'HTTP_X_DREAMFACTORY_APPLICATION_NAME', '' );
 		if ( empty( $appName ) )
 		{
-			$appName = Utilities::getArrayValue( 'app_name', $_REQUEST, '' );
+			$appName = Option::get( $_REQUEST, 'app_name', '' );
 		}
 		if ( empty( $appName ) )
 		{
 			// check for swagger documentation request
-			$appName = Utilities::getArrayValue( 'swagger_app_name', $_REQUEST, '' );
+			$appName = Option::get( $_REQUEST, 'swagger_app_name', '' );
 			if ( !empty( $appName ) )
 			{
 				$this->swagger = true;
@@ -252,7 +257,7 @@ class RestController extends Controller
 		$GLOBALS['app_name'] = $appName;
 
 //        'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>'
-		$path = Utilities::getArrayValue( 'path', $_GET, '' );
+		$path = Option::get( $_GET, 'path', '' );
 		$slashIndex = strpos( $path, '/' );
 		if ( false === $slashIndex )
 		{
@@ -275,8 +280,6 @@ class RestController extends Controller
 				}
 			}
 		}
-
-		$_GET['resource'] = $this->resource;
 
 		return parent::beforeAction( $action );
 	}

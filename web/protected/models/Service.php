@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Kisma\Core\Exceptions\StorageException;
+use Platform\Exceptions\BadRequestException;
 
 /**
  * Service.php
@@ -180,14 +180,14 @@ class Service extends BaseDspSystemModel
 		{
 			if ( isset( $values['type'] ) && 0 !== strcasecmp( $this->type, $values['type'] ) )
 			{
-				throw new StorageException( 'Service type currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
+				throw new BadRequestException( 'Service type currently can not be modified after creation.' );
 			}
 
 			if ( ( 0 == strcasecmp( 'app', $this->api_name ) ) && isset( $values['api_name'] ) )
 			{
 				if ( 0 != strcasecmp( $this->api_name, $values['api_name'] ) )
 				{
-					throw new StorageException( 'Service API name currently can not be modified after creation.', ErrorCodes::BAD_REQUEST );
+					throw new BadRequestException( 'Service API name currently can not be modified after creation.' );
 				}
 			}
 		}
@@ -218,7 +218,7 @@ class Service extends BaseDspSystemModel
 	protected function beforeValidate()
 	{
 		// correct data type
-		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
+		$this->is_active = intval( \Platform\Utility\DataFormat::boolval( $this->is_active ) );
 
 		return parent::beforeValidate();
 	}
@@ -255,12 +255,12 @@ class Service extends BaseDspSystemModel
 		{
 			case 'Local SQL DB':
 			case 'Local SQL DB Schema':
-				throw new StorageException( 'System generated database services can not be deleted.', ErrorCodes::BAD_REQUEST );
+				throw new BadRequestException( 'System generated database services can not be deleted.' );
 			case 'Local File Storage':
 				switch ( $this->api_name )
 				{
 					case 'app':
-						throw new StorageException( 'System generated application storage service can not be deleted.', ErrorCodes::BAD_REQUEST );
+						throw new BadRequestException( 'System generated application storage service can not be deleted.' );
 				}
 				break;
 		}

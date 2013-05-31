@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Platform\Utility\DataFormat;
 /**
  * Config.php
  * The system configuration model for the DSP
@@ -123,8 +124,8 @@ class Config extends BaseDspSystemModel
 	/** {@InheritDoc} */
 	protected function beforeValidate()
 	{
-		$this->allow_open_registration = intval( Utilities::boolval( $this->allow_open_registration ) );
-		$this->allow_guest_user = intval( Utilities::boolval( $this->allow_guest_user ) );
+		$this->allow_open_registration = intval( DataFormat::boolval( $this->allow_open_registration ) );
+		$this->allow_guest_user = intval( DataFormat::boolval( $this->allow_guest_user ) );
 		if ( is_string( $this->open_reg_role_id ) )
 		{
 			if ( empty( $this->open_reg_role_id ) )

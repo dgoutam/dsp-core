@@ -17,53 +17,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Platform\Utility\ServiceHandler;
-use Platform\Yii\Utility\Pii;
-
+namespace Platform\Interfaces;
 /**
- *  Generic controller for streaming content from storage services
+ * SqlDbDriverTypes.php
+ * The various supported SQL database drivers
  */
-class StorageController extends Controller
+interface SqlDbDriverTypes
 {
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
 
 	/**
-	 * @return array action filters
+	 * @var int
 	 */
-	public function filters()
-	{
-		return array();
-	}
-
+	const DRV_OTHER = 0;
 	/**
-	 *
+	 * @var int
 	 */
-	public function actionGet()
-	{
-		$service = ( isset( $_GET['service'] ) ? $_GET['service'] : '' );
-		$path = ( isset( $_GET['path'] ) ? $_GET['path'] : '' );
-		try
-		{
-			$service = ServiceHandler::getServiceObject( $service );
-			switch ( $service->getType() )
-			{
-				case 'Local File Storage':
-				case 'Remote File Storage':
-					$service->streamFile( $path );
-					break;
-			}
-			Pii::end();
-		}
-		catch ( \Exception $ex )
-		{
-			die( $ex->getMessage() );
-		}
-	}
-
+	const DRV_SQLSRV = 1;
 	/**
-	 * Lists all models.
+	 * @var int
 	 */
-	public function actionIndex()
-	{
-		Pii::end();
-	}
+	const DRV_MYSQL = 2;
+	/**
+	 * @var int
+	 */
+	const DRV_SQLITE = 3;
+	/**
+	 * @var int
+	 */
+	const DRV_PGSQL = 4;
+	/**
+	 * @var int
+	 */
+	const DRV_OCSQL = 5;
 }

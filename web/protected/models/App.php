@@ -17,6 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Platform\Exceptions\BadRequestException;
+use Platform\Services\SystemManager;
+use Platform\Utility\ServiceHandler;
+use Platform\Utility\Utilities;
+use Platform\Yii\Utility\Pii;
+
 /**
  * App.php
  * This is the model for "df_sys_app".
@@ -307,13 +313,14 @@ class App extends BaseDspSystemModel
 	 * @param array $relations
 	 *
 	 * @throws Exception
+	 * @throws BadRequestException
 	 * @return void
 	 */
 	protected function assignAppServiceRelations( $app_id, $relations = array() )
 	{
 		if ( empty( $app_id ) )
 		{
-			throw new Exception( 'App id can not be empty.', ErrorCodes::BAD_REQUEST );
+			throw new BadRequestException( 'App id can not be empty.' );
 		}
 		try
 		{
@@ -330,14 +337,15 @@ class App extends BaseDspSystemModel
 					$serviceId2 = Utilities::getArrayValue( 'service_id', $access2, null );
 					if ( $serviceId == $serviceId2 )
 					{
-						throw new Exception( "Duplicated service in app service relation.", ErrorCodes::BAD_REQUEST );
+						throw new BadRequestException( "Duplicated service in app service relation." );
 					}
 				}
 			}
 			$map_table = static::tableNamePrefix() . 'app_to_service';
 			$pkMapField = 'id';
 			// use query builder
-			$command = Yii::app()->db->createCommand();
+			/** @var CDbCommand $command */
+			$command = Pii::db()->createCommand();
 			$command->select( 'id,service_id,component' );
 			$command->from( $map_table );
 			$command->where( 'app_id = :aid' );

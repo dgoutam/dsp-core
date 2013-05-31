@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Platform\Exceptions\BadRequestException;
+use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -272,7 +274,7 @@ class Role extends BaseDspSystemModel
 	{
 		if ( empty( $role_id ) )
 		{
-			throw new Exception( 'Role ID can not be empty.', ErrorCodes::BAD_REQUEST );
+			throw new BadRequestException( 'Role ID can not be empty.' );
 		}
 
 		try
@@ -294,7 +296,7 @@ class Role extends BaseDspSystemModel
 					$component2 = Utilities::getArrayValue( 'component', $access2, '' );
 					if ( ( $serviceId == $serviceId2 ) && ( $component == $component2 ) )
 					{
-						throw new Exception( "Duplicated service and component combination '$serviceId $component' in role service access.", ErrorCodes::BAD_REQUEST );
+						throw new BadRequestException( "Duplicated service and component combination '$serviceId $component' in role service access." );
 					}
 				}
 			}
@@ -302,7 +304,7 @@ class Role extends BaseDspSystemModel
 			$map_table = static::tableNamePrefix() . 'role_service_access';
 			$pkMapField = 'id';
 			// use query builder
-			$command = Yii::app()->db->createCommand();
+			$command = Pii::db()->createCommand();
 			$command->select( 'id,service_id,component,access' );
 			$command->from( $map_table );
 			$command->where( 'role_id = :id' );

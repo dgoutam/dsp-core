@@ -17,9 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use \Kisma\Core\Exceptions\StorageException;
+use Kisma\Core\Exceptions\StorageException;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
+use Platform\Resources\UserSession;
+use Platform\Utility\DataFormat;
 
 /**
  * User.php
@@ -201,8 +203,8 @@ class User extends BaseDspSystemModel
 				}
 			}
 		}
-		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
-		$this->is_sys_admin = intval( Utilities::boolval( $this->is_sys_admin ) );
+		$this->is_active = intval( DataFormat::boolval( $this->is_active ) );
+		$this->is_sys_admin = intval( DataFormat::boolval( $this->is_sys_admin ) );
 		if ( is_string( $this->role_id ) )
 		{
 			if ( empty( $this->role_id ) )
