@@ -238,7 +238,12 @@ class RestController extends Controller
 		$appName = Option::get( $_SERVER, 'HTTP_X_DREAMFACTORY_APPLICATION_NAME', '' );
 		if ( empty( $appName ) )
 		{
-			$appName = Option::get( $_REQUEST, 'app_name', '' );
+			// old non-name-spaced header
+			$appName = Option::get( $_SERVER, 'HTTP_X_APPLICATION_NAME', '' );
+			if ( empty( $appName ) )
+			{
+				$appName = Option::get( $_REQUEST, 'app_name', '' );
+			}
 		}
 		if ( empty( $appName ) )
 		{

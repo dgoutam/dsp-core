@@ -47,7 +47,7 @@ class PlatformWebApplication extends \CWebApplication
 	/**
 	 * @var string The allowed HTTP headers
 	 */
-	const CORS_DEFAULT_ALLOWED_HEADERS = 'Content-Type, X-Requested-With, X-DreamFactory-Application-Name, X-DreamFactory-Session-Token';
+	const CORS_DEFAULT_ALLOWED_HEADERS = 'Content-Type, X-Requested-With, X-DreamFactory-Application-Name, X-Application-Name, X-DreamFactory-Session-Token';
 	/**
 	 * @var int The default number of seconds to allow this to be cached. Default is 15 minutes.
 	 */
@@ -88,6 +88,11 @@ class PlatformWebApplication extends \CWebApplication
 
 		//	Get CORS data from config file
 		$_config = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+		if ( !file_exists( $_config ) )
+		{
+			// old location
+			$_config = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+		}
 
 		if ( file_exists( $_config ) )
 		{

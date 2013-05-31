@@ -1,3 +1,0 @@
-[submodule "lib/microsoft/azure-sdk-for-php"]
-	path = lib/microsoft/azure-sdk-for-php
-	url = https://github.com/dreamfactorysoftware/azure-sdk-for-php.git
