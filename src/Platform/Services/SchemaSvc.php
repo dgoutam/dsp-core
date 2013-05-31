@@ -24,6 +24,7 @@ use Platform\Exceptions\NotFoundException;
 use Platform\Utility\RestRequest;
 use Platform\Utility\SqlDbUtilities;
 use Platform\Utility\Utilities;
+use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
 
 /**
@@ -126,7 +127,7 @@ class SchemaSvc extends RestService
 		$this->_isNative = $native;
 		if ( $native )
 		{
-			$this->_sqlConn = \Yii::app()->db;
+			$this->_sqlConn = Pii::db();
 			$this->_driverType = SqlDbUtilities::getDbDriverType( $this->_sqlConn );
 		}
 		else

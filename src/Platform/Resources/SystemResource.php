@@ -29,6 +29,7 @@ use Platform\Utility\DataFormat;
 use Platform\Utility\RestRequest;
 use Platform\Utility\SqlDbUtilities;
 use Platform\Utility\Utilities;
+use Platform\Yii\Utility\Pii;
 
 /**
  * SystemResource
@@ -1203,7 +1204,7 @@ class SystemResource extends RestResource
 				// count total records
 				if ( $include_schema )
 				{
-					$results['meta']['schema'] = SqlDbUtilities::describeTable( \Yii::app()->db, $model->tableName(), static::SYSTEM_TABLE_PREFIX );
+					$results['meta']['schema'] = SqlDbUtilities::describeTable( Pii::db(), $model->tableName(), static::SYSTEM_TABLE_PREFIX );
 				}
 			}
 

@@ -26,6 +26,7 @@ use Platform\Exceptions\NotFoundException;
 use Platform\Resources\UserSession;
 use Platform\Utility\SqlDbUtilities;
 use Platform\Utility\Utilities;
+use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
 
 /**
@@ -100,7 +101,7 @@ class SqlDbSvc extends BaseDbSvc
 		$this->_isNative = $native;
 		if ( $native )
 		{
-			$this->_sqlConn = \Yii::app()->db;
+			$this->_sqlConn = Pii::db();
 			$this->_driverType = SqlDbUtilities::getDbDriverType( $this->_sqlConn );
 		}
 		else
@@ -434,7 +435,7 @@ class SqlDbSvc extends BaseDbSvc
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
 	 *           @SWG\Parameter(
-	 *             name="ids", description="Comma-delimited list of the identifiers of the resources to retrieve.",
+	 *             name="ids", description="Comma-delimited list of the identifiers of the resources to delete.",
 	 *             paramType="query", required="false", allowMultiple=true, dataType="string"
 	 *           ),
 	 *           @SWG\Parameter(
@@ -493,14 +494,14 @@ class SqlDbSvc extends BaseDbSvc
 	 *       @SWG\Operation(
 	 *         httpMethod="PUT", summary="Update one record by identifier.",
 	 *         notes="Post data should be an array of fields for a single record. Use the 'fields' and/or 'related' parameter to return more properties. By default, the id is returned.",
-	 *         responseClass="Success", nickname="updateUser",
+	 *         responseClass="Success", nickname="updateRecord",
 	 *         @SWG\Parameters(
 	 *           @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
 	 *           @SWG\Parameter(
-	 *             name="id", description="Identifier of the resource to retrieve.",
+	 *             name="id", description="Identifier of the resource to update.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
 	 *           @SWG\Parameter(
@@ -525,14 +526,14 @@ class SqlDbSvc extends BaseDbSvc
 	 *       @SWG\Operation(
 	 *         httpMethod="DELETE", summary="Delete one record by identifier.",
 	 *         notes="Use the 'fields' and/or 'related' parameter to return deleted properties. By default, the id is returned.",
-	 *         responseClass="Success", nickname="deleteUser",
+	 *         responseClass="Success", nickname="deleteRecord",
 	 *         @SWG\Parameters(
 	 *           @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
 	 *           @SWG\Parameter(
-	 *             name="id", description="Identifier of the resource to retrieve.",
+	 *             name="id", description="Identifier of the resource to delete.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
 	 *           @SWG\Parameter(

@@ -232,7 +232,7 @@ class SystemConfig extends RestResource
 
 			if ( $include_schema )
 			{
-				$results['meta']['schema'] = SqlDbUtilities::describeTable( \Yii::app()->db, $model->tableName(), SystemManager::SYSTEM_TABLE_PREFIX );
+				$results['meta']['schema'] = SqlDbUtilities::describeTable( Pii::db(), $model->tableName(), SystemManager::SYSTEM_TABLE_PREFIX );
 			}
 
 			$results['dsp_version'] = Pii::getParam( 'dsp.version' );

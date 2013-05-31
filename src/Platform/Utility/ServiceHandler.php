@@ -32,6 +32,7 @@ use Platform\Services\SqlDbSvc;
 use Platform\Services\SystemManager;
 use Platform\Services\UserManager;
 use Platform\Services\WindowsAzureTablesSvc;
+use Platform\Yii\Utility\Pii;
 
 /**
  * ServiceHandler.php
@@ -80,10 +81,7 @@ class ServiceHandler
 	 */
 	public static function getServiceListing()
 	{
-		/** @var \CDbConnection $db  */
-		$db = \Yii::app()->db;
-		/** @var \CDbCommand $command  */
-		$command = $db->createCommand();
+		$command = Pii::db()->createCommand();
 
 		return $command->select( 'api_name,name' )->from( 'df_sys_service' )->queryAll();
 	}
@@ -100,10 +98,7 @@ class ServiceHandler
 	 */
 	private static function getService( $api_name )
 	{
-		/** @var \CDbConnection $db  */
-		$db = \Yii::app()->db;
-		/** @var \CDbCommand $command  */
-		$command = $db->createCommand();
+		$command = Pii::db()->createCommand();
 		$result = $command->from( 'df_sys_service' )
 			->where( 'api_name=:name' )
 			->queryRow( true, array( ':name' => $api_name ) );

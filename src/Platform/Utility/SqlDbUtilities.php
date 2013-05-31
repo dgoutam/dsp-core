@@ -1415,9 +1415,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				$refTable = Utilities::getArrayValue( 'ref_table', $reference, null );
 				if ( !empty( $refTable ) )
 				{
-					if ( ( 0 == strcasecmp( 'df_sys_user', $refTable ) ) &&
-						 ( $db != \Yii::app()->db )
-					)
+					if ( ( 0 == strcasecmp( 'df_sys_user', $refTable ) ) && ( $db != Pii::db() ) )
 					{
 						// using user id references from a remote db
 						continue;
@@ -1830,7 +1828,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 		{
 			$command = $db->createCommand();
 			$command->dropTable( $table_name );
-			$where = \Yii::app()->db->quoteColumnName( 'table' ) . ' = :tn';
+			$where = Pii::db()->quoteColumnName( 'table' ) . ' = :tn';
 			static::removeLabels( $where, array( ':tn' => $table_name ) );
 
 			// refresh the schema that we just added
@@ -1866,7 +1864,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 			$command = $db->createCommand();
 			$command->dropColumn( $table_name, $field_name );
 			/** @var \CDbConnection $_dbLocal Local connection*/
-			$_dbLocal = \Yii::app()->db;
+			$_dbLocal = Pii::db();
 			$where = $_dbLocal->quoteColumnName( 'table' ) . ' = :tn';
 			$where .= ' and ' . $_dbLocal->quoteColumnName( 'field' ) . ' = :fn';
 			static::removeLabels( $where, array( ':tn' => $table_name, ':fn' => $field_name ) );
@@ -1890,8 +1888,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	 */
 	public static function getLabels( $where, $params = array(), $select = '*' )
 	{
-		/** @var \CDbConnection $_db */
-		$_db = \Yii::app()->db;
+		$_db = Pii::db();
 		$labels = array();
 		if ( static::doesTableExist( $_db, 'df_sys_schema_extras' ) )
 		{
@@ -1912,8 +1909,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	 */
 	public static function setLabels( $labels )
 	{
-		/** @var \CDbConnection $_db */
-		$_db = \Yii::app()->db;
+		$_db = Pii::db();
 		if ( !empty( $labels ) && static::doesTableExist( $_db, 'df_sys_schema_extras' ) )
 		{
 			// todo batch this for speed
@@ -1949,8 +1945,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	 */
 	public static function removeLabels( $where, $params = null )
 	{
-		/** @var \CDbConnection $_db */
-		$_db = \Yii::app()->db;
+		$_db = Pii::db();
 		if ( static::doesTableExist( $_db, 'df_sys_schema_extras' ) )
 		{
 			$command = $_db->createCommand();
