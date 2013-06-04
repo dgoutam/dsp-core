@@ -51,195 +51,6 @@ class AppRemoteFileSvc extends RemoteFileSvc
 		parent::__destruct();
 	}
 
-	/**
-	 * Swagger output for common api parameters
-	 *
-	 * @param        $parameters
-	 * @param string $method
-	 *
-	 * @return array
-	 */
-	public static function swaggerParameters( $parameters, $method = '' )
-	{
-		$swagger = array();
-		if ( false !== array_search( 'app_name', $parameters ) )
-		{
-			$swagger[] = array(
-				"paramType"     => "path",
-				"name"          => "app_name",
-				"description"   => "Name of the application to operate on.",
-				"dataType"      => "String",
-				"required"      => true,
-				"allowMultiple" => false
-			);
-		}
-
-		return array_merge( $swagger, parent::swaggerParameters( $parameters, $method ) );
-	}
-
-	/**
-	 * @param string $service
-	 * @param string $description
-	 *
-	 * @return array
-	 */
-	public static function swaggerForFiles( $service, $description = '' )
-	{
-		$swagger = array(
-			array(
-				'path'        => '/' . $service,
-				'description' => $description,
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List root application folders",
-						"notes"          => "List the root folders for locally stored applications.",
-						"responseClass"  => "array",
-						"nickname"       => "getAppFolders",
-						"parameters"     => array(),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $service . '/{app_name}/',
-				'description' => $description,
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List root folders and files",
-						"notes"          => "Use the available parameters to limit information returned.",
-						"responseClass"  => "array",
-						"nickname"       => "getRoot",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'app_name',
-								 'folders_only',
-								 'files_only',
-								 'full_tree',
-								 'zip'
-							)
-						),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $service . '/{app_name}/{folder}/',
-				'description' => 'Operations for folders.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "List folders and files in the given folder.",
-						"notes"          => "Use the 'folders_only' or 'files_only' parameters to limit returned listing.",
-						"responseClass"  => "array",
-						"nickname"       => "getFoldersAndFiles",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'app_name',
-								 'folder',
-								 'folders_only',
-								 'files_only',
-								 'full_tree',
-								 'zip'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "POST",
-						"summary"        => "Create one or more folders and/or files from posted data.",
-						"notes"          => "Post data as an array of folders and/or files.",
-						"responseClass"  => "array",
-						"nickname"       => "createFoldersAndFiles",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'app_name',
-								 'folder',
-								 'url',
-								 'extract',
-								 'clean',
-								 'check_exist'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update one or more folders and/or files",
-						"notes"          => "Post data as an array of folders and/or files.",
-						"responseClass"  => "array",
-						"nickname"       => "updateFoldersAndFiles",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'app_name',
-								 'folder',
-								 'url',
-								 'extract',
-								 'clean',
-								 'check_exist'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete one or more folders and/or files",
-						"notes"          => "Use the 'ids' or 'filter' parameter to limit resources that are deleted.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteFoldersAndFiles",
-						"parameters"     => static::swaggerParameters( array( 'app_name', 'folder' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-			array(
-				'path'        => '/' . $service . '/{app_name}/{folder}/{file}',
-				'description' => 'Operations for a single file.',
-				'operations'  => array(
-					array(
-						"httpMethod"     => "GET",
-						"summary"        => "Download the given file or properties about the file.",
-						"notes"          => "Use the 'properties' parameter (optionally add 'content' for base64 content) to list properties of the file.",
-						"responseClass"  => "array",
-						"nickname"       => "getFile",
-						"parameters"     => static::swaggerParameters(
-							array(
-								 'app_name',
-								 'folder',
-								 'file',
-								 'properties',
-								 'content',
-								 'download'
-							)
-						),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "PUT",
-						"summary"        => "Update content of the given file",
-						"notes"          => "Post data should be an array of fields for a single record",
-						"responseClass"  => "array",
-						"nickname"       => "updateFile",
-						"parameters"     => static::swaggerParameters( array( 'app_name', 'folder', 'file' ) ),
-						"errorResponses" => array()
-					),
-					array(
-						"httpMethod"     => "DELETE",
-						"summary"        => "Delete the given file",
-						"notes"          => "Delete the given file out of the STORAGE.",
-						"responseClass"  => "array",
-						"nickname"       => "deleteFile",
-						"parameters"     => static::swaggerParameters( array( 'app_name', 'folder', 'file' ) ),
-						"errorResponses" => array()
-					),
-				)
-			),
-		);
-
-		return $swagger;
-	}
-
 	// REST interface implementation
 
 	/**
@@ -248,9 +59,9 @@ class AppRemoteFileSvc extends RemoteFileSvc
 	 */
 	protected function _handleResource()
 	{
-		switch ($this->_action)
+		switch ( $this->_action )
 		{
-			case self::Get:
+			case static::Get:
 				$this->checkPermission( 'read' );
 				if ( empty( $this->_resource ) )
 				{
@@ -258,7 +69,7 @@ class AppRemoteFileSvc extends RemoteFileSvc
 					return $this->getFolderContent( '', false, true, false );
 				}
 				break;
-			case self::Post:
+			case static::Post:
 				$this->checkPermission( 'create' );
 				if ( empty( $this->_resource ) )
 				{
@@ -266,9 +77,9 @@ class AppRemoteFileSvc extends RemoteFileSvc
 					throw new \Exception( "Application service root directory is not available for file creation." );
 				}
 				break;
-			case self::Put:
-			case self::Patch:
-			case self::Merge:
+			case static::Put:
+			case static::Patch:
+			case static::Merge:
 				$this->checkPermission( 'update' );
 				if ( empty( $this->_resource ) || ( ( 1 === count( $this->_resourceArray ) ) && empty( $this->_resourceArray[0] ) ) )
 				{
@@ -276,14 +87,14 @@ class AppRemoteFileSvc extends RemoteFileSvc
 					throw new \Exception( "Application service root directory is not available for file updates." );
 				}
 				break;
-			case self::Delete:
+			case static::Delete:
 				$this->checkPermission( 'delete' );
 				if ( empty( $this->_resource ) )
 				{
 					// for application management at root directory,
 					throw new \Exception( "Application service root directory is not available for file deletes." );
 				}
-				$more = ( isset( $$this->_resourceArray[1] ) ? $this->_resourceArray[1] : '' );
+				$more = ( isset( $this->_resourceArray[1] ) ? $this->_resourceArray[1] : '' );
 				if ( empty( $more ) )
 				{
 					// dealing only with application root here

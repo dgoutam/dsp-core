@@ -22,6 +22,7 @@ namespace Platform\Resources;
 use Platform\Utility\DataFormat;
 use Platform\Utility\FileUtilities;
 use Platform\Utility\ServiceHandler;
+use Platform\Utility\SwaggerUtilities;
 use Platform\Utility\Utilities;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
@@ -272,7 +273,7 @@ class SystemApp extends SystemResource
 	 *           ),
 	 *           @SWG\Parameter(
 	 *             name="record", description="Data containing name-value pairs of records to update.",
-	 *             paramType="body", required="true", allowMultiple=false, dataType="Apps"
+	 *             paramType="body", required="true", allowMultiple=false, dataType="App"
 	 *           ),
 	 *           @SWG\Parameter(
 	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",
@@ -630,6 +631,8 @@ class SystemApp extends SystemResource
 				try
 				{
 					$result = static::createRecords( 'service', $data, true );
+					// clear swagger cache upon any service changes.
+					SwaggerUtilities::clearCache();
 				}
 				catch ( \Exception $ex )
 				{

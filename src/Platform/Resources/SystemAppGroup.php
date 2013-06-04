@@ -253,7 +253,7 @@ class SystemAppGroup extends SystemResource
 	 *           ),
 	 *           @SWG\Parameter(
 	 *             name="record", description="Data containing name-value pairs of records to update.",
-	 *             paramType="body", required="true", allowMultiple=false, dataType="AppGroups"
+	 *             paramType="body", required="true", allowMultiple=false, dataType="AppGroup"
 	 *           ),
 	 *           @SWG\Parameter(
 	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",

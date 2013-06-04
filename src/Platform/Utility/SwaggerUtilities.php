@@ -36,9 +36,15 @@ class SwaggerUtilities
 	//*************************************************************************
 
 	/**
-	 * @var string The private CORS configuration file
+	 * @var string The private caching directory
 	 */
 	const SWAGGER_CACHE_DIR = '/swagger/';
+
+	/**
+	 * @var string The private storage directory for non-generated files
+	 */
+	const SWAGGER_STORE_DIR = '/swagger_store/';
+
 
 	//*************************************************************************
 	//	Methods
@@ -75,7 +81,7 @@ class SwaggerUtilities
 		$result = $command->select( 'api_name,type,description' )
 				  ->from( 'df_sys_service' )
 				  ->order( 'api_name' )
-				  ->where( 'type != :t', array( ':t' => 'Remote Web Service' ) )
+//				  ->where( 'type != :t', array( ':t' => 'Remote Web Service' ) )
 				  ->queryAll();
 
 		// add static services
@@ -89,17 +95,13 @@ class SwaggerUtilities
 		$services = array();
 		foreach ( $result as $service )
 		{
-			$services[] = array(
-				'path'        => '/' . $service['api_name'],
-				'description' => $service['description']
-			);
 			$serviceName = $apiName = Option::get( $service, 'api_name', '' );
 			$replacePath = false;
 			$_type = Option::get( $service, 'type', '' );
 			switch ( $_type )
 			{
 				case 'Remote Web Service':
-					$serviceName = '{web}';
+					$serviceName = '{service_api_name}';
 					$replacePath = true;
 					// look up definition file and return it
 					break;
@@ -131,9 +133,43 @@ class SwaggerUtilities
 					break;
 			}
 
-			if ( false === ( $_content = $_swagger->getResource( '/' . $serviceName ) ) )
+			$_content = null;
+			if ( !array_key_exists( '/' . $serviceName, $_swagger->registry ) )
 			{
-				Log::error( "No swagger info for service $apiName." );
+				$_storePath = Pii::getParam( 'storage_base_path' ) . static::SWAGGER_STORE_DIR;
+				$_filePath = $_storePath . $serviceName . '.json';
+				if ( !file_exists( $_filePath ) )
+				{
+					$_defaultPath = Pii::basePath() . '/../../docs/default_service_swagger.json';
+					if ( !file_exists( $_defaultPath ) )
+					{
+						Log::error( "No default swagger file at $_defaultPath." );
+						continue;
+					}
+					if ( false === ( $_content = file_get_contents( $_defaultPath ) ) )
+					{
+						Log::error( "Failed to get default swagger file contents." );
+						continue;
+					}
+				}
+				else
+				{
+					if ( false === ( $_content = file_get_contents( $_filePath ) ) )
+					{
+						Log::error( "Failed to get default swagger file contents for service $apiName." );
+						continue;
+					}
+				}
+			}
+			else
+			{
+				$_content = $_swagger->getResource( '/' . $serviceName );
+			}
+
+			if ( empty( $_content ) )
+			{
+				Log::error( "Empty swagger file contents for service $apiName." );
+				continue;
 			}
 
 			if ( $replacePath )
@@ -148,6 +184,12 @@ class SwaggerUtilities
 			{
 				Log::error( "Failed to write cache file $_filePath." );
 			}
+
+			// build main services list
+			$services[] = array(
+				'path'        => '/' . $service['api_name'],
+				'description' => $service['description']
+			);
 		}
 
 		// cache main api listing file

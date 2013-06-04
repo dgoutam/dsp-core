@@ -258,7 +258,7 @@ class SystemRole extends SystemResource
 	 *           ),
 	 *           @SWG\Parameter(
 	 *             name="record", description="Data containing name-value pairs of records to update.",
-	 *             paramType="body", required="true", allowMultiple=false, dataType="Roles"
+	 *             paramType="body", required="true", allowMultiple=false, dataType="Role"
 	 *           ),
 	 *           @SWG\Parameter(
 	 *             name="fields", description="Comma-delimited list of field names to retrieve for each record.",

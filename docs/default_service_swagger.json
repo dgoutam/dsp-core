@@ -1,0 +1,13 @@
+{
+    "resourcePath": "/{service_api_name}",
+    "apis": [
+        {
+            "path": "/{service_api_name}",
+            "operations": [
+            ],
+            "description": "No operations currently defined for this service."
+        }
+    ],
+    "models": {
+    }
+}
