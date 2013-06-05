@@ -19,6 +19,7 @@
  */
 namespace Platform\Yii\Utility;
 
+use Composer\Autoload\ClassLoader;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
@@ -29,6 +30,7 @@ use Platform\Utility\DataCache;
  * A Yii helper
  *
  * @method static string encode( $text ) Encodes special characters into HTML entities.
+ * @method static string listData( $models, $textColumn, $idColumn ) Makes dropdown data arrays
  */
 class Pii extends \Yii
 {
@@ -118,7 +120,7 @@ class Pii extends \Yii
 			@include_once( $_configPath . '/aliases.config.php' );
 		}
 
-		//	App Settings
+		//	App settings
 		\Kisma::set( 'app.app_path', $_basePath . '/web' );
 		\Kisma::set( 'app.config_path', $_configPath );
 		\Kisma::set( 'app.log_path', $_logPath );
@@ -130,7 +132,7 @@ class Pii extends \Yii
 		\Kisma::set( 'app.app_class', $_appClass = $className ? : ( 'cli' == PHP_SAPI ? 'CConsoleApplication' : 'CWebApplication' ) );
 		\Kisma::set( 'app.config_file', $_configPath . '/' . $_appMode . '.php' );
 
-		//	Platform Settings
+		//	Platform settings
 		\Kisma::set( 'platform.host_name', $_hostName );
 
 		\Kisma::set(
@@ -150,7 +152,11 @@ class Pii extends \Yii
 			return static::app();
 		}
 
-		//	Load configuration if not specified
+		//.........................................................................
+		//. App Create & Run...
+		//.........................................................................
+
+		//	Load configuration if not specified, or in debug mode
 		if ( defined( 'YII_DEBUG' ) || true !== static::ENABLE_CONFIG_CACHE )
 		{
 			/** @noinspection PhpIncludeInspection */
@@ -246,6 +252,11 @@ class Pii extends \Yii
 	 */
 	public static function params( $prefix = null, $regex = false )
 	{
+		if ( empty( static::$_appParameters ) )
+		{
+			static::$_appParameters = static::app()->getParams();
+		}
+
 		if ( null !== $prefix )
 		{
 			$_parameters = array();
@@ -582,12 +593,9 @@ class Pii extends \Yii
 	 */
 	public static function getParam( $paramName, $defaultValue = null )
 	{
-		if ( static::app() )
-		{
-			return Option::get( static::app()->getParams(), $paramName, $defaultValue );
-		}
+		$_parameters = static::params();
 
-		return $defaultValue;
+		return Option::get( $_parameters, $paramName, $defaultValue );
 	}
 
 	/**
@@ -631,11 +639,11 @@ class Pii extends \Yii
 	 * @param boolean $terminate
 	 * @param int     $statusCode
 	 *
-	 * @see CHttpRequest::redirect
+	 * @return void
 	 */
 	public static function redirect( $url, $terminate = true, $statusCode = 302 )
 	{
-		static::$_thisRequest->redirect( is_array( $url ) ? $url : static::url( $url ), $terminate, $statusCode );
+		static::app()->request->redirect( is_array( $url ) ? $url : static::url( $url ), $terminate, $statusCode );
 	}
 
 	/**
@@ -759,84 +767,6 @@ class Pii extends \Yii
 	}
 
 	/**
-	 * Generic array sorter
-	 *
-	 * To sort a column in descending order, assign 'desc' to the column's value in the defining array:
-	 *
-	 * $_columnsToSort = array(
-	 *    'date' => 'desc',
-	 *    'lastName' => 'asc',
-	 *    'firstName' => 'asc',
-	 * );
-	 *
-	 * @param array $arrayToSort
-	 * @param array $columnsToSort Array of columns in $arrayToSort to sort.
-	 *
-	 * @return boolean
-	 */
-	public static function arraySort( &$arrayToSort, $columnsToSort = array() )
-	{
-		//	Convert to an array
-		if ( !empty( $columnsToSort ) && !is_array( $columnsToSort ) )
-		{
-			$columnsToSort = array( $columnsToSort );
-		}
-
-		//	Any fields?
-		if ( !empty( $columnsToSort ) )
-		{
-			return usort(
-				$arrayToSort,
-				function ( $a, $b ) use ( $columnsToSort )
-				{
-					$_result = null;
-
-					foreach ( $columnsToSort as $_column => $_order )
-					{
-						$_order = trim( strtolower( $_order ) );
-
-						if ( is_numeric( $_column ) && !\Kisma\Core\Utility\Scalar::in( $_order, 'asc', 'desc' ) )
-						{
-							$_column = $_order;
-							$_order = null;
-						}
-
-						if ( 'desc' == strtolower( $_order ) )
-						{
-							return strnatcmp( $b[$_column], $a[$_column] );
-						}
-
-						return strnatcmp( $a[$_column], $b[$_column] );
-					}
-				}
-			);
-		}
-
-		return false;
-	}
-
-	/**
-	 * Sorts an array by a single column
-	 *
-	 * @param array  $sourceArray
-	 * @param string $column
-	 * @param int    $sortDirection
-	 *
-	 * @return bool
-	 */
-	public static function array_multisort_column( &$sourceArray, $column, $sortDirection = SORT_ASC )
-	{
-		$_sortColumn = array();
-
-		foreach ( $sourceArray as $_key => $_row )
-		{
-			$_sortColumn[$_key] = ( isset( $_row[$column] ) ? $_row[$column] : null );
-		}
-
-		return \array_multisort( $_sortColumn, $sortDirection, $sourceArray );
-	}
-
-	/**
 	 * Serializer that can handle SimpleXmlElement objects
 	 *
 	 * @param mixed $value
@@ -921,6 +851,8 @@ class Pii extends \Yii
 	 * @param string $name
 	 * @param mixed  $value The value to store
 	 * @param mixed  $defaultValue
+	 *
+	 * @return \CConsoleApplication|\CWebApplication
 	 */
 	public static function setState( $name, $value, $defaultValue = null )
 	{
@@ -942,6 +874,8 @@ class Pii extends \Yii
 	 * @param string $key
 	 * @param string $message
 	 * @param string $defaultValue
+	 *
+	 * @return \CConsoleApplication|\CWebApplication
 	 */
 	public static function setFlash( $key, $message = null, $defaultValue = null )
 	{
