@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.1.7
+#   Removed references to $HOME
+#
 # v1.1.6
 #   Removed separate lib directory for Azure
 #
@@ -58,9 +61,9 @@
 ##	Initial settings
 ##
 
-VERSION=1.1.5
+VERSION=1.1.7
 SYSTEM_TYPE=`uname -s`
-INSTALL_DIR=${HOME}/bin
+INSTALL_DIR=~/bin
 COMPOSER=composer.phar
 COMPOSER_INSTALLED=0
 PHP=/usr/bin/php
@@ -191,7 +194,7 @@ chown -R ${USER}:${WEB_USER} * .git* >/dev/null 2>&1
 find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
-rm -rf ~${HOME}/.composer/
+rm -rf ~/.composer/
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
