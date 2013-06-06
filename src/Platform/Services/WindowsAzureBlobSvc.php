@@ -17,10 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace Platform\Storage\Blob;
+namespace Platform\Services;
 
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BlobServiceException;
-use Platform\Interfaces\BlobServiceLike;
+use Platform\Exceptions\BadRequestException;
+use Platform\Exceptions\NotFoundException;
+use Platform\Utility\DataFormat;
 use WindowsAzure\Blob\BlobRestProxy;
 use WindowsAzure\Blob\Models\CreateBlobOptions;
 use WindowsAzure\Blob\Models\CreateContainerOptions;
@@ -32,10 +36,10 @@ use WindowsAzure\Common\ServicesBuilder;
 use WindowsAzure\Common\ServiceException;
 
 /**
- * WindowsAzureBlob.php
- * Class for handling Windows Azure blob storage resources.
+ * RemoteFileSvc.php
+ * Remote File Storage Service giving REST access to file storage.
  */
-class WindowsAzureBlob implements BlobServiceLike
+class WindowsAzureBlobSvc extends RemoteFileSvc
 {
 	//*************************************************************************
 	//	Members
@@ -71,30 +75,40 @@ class WindowsAzureBlob implements BlobServiceLike
 	 * @throws \InvalidArgumentException
 	 * @throws \Exception
 	 */
-	public function __construct( $useDev = true, $name = '', $key = '' )
+	public function __construct( $config )
 	{
-		if ( empty( $name ) )
-		{
-			throw new \InvalidArgumentException( 'WindowsAzure storage name can not be empty.' );
-		}
+		parent::__construct( $config );
 
-		if ( empty( $key ) )
+		$_credentials = Option::get( $config, 'credentials' );
+		$_connectionString = Option::get( $_credentials, 'connection_string' );
+		if ( empty( $_connectionString ) )
 		{
-			throw new \InvalidArgumentException( 'WindowsAzure storage key can not be empty.' );
-		}
+			$_localDev = DataFormat::boolval( Option::get( $_credentials, 'local_dev', false ) );
+			if ( !$_localDev )
+			{
+				$_accountName = Option::get( $_credentials, 'account_name' );
+				$_accountKey = Option::get( $_credentials, 'account_key' );
+				$_protocol = Option::get( $_credentials, 'protocol', 'https' );
+				if ( empty( $_accountName ) )
+				{
+					throw new \InvalidArgumentException( 'WindowsAzure storage account name can not be empty.' );
+				}
 
-		if ( !$useDev )
-		{
-			$connectionString = "DefaultEndpointsProtocol=https;AccountName=$name;AccountKey=$key";
-		}
-		else
-		{
-			$connectionString = "UseDevelopmentStorage=true";
+				if ( empty( $_accountKey ) )
+				{
+					throw new \InvalidArgumentException( 'WindowsAzure storage account key can not be empty.' );
+				}
+				$_connectionString = "DefaultEndpointsProtocol=$_protocol;AccountName=$_accountName;AccountKey=$_accountKey";
+			}
+			else
+			{
+				$_connectionString = "UseDevelopmentStorage=true";
+			}
 		}
 
 		try
 		{
-			$this->_blobConn = ServicesBuilder::getInstance()->createBlobService( $connectionString );
+			$this->_blobConn = ServicesBuilder::getInstance()->createBlobService( $_connectionString );
 		}
 		catch ( ServiceException $ex )
 		{

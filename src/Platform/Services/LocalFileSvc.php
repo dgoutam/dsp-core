@@ -27,7 +27,7 @@ use Platform\Utility\Utilities;
 
 /**
  * LocalFileSvc.php
- * Remote File Storage Service giving REST access to file storage.
+ * File storage service giving REST access to local file storage.
  */
 class LocalFileSvc extends BaseFileSvc
 {

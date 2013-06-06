@@ -17,17 +17,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace Platform\Storage\Blob;
+namespace Platform\Services;
 
 use Aws\S3\S3Client;
-use Platform\Interfaces\BlobServiceLike;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BlobServiceException;
+use Platform\Exceptions\BadRequestException;
+use Platform\Exceptions\NotFoundException;
 
 /**
- * AwsS3Blob.php
- * Class for handling AWS S3 blob storage resources.
+ * AwsS3Svc.php
+ * Remote File Storage Service giving REST access to file storage.
  */
-class AwsS3Blob implements BlobServiceLike
+class AwsS3Svc extends RemoteFileSvc
 {
 	//*************************************************************************
 	//	Members
@@ -60,8 +63,13 @@ class AwsS3Blob implements BlobServiceLike
 	 * @throws BlobServiceException
 	 * @throws \InvalidArgumentException
 	 */
-	public function __construct( $accessKey, $secretKey )
+	public function __construct( $config )
 	{
+		parent::__construct( $config );
+
+		$_credentials = Option::get( $config, 'credentials' );
+		$accessKey = Option::get( $_credentials, 'access_key' );
+		$secretKey = Option::get( $_credentials, 'secret_key' );
 		if ( empty( $accessKey ) )
 		{
 			throw new \InvalidArgumentException( 'Amazon S3 access key can not be empty.' );
@@ -538,5 +546,4 @@ class AwsS3Blob implements BlobServiceLike
 			}
 		}
 	}
-
 }

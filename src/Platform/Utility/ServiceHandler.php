@@ -20,17 +20,18 @@
 namespace Platform\Utility;
 
 use Kisma\Core\Utility\Option;
-use Platform\Services\AppLocalFileSvc;
-use Platform\Services\AppRemoteFileSvc;
 use Platform\Services\AwsDynamoDbSvc;
+use Platform\Services\AwsSimpleDbSvc;
+use Platform\Services\AwsS3Svc;
 use Platform\Services\EmailSvc;
-use Platform\Services\RemoteFileSvc;
 use Platform\Services\LocalFileSvc;
+use Platform\Services\OpenStackObjectStoreSvc;
 use Platform\Services\RemoteWebSvc;
 use Platform\Services\SchemaSvc;
 use Platform\Services\SqlDbSvc;
 use Platform\Services\SystemManager;
 use Platform\Services\UserManager;
+use Platform\Services\WindowsAzureBlobSvc;
 use Platform\Services\WindowsAzureTablesSvc;
 use Platform\Yii\Utility\Pii;
 
@@ -165,19 +166,6 @@ class ServiceHandler
 				case 'user':
 					$service = new UserManager();
 					break;
-				case 'app':
-					$record = static::getService( $api_name );
-					$type = Option::get( $record, 'type', '' );
-					switch ( $type )
-					{
-						case 'Local File Storage':
-							$service = new AppLocalFileSvc( $record );
-							break;
-						case 'Remote File Storage':
-							$service = new AppRemoteFileSvc( $record );
-							break;
-					}
-					break;
 				default:
 					$record = static::getService( $api_name );
 					$type = Option::get( $record, 'type', '' );
@@ -190,7 +178,23 @@ class ServiceHandler
 							$service = new LocalFileSvc( $record );
 							break;
 						case 'Remote File Storage':
-							$service = new RemoteFileSvc( $record );
+							$storageType = Option::get( $record, 'storage_type', '' );
+							switch ( strtolower( $storageType ) )
+							{
+								case 'azure blob':
+									$service = new WindowsAzureBlobSvc( $record );
+									break;
+								case 'aws s3':
+									$service = new AwsS3Svc( $record );
+									break;
+								case 'rackspace cloudfiles':
+								case 'openstack object storage':
+									$service = new OpenStackObjectStoreSvc( $record );
+									break;
+								default:
+									throw new \Exception( "Invalid Remote Blob Storage Type '$storageType' in configuration environment." );
+									break;
+							}
 							break;
 						case 'Local SQL DB':
 							$service = new SqlDbSvc( $record, true );
@@ -221,12 +225,14 @@ class ServiceHandler
 									$service = new AwsDynamoDbSvc( $record );
 									break;
 								case 'aws simpledb':
+									$service = new AwsSimpleDbSvc( $record );
+									break;
 								case 'mongodb':
 								case 'couchdb':
 									throw new \Exception( "NoSQL Storage Type not currently supported." );
 									break;
 								default:
-									throw new \Exception( "Invalid NoSQL Storage Type in configuration environment." );
+									throw new \Exception( "Invalid NoSQL Storage Type '$storageType' in configuration environment." );
 									break;
 							}
 							break;
