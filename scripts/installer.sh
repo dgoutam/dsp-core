@@ -21,6 +21,10 @@
 #
 # CHANGELOG:
 #
+# v1.2.0
+#   Removed references to $HOME
+#   Symlinks to shared apps made relative
+#
 # v1.1.6
 #   Removed separate lib directory for Azure
 #
@@ -58,9 +62,9 @@
 ##	Initial settings
 ##
 
-VERSION=1.1.5
+VERSION=1.2.0
 SYSTEM_TYPE=`uname -s`
-INSTALL_DIR=${HOME}/bin
+INSTALL_DIR=~/bin
 COMPOSER=composer.phar
 COMPOSER_INSTALLED=0
 PHP=/usr/bin/php
@@ -191,7 +195,7 @@ chown -R ${USER}:${WEB_USER} * .git* >/dev/null 2>&1
 find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
-rm -rf ~${HOME}/.composer/
+rm -rf ~/.composer/
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
@@ -247,27 +251,27 @@ fi
 cd ${PUBLIC_DIR}
 
 if [ ! -L "${PUBLIC_DIR}/web-core" ] ; then
-    ln -sf ${SHARE_DIR}/dreamfactory/web/web-core/ web-core >/dev/null 2>&1
+    ln -sf ../../dreamfactory/web/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
 if [ ! -L "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -sf ${SHARE_DIR}/dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
+    ln -sf ../../dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
 if [ ! -L "${PUBLIC_DIR}/admin" ] ; then
-    ln -sf ${SHARE_DIR}/dreamfactory/app/app-admin/ admin >/dev/null 2>&1
+    ln -sf ../../dreamfactory/app/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
 
-# Up one and link shared...
-if [ ! -d "${WEB_DIR}/shared" ] ; then
-	cd ${WEB_DIR}
-    ln -sf ${SHARE_DIR} shared >/dev/null 2>&1
-    cd ${PUBLIC_DIR}
-    echo "  * Shared files linked"
-fi
+## Up one and link shared...
+#if [ ! -d "${WEB_DIR}/shared" ] ; then
+#	cd ${WEB_DIR}
+#    ln -sf ${SHARE_DIR} shared >/dev/null 2>&1
+#    cd ${PUBLIC_DIR}
+#    echo "  * Shared files linked"
+#fi
 
 # Back
 cd - >/dev/null 2>&1
