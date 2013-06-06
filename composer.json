@@ -1,6 +1,7 @@
 {
   "name":              "dreamfactory/web-csp",
   "description":       "DreamFactory Services Platform(tm) Core",
+  "version":           "1.0.3",
   "keywords":          [
     "php",
     "php5",
