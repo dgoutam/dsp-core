@@ -21,6 +21,7 @@ namespace Platform\Services;
 
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use OpenCloud\Base\Exceptions\ContainerNotFoundError;
 use OpenCloud\OpenStack;
 use OpenCloud\Rackspace;
 use OpenCloud\AbstractClass\Collection;
@@ -110,7 +111,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Unexpected OpenStack service exception: ' . $ex->getMessage() );
+			throw new BlobServiceException( 'Failed to launch OpenStack service: ' . $ex->getMessage() );
 		}
 	}
 
@@ -129,17 +130,24 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	{
 		$this->checkConnection();
 
-		/** @var Collection $_containers */
-		$_containers = $this->_blobConn->ContainerList();
-
-		$out = array();
-		/** @var Container $_container */
-		while( $_container = $_containers->Next() )
+		try
 		{
-			$out[] = array( 'name' => rtrim( $_container->name ) );
-		}
+			/** @var Collection $_containers */
+			$_containers = $this->_blobConn->ContainerList();
 
-		return $out;
+			$out = array();
+			/** @var Container $_container */
+			while( $_container = $_containers->Next() )
+			{
+				$out[] = array( 'name' => rtrim( $_container->name ) );
+			}
+
+			return $out;
+		}
+		catch ( \Exception $ex )
+		{
+			throw new BlobServiceException( 'Failed to list containers: ' . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -153,21 +161,34 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	{
 		$this->checkConnection();
 
-		/** @var Container $_container */
-		$_container = $this->_blobConn->Container( $container );
+		try
+		{
+			/** @var Container $_container */
+			$_container = $this->_blobConn->Container( $container );
 
-		return !empty( $_container );
+			return !empty( $_container );
+		}
+		catch ( ContainerNotFoundError $ex )
+		{
+			return false;
+		}
+		catch ( \Exception $ex )
+		{
+			throw new BlobServiceException( 'Failed to list containers: ' . $ex->getMessage() );
+		}
 	}
 
 	/**
 	 * @param string $container
 	 * @param array  $metadata
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 */
 	public function createContainer( $container = '', $metadata = array() )
 	{
 		$this->checkConnection();
+
 		try
 		{
 			/** @var Container $_container */
@@ -180,13 +201,14 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to create container "' . $container . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to create container '$container': " . $ex->getMessage() );
 		}
 	}
 
 	/**
 	 * @param string $container
 	 *
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @throws \Exception
 	 */
 	public function deleteContainer( $container = '' )
@@ -208,7 +230,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to delete container "' . $container . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to delete container '$container': " . $ex->getMessage() );
 		}
 	}
 
@@ -218,6 +240,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param  string $container Container name
 	 * @param  string $name      Blob name
 	 *
+	 * @throws \Exception
 	 * @return boolean
 	 */
 	public function blobExists( $container = '', $name = '' )
@@ -249,7 +272,8 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param string $blob
 	 * @param string $type
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 */
 	public function putBlobData( $container = '', $name = '', $blob = '', $type = '' )
 	{
@@ -277,7 +301,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to create blob "' . $name . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to create blob '$name': " . $ex->getMessage() );
 		}
 	}
 
@@ -287,7 +311,8 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param string $localFileName
 	 * @param string $type
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 */
 	public function putBlobFromFile( $container = '', $name = '', $localFileName = '', $type = '' )
 	{
@@ -315,7 +340,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to create blob "' . $name . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to create blob '$name': " . $ex->getMessage() );
 		}
 	}
 
@@ -325,7 +350,8 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param string $src_container
 	 * @param string $src_name
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 */
 	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '' )
 	{
@@ -349,11 +375,11 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 			$_destination = $_dest_container->DataObject();
 			$_destination->name = $name;
 
-			$_result = $_source->Copy( $_destination );
+			$_source->Copy( $_destination );
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to copy blob "' . $name . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to copy blob '$name': " . $ex->getMessage() );
 		}
 	}
 
@@ -364,7 +390,8 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param  string $name          Blob name
 	 * @param  string $localFileName Local file name to store downloaded blob
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 */
 	public function getBlobAsFile( $container = '', $name = '', $localFileName = '' )
 	{
@@ -387,7 +414,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to retrieve blob "' . $name . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to retrieve blob '$name': " . $ex->getMessage() );
 		}
 	}
 
@@ -395,8 +422,9 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param string $container
 	 * @param string $name
 	 *
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 * @return string
-	 * @throws BlobServiceException
 	 */
 	public function getBlobData( $container = '', $name = '' )
 	{
@@ -416,7 +444,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to retrieve blob "' . $name . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to retrieve blob '$name': " . $ex->getMessage() );
 		}
 	}
 
@@ -445,7 +473,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to delete blob "' . $name . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to delete blob '$name': " . $ex->getMessage() );
 		}
 	}
 
@@ -456,18 +484,23 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param  string $prefix    Optional. Filters the results to return only blobs whose name begins with the specified prefix.
 	 * @param  string $delimiter Optional. Delimiter, i.e. '/', for specifying folder hierarchy
 	 *
+	 * @throws \Exception
 	 * @return array
-	 * @throws BlobServiceException
 	 */
 	public function listBlobs( $container = '', $prefix = '', $delimiter = '' )
 	{
 		$this->checkConnection();
-		$_options = array();
 
+		$_options = array();
 		if ( !empty( $prefix ) )
 		{
 			$_options['prefix'] = $prefix;
 		}
+		if ( !empty( $delimiter ) )
+		{
+			$_options['delimiter'] = $delimiter;
+		}
+
 		/** @var Container $_container */
 		$_container = $this->_blobConn->Container( $container );
 		if ( empty( $_container) )
@@ -481,12 +514,21 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		/** @var DataObject $_obj */
 		while ( $_obj = $_list->Next() )
 		{
-			$_out[] = array(
-				'name'         => $_obj->name,
-				'contentType'  => $_obj->content_type,
-				'size'         => $_obj->bytes,
-				'lastModified' => $_obj->last_modified
-			);
+			if ( !empty( $_obj->name ) )
+			{
+				$_out[] = array(
+					'name'         => $_obj->name,
+					'contentType'  => $_obj->content_type,
+					'size'         => $_obj->bytes,
+					'lastModified' => $_obj->last_modified
+				);
+			}
+			elseif ( !empty( $_obj->subdir ) ) // sub directories formatted differently
+			{
+				$_out[] = array(
+					'name'         => $_obj->subdir
+				);
+			}
 		}
 
 		return $_out;
@@ -498,8 +540,9 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param  string $container Container name
 	 * @param  string $name      Blob name
 	 *
-	 * @return array instance
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
+	 * @return array
 	 */
 	public function listBlob( $container, $name )
 	{
@@ -526,7 +569,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to list blob metadata: ' . $ex->getMessage() );
+			throw new BlobServiceException( 'Failed to list metadata: ' . $ex->getMessage() );
 		}
 	}
 
@@ -535,7 +578,8 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param string $name
 	 * @param array  $params
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Exception
 	 */
 	public function streamBlob( $container, $name, $params = array() )
 	{
