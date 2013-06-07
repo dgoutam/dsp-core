@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "name":              "dreamfactorysoftware/dsp-core",
-=======
   "name":              "dreamfactory/dsp-core",
->>>>>>> bb1aab6e07a1868bdc1b7c12ba14f45e45eae717
   "description":       "DreamFactory Services Platform(tm) Core",
   "version":           "1.0.3",
   "keywords":          [
@@ -68,5 +64,4 @@
       "Platform\\": "src/"
     }
   }
-
 }
