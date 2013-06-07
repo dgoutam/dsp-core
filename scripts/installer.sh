@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.2.1
+#   Fixed broken path link
+#
 # v1.2.0
 #   Removed references to $HOME
 #   Symlinks to shared apps made relative
@@ -251,27 +254,19 @@ fi
 cd ${PUBLIC_DIR}
 
 if [ ! -L "${PUBLIC_DIR}/web-core" ] ; then
-    ln -sf ../../dreamfactory/web/web-core/ web-core >/dev/null 2>&1
+    ln -sf ../../shared/dreamfactory/web/web-core/ web-core >/dev/null 2>&1
     echo "  * Web Core linked"
 fi
 
 if [ ! -L "${PUBLIC_DIR}/launchpad" ] ; then
-    ln -sf ../../dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
+    ln -sf ../../shared/dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
     echo "  * Launchpad linked"
 fi
 
 if [ ! -L "${PUBLIC_DIR}/admin" ] ; then
-    ln -sf ../../dreamfactory/app/app-admin/ admin >/dev/null 2>&1
+    ln -sf ../../shared/dreamfactory/app/app-admin/ admin >/dev/null 2>&1
     echo "  * Admin linked"
 fi
-
-## Up one and link shared...
-#if [ ! -d "${WEB_DIR}/shared" ] ; then
-#	cd ${WEB_DIR}
-#    ln -sf ${SHARE_DIR} shared >/dev/null 2>&1
-#    cd ${PUBLIC_DIR}
-#    echo "  * Shared files linked"
-#fi
 
 # Back
 cd - >/dev/null 2>&1
