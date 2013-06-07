@@ -254,6 +254,7 @@ class SystemConfig extends RestResource
 			}
 			$results['dsp_version'] = $_dspVersion;
 			$results['latest_version'] = $_latestVersion;
+			$results['upgrade_available'] = version_compare( $_dspVersion, $_latestVersion, '<' );
 
 			// get cors data from config file
 			$_allowedHosts = array();
