@@ -27,6 +27,7 @@ use Platform\Exceptions\InternalServerErrorException;
 use Platform\Resources\UserSession;
 use Platform\Services\SystemManager;
 use Platform\Utility\DataFormat;
+use Platform\Utility\FileUtilities;
 use Platform\Utility\RestRequest;
 use Platform\Utility\SqlDbUtilities;
 use Platform\Utility\Utilities;
@@ -235,25 +236,42 @@ class SystemConfig extends RestResource
 				$results['meta']['schema'] = SqlDbUtilities::describeTable( Pii::db(), $model->tableName(), SystemManager::SYSTEM_TABLE_PREFIX );
 			}
 
-			$results['dsp_version'] = Pii::getParam( 'dsp.version' );
-
-			// get cors data from config file
-			$allowedHosts = array();
-			$_config = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
-			if ( !file_exists( $_config ) )
+			// get current and latest version info
+			$_dspVersion = Pii::getParam( 'dsp.version' );
+			$_file = FileUtilities::importUrlFileToTemp(
+				'https://raw.github.com/dreamfactorysoftware/dsp-core/master/composer.json',
+				'latest.json'
+			);
+			$_latestVersion = '';
+			if ( file_exists( $_file ) )
 			{
-				// old location
-				$_config = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
-			}
-			if ( file_exists( $_config ) )
-			{
-				$content = file_get_contents( $_config );
-				if ( !empty( $content ) )
+				$_content = file_get_contents( $_file );
+				if ( !empty( $_content ) )
 				{
-					$allowedHosts = json_decode( $content, true );
+					$_latest = json_decode( $_content, true );
+					$_latestVersion = Option::get( $_latest, 'version' );
 				}
 			}
-			$results['allowed_hosts'] = $allowedHosts;
+			$results['dsp_version'] = $_dspVersion;
+			$results['latest_version'] = $_latestVersion;
+
+			// get cors data from config file
+			$_allowedHosts = array();
+			$_file = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+			if ( !file_exists( $_file ) )
+			{
+				// old location
+				$_file = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+			}
+			if ( file_exists( $_file ) )
+			{
+				$_content = file_get_contents( $_file );
+				if ( !empty( $_content ) )
+				{
+					$_allowedHosts = json_decode( $_content, true );
+				}
+			}
+			$results['allowed_hosts'] = $_allowedHosts;
 
 			return $results;
 		}
