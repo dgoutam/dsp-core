@@ -108,6 +108,8 @@ else
 return array_merge(
 	$_instanceSettings,
 	array(
+		 /** App Information */
+		 'base_path'         => $_basePath,
 		 /**
 		  * DSP Information
 		  */
