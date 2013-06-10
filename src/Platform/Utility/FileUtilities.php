@@ -1118,7 +1118,7 @@ class FileUtilities
 	{
 		if ( static::url_exist( $url ) )
 		{
-			$readFrom = @fopen( $url, 'rb' );
+			$readFrom = fopen( $url, 'rb' );
 			if ( $readFrom )
 			{
 				$directory = rtrim( sys_get_temp_dir(), DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
@@ -1224,5 +1224,120 @@ class FileUtilities
 	{
 		return ( ( 0 == strcasecmp( $content_type, 'application/zip' ) ) ||
 				 ( 0 == strcasecmp( $content_type, 'application/x-zip-compressed' ) ) );
+	}
+
+	/**
+	 * @param      $dir
+	 * @param bool $force
+	 * @param bool $delete_self
+	 *
+	 * @throws \Exception
+	 */
+	public static function deleteTree( $dir, $force = false, $delete_self = true )
+	{
+		if ( is_dir( $dir ) )
+		{
+			$files = array_diff( scandir( $dir ), array( '.', '..' ) );
+			if ( !empty( $files ) && !$force )
+			{
+				throw new \Exception( "Directory not empty, can not delete without force option." );
+			}
+			foreach ( $files as $file )
+			{
+				$delPath = $dir . DIRECTORY_SEPARATOR . $file;
+				if ( is_dir( $delPath ) )
+				{
+					static::deleteTree( $delPath, $force, true );
+				}
+				elseif ( is_file( $delPath ) )
+				{
+					unlink( $delPath );
+				}
+				else
+				{
+					// bad path?
+				}
+			}
+			if ( $delete_self )
+			{
+				rmdir( $dir );
+			}
+		}
+	}
+
+	/**
+	 * @param string $src
+	 * @param string $dst
+	 * @param bool   $clean
+	 * @param array  $skip
+	 *
+	 * @return void
+	 */
+	public static function copyTree( $src, $dst, $clean = false, $skip = array( '.', '..' ) )
+	{
+		if ( file_exists( $dst ) && $clean )
+		{
+			static::deleteTree( $dst );
+		}
+		if ( is_dir( $src ) )
+		{
+			@mkdir( $dst );
+			$files = array_diff( scandir( $src ), $skip );
+			foreach ( $files as $file )
+			{
+				static::copyTree( $src . DIRECTORY_SEPARATOR . $file, $dst . DIRECTORY_SEPARATOR, $file, $clean, $skip );
+			}
+		}
+		else if ( file_exists( $src ) )
+		{
+			copy( $src, $dst );
+		}
+	}
+
+	/**
+	 * @param \ZipArchive $zip
+	 * @param string      $root
+	 * @param string      $path
+	 * @param array       $skip
+	 *
+	 * @throws \Exception
+	 */
+	public static function addTreeToZip( $zip, $root, $path = '', $skip = array( '.', '..' ) )
+	{
+		$dirPath = $root;
+		if ( !empty( $path ) )
+		{
+			$dirPath .= $path . DIRECTORY_SEPARATOR;
+		}
+		if ( is_dir( $dirPath ) )
+		{
+			$files = array_diff( scandir( $dirPath ), $skip );
+			if ( empty( $files ) )
+			{
+				$newPath = str_replace( DIRECTORY_SEPARATOR, '/', $path );
+				if ( !$zip->addEmptyDir( $newPath ) )
+				{
+					throw new \Exception( "Can not include folder '$newPath' in zip file." );
+				}
+
+				return;
+			}
+			foreach ( $files as $file )
+			{
+				$newPath = ( empty( $path ) ? $file : $path . DIRECTORY_SEPARATOR . $file );
+				if ( is_dir( $dirPath . $file ) )
+				{
+					static::addTreeToZip( $zip, $root, $newPath, $skip );
+				}
+				else if ( file_exists( $dirPath . $file ) )
+				{
+					$newPath = str_replace( DIRECTORY_SEPARATOR, '/', $newPath );
+					if ( !$zip->addFile( $dirPath . $file, $newPath ) )
+					{
+						throw new \Exception( "Can not include file '$newPath' in zip file." );
+					}
+				}
+			}
+		}
 	}
 }

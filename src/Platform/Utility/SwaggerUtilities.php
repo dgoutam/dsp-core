@@ -70,7 +70,7 @@ class SwaggerUtilities
 		}
 
 		// generate swagger output from file annotations
-		$_scanPath = Pii::basePath() . '/../../src';
+		$_scanPath = Pii::getParam( 'base_path' ) . '/src/';
 		$_swagger = Swagger::discover( $_scanPath );
 		$_swagger->setDefaultBasePath( $_basePath );
 		$_swagger->setDefaultApiVersion( \Versions::API_VERSION );

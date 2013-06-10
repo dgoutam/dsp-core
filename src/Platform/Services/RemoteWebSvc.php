@@ -20,6 +20,7 @@
 namespace Platform\Services;
 
 use Platform\Utility\Curl;
+use Platform\Utility\Utilities;
 
 /**
  * RemoteWebSvc
@@ -204,7 +205,7 @@ class RemoteWebSvc extends RestService
 		if ( false === $results )
 		{
 			$err = Curl::getError();
-			throw new Exception( Utilities::getArrayValue( 'message', $err ),
+			throw new \Exception( Utilities::getArrayValue( 'message', $err ),
 								 Utilities::getArrayValue( 'code', $err, 500 ) );
 		}
 

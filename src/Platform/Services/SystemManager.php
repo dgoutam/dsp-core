@@ -19,8 +19,11 @@
  */
 namespace Platform\Services;
 
+use Aws\CloudFront\Exception\Exception;
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
+use Kisma\Core\Interfaces\HttpResponse;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
 use Platform\Interfaces\PlatformStates;
@@ -31,6 +34,7 @@ use Platform\Resources\SystemEmailTemplate;
 use Platform\Resources\SystemRole;
 use Platform\Resources\SystemService;
 use Platform\Resources\SystemUser;
+use Platform\Utility\Curl;
 use Platform\Utility\DataFormat;
 use Platform\Utility\FileUtilities;
 use Platform\Utility\SqlDbUtilities;
@@ -57,6 +61,11 @@ class SystemManager extends RestService
 	 * @var string
 	 */
 	const SYSTEM_TABLE_PREFIX = 'df_sys_';
+	/**
+	 * @var string The private CORS configuration file
+	 */
+	const CORS_DEFAULT_CONFIG_FILE = '/cors.config.json';
+
 
 	//*************************************************************************
 	//	Members
@@ -510,6 +519,183 @@ class SystemManager extends RestService
 						}
 						break;
 				}
+			}
+		}
+	}
+
+	/**
+	 * Upgrades the DSP code base and runs the installer.
+	 *
+	 * @param array $version Version to upgrade to, should be a github tag info array
+	 *
+	 * @throws \Exception
+	 * @return void
+	 */
+	public static function upgradeDsp( $version = array() )
+	{
+		if ( \Fabric::fabricHosted() )
+		{
+			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
+		}
+
+		$_versionName = Option::get( $version, 'name' );
+		if ( empty( $_versionName ) )
+		{
+			throw new \Exception( 'No version information in upgrade load.' );
+		}
+		$_versionUrl = 'https://github.com/dreamfactorysoftware/dsp-core/archive/' . $_versionName . '.zip';
+
+		// copy current directory to backup
+		$_upgradeDir = Pii::getParam( 'base_path' ) . '/';
+		$_backupDir = Pii::getParam( 'storage_base_path' ) . '/backups/';
+		if ( !file_exists( $_backupDir ) )
+		{
+			@\mkdir( $_backupDir, 0777, true );
+		}
+		$_backupZipFile = $_backupDir . 'dsp_' . Pii::getParam( 'dsp.version' ) . '-' . time() . '.zip';
+		$_backupZip = new \ZipArchive();
+		if ( true !== $_backupZip->open( $_backupZipFile, \ZIPARCHIVE::CREATE ) )
+		{
+			throw new \Exception( 'Error opening zip file.' );
+		}
+		$_skip = array( '.', '..', '.git', '.idea', 'log', 'vendor', 'shared', 'storage' );
+		try
+		{
+			FileUtilities::addTreeToZip( $_backupZip, $_upgradeDir, '', $_skip );
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Error zipping contents to backup file - $_backupDir\n.{$ex->getMessage()}" );
+		}
+		if ( !$_backupZip->close() )
+		{
+			throw new \Exception( "Error writing backup file - $_backupZipFile." );
+		}
+
+		// need to download and extract zip file of latest version
+		$_tempDir = rtrim( sys_get_temp_dir(), DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		try
+		{
+			$_tempZip = FileUtilities::importUrlFileToTemp( $_versionUrl );
+			$zip = new \ZipArchive();
+			if ( true !== $zip->open( $_tempZip ) )
+			{
+				throw new \Exception( 'Error opening zip file.' );
+			}
+			if ( !$zip->extractTo( $_tempDir ) )
+			{
+				throw new \Exception( "Error extracting zip contents to temp directory - $_tempDir." );
+			}
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to import dsp package $_versionUrl.\n{$ex->getMessage()}" );
+		}
+
+		// now copy over
+		$_tempDir .= 'dsp-core-' . $_versionName;
+		if ( !file_exists( $_tempDir ) )
+		{
+			throw new \Exception( "Failed to find new dsp package $_tempDir." );
+		}
+		// blindly, or are there things we shouldn't touch here?
+		FileUtilities::copyTree( $_tempDir, $_upgradeDir, false, $_skip );
+
+		// now run installer script
+		$_oldWorkingDir = getcwd();
+		chdir( $_upgradeDir );
+		$_installCommand = 'scripts/installer.sh -c';
+		exec( $_installCommand, $_installOut, $_status );
+
+		// back to normal
+		chdir( $_oldWorkingDir );
+	}
+
+	public static function getUpgradeVersions()
+	{
+		$_results = Curl::get(
+			'https://api.github.com/repos/dreamfactorysoftware/dsp-core/tags',
+			array(), array( CURLOPT_HTTPHEADER => array( 'User-Agent: dreamfactory' ) )
+		);
+
+		if ( HttpResponse::Ok != Curl::getLastHttpCode() )
+		{
+			// log an error here, but don't stop config pull
+			return '';
+		}
+
+		if ( !empty( $_results ) )
+		{
+			return json_decode( $_results, true );
+		}
+
+		return array();
+	}
+
+	public static function getLatestVersion()
+	{
+		$_versions = static::getUpgradeVersions();
+
+		if ( isset($_versions[0] ) )
+		{
+			return Option::get( $_versions[0], 'name', '' );
+		}
+
+		return '';
+	}
+
+	public static function getAllowedHosts()
+	{
+		$_allowedHosts = array();
+		$_file = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+		if ( !file_exists( $_file ) )
+		{
+			// old location
+			$_file = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
+		}
+		if ( file_exists( $_file ) )
+		{
+			$_content = file_get_contents( $_file );
+			if ( !empty( $_content ) )
+			{
+				$_allowedHosts = json_decode( $_content, true );
+			}
+		}
+
+		return $_allowedHosts;
+	}
+
+	public static function setAllowedHosts( $allowed_hosts = array() )
+	{
+		static::validateHosts( $allowed_hosts );
+		$allowed_hosts = DataFormat::jsonEncode( $allowed_hosts, true );
+		$_path = Pii::getParam( 'storage_base_path' );
+		$_config = $_path . static::CORS_DEFAULT_CONFIG_FILE;
+		// create directory if it doesn't exists
+		if ( !file_exists( $_path ) )
+		{
+			@\mkdir( $_path, 0777, true );
+		}
+		// write new cors config
+		if ( false === file_put_contents( $_config, $allowed_hosts ) )
+		{
+			throw new \Exception( "Failed to update CORS configuration." );
+		}
+	}
+
+	/**
+	 * @param $allowed_hosts
+	 *
+	 * @throws BadRequestException
+	 */
+	protected static function validateHosts( $allowed_hosts )
+	{
+		foreach ( $allowed_hosts as $_hostInfo )
+		{
+			$_host = Option::get( $_hostInfo, 'host', '' );
+			if ( empty( $_host ) )
+			{
+				throw new BadRequestException( "Allowed hosts contains an empty host name." );
 			}
 		}
 	}

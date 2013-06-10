@@ -27,7 +27,6 @@ use Platform\Exceptions\InternalServerErrorException;
 use Platform\Resources\UserSession;
 use Platform\Services\SystemManager;
 use Platform\Utility\DataFormat;
-use Platform\Utility\FileUtilities;
 use Platform\Utility\RestRequest;
 use Platform\Utility\SqlDbUtilities;
 use Platform\Utility\Utilities;
@@ -64,11 +63,6 @@ class SystemConfig extends RestResource
 	//*************************************************************************
 	//	Constants
 	//*************************************************************************
-
-	/**
-	 * @var string The private CORS configuration file
-	 */
-	const CORS_DEFAULT_CONFIG_FILE = '/cors.config.json';
 
 	//*************************************************************************
 	//	Members
@@ -233,46 +227,25 @@ class SystemConfig extends RestResource
 
 			if ( $include_schema )
 			{
-				$results['meta']['schema'] = SqlDbUtilities::describeTable( Pii::db(), $model->tableName(), SystemManager::SYSTEM_TABLE_PREFIX );
+				$results['meta']['schema'] = SqlDbUtilities::describeTable(
+					Pii::db(),
+					$model->tableName(),
+					SystemManager::SYSTEM_TABLE_PREFIX
+				);
 			}
 
 			// get current and latest version info
 			$_dspVersion = Pii::getParam( 'dsp.version' );
-			$_file = FileUtilities::importUrlFileToTemp(
-				'https://raw.github.com/dreamfactorysoftware/dsp-core/master/composer.json',
-				'latest.json'
-			);
-			$_latestVersion = '';
-			if ( file_exists( $_file ) )
-			{
-				$_content = file_get_contents( $_file );
-				if ( !empty( $_content ) )
-				{
-					$_latest = json_decode( $_content, true );
-					$_latestVersion = Option::get( $_latest, 'version' );
-				}
-			}
 			$results['dsp_version'] = $_dspVersion;
-			$results['latest_version'] = $_latestVersion;
-			$results['upgrade_available'] = version_compare( $_dspVersion, $_latestVersion, '<' );
+			if ( !\Fabric::fabricHosted() )
+			{
+				$_latestVersion = SystemManager::getLatestVersion();
+				$results['latest_version'] = $_latestVersion;
+				$results['upgrade_available'] = version_compare( $_dspVersion, $_latestVersion, '<' );
+			}
 
 			// get cors data from config file
-			$_allowedHosts = array();
-			$_file = Pii::getParam( 'storage_base_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
-			if ( !file_exists( $_file ) )
-			{
-				// old location
-				$_file = Pii::getParam( 'private_path' ) . static::CORS_DEFAULT_CONFIG_FILE;
-			}
-			if ( file_exists( $_file ) )
-			{
-				$_content = file_get_contents( $_file );
-				if ( !empty( $_content ) )
-				{
-					$_allowedHosts = json_decode( $_content, true );
-				}
-			}
-			$results['allowed_hosts'] = $_allowedHosts;
+			$results['allowed_hosts'] = SystemManager::getAllowedHosts();
 
 			return $results;
 		}
@@ -321,21 +294,7 @@ class SystemConfig extends RestResource
 		{
 			$allowedHosts = $record['allowed_hosts'];
 			unset( $record['allowed_hosts'] );
-
-			static::validateHosts( $allowedHosts );
-			$allowedHosts = DataFormat::jsonEncode( $allowedHosts, true );
-			$_path = Pii::getParam( 'storage_base_path' );
-			$_config = $_path . static::CORS_DEFAULT_CONFIG_FILE;
-			// create directory if it doesn't exists
-			if ( !file_exists( $_path ) )
-			{
-				@\mkdir( $_path, 0777, true );
-			}
-			// write new cors config
-			if ( false === file_put_contents( $_config, $allowedHosts ) )
-			{
-				throw new \Exception( "Failed to update CORS configuration." );
-			}
+			SystemManager::setAllowedHosts( $allowedHosts );
 		}
 		try
 		{
@@ -382,23 +341,6 @@ class SystemConfig extends RestResource
 		catch ( \Exception $ex )
 		{
 			throw $ex;
-		}
-	}
-
-	/**
-	 * @param $allowed_hosts
-	 *
-	 * @throws BadRequestException
-	 */
-	protected static function validateHosts( $allowed_hosts )
-	{
-		foreach ( $allowed_hosts as $_hostInfo )
-		{
-			$_host = Option::get( $_hostInfo, 'host', '' );
-			if ( empty( $_host ) )
-			{
-				throw new BadRequestException( "Allowed hosts contains an empty host name." );
-			}
 		}
 	}
 }

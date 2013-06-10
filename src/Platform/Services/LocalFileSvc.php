@@ -264,7 +264,7 @@ class LocalFileSvc extends BaseFileSvc
 		}
 		// create the folder
 		$this->checkContainerForWrite(); // need to be able to write to storage
-		static::copyTree(
+		FileUtilities::copyTree(
 			static::addContainerToName( $this->storageContainer, $src_path ),
 			static::addContainerToName( $this->storageContainer, $dest_path )
 		);
@@ -305,7 +305,7 @@ class LocalFileSvc extends BaseFileSvc
 	{
 		$this->checkContainerForWrite(); // need to be able to write to storage
 		$dirPath = static::addContainerToName( $this->storageContainer, $path );
-		static::deleteTree( $dirPath, $force );
+		FileUtilities::deleteTree( $dirPath, $force );
 	}
 
 	/**
@@ -754,7 +754,7 @@ class LocalFileSvc extends BaseFileSvc
 					throw new \Exception( "Can not create zip file for directory '$path'." );
 				}
 			}
-			static::addTreeToZip( $container, rtrim( $path, '/' ), $zip );
+			FileUtilities::addTreeToZip( $zip, $container, rtrim( $path, '/' ) );
 			if ( $needClose )
 			{
 				$zip->close();
@@ -785,7 +785,7 @@ class LocalFileSvc extends BaseFileSvc
 			{
 				// clear out anything in this directory
 				$dirPath = static::addContainerToName( $this->storageContainer, $path );
-				static::deleteTree( $dirPath, true, false );
+				FileUtilities::deleteTree( $dirPath, true, false );
 			}
 			catch ( \Exception $ex )
 			{
@@ -998,115 +998,5 @@ class LocalFileSvc extends BaseFileSvc
 		}
 
 		return $out;
-	}
-
-	/**
-	 * @param      $dir
-	 * @param bool $force
-	 * @param bool $delete_self
-	 *
-	 * @throws BadRequestException
-	 */
-	public static function deleteTree( $dir, $force = false, $delete_self = true )
-	{
-		if ( is_dir( $dir ) )
-		{
-			$files = array_diff( scandir( $dir ), array( '.', '..' ) );
-			if ( !empty( $files ) && !$force )
-			{
-				throw new BadRequestException( "Directory not empty, can not delete without force option." );
-			}
-			foreach ( $files as $file )
-			{
-				$delPath = $dir . DIRECTORY_SEPARATOR . $file;
-				if ( is_dir( $delPath ) )
-				{
-					static::deleteTree( $delPath, $force, true );
-				}
-				elseif ( is_file( $delPath ) )
-				{
-					unlink( $delPath );
-				}
-				else
-				{
-					// bad path?
-				}
-			}
-			if ( $delete_self )
-			{
-				rmdir( $dir );
-			}
-		}
-	}
-
-	/**
-	 * @param $src
-	 * @param $dst
-	 */
-	public static function copyTree( $src, $dst )
-	{
-		if ( file_exists( $dst ) )
-		{
-			static::deleteTree( $dst );
-		}
-		if ( is_dir( $src ) )
-		{
-			mkdir( $dst );
-			$files = array_diff( scandir( $src ), array( '.', '..' ) );
-			foreach ( $files as $file )
-			{
-				static::copyTree( $src . DIRECTORY_SEPARATOR . $file, $dst . DIRECTORY_SEPARATOR, $file );
-			}
-		}
-		else if ( file_exists( $src ) )
-		{
-			copy( $src, $dst );
-		}
-	}
-
-	/**
-	 * @param $root
-	 * @param $path
-	 * @param $zip \ZipArchive
-	 *
-	 * @throws \Exception
-	 */
-	public static function addTreeToZip( $root, $path, $zip )
-	{
-		$dirPath = $root;
-		if ( !empty( $path ) )
-		{
-			$dirPath .= $path . DIRECTORY_SEPARATOR;
-		}
-		if ( is_dir( $dirPath ) )
-		{
-			$files = array_diff( scandir( $dirPath ), array( '.', '..' ) );
-			if ( empty( $files ) )
-			{
-				$newPath = str_replace( DIRECTORY_SEPARATOR, '/', $path );
-				if ( !$zip->addEmptyDir( $newPath ) )
-				{
-					throw new \Exception( "Can not include folder '$newPath' in zip file." );
-				}
-
-				return;
-			}
-			foreach ( $files as $file )
-			{
-				$newPath = ( empty( $path ) ? $file : $path . DIRECTORY_SEPARATOR . $file );
-				if ( is_dir( $dirPath . $file ) )
-				{
-					static::addTreeToZip( $root, $newPath, $zip );
-				}
-				else
-				{
-					$newPath = str_replace( DIRECTORY_SEPARATOR, '/', $newPath );
-					if ( !$zip->addFile( $dirPath . $file, $newPath ) )
-					{
-						throw new \Exception( "Can not include file '$newPath' in zip file." );
-					}
-				}
-			}
-		}
 	}
 }

@@ -21,6 +21,7 @@ use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 use Platform\Interfaces\PlatformStates;
 use Platform\Services\SystemManager;
 use Platform\Yii\Utility\Pii;
@@ -67,7 +68,7 @@ class SiteController extends Controller
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'actions' => array( 'initSystem', 'initAdmin', 'environment', 'initSchema', 'upgradeSchema', 'initData', 'metrics', 'fileTree', 'logout' ),
+				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'upgrade', 'environment', 'metrics', 'fileTree', 'logout' ),
 				'users'   => array( '@' ),
 			),
 //			//	Deny all others access to init commands
@@ -275,6 +276,39 @@ class SiteController extends Controller
 
 		$this->render(
 			'initData',
+			array(
+				 'model' => $_model
+			)
+		);
+	}
+
+	public function actionUpgrade()
+	{
+		$_model = new UpgradeDspForm();
+		$_versions = SystemManager::getUpgradeVersions();
+
+		if ( isset( $_POST, $_POST['UpgradeDspForm'] ) )
+		{
+			$_model->attributes = $_POST['UpgradeDspForm'];
+
+			if ( $_model->validate() )
+			{
+				$_version = Option::get( $_versions, $_model->selected, array() );
+				SystemManager::upgradeDsp( $_version );
+				$this->redirect( '/' );
+			}
+
+			$this->refresh();
+		}
+
+		$_display = array();
+		foreach ($_versions as $_version)
+		{
+			$_display[] = Option::get( $_version, 'name', '' );
+		}
+		$_model->versions = $_display;
+		$this->render(
+			'upgradeDsp',
 			array(
 				 'model' => $_model
 			)
