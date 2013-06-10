@@ -19,6 +19,8 @@
  */
 namespace Platform\Utility;
 
+use Kisma\Core\Utility\FilterInput;
+
 /**
  * REST Request Utilities
  */
@@ -46,6 +48,10 @@ class RestRequest
 				if ( false !== stripos( $_contentType, '/json' ) )
 				{
 					$_data = DataFormat::jsonToArray( $_postData );
+				}
+				elseif ( false !== stripos( $_contentType, 'application/x-www-form-urlencoded' ) )
+				{
+					parse_str( $_postData, $_data );
 				}
 				elseif ( false !== stripos( $_contentType, '/xml' ) )
 				{ // application/xml or text/xml
@@ -80,24 +86,28 @@ class RestRequest
 		return $_data;
 	}
 
-	/* checks for post data and performs gunzip functions */
 	/**
+	 * Checks for post data and performs gunzip functions
+	 *
 	 * @return string
 	 */
 	public static function getPostData()
 	{
-		$content_enc = ( !empty( $_SERVER["HTTP_CONTENT_ENCODING"] ) ) ? $_SERVER["HTTP_CONTENT_ENCODING"] : '';
-		if ( $content_enc === 'gzip' )
+		if ( 'gzip' === FilterInput::server( 'HTTP_CONTENT_ENCODING' ) )
 		{
-			// Until PHP 6.0 is installed where gzunencode() is supported
-			// we must use the temp file support
+			// Until PHP 6.0 is installed where gzunencode() is supported we must use the temp file support
 			$data = "";
-			$gzfp = gzopen( 'php://input', "r" );
+			$gzfp = gzopen( 'php://input', 'r' );
+
 			while ( !gzeof( $gzfp ) )
 			{
 				$data .= gzread( $gzfp, 1024 );
 			}
 			gzclose( $gzfp );
+		}
+		else if ( isset( $_POST ) && !empty( $_POST ) )
+		{
+			$data = $_POST;
 		}
 		else
 		{
