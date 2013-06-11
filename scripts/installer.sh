@@ -21,6 +21,10 @@
 #
 # CHANGELOG:
 #
+# v1.2.4
+#   Moved composer.phar install directory to project root
+#	Reordered the composer checks to happen after the option parsing
+#
 # v1.2.3.1
 #   Removed exit on failed removal of shared directory
 #
@@ -75,10 +79,9 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.3.1
+VERSION=1.2.4
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
-COMPOSER_INSTALLED=0
 PHP=/usr/bin/php
 WEB_USER=www-data
 BASE=`pwd`
@@ -89,6 +92,32 @@ FABRIC_MARKER=/var/www/.fabric_hosted
 TAG="Mode: ${B1}Local${B2}"
 VERBOSE=
 QUIET="--quiet"
+
+## Who am I?
+INSTALL_USER=${USER}
+if [ "x" = "${INSTALL_USER}x" ] ; then
+	INSTALL_USER=`whoami`
+fi
+
+##
+## Construct the various paths
+##
+BASE_PATH="`dirname "${0}" | xargs dirname`"
+
+##	Get the REAL path of install
+pushd "${BASE_PATH}" >/dev/null
+BASE_PATH=`pwd`
+popd >/dev/null
+
+LOG_DIR=${BASE_PATH}/log/
+STORAGE_DIR=${BASE_PATH}/storage/
+VENDOR_DIR=${BASE_PATH}/vendor
+WEB_DIR=${BASE_PATH}/web
+PUBLIC_DIR=${WEB_DIR}/public
+ASSETS_DIR=${PUBLIC_DIR}/assets
+APPS_DIR=${BASE_PATH}/apps
+SHARE_DIR=${BASE_PATH}/shared
+COMPOSER_DIR=${BASE_PATH}
 
 # Hosted or standalone?
 if [ -f "${FABRIC_MARKER}" ] ; then
@@ -104,11 +133,6 @@ PARSED_OPTIONS=$(getopt -n "$0"  -o hvcD --long "help,verbose,clean,debug"  -- "
 #	Bad arguments, something has gone wrong with the getopt command.
 if [ $? -ne 0 ] ; then
 	exit 1
-fi
-
-# Composer already installed?
-if [ -f "${SHARE_DIR}/${COMPOSER}" ] ; then
-	COMPOSER_INSTALLED=1
 fi
 
 #	A little magic, necessary when using getopt.
@@ -136,19 +160,13 @@ while true ;  do
 			;;
 
 		-c|--clean)
-			if [ ${COMPOSER_INSTALLED} -eq 0 ] ; then
-				if [ -f "/usr/local/bin/composer.phar" ] ; then
-					rm /usr/local/bin/composer.phar
-					if [ $? -ne 0 ] ; then
-						echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
-					fi
-				fi
+			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null
+			if [ $? -ne 0 ] ; then
+				echo "  * ${B1}WARNING{B2}: Cannot remove \"shared/\", \"vendor/\", and/or \"composer.lock\"."
+				echo "  * ${B1}WARNING{B2}: Clean installation NOT guaranteed."
 			else
-				echo "  * ${B1}Did not remove composer.phar as we did not install it.${B2}"
+				echo "  * Clean install. Dependencies removed."
 			fi
-
-			rm -rf ./shared/ ./vendor/ ./composer.lock
-			echo "  * Clean install. Dependencies removed."
 			shift
 			;;
 
@@ -158,8 +176,19 @@ while true ;  do
 	esac
 done
 
-echo "  * Install user is ${B1}\"${USER}\"${B2}"
+# Composer already installed?
+if [ -f "${COMPOSER_DIR}/${COMPOSER}" ] ; then
+	echo "  * Composer pre-installed: ${B1}${COMPOSER_DIR}/${COMPOSER}${B2}"
+	echo "  * Checking for package manager updates"
+	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction self-update
+else
+	echo "  * No composer found, installing: ${B1}${COMPOSER_DIR}/${COMPOSER}${B2}"
+	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir ${COMPOSER_DIR} ${QUIET} ${VERBOSE} --no-interaction
+fi
 
+echo "  * Install user is ${B1}\"${INSTALL_USER}\"${B2}"
+
+#	Determine OS type
 if [ "Darwin" = "${SYSTEM_TYPE}" ] ; then
 	WEB_USER=_www
 	echo "  * OS X installation: Apache user set to \"${B1}_www${B2}\""
@@ -174,25 +203,6 @@ fi
 service apache2 stop >/dev/null 2>&1
 service mysql stop >/dev/null 2>&1
 
-##
-## Construct the various paths
-##
-BASE_PATH="`dirname "${0}" | xargs dirname`"
-
-##	Get the REAL path of install
-pushd "${BASE_PATH}" >/dev/null
-BASE_PATH=`pwd`
-popd >/dev/null
-
-LOG_DIR=${BASE_PATH}/log/
-STORAGE_DIR=${BASE_PATH}/storage/
-VENDOR_DIR=${BASE_PATH}/vendor
-WEB_DIR=${BASE_PATH}/web
-PUBLIC_DIR=${WEB_DIR}/public
-ASSETS_DIR=${PUBLIC_DIR}/assets
-APPS_DIR=${BASE_PATH}/apps
-SHARE_DIR=${BASE_PATH}/shared
-
 # Make sure these are there...
 [ ! -d "${SHARE_DIR}" ] && mkdir -p "${SHARE_DIR}" >/dev/null && chmod 0777 "${SHARE_DIR}" && echo "  * Created ${SHARE_DIR}"
 
@@ -203,27 +213,19 @@ SHARE_DIR=${BASE_PATH}/shared
 ## Check directory permissions...
 ##
 echo "  * Checking file system"
-chown -R ${USER}:${WEB_USER} * .git* >/dev/null 2>&1
+chown -R ${INSTALL_USER}:${WEB_USER} * .git* >/dev/null 2>&1
 find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
-rm -rf ~/.composer/ >/dev/null 2>&1
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
-chgrp -R ${WEB_USER} ${SHARE_DIR} >/dev/null 2>&1
+chgrp -R ${WEB_USER} ${SHARE_DIR} ${VENDOR_DIR} ./composer.lock >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
 ## Check if composer is installed
 ## If not, install. If it is, make sure it's current
 ##
-if [ ! -f "${SHARE_DIR}/${COMPOSER}" ] ; then
-	echo "  * Installing package manager"
-	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${SHARE_DIR} ${QUIET} ${VERBOSE} --no-interaction
-else
-	[ "${VERBOSE}x" != "x" ] && echo "  * Composer pre-installed"
-	echo "  * Checking for package manager updates"
-	${PHP} ${SHARE_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction self-update
-fi
+echo "  * Working directory: ${B1}${BASE_PATH}${B2}"
 
 ##
 ##	Install composer dependencies
@@ -233,10 +235,10 @@ pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 	echo "  * Installing dependencies"
-	${PHP} ${SHARE_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
+	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
 else
 	echo "  * Updating dependencies"
-	${PHP} ${SHARE_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
+	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
 fi
 
 ##
@@ -279,7 +281,7 @@ cd - >/dev/null 2>&1
 ##
 ## make owned by user
 ##
-chown -R ${USER}:${WEB_USER} * .git*  >/dev/null 2>&1
+chown -R ${INSTALL_USER}:${WEB_USER} * .git*  >/dev/null 2>&1
 
 ##
 ## make writable by web server
