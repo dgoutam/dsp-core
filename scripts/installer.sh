@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.2.3
+#   chmod 777 on shared and vendor directories so web installer can clean
+#
 # v1.2.2
 #   Changed location of composer.phar
 #	Added new argument --debug for extra verbosity
@@ -69,7 +72,7 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.2
+VERSION=1.2.3
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
 COMPOSER_INSTALLED=0
@@ -130,18 +133,18 @@ while true ;  do
 			;;
 
 		-c|--clean)
-			if [ ${COMPOSER_INSTALLED} -eq 0 ] ; then
-				if [ -f "/usr/local/bin/composer.phar" ] ; then
-					rm /usr/local/bin/composer.phar
-					if [ $? -ne 0 ] ; then
-						echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
-					fi
-				fi
-			else
-				echo "  * ${B1}Did not remove composer.phar as we did not install it.${B2}"
-			fi
+#			if [ ${COMPOSER_INSTALLED} -eq 0 ] ; then
+#				if [ -f "/usr/local/bin/composer.phar" ] ; then
+#					rm /usr/local/bin/composer.phar
+#					if [ $? -ne 0 ] ; then
+#						echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
+#					fi
+#				fi
+#			else
+#				echo "  * ${B1}Did not remove composer.phar as we did not install it.${B2}"
+#			fi
 
-			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null 2>&1
+			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null || echo "  * Error removing shared or vendor directory." && exit 1
 			echo "  * Clean install. Dependencies removed."
 			shift
 			;;
@@ -188,7 +191,7 @@ APPS_DIR=${BASE_PATH}/apps
 SHARE_DIR=${BASE_PATH}/shared
 
 # Make sure these are there...
-[ ! -d "${SHARE_DIR}" ] && mkdir "${SHARE_DIR}" >/dev/null 2>&1  && echo "  * Created ${SHARE_DIR}"
+[ ! -d "${SHARE_DIR}" ] && mkdir -p "${SHARE_DIR}" >/dev/null && chmod 0777 "${SHARE_DIR}" && echo "  * Created ${SHARE_DIR}"
 
 # Git submodules (not currently used, but could be in the future)
 /usr/bin/git submodule update --init -q >/dev/null 2>&1 && echo "  * External modules updated"
@@ -278,7 +281,7 @@ chown -R ${USER}:${WEB_USER} * .git*  >/dev/null 2>&1
 ##
 ## make writable by web server
 ##
-chmod -R 0777 log/ web/public/assets/ >/dev/null 2>&1
+chmod -R 0777 shared/ vendor/ log/ web/public/assets/ >/dev/null 2>&1
 
 ##
 ## Restart non-essential services
