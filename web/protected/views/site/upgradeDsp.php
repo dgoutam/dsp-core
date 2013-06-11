@@ -21,13 +21,13 @@
 /* @var $model UpgradeDspForm */
 /* @var $form CActiveForm */
 
-$this->pageTitle=Yii::app()->name . ' - Upgrade DSP';
+$this->pageTitle=Yii::app()->name . ' - Upgrade';
 $this->breadcrumbs=array(
 	'Upgrade DSP',
 );
 ?>
 
-<h1>Upgrade DreamFactory Services Platform</h1>
+<h1>DreamFactory Services Platform Upgrade</h1>
 
 <?php if(Yii::app()->user->hasFlash('upgrade-dsp')): ?>
 
@@ -39,7 +39,7 @@ $this->breadcrumbs=array(
 
 <p>
 Your DreamFactory Services Platform has an upgrade available.
-When you are ready, click the 'Upgrade DSP' button below.
+When you are ready, select the desired version and click the 'Upgrade DSP' button below.
 </p>
 
 <div class="form">
