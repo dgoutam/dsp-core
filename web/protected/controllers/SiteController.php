@@ -24,6 +24,7 @@ use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Interfaces\PlatformStates;
 use Platform\Services\SystemManager;
+use Platform\Resources\UserSession;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -284,6 +285,26 @@ class SiteController extends Controller
 
 	public function actionUpgrade()
 	{
+		if ( \Fabric::fabricHosted() )
+		{
+			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
+		}
+
+		/** @var \CWebUser $_user  */
+		$_user = \Yii::app()->user;
+		// Create and login first admin user
+		if ( !$_user->getState( 'df_authenticated' ) )
+		{
+			try
+			{
+				UserSession::checkSessionPermission( 'admin', 'system' );
+			}
+			catch ( \Exception $ex )
+			{
+				throw new \Exception( 'Upgrade requires admin privileges, logout and login with admin credentials.' );
+			}
+		}
+
 		$_current = SystemManager::getCurrentVersion();
 		$_temp = SystemManager::getDspVersions();
 		$_versions = array();

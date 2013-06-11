@@ -20,6 +20,7 @@
 namespace Platform\Resources;
 
 use Kisma\Core\Utility\Log;
+use \Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\ForbiddenException;
@@ -602,7 +603,7 @@ class UserSession extends RestResource
 		}
 
 		// check if app allowed in role
-		$appName = Utilities::getArrayValue( 'app_name', $GLOBALS, '' );
+		$appName = Option::get( $GLOBALS, 'app_name' );
 		if ( empty( $appName ) )
 		{
 			throw new BadRequestException( "A valid application name is required to access services." );
