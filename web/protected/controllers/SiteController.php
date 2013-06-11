@@ -63,7 +63,7 @@ class SiteController extends Controller
 			array(
 				'allow',
 				'actions' => array( 'index', 'login', 'error', ),
-				'users'   => array( '?' ),
+				'users'   => array( '*' ),
 			),
 			//	Allow authenticated users access to init commands
 			array(
