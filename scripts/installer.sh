@@ -160,7 +160,7 @@ while true ;  do
 			;;
 
 		-c|--clean)
-			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null
+			rm -rf shared/ vendor/ composer.lock >/dev/null
 			if [ $? -ne 0 ] ; then
 				echo "  * ${B1}WARNING{B2}: Cannot remove \"shared/\", \"vendor/\", and/or \"composer.lock\"."
 				echo "  * ${B1}WARNING{B2}: Clean installation NOT guaranteed."
@@ -218,7 +218,6 @@ find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
-chgrp -R ${WEB_USER} ${SHARE_DIR} ${VENDOR_DIR} ./composer.lock >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
@@ -244,6 +243,7 @@ fi
 ##
 ##	Make sure our directories are in place...
 ##
+chgrp -R ${WEB_USER} ${SHARE_DIR} ${VENDOR_DIR} ./composer.lock >/dev/null 2>&1
 
 if [ ! -d "${LOG_DIR}" ] ; then
 	mkdir "${LOG_DIR}" >/dev/null 2>&1 && echo "  * Created ${LOG_DIR}"
