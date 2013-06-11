@@ -1599,6 +1599,7 @@ class SqlDbSvc extends BaseDbSvc
 		{
 			$availFields = $this->describeTableFields( $table );
 			$relations = $this->describeTableRelated( $table );
+			$related = Option::get( $extras, 'related', array() );
 			if ( empty( $id_field ) )
 			{
 				$id_field = SqlDbUtilities::getPrimaryKeyFieldFromDescribe( $availFields );
@@ -1640,9 +1641,9 @@ class SqlDbSvc extends BaseDbSvc
 				{
 					$temp[$binding['name']] = $dummy[$binding['name']];
 				}
-				if ( !empty( $extras ) )
+				if ( !empty( $related ) )
 				{
-					$temp = $this->retrieveRelatedRecords( $relations, $temp, $extras );
+					$temp = $this->retrieveRelatedRecords( $relations, $temp, $related );
 				}
 				$data[$count++] = $temp;
 			}
@@ -1704,6 +1705,7 @@ class SqlDbSvc extends BaseDbSvc
 		{
 			$availFields = $this->describeTableFields( $table );
 			$relations = $this->describeTableRelated( $table );
+			$related = Option::get( $extras, 'related', array() );
 			if ( empty( $id_field ) )
 			{
 				$id_field = SqlDbUtilities::getPrimaryKeyFieldFromDescribe( $availFields );
@@ -1743,9 +1745,9 @@ class SqlDbSvc extends BaseDbSvc
 				{
 					$data[$binding['name']] = $dummy[$binding['name']];
 				}
-				if ( !empty( $extras ) )
+				if ( !empty( $related ) )
 				{
-					$data = $this->retrieveRelatedRecords( $relations, $data, $extras );
+					$data = $this->retrieveRelatedRecords( $relations, $data, $related );
 				}
 			}
 			else
@@ -2192,8 +2194,8 @@ class SqlDbSvc extends BaseDbSvc
 	 * @param        $avail_fields
 	 * @param string $prefix
 	 *
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return string
-	 * @throws \Exception
 	 */
 	public function parseOutFields( $fields, $avail_fields, $prefix = 'INSERTED' )
 	{
@@ -2228,8 +2230,9 @@ class SqlDbSvc extends BaseDbSvc
 	 * @param $data
 	 * @param $extras
 	 *
+	 * @throws \Platform\Exceptions\InternalServerErrorException
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
-	 * @throws \Exception
 	 */
 	protected function retrieveRelatedRecords( $relations, $data, $extras )
 	{
@@ -2247,11 +2250,11 @@ class SqlDbSvc extends BaseDbSvc
 				$relationType = $relation['type'];
 				$relatedTable = $relation['ref_table'];
 				$relatedField = $relation['ref_field'];
+				$field = $relation['field'];
 				$extraFields = $extra['fields'];
 				switch ( $relationType )
 				{
 					case 'belongs_to':
-						$field = $relation['field'];
 						$fieldVal = Utilities::getArrayValue( $field, $data );
 						$relatedRecords = $this->retrieveRecordsByFilter( $relatedTable, "$relatedField = '$fieldVal'", $extraFields );
 						if ( !empty( $relatedRecords ) )
@@ -2264,12 +2267,10 @@ class SqlDbSvc extends BaseDbSvc
 						}
 						break;
 					case 'has_many':
-						$field = $relation['field'];
 						$fieldVal = Utilities::getArrayValue( $field, $data );
 						$tempData = $this->retrieveRecordsByFilter( $relatedTable, "$relatedField = '$fieldVal'", $extraFields );
 						break;
 					case 'many_many':
-						$field = $relation['field'];
 						$fieldVal = Utilities::getArrayValue( $field, $data );
 						$join = $relation['join'];
 						$joinTable = substr( $join, 0, strpos( $join, '(' ) );
