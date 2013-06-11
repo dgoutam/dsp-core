@@ -357,19 +357,17 @@ class SystemManager extends RestService
 	{
 		/** @var \CWebUser $_user  */
 		$_user = \Yii::app()->user;
-		$_piiUser = Pii::app()->getUser();
+		// Create and login first admin user
+		$email = $_user->getState( 'email' );
+		$pwd = $_user->getState( 'password' );
+
+		if ( empty( $email ) || empty( $pwd ) )
+		{
+			Pii::redirect( '/site/login' );
+		}
 
 		try
 		{
-			// Create and login first admin user
-			$email = $_user->getState( 'email' );
-			$pwd = $_user->getState( 'password' );
-
-			if ( empty( $email ) || empty( $pwd ) )
-			{
-				Pii::redirect( '/site/login' );
-			}
-
 			$theUser = \User::model()->find( 'email = :email', array( ':email' => $email ) );
 
 			if ( empty( $theUser ) )
@@ -532,11 +530,6 @@ class SystemManager extends RestService
 	 */
 	public static function upgradeDsp( $version )
 	{
-		if ( \Fabric::fabricHosted() )
-		{
-			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
-		}
-
 		if ( empty( $version ) )
 		{
 			throw new \Exception( 'No version information in upgrade load.' );

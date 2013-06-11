@@ -19,7 +19,11 @@
  */
 namespace Platform\Services;
 
+use Platform\Exceptions\BadRequestException;
+use Platform\Exceptions\NotFoundException;
+use Platform\Utility\EmailUtilities;
 use Platform\Utility\RestRequest;
+use Platform\Utility\Utilities;
 use Swagger\Annotations as SWG;
 
 /**
@@ -61,7 +65,7 @@ class EmailSvc extends RestService
 	 */
 	protected $_isNative = false;
 	/**
-	 * @var null|Swift_SmtpTransport|Swift_SendMailTransport|Swift_MailTransport
+	 * @var null|\Swift_SmtpTransport|\Swift_SendMailTransport|\Swift_MailTransport
 	 */
 	protected $_transport = null;
 	/**
@@ -90,8 +94,6 @@ class EmailSvc extends RestService
 	 *
 	 * @param array $config
 	 * @param bool  $native
-	 *
-	 * @throws InvalidArgumentException
 	 */
 	public function __construct( $config, $native = false )
 	{
@@ -225,7 +227,7 @@ class EmailSvc extends RestService
 	public function sendEmailByTemplate( $template, $data )
 	{
 		// find template in system db
-		$record = EmailTemplate::model()->findByAttributes( array( 'name' => $template ) );
+		$record = \EmailTemplate::model()->findByAttributes( array( 'name' => $template ) );
 		if ( empty( $record ) )
 		{
 			throw new NotFoundException( "Email Template '$template' not found" );
@@ -283,7 +285,6 @@ class EmailSvc extends RestService
 	 * @param string $reply_email Email used for the sender reply to
 	 * @param array  $data        Name-Value pairs for replaceable data in subject and body
 	 *
-	 * @throws Exception
 	 * @return int
 	 */
 	public function sendEmail( $to_emails, $cc_emails = '', $bcc_emails = '', $subject = '', $body_text = '',
