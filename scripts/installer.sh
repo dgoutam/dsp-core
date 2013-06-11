@@ -21,6 +21,10 @@
 #
 # CHANGELOG:
 #
+# v1.2.5
+#	No longer stopping apache if INSTALL_USER == WEB_USER
+#   Found issues surrounding current working directory when run from Apache
+#
 # v1.2.4
 #   Moved composer.phar install directory to project root
 #	Reordered the composer checks to happen after the option parsing
@@ -79,17 +83,14 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.4
+VERSION=1.2.5
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
 PHP=/usr/bin/php
 WEB_USER=www-data
 BASE=`pwd`
-B1=`tput bold`
-B2=`tput sgr0`
 FABRIC=0
 FABRIC_MARKER=/var/www/.fabric_hosted
-TAG="Mode: ${B1}Local${B2}"
 VERBOSE=
 QUIET="--quiet"
 
@@ -99,15 +100,30 @@ if [ "x" = "${INSTALL_USER}x" ] ; then
 	INSTALL_USER=`whoami`
 fi
 
+##	No term, no bold
+if [ "x" = "${TERM}x" ] ; then
+	B1=
+	B2=
+else
+	B1=`tput bold`
+	B2=`tput sgr0`
+fi
+
+TAG="Mode: ${B1}Local${B2}"
+
 ##
 ## Construct the various paths
 ##
 BASE_PATH="`dirname "${0}" | xargs dirname`"
 
 ##	Get the REAL path of install
-pushd "${BASE_PATH}" >/dev/null
+pushd "${BASE_PATH}" >/dev/null 2>&1
 BASE_PATH=`pwd`
-popd >/dev/null
+if [ "web" = `basename ${BASE_PATH}` ] ; then
+	cd ..
+	BASE_PATH=`pwd`
+fi
+popd >/dev/null 2>&1
 
 LOG_DIR=${BASE_PATH}/log/
 STORAGE_DIR=${BASE_PATH}/storage/
@@ -160,7 +176,7 @@ while true ;  do
 			;;
 
 		-c|--clean)
-			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null
+			rm -rf shared/ vendor/ composer.lock >/dev/null
 			if [ $? -ne 0 ] ; then
 				echo "  * ${B1}WARNING{B2}: Cannot remove \"shared/\", \"vendor/\", and/or \"composer.lock\"."
 				echo "  * ${B1}WARNING{B2}: Clean installation NOT guaranteed."
@@ -199,8 +215,10 @@ fi
 ##
 ## Shutdown non-essential services
 ##
+if [ "${WEB_USER}" != "${INSTALL_USER}" ] ; then
+	service apache2 stop >/dev/null 2>&1
+fi
 
-service apache2 stop >/dev/null 2>&1
 service mysql stop >/dev/null 2>&1
 
 # Make sure these are there...
@@ -218,7 +236,6 @@ find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
-chgrp -R ${WEB_USER} ${SHARE_DIR} ${VENDOR_DIR} ./composer.lock >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
@@ -236,14 +253,19 @@ pushd "${BASE_PATH}" >/dev/null
 if [ ! -d "${VENDOR_DIR}" ] ; then
 	echo "  * Installing dependencies"
 	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
+#	${PHP} ${COMPOSER_DIR}/${COMPOSER} -v install
 else
 	echo "  * Updating dependencies"
 	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
+#	${PHP} ${COMPOSER_DIR}/${COMPOSER} -v update
 fi
+
+echo "Composer returned $?"
 
 ##
 ##	Make sure our directories are in place...
 ##
+chgrp -R ${WEB_USER} ${SHARE_DIR} ${VENDOR_DIR} ./composer.lock >/dev/null 2>&1
 
 if [ ! -d "${LOG_DIR}" ] ; then
 	mkdir "${LOG_DIR}" >/dev/null 2>&1 && echo "  * Created ${LOG_DIR}"
@@ -293,7 +315,10 @@ chmod -R 0777 shared/ vendor/ log/ web/public/assets/ >/dev/null 2>&1
 ##
 
 service mysql start >/dev/null 2>&1
-service apache2 start >/dev/null 2>&1
+
+if [ "${WEB_USER}" != "${INSTALL_USER}" ] ; then
+	service apache2 start >/dev/null 2>&1
+fi
 
 echo
 echo "Complete. Enjoy the rest of your day!"
