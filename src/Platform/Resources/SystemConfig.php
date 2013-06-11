@@ -235,7 +235,7 @@ class SystemConfig extends RestResource
 			}
 
 			// get current and latest version info
-			$_dspVersion = Pii::getParam( 'dsp.version' );
+			$_dspVersion = SystemManager::getCurrentVersion();
 			$results['dsp_version'] = $_dspVersion;
 			if ( !\Fabric::fabricHosted() )
 			{

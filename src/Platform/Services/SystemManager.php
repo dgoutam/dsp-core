@@ -19,7 +19,6 @@
  */
 namespace Platform\Services;
 
-use Aws\CloudFront\Exception\Exception;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -526,24 +525,23 @@ class SystemManager extends RestService
 	/**
 	 * Upgrades the DSP code base and runs the installer.
 	 *
-	 * @param array $version Version to upgrade to, should be a github tag info array
+	 * @param string $version Version to upgrade to, should be a github tag identifier
 	 *
 	 * @throws \Exception
 	 * @return void
 	 */
-	public static function upgradeDsp( $version = array() )
+	public static function upgradeDsp( $version )
 	{
 		if ( \Fabric::fabricHosted() )
 		{
 			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
 		}
 
-		$_versionName = Option::get( $version, 'name' );
-		if ( empty( $_versionName ) )
+		if ( empty( $version ) )
 		{
 			throw new \Exception( 'No version information in upgrade load.' );
 		}
-		$_versionUrl = 'https://github.com/dreamfactorysoftware/dsp-core/archive/' . $_versionName . '.zip';
+		$_versionUrl = 'https://github.com/dreamfactorysoftware/dsp-core/archive/' . $version . '.zip';
 
 		// copy current directory to backup
 		$_upgradeDir = Pii::getParam( 'base_path' ) . '/';
@@ -593,7 +591,7 @@ class SystemManager extends RestService
 		}
 
 		// now copy over
-		$_tempDir .= 'dsp-core-' . $_versionName;
+		$_tempDir .= 'dsp-core-' . $version;
 		if ( !file_exists( $_tempDir ) )
 		{
 			throw new \Exception( "Failed to find new dsp package $_tempDir." );
@@ -604,18 +602,19 @@ class SystemManager extends RestService
 		// now run installer script
 		$_oldWorkingDir = getcwd();
 		chdir( $_upgradeDir );
-		$_installCommand = 'scripts/installer.sh -c';
+		$_installCommand = 'scripts/installer.sh -cv';
 		exec( $_installCommand, $_installOut, $_status );
 
 		// back to normal
 		chdir( $_oldWorkingDir );
 	}
 
-	public static function getUpgradeVersions()
+	public static function getDspVersions()
 	{
 		$_results = Curl::get(
 			'https://api.github.com/repos/dreamfactorysoftware/dsp-core/tags',
-			array(), array( CURLOPT_HTTPHEADER => array( 'User-Agent: dreamfactory' ) )
+			array(),
+			array( CURLOPT_HTTPHEADER => array( 'User-Agent: dreamfactory' ) )
 		);
 
 		if ( HttpResponse::Ok != Curl::getLastHttpCode() )
@@ -634,7 +633,7 @@ class SystemManager extends RestService
 
 	public static function getLatestVersion()
 	{
-		$_versions = static::getUpgradeVersions();
+		$_versions = static::getDspVersions();
 
 		if ( isset($_versions[0] ) )
 		{
@@ -642,6 +641,12 @@ class SystemManager extends RestService
 		}
 
 		return '';
+	}
+
+	public static function getCurrentVersion()
+	{
+
+		return Pii::getParam( 'dsp.version' );
 	}
 
 	public static function getAllowedHosts()

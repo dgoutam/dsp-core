@@ -71,10 +71,10 @@ class SiteController extends Controller
 				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'upgrade', 'environment', 'metrics', 'fileTree', 'logout' ),
 				'users'   => array( '@' ),
 			),
-//			//	Deny all others access to init commands
-//			array(
-//				'deny',
-//			),
+			//	Deny all others access to init commands
+			array(
+				'deny',
+			),
 		);
 	}
 
@@ -284,8 +284,24 @@ class SiteController extends Controller
 
 	public function actionUpgrade()
 	{
+		$_current = SystemManager::getCurrentVersion();
+		$_temp = SystemManager::getDspVersions();
+		$_versions = array();
+		foreach ($_temp as $_version)
+		{
+			$_name = Option::get( $_version, 'name', '' );
+			if ( version_compare( $_current, $_name, '<' ) )
+			{
+				$_versions[] = $_name;
+			}
+		}
+		if ( empty( $_versions ) )
+		{
+			throw new Exception( 'No upgrade available. This DSP is running the latest available version.' );
+		}
+
 		$_model = new UpgradeDspForm();
-		$_versions = SystemManager::getUpgradeVersions();
+		$_model->versions = $_versions;
 
 		if ( isset( $_POST, $_POST['UpgradeDspForm'] ) )
 		{
@@ -293,7 +309,7 @@ class SiteController extends Controller
 
 			if ( $_model->validate() )
 			{
-				$_version = Option::get( $_versions, $_model->selected, array() );
+				$_version = Option::get( $_versions, $_model->selected, '' );
 				SystemManager::upgradeDsp( $_version );
 				$this->redirect( '/' );
 			}
@@ -301,12 +317,6 @@ class SiteController extends Controller
 			$this->refresh();
 		}
 
-		$_display = array();
-		foreach ($_versions as $_version)
-		{
-			$_display[] = Option::get( $_version, 'name', '' );
-		}
-		$_model->versions = $_display;
 		$this->render(
 			'upgradeDsp',
 			array(
