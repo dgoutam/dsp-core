@@ -49,10 +49,6 @@ class RestRequest
 				{
 					$_data = DataFormat::jsonToArray( $_postData );
 				}
-				elseif ( false !== stripos( $_contentType, 'application/x-www-form-urlencoded' ) )
-				{
-					parse_str( $_postData, $_data );
-				}
 				elseif ( false !== stripos( $_contentType, '/xml' ) )
 				{ // application/xml or text/xml
 					$_data = DataFormat::xmlToArray( $_postData );
