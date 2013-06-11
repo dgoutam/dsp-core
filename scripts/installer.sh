@@ -203,6 +203,7 @@ find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
 rm -rf ~/.composer/ >/dev/null 2>&1
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
+chgrp -R ${WEB_USER} ${SHARE_DIR} >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
 ##
