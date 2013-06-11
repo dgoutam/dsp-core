@@ -21,6 +21,10 @@
 #
 # CHANGELOG:
 #
+# v1.2.2
+#   Changed location of composer.phar
+#	Added new argument --debug for extra verbosity
+#
 # v1.2.1
 #   Fixed broken path link
 #
@@ -65,9 +69,8 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.0
+VERSION=1.2.2
 SYSTEM_TYPE=`uname -s`
-INSTALL_DIR=~/bin
 COMPOSER=composer.phar
 COMPOSER_INSTALLED=0
 PHP=/usr/bin/php
@@ -90,7 +93,7 @@ fi
 echo "${B1}DreamFactory Services Platform(tm)${B2} ${SYSTEM_TYPE} Installer [${TAG} v${VERSION}]"
 
 #	Execute getopt on the arguments passed to this program, identified by the special character $@
-PARSED_OPTIONS=$(getopt -n "$0"  -o hvc --long "help,verbose,clean"  -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0"  -o hvcD --long "help,verbose,clean,debug"  -- "$@")
 
 #	Bad arguments, something has gone wrong with the getopt command.
 if [ $? -ne 0 ] ; then
@@ -98,7 +101,7 @@ if [ $? -ne 0 ] ; then
 fi
 
 # Composer already installed?
-if [ -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
+if [ -f "${SHARE_DIR}/${COMPOSER}" ] ; then
 	COMPOSER_INSTALLED=1
 fi
 
@@ -113,9 +116,16 @@ while true ;  do
 	    	;;
 
 		-v|--verbose)
-			VERBOSE="--verbose"
+			VERBOSE="-v"
 			QUIET=
 			echo "  * Verbose mode enabled"
+			shift
+			;;
+
+		-D|--debug)
+			VERBOSE="-vvv"
+			QUIET=
+			echo "  * Debug verbosity enabled"
 			shift
 			;;
 
@@ -175,19 +185,12 @@ WEB_DIR=${BASE_PATH}/web
 PUBLIC_DIR=${WEB_DIR}/public
 ASSETS_DIR=${PUBLIC_DIR}/assets
 APPS_DIR=${BASE_PATH}/apps
-
-# Determine share location
-if [ -f "${FABRIC_MARKER}" ] ; then
-	SHARE_DIR=/var/www/dsp-share
-else
-	SHARE_DIR=${BASE_PATH}/shared
-fi
+SHARE_DIR=${BASE_PATH}/shared
 
 # Make sure these are there...
-[ -d "${APPS_DIR}" ] && rm -rf "${APPS_DIR}" >/dev/null 2>&1  && echo "  * Removed bogus apps directory \"${APPS_DIR}\""
 [ ! -d "${SHARE_DIR}" ] && mkdir "${SHARE_DIR}" >/dev/null 2>&1  && echo "  * Created ${SHARE_DIR}"
 
-# Git submodules
+# Git submodules (not currently used, but could be in the future)
 /usr/bin/git submodule update --init -q >/dev/null 2>&1 && echo "  * External modules updated"
 
 ##
@@ -198,7 +201,7 @@ chown -R ${USER}:${WEB_USER} * .git* >/dev/null 2>&1
 find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
 find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
 find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
-rm -rf ~/.composer/
+rm -rf ~/.composer/ >/dev/null 2>&1
 chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
 [ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
 
@@ -206,18 +209,13 @@ chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
 ## Check if composer is installed
 ## If not, install. If it is, make sure it's current
 ##
-
-if [ ! -d "${INSTALL_DIR}" ] ; then
-	mkdir -p "${INSTALL_DIR}" >/dev/null 2>&1
-fi
-
-if [ ! -f "${INSTALL_DIR}/${COMPOSER}" ] ; then
+if [ ! -f "${SHARE_DIR}/${COMPOSER}" ] ; then
 	echo "  * Installing package manager"
-	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${INSTALL_DIR} ${QUIET} ${VERBOSE} --no-interaction
+	curl -s https://getcomposer.org/installer | ${PHP} -- --install-dir=${SHARE_DIR} ${QUIET} ${VERBOSE} --no-interaction
 else
-	[ "${VERBOSE}" = "--verbose" ] && echo "  * Composer pre-installed"
+	[ "${VERBOSE}x" != "x" ] && echo "  * Composer pre-installed"
 	echo "  * Checking for package manager updates"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction self-update
+	${PHP} ${SHARE_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction self-update
 fi
 
 ##
@@ -228,10 +226,10 @@ pushd "${BASE_PATH}" >/dev/null
 
 if [ ! -d "${VENDOR_DIR}" ] ; then
 	echo "  * Installing dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
+	${PHP} ${SHARE_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
 else
 	echo "  * Updating dependencies"
-	${PHP} ${INSTALL_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
+	${PHP} ${SHARE_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
 fi
 
 ##
@@ -255,12 +253,12 @@ cd ${PUBLIC_DIR}
 
 if [ ! -L "${PUBLIC_DIR}/web-core" ] ; then
     ln -sf ../../shared/dreamfactory/web/web-core/ web-core >/dev/null 2>&1
-    echo "  * Web Core linked"
+    echo "  * Core linked"
 fi
 
 if [ ! -L "${PUBLIC_DIR}/launchpad" ] ; then
     ln -sf ../../shared/dreamfactory/app/app-launchpad/ launchpad >/dev/null 2>&1
-    echo "  * Launchpad linked"
+    echo "  * LaunchPad linked"
 fi
 
 if [ ! -L "${PUBLIC_DIR}/admin" ] ; then
