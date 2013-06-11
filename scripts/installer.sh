@@ -21,6 +21,10 @@
 #
 # CHANGELOG:
 #
+# v1.2.5
+#	No longer stopping apache if INSTALL_USER == WEB_USER
+#   Found issues surrounding current working directory when run from Apache
+#
 # v1.2.4
 #   Moved composer.phar install directory to project root
 #	Reordered the composer checks to happen after the option parsing
@@ -79,17 +83,14 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.4
+VERSION=1.2.5
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
 PHP=/usr/bin/php
 WEB_USER=www-data
 BASE=`pwd`
-B1=`tput bold`
-B2=`tput sgr0`
 FABRIC=0
 FABRIC_MARKER=/var/www/.fabric_hosted
-TAG="Mode: ${B1}Local${B2}"
 VERBOSE=
 QUIET="--quiet"
 
@@ -99,15 +100,30 @@ if [ "x" = "${INSTALL_USER}x" ] ; then
 	INSTALL_USER=`whoami`
 fi
 
+##	No term, no bold
+if [ "x" = "${TERM}x" ] ; then
+	B1=
+	B2=
+else
+	B1=`tput bold`
+	B2=`tput sgr0`
+fi
+
+TAG="Mode: ${B1}Local${B2}"
+
 ##
 ## Construct the various paths
 ##
 BASE_PATH="`dirname "${0}" | xargs dirname`"
 
 ##	Get the REAL path of install
-pushd "${BASE_PATH}" >/dev/null
+pushd "${BASE_PATH}" >/dev/null 2>&1
 BASE_PATH=`pwd`
-popd >/dev/null
+if [ "web" = `basename ${BASE_PATH}` ] ; then
+	cd ..
+	BASE_PATH=`pwd`
+fi
+popd >/dev/null 2>&1
 
 LOG_DIR=${BASE_PATH}/log/
 STORAGE_DIR=${BASE_PATH}/storage/
@@ -199,8 +215,10 @@ fi
 ##
 ## Shutdown non-essential services
 ##
+if [ "${WEB_USER}" != "${INSTALL_USER}" ] ; then
+	service apache2 stop >/dev/null 2>&1
+fi
 
-service apache2 stop >/dev/null 2>&1
 service mysql stop >/dev/null 2>&1
 
 # Make sure these are there...
@@ -235,10 +253,14 @@ pushd "${BASE_PATH}" >/dev/null
 if [ ! -d "${VENDOR_DIR}" ] ; then
 	echo "  * Installing dependencies"
 	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction install
+#	${PHP} ${COMPOSER_DIR}/${COMPOSER} -v install
 else
 	echo "  * Updating dependencies"
 	${PHP} ${COMPOSER_DIR}/${COMPOSER} ${QUIET} ${VERBOSE} --no-interaction update
+#	${PHP} ${COMPOSER_DIR}/${COMPOSER} -v update
 fi
+
+echo "Composer returned $?"
 
 ##
 ##	Make sure our directories are in place...
@@ -293,7 +315,10 @@ chmod -R 0777 shared/ vendor/ log/ web/public/assets/ >/dev/null 2>&1
 ##
 
 service mysql start >/dev/null 2>&1
-service apache2 start >/dev/null 2>&1
+
+if [ "${WEB_USER}" != "${INSTALL_USER}" ] ; then
+	service apache2 start >/dev/null 2>&1
+fi
 
 echo
 echo "Complete. Enjoy the rest of your day!"

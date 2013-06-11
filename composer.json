@@ -2,6 +2,10 @@
 	"name":              "dreamfactory/dsp-core",
 	"description":       "DreamFactory Services Platform(tm) Core",
 	"version":           "1.0.3",
+	"config":            {
+		"home":      "./",
+		"cache-dir": "./.composer/cache"
+	},
 	"keywords":          [
 		"php",
 		"php5",
@@ -63,9 +67,5 @@
 		"psr-0": {
 			"Platform\\": "src/"
 		}
-	},
-	"config":            {
-		"home":      "",
-		"cache-dir": ".composer/cache"
 	}
 }
