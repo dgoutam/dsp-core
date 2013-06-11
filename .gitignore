@@ -5,6 +5,7 @@ shared/
 log
 storage
 composer.lock
+composer.phar
 web/public/admin
 web/public/assets
 web/public/admin
@@ -12,3 +13,5 @@ web/public/launchpad
 web/public/web-core
 web/shared
 id_deploy
+test.php
+test.sh
