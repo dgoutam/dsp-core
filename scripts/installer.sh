@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.2.3.1
+#   Removed exit on failed removal of shared directory
+#
 # v1.2.3
 #   chmod 777 on shared and vendor directories so web installer can clean
 #
@@ -72,7 +75,7 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.3
+VERSION=1.2.3.1
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
 COMPOSER_INSTALLED=0
@@ -133,18 +136,18 @@ while true ;  do
 			;;
 
 		-c|--clean)
-#			if [ ${COMPOSER_INSTALLED} -eq 0 ] ; then
-#				if [ -f "/usr/local/bin/composer.phar" ] ; then
-#					rm /usr/local/bin/composer.phar
-#					if [ $? -ne 0 ] ; then
-#						echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
-#					fi
-#				fi
-#			else
-#				echo "  * ${B1}Did not remove composer.phar as we did not install it.${B2}"
-#			fi
+			if [ ${COMPOSER_INSTALLED} -eq 0 ] ; then
+				if [ -f "/usr/local/bin/composer.phar" ] ; then
+					rm /usr/local/bin/composer.phar
+					if [ $? -ne 0 ] ; then
+						echo "  ! Cannot remove \"${B1}/usr/local/bin/composer.phar${B2}\". Please remove manually and re-run script."
+					fi
+				fi
+			else
+				echo "  * ${B1}Did not remove composer.phar as we did not install it.${B2}"
+			fi
 
-			rm -rf ./shared/ ./vendor/ ./composer.lock >/dev/null || echo "  * Error removing shared or vendor directory." && exit 1
+			rm -rf ./shared/ ./vendor/ ./composer.lock
 			echo "  * Clean install. Dependencies removed."
 			shift
 			;;
