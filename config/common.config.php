@@ -64,6 +64,7 @@ if ( file_exists( __DIR__ . '/aliases.config.php' ) )
 \Kisma::set( 'app.log_path', $_logFilePath );
 \Kisma::set( 'app.vendor_path', $_vendorPath );
 \Kisma::set( 'app.log_file_name', $_logFileName );
+\Kisma::set( 'app.project_root', $_basePath );
 
 /**
  * Database Caching
@@ -110,9 +111,7 @@ return array_merge(
 	array(
 		 /** App Information */
 		 'base_path'         => $_basePath,
-		 /**
-		  * DSP Information
-		  */
+		 /** DSP Information */
 		 'dsp.version'       => DSP_VERSION,
 		 'dsp.name'          => $_instanceSettings['dsp_name'],
 		 'dsp.auth_endpoint' => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
