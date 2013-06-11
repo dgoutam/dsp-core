@@ -6,6 +6,7 @@ log
 storage
 composer.lock
 composer.phar
+.composer/
 web/public/admin
 web/public/assets
 web/public/admin
