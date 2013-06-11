@@ -31,6 +31,7 @@ use OpenCloud\ObjectStore\Service;
 use Platform\Exceptions\BlobServiceException;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\NotFoundException;
+use Platform\Utility\FileUtilities;
 
 /**
  * RemoteFileSvc.php
@@ -72,13 +73,34 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	{
 		parent::__construct( $config );
 
+		$_storageType = strtolower( Option::get( $config, 'storage_type' ) );
 		$_credentials = Option::get( $config, 'credentials' );
 
-		$_auth_url = Option::get( $_credentials, 'url', 'https://identity.api.rackspacecloud.com/v2.0' );
+		switch ( $_storageType )
+		{
+			case 'rackspace cloudfiles':
+				$_authUrl = Option::get( $_credentials, 'url', 'https://identity.api.rackspacecloud.com/' );
+				$_region = Option::get( $_credentials, 'region', 'DFW' );
+				break;
+			default:
+				$_authUrl = Option::get( $_credentials, 'url' );
+				$_region = Option::get( $_credentials, 'region' );
+				break;
+		}
+
+
 		$_username = Option::get( $_credentials, 'username' );
 		$_password = Option::get( $_credentials, 'password' );
 		$_apiKey = Option::get( $_credentials, 'api_key' );
 		$_tenantName = Option::get( $_credentials, 'tenant_name' );
+		if ( empty( $_authUrl ) )
+		{
+			throw new \InvalidArgumentException( 'Object Store authentication URL can not be empty.' );
+		}
+		if ( empty( $_region ) )
+		{
+			throw new \InvalidArgumentException( 'Object Store region can not be empty.' );
+		}
 		if ( empty( $_username ) )
 		{
 			throw new \InvalidArgumentException( 'Object Store username can not be empty.' );
@@ -106,8 +128,23 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 
 		try
 		{
-			$_os = new Rackspace( $_auth_url, $_secret );
-			$this->_blobConn = $_os->ObjectStore( 'cloudFiles', 'DFW' );
+			switch ( $_storageType )
+			{
+				case 'rackspace cloudfiles':
+					$_pos = stripos( $_authUrl, '/v');
+					if ( false !== $_pos )
+					{
+						$_authUrl = substr( $_authUrl, 0, $_pos );
+					}
+					$_authUrl = FileUtilities::fixFolderPath( $_authUrl ) . 'v2.0';
+					$_os = new Rackspace( $_authUrl, $_secret );
+					break;
+				default:
+					$_os = new OpenStack( $_authUrl, $_secret );
+					break;
+			}
+
+			$this->_blobConn = $_os->ObjectStore( 'cloudFiles', $_region );
 		}
 		catch ( \Exception $ex )
 		{
@@ -520,7 +557,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 					'name'         => $_obj->name,
 					'contentType'  => $_obj->content_type,
 					'size'         => $_obj->bytes,
-					'lastModified' => $_obj->last_modified
+					'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', strtotime($_obj->last_modified))
 				);
 			}
 			elseif ( !empty( $_obj->subdir ) ) // sub directories formatted differently
@@ -562,7 +599,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 				'name'         => $_obj->name,
 				'contentType'  => $_obj->content_type,
 				'size'         => $_obj->bytes,
-				'lastModified' => $_obj->last_modified
+				'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', strtotime($_obj->last_modified))
 			);
 
 			return $file;

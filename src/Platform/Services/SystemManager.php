@@ -595,8 +595,9 @@ class SystemManager extends RestService
 		// now run installer script
 		$_oldWorkingDir = getcwd();
 		chdir( $_upgradeDir );
-		$_installCommand = 'scripts/installer.sh -cv';
-		exec( $_installCommand, $_installOut, $_status );
+		$_installCommand = 'export COMPOSER_HOME=' . $_upgradeDir . '; /bin/bash ./scripts/installer.sh -cD 2>&1';
+		exec( $_installCommand, $_installOut );
+		Log::info( implode( PHP_EOL, $_installOut) );
 
 		// back to normal
 		chdir( $_oldWorkingDir );
