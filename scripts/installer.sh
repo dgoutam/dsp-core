@@ -260,7 +260,7 @@ else
 #	${PHP} ${COMPOSER_DIR}/${COMPOSER} -v update
 fi
 
-echo "Composer returned $?"
+[ $? -ne 0 ] && echo "  * ${B1}ERROR:${B2} Composer did not complete successfully ($?). Some features may not operate properly."
 
 ##
 ##	Make sure our directories are in place...

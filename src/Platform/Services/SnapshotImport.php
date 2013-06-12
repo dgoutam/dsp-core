@@ -105,7 +105,7 @@ class SnapshotImport
 			throw new RestException( HttpResponse::BadRequest, 'Invalid snapshot "' . $this->_fileName . '"' );
 		}
 
-		return array($_tempPath, $_workPath, $_workFile, $_snapshot);
+		return array( $_tempPath, $_workPath, $_workFile, $_snapshot );
 	}
 
 	/**
@@ -133,8 +133,8 @@ class SnapshotImport
 		}
 
 		//	2. Restore storage...
-		$_command =
-			'cd ' . $_storagePath . '; rm -rf ' . $_storagePath . '/*; /bin/tar zxf ' . $_tempPath . '/' . $_snapshot->storage->tarball . ' ./';
+		$_command
+			= 'cd ' . $_storagePath . '; rm -rf ' . $_storagePath . '/*; /bin/tar zxf ' . $_tempPath . '/' . $_snapshot->storage->tarball . ' ./';
 		$_result = exec( $_command, $_output, $_return );
 
 		if ( 0 != $_return )
@@ -162,9 +162,9 @@ class SnapshotImport
 		//	4.	Import the snapshot...
 		$_reader = new LineReader(
 			array(
-				'fileName'  => $_workPath,
-				'separator' => null,
-				'enclosure' => null,
+				 'fileName'  => $_workPath,
+				 'separator' => null,
+				 'enclosure' => null,
 			)
 		);
 
@@ -202,8 +202,8 @@ class SnapshotImport
 	 */
 	protected function _validateInstance()
 	{
-		$_instance =
-			Curl::post( static::API_ENDPOINT . '/locate', array('user_name' => Pii::db()->username, 'password' => Pii::db()->password) );
+		$_instance
+			= Curl::post( static::API_ENDPOINT . '/locate', array( 'user_name' => Pii::db()->username, 'password' => Pii::db()->password ) );
 
 		if ( empty( $_instance ) )
 		{
@@ -234,7 +234,7 @@ class SnapshotImport
 		{
 			if ( !is_array( $subs ) )
 			{
-				$subs = array($subs);
+				$subs = array( $subs );
 			}
 
 			foreach ( $subs as $_sub )

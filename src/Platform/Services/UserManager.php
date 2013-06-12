@@ -44,34 +44,34 @@ use Swagger\Annotations as SWG;
  * )
  *
  * @SWG\Model(id="Profile",
- *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
- *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
- *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
- *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user."),
- *   @SWG\Property(name="phone",type="string",description="Phone number."),
- *   @SWG\Property(name="security_question",type="string",description="Question to be answered to initiate password reset."),
- *   @SWG\Property(name="default_app_id",type="int",description="Id of the application to be launched at login.")
+ * @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ * @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ * @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ * @SWG\Property(name="display_name",type="string",description="Full display name of the current user."),
+ * @SWG\Property(name="phone",type="string",description="Phone number."),
+ * @SWG\Property(name="security_question",type="string",description="Question to be answered to initiate password reset."),
+ * @SWG\Property(name="default_app_id",type="int",description="Id of the application to be launched at login.")
  * )
  * @SWG\Model(id="Register",
- *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
- *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
- *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
- *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user.")
+ * @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ * @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ * @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ * @SWG\Property(name="display_name",type="string",description="Full display name of the current user.")
  * )
  * @SWG\Model(id="Confirm",
- *   @SWG\Property(name="email",type="string"),
- *   @SWG\Property(name="new_password",type="string")
+ * @SWG\Property(name="email",type="string"),
+ * @SWG\Property(name="new_password",type="string")
  * )
  * @SWG\Model(id="Password",
- *   @SWG\Property(name="old_password",type="string"),
- *   @SWG\Property(name="new_password",type="string")
+ * @SWG\Property(name="old_password",type="string"),
+ * @SWG\Property(name="new_password",type="string")
  * )
  * @SWG\Model(id="Question",
- *   @SWG\Property(name="security_question",type="string")
+ * @SWG\Property(name="security_question",type="string")
  * )
  * @SWG\Model(id="Answer",
- *   @SWG\Property(name="email",type="string"),
- *   @SWG\Property(name="security_answer",type="string")
+ * @SWG\Property(name="email",type="string"),
+ * @SWG\Property(name="security_answer",type="string")
  * )
  *
  */
@@ -103,31 +103,67 @@ class UserManager extends RestService
 
 	// Service interface implementation
 
+	/**
+	 * @param string $apiName
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
 	public function setApiName( $apiName )
 	{
 		throw new \Exception( 'UserManager API name can not be changed.' );
 	}
 
+	/**
+	 * @param string $type
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
 	public function setType( $type )
 	{
 		throw new \Exception( 'UserManager type can not be changed.' );
 	}
 
+	/**
+	 * @param string $description
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
 	public function setDescription( $description )
 	{
 		throw new \Exception( 'UserManager description can not be changed.' );
 	}
 
+	/**
+	 * @param bool $isActive
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
 	public function setIsActive( $isActive )
 	{
 		throw new \Exception( 'UserManager active flag can not be changed.' );
 	}
 
+	/**
+	 * @param string $name
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
 	public function setName( $name )
 	{
 		throw new \Exception( 'UserManager name can not be changed.' );
 	}
 
+	/**
+	 * @param string $nativeFormat
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
 	public function setNativeFormat( $nativeFormat )
 	{
 		throw new \Exception( 'UserManager native format can not be changed.' );
@@ -137,9 +173,9 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user", description="Operations available for user session management.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 *       path="/user", description="Operations available for user session management.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for user session management.",
 	 *       notes="See listed operations for each resource available.",
 	 *       responseClass="Resources", nickname="getResources"
@@ -834,15 +870,15 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/profile", description="Operations on a user's profile.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 *       path="/user/profile", description="Operations on a user's profile.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve the current user's profile information.",
 	 *       notes="This profile, along with password, is the only things that the user can directly change.",
 	 *       responseClass="Profile", nickname="getProfile",
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
