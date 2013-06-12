@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.2.6
+#	Changed default perms on scripts/*.sh to 0775 from 0755 for web update
+#
 # v1.2.5
 #	No longer stopping apache if INSTALL_USER == WEB_USER
 #   Found issues surrounding current working directory when run from Apache
@@ -83,7 +86,7 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.5
+VERSION=1.2.6
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
 PHP=/usr/bin/php
@@ -93,6 +96,10 @@ FABRIC=0
 FABRIC_MARKER=/var/www/.fabric_hosted
 VERBOSE=
 QUIET="--quiet"
+WRITE_ACCESS=0777
+SCRIPT_PERMS=0775
+FILE_PERMS=0664
+DIR_PERMS=2775
 
 ## Who am I?
 INSTALL_USER=${USER}
@@ -222,7 +229,7 @@ fi
 service mysql stop >/dev/null 2>&1
 
 # Make sure these are there...
-[ ! -d "${SHARE_DIR}" ] && mkdir -p "${SHARE_DIR}" >/dev/null && chmod 0777 "${SHARE_DIR}" && echo "  * Created ${SHARE_DIR}"
+[ ! -d "${SHARE_DIR}" ] && mkdir -p "${SHARE_DIR}" >/dev/null && chmod ${WRITE_ACCESS} "${SHARE_DIR}" && echo "  * Created ${SHARE_DIR}"
 
 # Git submodules (not currently used, but could be in the future)
 /usr/bin/git submodule update --init -q >/dev/null 2>&1 && echo "  * External modules updated"
@@ -232,11 +239,9 @@ service mysql stop >/dev/null 2>&1
 ##
 echo "  * Checking file system"
 chown -R ${INSTALL_USER}:${WEB_USER} * .git* >/dev/null 2>&1
-find ./ -type d -exec chmod 2775 {}  >/dev/null 2>&1 \;
-find ./ -type f -exec chmod 0664 {}  >/dev/null 2>&1 \;
-find ./ -name '*.sh' -exec chmod 0755 {}  >/dev/null 2>&1 \;
-chmod +x ${BASE_PATH}/scripts/*.sh  >/dev/null 2>&1
-[ -f ${BASE_PATH}/git-ssh-wrapper ] && chmod +x ${BASE_PATH}/git-ssh-wrapper
+find ./ -type d -exec chmod ${DIR_PERMS} {}  >/dev/null 2>&1 \;
+find ./ -type f -exec chmod ${FILE_PERMS} {}  >/dev/null 2>&1 \;
+find ./scripts/ -name '*.sh' -exec chmod ${SCRIPT_PERMS} {}  >/dev/null 2>&1 \;
 
 ##
 ## Check if composer is installed
@@ -308,7 +313,7 @@ chown -R ${INSTALL_USER}:${WEB_USER} * .git*  >/dev/null 2>&1
 ##
 ## make writable by web server
 ##
-chmod -R 0777 shared/ vendor/ log/ web/public/assets/ >/dev/null 2>&1
+chmod -R ${WRITE_ACCESS} shared/ vendor/ log/ web/public/assets/ >/dev/null 2>&1
 
 ##
 ## Restart non-essential services
@@ -318,6 +323,8 @@ service mysql start >/dev/null 2>&1
 
 if [ "${WEB_USER}" != "${INSTALL_USER}" ] ; then
 	service apache2 start >/dev/null 2>&1
+else
+	service apache2 reload >/dev/null 2>&1
 fi
 
 echo
