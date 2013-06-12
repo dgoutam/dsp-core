@@ -42,8 +42,10 @@ use Swagger\Annotations as SWG;
  *   @SWG\Property(name="subject",type="string",description="Text only subject line."),
  *   @SWG\Property(name="body_text",type="string",description="Text only version of the body."),
  *   @SWG\Property(name="body_html",type="string",description="Escaped HTML version of the body."),
- *   @SWG\Property(name="from",type="EmailAddress",description="Required sender name and email."),
- *   @SWG\Property(name="reply_to",type="EmailAddress",description="Optional reply to name and email.")
+ *   @SWG\Property(name="from_name",type="string",description="Required sender name."),
+ *   @SWG\Property(name="from_email",type="string",description="Required sender email."),
+ *   @SWG\Property(name="reply_to_name",type="string",description="Optional reply to name.").
+ *   @SWG\Property(name="reply_to_email",type="string",description="Optional reply to email.")
  * )
  * @SWG\Model(id="EmailAddress",
  *   @SWG\Property(name="name",type="string",description="Optional name displayed along with the email address."),
