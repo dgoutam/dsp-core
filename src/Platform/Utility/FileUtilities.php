@@ -1285,7 +1285,9 @@ class FileUtilities
 			$files = array_diff( scandir( $src ), $skip );
 			foreach ( $files as $file )
 			{
-				static::copyTree( $src . DIRECTORY_SEPARATOR . $file, $dst . DIRECTORY_SEPARATOR, $file, $clean, $skip );
+				$_srcFile = static::fixFolderPath( $src ) . $file;
+				$_dstFile = static::fixFolderPath( $dst ) . $file;
+				static::copyTree( $_srcFile, $_dstFile, $clean, $skip );
 			}
 		}
 		else if ( file_exists( $src ) )
