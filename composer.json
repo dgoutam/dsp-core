@@ -7,15 +7,7 @@
 		"cache-dir": "./.composer/cache"
 	},
 	"keywords":          [
-		"php",
-		"php5",
-		"rest",
-		"framework",
-		"cloud-computing",
-		"remote web services",
-		"library",
-		"dsp-core",
-		"dsp"
+		"php", "php5", "rest", "framework", "cloud-computing", "remote web services", "library", "dsp-core", "dsp"
 	],
 	"type":              "library",
 	"license":           [
@@ -43,14 +35,20 @@
 			"role":  "Black Ops"
 		}
 	],
+	"support":           {
+		"email":  "support@dreamfactory.com",
+		"issues": "https://github.com/dreamfactorysoftware/dsp-core/issues",
+		"wiki":   "https://github.com/dreamfactorysoftware/dsp-core/wiki",
+		"source": "https://github.com/dreamfactorysoftware/dsp-core"
+	},
 	"minimum-stability": "dev",
 	"require":           {
 		"php":                        ">=5.3.8",
 		"kisma/kisma":                "dev-master",
 		"dreamfactory/yii":           "dev-master",
-		"dreamfactory/app-admin":     "dev-master",
-		"dreamfactory/app-launchpad": "dev-master",
-		"dreamfactory/web-core":      "dev-master",
+		"dreamfactory/app-admin":     ">=1.0.4",
+		"dreamfactory/app-launchpad": ">=1.0.4",
+		"dreamfactory/web-core":      ">=1.0.4",
 		"swiftmailer/swiftmailer":    "4.3.*",
 		"zircote/swagger-php":        "0.6.*@dev",
 		"aws/aws-sdk-php":            "2.*",
