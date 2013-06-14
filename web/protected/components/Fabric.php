@@ -21,6 +21,7 @@
 use Kisma\Core\Enums\DateTime;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\SeedUtility;
+
 //use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
@@ -79,6 +80,14 @@ class Fabric extends SeedUtility
 	//*************************************************************************
 
 	/**
+	 * @return string
+	 */
+	public static function getHostName()
+	{
+		return FilterInput::server( 'HTTP_HOST', gethostname() );
+	}
+
+	/**
 	 * @return bool True if this DSP is fabric-hosted
 	 */
 	public static function fabricHosted()
@@ -102,7 +111,7 @@ class Fabric extends SeedUtility
 			'launchpad-demo.dreamfactory.com',
 		);
 
-		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+		$_host = static::getHostName();
 
 		return in_array( $_host, $_allowedHosts ) ? ( $returnHost ? $_host : true ) : false;
 	}
@@ -117,7 +126,7 @@ class Fabric extends SeedUtility
 		global $_dbName, $_instance, $_dspName;
 
 		//	If this isn't a cloud request, bail
-		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+		$_host = static::getHostName();
 
 		if ( false !== static::hostedPrivatePlatform() && false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) )
 		{
@@ -149,10 +158,7 @@ class Fabric extends SeedUtility
 
 			if ( HttpResponse::NotFound == Curl::getLastHttpCode() )
 			{
-				Log::error( 'URL: ' . static::DEFAULT_AUTH_ENDPOINT . '/' . $_dspName . '/database' );
-Log::error( 'Response: ' . print_r(Curl::getError(), true ));
 				Log::error( 'DB Credential pull failure. Redirecting to df.com' );
-
 				header( 'Location: http://dreamfactory.com/' );
 				exit();
 			}
