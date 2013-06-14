@@ -117,7 +117,9 @@ class Fabric extends SeedUtility
 		global $_dbName, $_instance, $_dspName;
 
 		//	If this isn't a cloud request, bail
-		if ( false !== ( $_host = static::hostedPrivatePlatform( true ) ) && false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) )
+		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+
+		if ( false !== static::hostedPrivatePlatform() && false === strpos( $_host, static::DSP_DEFAULT_SUBDOMAIN ) )
 		{
 			Log::error( 'Attempt to access system from non-provisioned host: ' . $_host );
 			throw new \CHttpException( HttpResponse::Forbidden, 'You are not authorized to access this system you cheeky devil you. (' . $_host . ').' );
@@ -147,6 +149,10 @@ class Fabric extends SeedUtility
 
 			if ( HttpResponse::NotFound == Curl::getLastHttpCode() )
 			{
+				Log::error( 'URL: ' . static::DEFAULT_AUTH_ENDPOINT . '/' . $_dspName . '/database' );
+Log::error( 'Response: ' . print_r(Curl::getError(), true ));
+				Log::error( 'DB Credential pull failure. Redirecting to df.com' );
+
 				header( 'Location: http://dreamfactory.com/' );
 				exit();
 			}
