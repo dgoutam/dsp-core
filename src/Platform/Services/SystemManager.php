@@ -65,7 +65,6 @@ class SystemManager extends RestService
 	 */
 	const CORS_DEFAULT_CONFIG_FILE = '/cors.config.json';
 
-
 	//*************************************************************************
 	//	Members
 	//*************************************************************************
@@ -355,7 +354,7 @@ class SystemManager extends RestService
 	 */
 	public static function initAdmin()
 	{
-		/** @var \CWebUser $_user  */
+		/** @var \CWebUser $_user */
 		$_user = \Yii::app()->user;
 		// Create and login first admin user
 		$email = $_user->getState( 'email' );
@@ -597,7 +596,7 @@ class SystemManager extends RestService
 		chdir( $_upgradeDir );
 		$_installCommand = 'export COMPOSER_HOME=' . $_upgradeDir . '; /bin/bash ./scripts/installer.sh -cD 2>&1';
 		exec( $_installCommand, $_installOut );
-		Log::info( implode( PHP_EOL, $_installOut) );
+		Log::info( implode( PHP_EOL, $_installOut ) );
 
 		// back to normal
 		chdir( $_oldWorkingDir );
@@ -629,7 +628,7 @@ class SystemManager extends RestService
 	{
 		$_versions = static::getDspVersions();
 
-		if ( isset($_versions[0] ) )
+		if ( isset( $_versions[0] ) )
 		{
 			return Option::get( $_versions[0], 'name', '' );
 		}

@@ -30,13 +30,13 @@ use Swagger\Annotations as SWG;
  * Some basic models used in REST interfaces
  *
  * @SWG\Model(id="Resources",
- *     @SWG\Property(name="resource",type="Array", items="$ref:Resource")
+ * @SWG\Property(name="resource",type="Array", items="$ref:Resource")
  * )
  * @SWG\Model(id="Resource",
- *     @SWG\Property(name="name",type="string")
+ * @SWG\Property(name="name",type="string")
  * )
  * @SWG\Model(id="Success",
- *     @SWG\Property(name="success",type="boolean")
+ * @SWG\Property(name="success",type="boolean")
  * )
  *
  */
@@ -65,7 +65,6 @@ abstract class RestService extends BaseService implements RestServiceLike
 	 * @var string REST verb to take action on
 	 */
 	protected $_action = self::Get;
-
 
 	//*************************************************************************
 	//* Methods
@@ -99,7 +98,7 @@ abstract class RestService extends BaseService implements RestServiceLike
 	}
 
 	/**
-	 *
+	 * @return mixed
 	 */
 	protected function _preProcess()
 	{
@@ -108,10 +107,11 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 	/**
 	 * @param mixed $results
+	 *
+	 * @return mixed
 	 */
 	protected function _postProcess( $results = null )
 	{
-
 	}
 
 	/**
@@ -140,7 +140,7 @@ abstract class RestService extends BaseService implements RestServiceLike
 	 * @return array|bool
 	 * @throws BadRequestException
 	 */
-	public function processRequest( $resource = null, $action = self::Get)
+	public function processRequest( $resource = null, $action = self::Get )
 	{
 		$this->_setResource( $resource );
 		$this->_setAction( $action );
@@ -148,10 +148,9 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 		$this->_preProcess();
 
-		if ( empty( $this->_resource ) && (0 == strcasecmp( self::Get, $action ) ) )
+		if ( empty( $this->_resource ) && ( 0 == strcasecmp( self::Get, $action ) ) )
 		{
-			$results = $this->_listResources();
-			if ( false === $results )
+			if ( false === ( $results = $this->_listResources() ) )
 			{
 				$results = $this->_handleResource();
 			}
@@ -165,9 +164,9 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 		if ( false === $results )
 		{
-			$msg = strtoupper($action) . ' Request';
+			$msg = strtoupper( $action ) . ' Request';
 			$msg .= ( empty( $this->_resource ) ) ? " for resource '$this->_resourcePath'" : ' with no resource';
-			$msg .=	" is not currently supported by the '$this->_apiName' service API.";
+			$msg .= " is not currently supported by the '$this->_apiName' service API.";
 			throw new BadRequestException( $msg );
 		}
 

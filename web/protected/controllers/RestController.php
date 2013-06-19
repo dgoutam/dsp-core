@@ -17,6 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Enums\HttpMethod;
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Utility\RestResponse;
@@ -61,158 +64,158 @@ class RestController extends Controller
 	{
 		try
 		{
+			$_resultFormat = null;
+
 			if ( $this->swagger )
 			{
-				$result = SwaggerUtilities::getSwagger();
-				RestResponse::sendResults( $result, RestResponse::Ok, 'json', $this->format );
+				$_result = SwaggerUtilities::getSwagger();
+				$_resultFormat = 'json';
 			}
 			else
 			{
-				/** @var CDbConnection $_db */
-				$_db = Yii::app()->db;
-				/** @var CDbCommand $command */
-				$command = $_db->createCommand();
-				$result = $command->select( 'api_name,name' )
-					->from( 'df_sys_service' )
-					->order( 'api_name' )
-					->queryAll();
-				// add non-service managers
-				$services = array(
-					array( 'api_name' => 'user', 'name' => 'User Login' ),
-					array( 'api_name' => 'system', 'name' => 'System Configuration' )
-				);
-				$result = array( 'resources' => array_merge( $services, $result ) );
-				RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
+				$_result = array( 'resources' => \Service::available() );
 			}
+
+			RestResponse::sendResults( $_result, RestResponse::Ok, $_resultFormat, $this->format );
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $_ex )
 		{
-			RestResponse::sendErrors( $ex );
+			RestResponse::sendErrors( $_ex );
 		}
 	}
 
 	/**
-	 *
+	 * {@InheritDoc}
 	 */
 	public function actionGet()
 	{
 		try
 		{
+			$_resultFormat = null;
+
 			if ( $this->swagger )
 			{
 				$result = SwaggerUtilities::getSwaggerForService( $this->service );
-				RestResponse::sendResults( $result, RestResponse::Ok, 'json', $this->format );
+				$_resultFormat = 'json';
 			}
 			else
 			{
 				$svcObj = ServiceHandler::getServiceObject( $this->service );
-				$result = $svcObj->processRequest( $this->resource, 'GET' );
-				RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
+				$result = $svcObj->processRequest( $this->resource, HttpMethod::Get );
 			}
+
+			RestResponse::sendResults( $result, RestResponse::Ok, $_resultFormat, $this->format );
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $ex )
 		{
 			RestResponse::sendErrors( $ex );
 		}
 	}
 
 	/**
-	 *
+	 * {@InheritDoc}
 	 */
 	public function actionPost()
 	{
 		try
 		{
-			// check for verb tunneling
-			$tunnel_method = Option::get( $_SERVER, 'HTTP_X_HTTP_METHOD', '' );
-			if ( empty( $tunnel_method ) )
+			//	Check for verb tunneling
+			if ( null === ( $_tunnelMethod = FilterInput::server( 'HTTP_X_HTTP_METHOD', null, FILTER_SANITIZE_STRING ) ) )
 			{
-				$tunnel_method = Option::get( $_REQUEST, 'method', '' );
+				$_tunnelMethod = FilterInput::request( 'method', null, FILTER_SANITIZE_STRING );
 			}
-			if ( !empty( $tunnel_method ) )
+
+			if ( !empty( $_tunnelMethod ) )
 			{
-				switch ( strtolower( $tunnel_method ) )
+				switch ( strtoupper( $_tunnelMethod ) )
 				{
-					case 'get': // complex retrieves, non-standard
+					case HttpMethod::Get:
+						// complex retrieves, non-standard
 						$this->actionGet();
 						break;
-					case 'post': // in case they use it in the header as well
+
+					case HttpMethod::Post:
+						// in case they use it in the header as well
 						break;
-					case 'put':
+
+					case HttpMethod::Put:
 						$this->actionPut();
 						break;
-					case 'merge':
-					case 'patch':
+
+					case HttpMethod::Merge:
+					case HttpMethod::Patch:
 						$this->actionMerge();
 						break;
-					case 'delete':
+
+					case HttpMethod::Delete:
 						$this->actionDelete();
 						break;
+
 					default:
-						if ( !empty( $tunnel_method ) )
-						{
-							throw new BadRequestException( "Unknown tunneling verb '$tunnel_method' in REST request." );
-						}
-						break;
+						throw new BadRequestException( 'Unknown tunneling verb "' . $_tunnelMethod . '" in request.' );
 				}
 			}
+
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'POST' );
+			$result = $svcObj->processRequest( $this->resource, HttpMethod::Post );
 			$code = RestResponse::Created;
+
 			RestResponse::sendResults( $result, $code, null, $this->format );
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $ex )
 		{
 			RestResponse::sendErrors( $ex );
 		}
 	}
 
 	/**
-	 *
+	 * {@InheritDoc}
 	 */
 	public function actionMerge()
 	{
 		try
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'MERGE' );
+			$result = $svcObj->processRequest( $this->resource, HttpMethod::Merge );
+
 			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $ex )
 		{
 			RestResponse::sendErrors( $ex );
 		}
 	}
 
 	/**
-	 *
+	 * {@InheritDoc}
 	 */
 	public function actionPut()
 	{
 		try
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'PUT' );
+			$result = $svcObj->processRequest( $this->resource, HttpMethod::Put );
+
 			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $ex )
 		{
 			RestResponse::sendErrors( $ex );
 		}
 	}
 
 	/**
-	 *
+	 * {@InheritDoc}
 	 */
 	public function actionDelete()
 	{
 		try
 		{
 			$svcObj = ServiceHandler::getServiceObject( $this->service );
-			$result = $svcObj->processRequest( $this->resource, 'DELETE' );
+			$result = $svcObj->processRequest( $this->resource, HttpMethod::Delete );
 			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}
-		catch ( Exception $ex )
+		catch ( \Exception $ex )
 		{
 			RestResponse::sendErrors( $ex );
 		}
@@ -221,45 +224,15 @@ class RestController extends Controller
 	/**
 	 * Override base method to do some processing of incoming requests
 	 *
-	 * @param CAction $action
+	 * @param \CAction $action
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
 	protected function beforeAction( $action )
 	{
-		$temp = strtolower( Option::get( $_REQUEST, 'format', '' ) );
-		if ( !empty( $temp ) )
-		{
-			$this->format = $temp;
-		}
-
-		// determine application if any
-		$appName = Option::get( $_SERVER, 'HTTP_X_DREAMFACTORY_APPLICATION_NAME', '' );
-		if ( empty( $appName ) )
-		{
-			// old non-name-spaced header
-			$appName = Option::get( $_SERVER, 'HTTP_X_APPLICATION_NAME', '' );
-			if ( empty( $appName ) )
-			{
-				$appName = Option::get( $_REQUEST, 'app_name', '' );
-			}
-		}
-		if ( empty( $appName ) )
-		{
-			// check for swagger documentation request
-			$appName = Option::get( $_REQUEST, 'swagger_app_name', '' );
-			if ( !empty( $appName ) )
-			{
-				$this->swagger = true;
-			}
-			else
-			{
-				$ex = new BadRequestException( "No application name header or parameter value in REST request." );
-				RestResponse::sendErrors( $ex );
-			}
-		}
-		$GLOBALS['app_name'] = $appName;
+		$this->_determineAppName();
+		$this->format = strtolower( FilterInput::request( 'format', 'json', FILTER_SANITIZE_STRING ) );
 
 //        'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>'
 		$path = Option::get( $_GET, 'path', '' );
@@ -287,5 +260,39 @@ class RestController extends Controller
 		}
 
 		return parent::beforeAction( $action );
+	}
+
+	/**
+	 * Determine the app_name/API key of this request
+	 *
+	 * @return mixed
+	 */
+	protected function _determineAppName()
+	{
+		$_appName = null;
+
+		// 	Determine application if any
+		if ( null === ( $_appName = FilterInput::request( 'app_name', null, FILTER_SANITIZE_STRING ) ) )
+		{
+			if ( null === ( $_appName = Option::get( $_SERVER, 'HTTP_X_DREAMFACTORY_APPLICATION_NAME' ) ) )
+			{
+				//	Old non-name-spaced header
+				$_appName = Option::get( $_SERVER, 'HTTP_X_APPLICATION_NAME' );
+			}
+		}
+
+		//	Still empty?
+		if ( empty( $_appName ) )
+		{
+			//	Check for swagger documentation request
+			if ( null === ( $_appName = FilterInput::request( 'swagger_app_name', null, FILTER_SANITIZE_STRING ) ) )
+			{
+				RestResponse::sendErrors( new BadRequestException( 'No application name header or parameter value in REST request.' ) );
+			}
+
+			$this->swagger = true;
+		}
+
+		return $GLOBALS['app_name'] = $_appName;
 	}
 }
