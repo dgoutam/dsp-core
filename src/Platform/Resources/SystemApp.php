@@ -48,6 +48,8 @@ use Swagger\Annotations as SWG;
  *   @SWG\Property(name="url",type="string",description="URL for accessing this application."),
  *   @SWG\Property(name="is_url_external",type="boolean",description="True when this application is hosted elsewhere."),
  *   @SWG\Property(name="imported_url",type="string",description="If imported, the url of where the code originated."),
+ *   @SWG\Property(name="storage_service_id",type="string",description="If locally stored, the storage service identifier."),
+ *   @SWG\Property(name="storage_container",type="string",description="If locally stored, the container of the storage service."),
  *   @SWG\Property(name="requires_fullscreen",type="boolean",description="True when this app needs to hide launchpad."),
  *   @SWG\Property(name="allow_fullscreen_toggle",type="boolean",description="True to allow launchpad access via toggle."),
  *   @SWG\Property(name="toggle_location",type="string",description="Screen location for toggle placement."),

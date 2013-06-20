@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\FilterInput;
 use Platform\Utility\ServiceHandler;
 use Platform\Yii\Utility\Pii;
 
@@ -39,16 +40,18 @@ class StorageController extends Controller
 	 */
 	public function actionGet()
 	{
-		$service = ( isset( $_GET['service'] ) ? $_GET['service'] : '' );
-		$path = ( isset( $_GET['path'] ) ? $_GET['path'] : '' );
+		$_service = FilterInput::get( INPUT_GET, 'service', '' );
 		try
 		{
-			$service = ServiceHandler::getServiceObject( $service );
-			switch ( $service->getType() )
+			$_obj = ServiceHandler::getServiceObject( $_service );
+			switch ( $_obj->getType() )
 			{
 				case 'Local File Storage':
 				case 'Remote File Storage':
-					$service->streamFile( $path );
+					$_fullPath = FilterInput::get( INPUT_GET, 'path', '' );
+					$_container = substr( $_fullPath, 0, strpos( $_fullPath, '/' ) );
+					$_path = ltrim( substr( $_fullPath, strpos( $_fullPath, '/' ) + 1 ), '/' );
+					$_obj->streamFile( $_container, $_path );
 					break;
 			}
 			Pii::end();

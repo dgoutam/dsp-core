@@ -175,7 +175,6 @@ class RemoteWebSvc extends RestService
 		{
 			case self::Get:
 				$this->checkPermission( 'read' );
-
 				$results = Curl::get( $url, array(), $co );
 				break;
 			case self::Post:

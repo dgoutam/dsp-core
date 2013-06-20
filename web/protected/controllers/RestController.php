@@ -81,7 +81,7 @@ class RestController extends Controller
 					array( 'api_name' => 'user', 'name' => 'User Login' ),
 					array( 'api_name' => 'system', 'name' => 'System Configuration' )
 				);
-				$result = array( 'resources' => array_merge( $services, $result ) );
+				$result = array( 'service' => array_merge( $services, $result ) );
 				RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 			}
 		}

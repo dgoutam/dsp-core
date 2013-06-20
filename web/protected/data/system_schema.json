@@ -1,5 +1,5 @@
 {
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -421,6 +421,21 @@
 					"type":       "text",
 					"allow_null": true,
 					"validation": "url"
+				},
+				{
+					"name":          "storage_service_id",
+					"type":          "reference",
+					"ref_table":     "df_sys_service",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "SET NULL",
+					"allow_null":    true
+				},
+				{
+					"name":       "storage_container",
+					"type":       "string",
+					"length":     255,
+					"allow_null": true
 				},
 				{
 					"name":       "requires_fullscreen",

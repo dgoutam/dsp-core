@@ -106,9 +106,14 @@ class AwsS3Svc extends RemoteFileSvc
 	}
 
 	/**
+	 * List all containers, just names if noted
+	 *
+	 * @param bool $include_properties If true, additional properties are retrieved
+	 *
+	 * @throws \Exception
 	 * @return array
 	 */
-	public function listContainers()
+	public function listContainers( $include_properties = false )
 	{
 		$this->checkConnection();
 
@@ -121,6 +126,32 @@ class AwsS3Svc extends RemoteFileSvc
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Gets all properties of a particular container, if options are false,
+	 * otherwise include content from the container
+	 *
+	 * @param  string $container Container name
+	 * @param  bool   $include_files
+	 * @param  bool   $include_folders
+	 * @param  bool   $full_tree
+	 *
+	 * @return array
+	 */
+	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	{
+		if ( !$include_folders && !$include_files )
+		{
+			if ( !$this->containerExists( $container ) )
+			{
+				throw new \Exception( "No container named '$container'" );
+			}
+
+			return array( 'name' => $container );
+		}
+
+		return $this->getFolder( $container, '', $include_files, $include_folders, $full_tree );
 	}
 
 	/**
@@ -161,11 +192,38 @@ class AwsS3Svc extends RemoteFileSvc
 	}
 
 	/**
-	 * @param string $container
+	 * Update a container with some properties
 	 *
-	 * @throws \Exception
+	 * @param string $container
+	 * @param array  $properties
+	 *
+	 * @throws \Platform\Exceptions\NotFoundException
+	 * @return void
 	 */
-	public function deleteContainer( $container = '' )
+	public function updateContainerProperties( $container, $properties = array() )
+	{
+		$this->checkConnection();
+		try
+		{
+			if ( $this->_blobConn->doesBucketExist( $container ) )
+			{
+				throw new \Exception( "No container named '$container'" );
+			}
+
+		}
+		catch ( \Exception $ex )
+		{
+			throw new BlobServiceException( "Failed to update container '$container': " . $ex->getMessage() );
+		}
+	}
+
+	/**
+	 * @param string $container
+	 * @param bool   $force
+	 *
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 */
+	public function deleteContainer( $container = '', $force = false )
 	{
 		try
 		{
@@ -278,7 +336,7 @@ class AwsS3Svc extends RemoteFileSvc
 	 *
 	 * @throws BlobServiceException
 	 */
-	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '' )
+	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '', $properties = array() )
 	{
 		try
 		{
@@ -455,10 +513,10 @@ class AwsS3Svc extends RemoteFileSvc
 			$meta = $this->_blobConn->headObject( $options );
 
 			$out[] = array(
-				'name'         => $key,
-				'contentType'  => $meta->get( 'ContentType' ),
-				'size'         => $meta->get( 'Size' ),
-				'lastModified' => $meta->get( 'LastModified' )
+				'name'           => $key,
+				'content_type'   => $meta->get( 'ContentType' ),
+				'content_length' => intval( $meta->get( 'ContentLength' ) ),
+				'last_modified'  => $meta->get( 'LastModified' )
 			);
 		}
 
@@ -474,7 +532,7 @@ class AwsS3Svc extends RemoteFileSvc
 	 * @return array instance
 	 * @throws BlobServiceException
 	 */
-	public function listBlob( $container, $name )
+	public function getBlobProperties( $container, $name )
 	{
 		try
 		{
@@ -489,10 +547,10 @@ class AwsS3Svc extends RemoteFileSvc
 			);
 
 			$file = array(
-				'name'         => $name,
-				'contentType'  => $result->get( 'ContentType' ),
-				'size'         => $result->get( 'Size' ),
-				'lastModified' => $result->get( 'LastModified' )
+				'name'           => $name,
+				'content_type'   => $result->get( 'ContentType' ),
+				'content_length' => intval( $result->get( 'ContentLength' ) ),
+				'last_modified'  => $result->get( 'LastModified' )
 			);
 
 			return $file;
@@ -525,8 +583,8 @@ class AwsS3Svc extends RemoteFileSvc
 			);
 
 			header( 'Last-Modified: ' . $result->get( 'LastModified' ) );
-			header( 'Content-type: ' . $result->get( 'ContentType' ) );
-			header( 'Content-Length:' . $result->get( 'ContentLength' ) );
+			header( 'Content-Type: ' . $result->get( 'ContentType' ) );
+			header( 'Content-Length:' . intval( $result->get( 'ContentLength' ) ) );
 
 			$disposition = ( isset( $params['disposition'] ) && !empty( $params['disposition'] ) ) ? $params['disposition'] : 'inline';
 
@@ -538,7 +596,7 @@ class AwsS3Svc extends RemoteFileSvc
 			if ( 'Resource could not be accessed.' == $ex->getMessage() )
 			{
 				header( 'The specified file "' . $name . '" does not exist.' );
-				header( 'Content-type: text/html' );
+				header( 'Content-Type: text/html' );
 			}
 			else
 			{

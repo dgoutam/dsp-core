@@ -460,6 +460,28 @@ class SystemManager extends RestService
 						}
 					}
 					break;
+				case 'df_sys_email_template':
+					$result = \EmailTemplate::model()->findAll();
+					if ( empty( $result ) )
+					{
+						if ( !empty( $content ) )
+						{
+							foreach ( $content as $template )
+							{
+								try
+								{
+									$obj = new \EmailTemplate;
+									$obj->setAttributes( $template );
+									$obj->save();
+								}
+								catch ( \Exception $ex )
+								{
+									throw new InternalServerErrorException( "Failed to create email template.\n{$ex->getMessage()}" );
+								}
+							}
+						}
+					}
+					break;
 			}
 		}
 		// init system with sample setup

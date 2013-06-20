@@ -26,6 +26,7 @@ use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Utility\DataFormat;
 use WindowsAzure\Blob\BlobRestProxy;
+use WindowsAzure\Blob\Models\Container;
 use WindowsAzure\Blob\Models\CreateBlobOptions;
 use WindowsAzure\Blob\Models\CreateContainerOptions;
 use WindowsAzure\Blob\Models\ListBlobsOptions;
@@ -136,16 +137,62 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	}
 
 	/**
-	 * @return mixed
+	 * List all containers, just names if noted
+	 *
+	 * @param bool $include_properties If true, additional properties are retrieved
+	 *
+	 * @throws \Exception
+	 * @return array
 	 */
-	public function listContainers()
+	public function listContainers( $include_properties = false )
 	{
 		$this->checkConnection();
 
 		/** @var \WindowsAzure\Blob\Models\ListContainersResult $result */
 		$result = $this->_blobConn->listContainers();
 
-		return $result->getContainers();
+		/** @var \WindowsAzure\Blob\Models\Container[] $_items */
+		$_items = $result->getContainers();
+		$result = array();
+		foreach ( $_items as $_item )
+		{
+			$out = array( 'name' => $_item->getName() );
+			if ( $include_properties )
+			{
+				$props = $_item->getProperties();
+				$out['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() );
+			}
+			$result[] = $out;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Gets all properties of a particular container, if options are false,
+	 * otherwise include content from the container
+	 *
+	 * @param  string $container Container name
+	 * @param  bool   $include_files
+	 * @param  bool   $include_folders
+	 * @param  bool   $full_tree
+	 *
+	 * @return array
+	 */
+	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	{
+		$this->checkConnection();
+		if ( !$include_folders && !$include_files )
+		{
+			/** @var \WindowsAzure\Blob\Models\GetContainerPropertiesResult $props  */
+			$props = $this->_blobConn->getContainerProperties( $container );
+			return array(
+				'name'            => $container,
+				'last_modified'    => gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() )
+			);
+		}
+
+		return $this->getFolder( $container, '', $include_files, $include_folders, $full_tree );
 	}
 
 	/**
@@ -158,9 +205,9 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 */
 	public function containerExists( $container = '' )
 	{
+		$this->checkConnection();
 		try
 		{
-			$this->checkConnection();
 			$this->_blobConn->getContainerProperties( $container );
 
 			return true;
@@ -194,12 +241,32 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	}
 
 	/**
+	 * Update a container with some properties
+	 *
+	 * @param string $container
+	 * @param array  $properties
+	 *
+	 * @throws \Platform\Exceptions\NotFoundException
+	 * @return void
+	 */
+	public function updateContainerProperties( $container, $properties = array() )
+	{
+		$this->checkConnection();
+
+		$options = new CreateContainerOptions();
+		$options->setMetadata( $properties );
+//		$options->setPublicAccess('blob');
+
+		$this->_blobConn->setContainerMetadata( $container, $options );
+	}
+
+	/**
 	 * @param string $container
 	 *
 	 * @return void
 	 * @throws \Exception
 	 */
-	public function deleteContainer( $container = '' )
+	public function deleteContainer( $container = '', $force = false )
 	{
 		try
 		{
@@ -296,7 +363,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 *
 	 * @return void
 	 */
-	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '' )
+	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '', $properties = array() )
 	{
 		$this->checkConnection();
 		$this->_blobConn->copyBlob( $container, $this->fixBlobName( $name ), $src_container, $this->fixBlobName( $src_name ) );
@@ -392,14 +459,19 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 		/** @var \WindowsAzure\Blob\Models\Blob $blob */
 		foreach ( $blobs as $blob )
 		{
+			$name = $blob->getName();
+			if ( 0 == strcmp( $prefix, $name ) )
+			{
+				continue;
+			}
 			$props = $blob->getProperties();
 			$out[] = array(
-				'name'            => $blob->getName(),
-				'lastModified'    => gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() ),
-				'size'            => $props->getContentLength(),
-				'contentType'     => $props->getContentType(),
-				'contentEncoding' => $props->getContentEncoding(),
-				'contentLanguage' => $props->getContentLanguage()
+				'name'             => $name,
+				'last_modified'    => gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() ),
+				'content_length'   => $props->getContentLength(),
+				'content_type'     => $props->getContentType(),
+				'content_encoding' => $props->getContentEncoding(),
+				'content_language' => $props->getContentLanguage()
 			);
 		}
 
@@ -422,7 +494,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * @return array instance
 	 * @throws \Exception
 	 */
-	public function listBlob( $container, $name )
+	public function getBlobProperties( $container, $name )
 	{
 		$this->checkConnection();
 		$name = $this->fixBlobName( $name );
@@ -430,10 +502,10 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 		$result = $this->_blobConn->getBlobProperties( $container, $name );
 		$props = $result->getProperties();
 		$file = array(
-			'name'         => $name,
-			'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() ),
-			'size'         => $props->getContentLength(),
-			'contentType'  => $props->getContentType()
+			'name'           => $name,
+			'last_modified'  => gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() ),
+			'content_length' => $props->getContentLength(),
+			'content_type'   => $props->getContentType()
 		);
 
 		return $file;
@@ -457,7 +529,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 			$props = $blob->getProperties();
 
 			header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() ) );
-			header( 'Content-type: ' . $props->getContentType() );
+			header( 'Content-Type: ' . $props->getContentType() );
 			header( 'Content-Transfer-Encoding: ' . $props->getContentEncoding() );
 			header( 'Content-Length:' . $props->getContentLength() );
 
@@ -476,7 +548,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 			{
 				$status_header = "HTTP/1.1 404 The specified file '$blobName' does not exist.";
 				header( $status_header );
-				header( 'Content-type: text/html' );
+				header( 'Content-Type: text/html' );
 			}
 			else
 			{

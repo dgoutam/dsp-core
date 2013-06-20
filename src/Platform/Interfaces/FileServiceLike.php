@@ -1,197 +1,286 @@
 <?php
-
 /**
- * FileServiceLike.php
- * Interface for handling file storage.
- *
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
- * Copyright (c) 2009-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 namespace Platform\Interfaces;
 
+/**
+ * FileServiceLike.php
+ * Interface for handling file storage resources.
+ */
 interface FileServiceLike
 {
-    /**
-     * @throw \Exception
-     */
-    public function checkContainerForWrite();
+	/**
+	 * List all containers, just names if noted
+	 *
+	 * @param bool $include_properties If true, additional properties are retrieved
+	 *
+	 * @return array
+	 */
+	public function listContainers( $include_properties = false );
 
-    /**
-     * @param $path
-     * @return bool
-     * @throw \Exception
-     */
-    public function folderExists($path);
+	/**
+	 * Check if a container exists
+	 *
+	 * @param  string $container Container name
+	 *
+	 * @return boolean
+	 */
+	public function containerExists( $container );
 
-    /**
-     * @param string $path
-     * @param bool $include_files
-     * @param bool $include_folders
-     * @param bool $full_tree
-     * @return array
-     * @throws \Exception
-     */
-    public function getFolderContent($path, $include_files = true, $include_folders = true, $full_tree = false);
+	/**
+	 * Gets all properties of a particular container, if options are false,
+	 * otherwise include content from the container
+	 *
+	 * @param  string $container Container name
+	 * @param  bool   $include_files
+	 * @param  bool   $include_folders
+	 * @param  bool   $full_tree
+	 *
+	 * @return array
+	 */
+	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false );
 
-    /**
-     * @param $path
-     * @return array
-     * @throws \Exception
-     */
-    public function getFolderProperties($path);
+	/**
+	 * Create a container using properties, where at least name is required
+	 *
+	 * @param array $properties
+	 * @param bool  $check_exist If true, throws error if the container already exists
+	 *
+	 * @return void
+	 */
+	public function createContainer( $properties = array(), $check_exist = false );
 
-    /**
-     * @param string $path
-     * @param array $properties
-     * @return void
-     * @throws \Exception
-     */
-    public function createFolder($path, $properties = array());
+	/**
+	 * Create multiple containers using array of properties, where at least name is required
+	 *
+	 * @param array $properties
+	 * @param bool  $check_exist If true, throws error if the container already exists
+	 *
+	 * @return array
+	 */
+	public function createContainers( $properties = array(), $check_exist = false );
 
-    /**
-     * @param string $path
-     * @param string $properties
-     * @return void
-     * @throws \Exception
-     */
-    public function updateFolderProperties($path, $properties = '');
+	/**
+	 * Update a container with some properties
+	 *
+	 * @param string $container
+	 * @param array  $properties
+	 *
+	 * @return void
+	 */
+	public function updateContainerProperties( $container, $properties = array() );
 
-    /**
-     * @param string $dest_path
-     * @param string $src_path
-     * @param bool $check_exist
-     * @return void
-     * @throws \Exception
-     */
-    public function copyFolder($dest_path, $src_path, $check_exist = false);
+	/**
+	 * Delete a container and all of its content
+	 *
+	 * @param string $container
+	 * @param bool   $force Force a delete if it is not empty
+	 *
+	 * @return void
+	 */
+	public function deleteContainer( $container, $force = false );
 
-    /**
-     * @param string $path Folder path relative to the service root directory
-     * @param  bool $force
-     * @return void
-     * @throws \Exception
-     */
-    public function deleteFolder($path, $force = false);
+	/**
+	 * Delete multiple containers and all of their content
+	 *
+	 * @param array $containers
+	 * @param bool  $force Force a delete if it is not empty
+	 *
+	 * @return array
+	 */
+	public function deleteContainers( $containers, $force = false );
 
-    /**
-     * @param array $folders Array of folder paths that are relative to the root directory
-     * @param string $root directory from which to delete
-     * @param  bool $force
-     * @return array
-     * @throws \Exception
-     */
-     public function deleteFolders($folders, $root = '', $force = false);
+	/**
+	 * @param $container
+	 * @param $path
+	 *
+	 * @return bool
+	 */
+	public function folderExists( $container, $path );
 
-    /**
-     * @param $path
-     * @return bool
-     * @throws \Exception
-     */
-    public function fileExists($path);
+	/**
+	 * Gets all properties of a particular folder, if options are false,
+	 * otherwise include content from the folder
+	 *
+	 * @param        $container
+	 * @param string $path
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 *
+	 * @return array
+	 */
+	public function getFolder( $container, $path, $include_files = false, $include_folders = false, $full_tree = false );
 
-    /**
-     * @param $path
-     * @param  string     $local_file
-     * @param  bool       $content_as_base
-     * @return string
-     * @throws \Exception
-     */
-    public function getFileContent($path, $local_file = '', $content_as_base = true);
+	/**
+	 * @param        $container
+	 * @param string $path
+	 * @param array  $properties
+	 *
+	 * @return void
+	 */
+	public function createFolder( $container, $path, $properties = array() );
 
-    /**
-     * @param $path
-     * @param  bool       $include_content
-     * @param  bool       $content_as_base
-     * @return array
-     * @throws \Exception
-     */
-    public function getFileProperties($path, $include_content = false, $content_as_base = true);
+	/**
+	 * @param              $container
+	 * @param string       $path
+	 * @param array|string $properties
+	 *
+	 * @return void
+	 */
+	public function updateFolderProperties( $container, $path, $properties = array() );
 
-    /**
-     * @param string $path
-     * @return null
-     */
-    public function streamFile($path);
+	/**
+	 * @param        $container
+	 * @param string $dest_path
+	 * @param        $src_container
+	 * @param string $src_path
+	 * @param bool   $check_exist
+	 *
+	 * @return void
+	 */
+	public function copyFolder( $container, $dest_path,  $src_container, $src_path, $check_exist = false );
 
-    /**
-     * @param string $path
-     * @return null
-     */
-    public function downloadFile($path);
+	/**
+	 * @param        $container
+	 * @param string $path Folder path relative to the service root directory
+	 * @param  bool  $force
+	 *
+	 * @return void
+	 */
+	public function deleteFolder( $container, $path, $force = false );
 
-    /**
-     * @param string $path
-     * @param string $content
-     * @param boolean $content_is_base
-     * @param bool $check_exist
-     * @return void
-     * @throws \Exception
-     */
-    public function writeFile($path, $content, $content_is_base = true, $check_exist = false);
+	/**
+	 * @param $container
+	 * @param $path
+	 *
+	 * @return bool
+	 */
+	public function fileExists( $container, $path );
 
-    /**
-     * @param string $path
-     * @param string $local_path
-     * @param bool $check_exist
-     * @return void
-     * @throws \Exception
-     */
-    public function moveFile($path, $local_path, $check_exist = false);
+	/**
+	 * @param         $container
+	 * @param         $path
+	 * @param  string $local_file
+	 * @param  bool   $content_as_base
+	 *
+	 * @return string
+	 */
+	public function getFileContent( $container, $path, $local_file = '', $content_as_base = true );
 
-    /**
-     * @param string $dest_path
-     * @param string $src_path
-     * @param bool $check_exist
-     * @return void
-     * @throws \Exception
-     */
-    public function copyFile($dest_path, $src_path, $check_exist = false);
+	/**
+	 * @param       $container
+	 * @param       $path
+	 * @param  bool $include_content
+	 * @param  bool $content_as_base
+	 *
+	 * @return array
+	 */
+	public function getFileProperties( $container, $path, $include_content = false, $content_as_base = true );
 
-    /**
-     * @param string $path File path relative to the service root directory
-     * @return void
-     * @throws \Exception
-     */
-    public function deleteFile($path);
+	/**
+	 * @param string $container
+	 * @param string $path
+	 * @param bool   $download
+	 *
+	 * @return void
+	 */
+	public function streamFile( $container, $path, $download = false );
 
-    /**
-     * @param array $files Array of file paths relative to root
-     * @param string $root
-     * @return array
-     * @throws \Exception
-     */
-    public function deleteFiles($files, $root='');
+	/**
+	 * @param string $container
+	 * @param string $path
+	 * @param array  $properties
+	 *
+	 * @return void
+	 */
+	public function updateFileProperties( $container, $path, $properties = array() );
 
-    /**
-     * @param $path
-     * @param \ZipArchive $zip
-     * @param bool $clean
-     * @param string $drop_path
-     * @return array
-     * @throws \Exception
-     */
-    public function extractZipFile($path, $zip, $clean = false, $drop_path = '');
+	/**
+	 * @param         $container
+	 * @param string  $path
+	 * @param string  $content
+	 * @param boolean $content_is_base
+	 * @param bool    $check_exist
+	 *
+	 * @return void
+	 */
+	public function writeFile( $container, $path, $content, $content_is_base = true, $check_exist = false );
 
-    /**
-     * @param string $path
-     * @param null|\ZipArchive $zip
-     * @param string $zipFileName
-     * @param bool $overwrite
-     * @return string Zip File Name created/updated
-     */
-    public function getFolderAsZip($path, $zip = null, $zipFileName = '', $overwrite = false);
+	/**
+	 * @param        $container
+	 * @param string $path
+	 * @param string $local_path
+	 * @param bool   $check_exist
+	 *
+	 * @return void
+	 */
+	public function moveFile( $container, $path, $local_path, $check_exist = false );
+
+	/**
+	 * @param        $container
+	 * @param string $dest_path
+	 * @param        $sc_container
+	 * @param string $src_path
+	 * @param bool   $check_exist
+	 *
+	 * @return void
+	 */
+	public function copyFile( $container, $dest_path, $sc_container, $src_path, $check_exist = false );
+
+	/**
+	 * @param        $container
+	 * @param string $path File path relative to the service root directory
+	 *
+	 * @return void
+	 */
+	public function deleteFile( $container, $path );
+
+	/**
+	 * @param        $container
+	 * @param array  $files Array of file paths relative to root
+	 * @param string $root
+	 *
+	 * @return array
+	 */
+	public function deleteFiles( $container, $files, $root = '' );
+
+	/**
+	 * @param             $container
+	 * @param             $path
+	 * @param \ZipArchive $zip
+	 * @param bool        $clean
+	 * @param string      $drop_path
+	 *
+	 * @return array
+	 */
+	public function extractZipFile( $container, $path, $zip, $clean = false, $drop_path = '' );
+
+	/**
+	 * @param                  $container
+	 * @param string           $path
+	 * @param null|\ZipArchive $zip
+	 * @param string           $zipFileName
+	 * @param bool             $overwrite
+	 *
+	 * @return string Zip File Name created/updated
+	 */
+	public function getFolderAsZip( $container, $path, $zip = null, $zipFileName = '', $overwrite = false );
 
 }

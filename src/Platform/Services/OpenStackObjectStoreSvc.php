@@ -97,10 +97,6 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		{
 			throw new \InvalidArgumentException( 'Object Store authentication URL can not be empty.' );
 		}
-		if ( empty( $_region ) )
-		{
-			throw new \InvalidArgumentException( 'Object Store region can not be empty.' );
-		}
 		if ( empty( $_username ) )
 		{
 			throw new \InvalidArgumentException( 'Object Store username can not be empty.' );
@@ -124,6 +120,10 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		if ( !empty( $_tenantName ) )
 		{
 			$_secret['tenantName'] = $_tenantName;
+		}
+		if ( empty( $_region ) )
+		{
+			throw new \InvalidArgumentException( 'Object Store region can not be empty.' );
 		}
 
 		try
@@ -161,9 +161,14 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	}
 
 	/**
+	 * List all containers, just names if noted
+	 *
+	 * @param bool $include_properties If true, additional properties are retrieved
+	 *
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @return array
 	 */
-	public function listContainers()
+	public function listContainers( $include_properties = false )
 	{
 		$this->checkConnection();
 
@@ -185,6 +190,43 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 		{
 			throw new BlobServiceException( 'Failed to list containers: ' . $ex->getMessage() );
 		}
+	}
+
+	/**
+	 * Gets all properties of a particular container, if options are false,
+	 * otherwise include content from the container
+	 *
+	 * @param  string $container Container name
+	 * @param  bool   $include_files
+	 * @param  bool   $include_folders
+	 * @param  bool   $full_tree
+	 *
+	 * @return array
+	 */
+	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	{
+		$this->checkConnection();
+
+		if ( !$include_files && !$include_folders )
+		{
+			try
+			{
+				/** @var Container $_container */
+				$_container = $this->_blobConn->Container( $container );
+
+				return array( 'name' => $_container->name );
+			}
+			catch ( ContainerNotFoundError $ex )
+			{
+				throw new BlobServiceException( 'Failed to find container: ' . $ex->getMessage() );
+			}
+			catch ( \Exception $ex )
+			{
+				throw new BlobServiceException( 'Failed to get container: ' . $ex->getMessage() );
+			}
+		}
+
+		return $this->listBlobs( $container );
 	}
 
 	/**
@@ -243,12 +285,48 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	}
 
 	/**
+	 * Update a container with some properties
+	 *
 	 * @param string $container
+	 * @param array  $properties
+	 *
+	 * @throws \Platform\Exceptions\NotFoundException
+	 * @return void
+	 */
+	public function updateContainerProperties( $container, $properties = array() )
+	{
+		$this->checkConnection();
+		try
+		{
+			/** @var Container $_container */
+			$_container = $this->_blobConn->Container( $container );
+			if ( empty( $_container) )
+			{
+				throw new \Exception( "No container named '$container'" );
+			}
+
+			if ( !$_container->Update() )
+			{
+				throw new \Exception( '' );
+			}
+		}
+		catch ( \Exception $ex )
+		{
+			throw new BlobServiceException( "Failed to update container '$container': " . $ex->getMessage() );
+		}
+	}
+
+	/**
+	 * Delete a container and all of its content
+	 *
+	 * @param string $container
+	 * @param bool   $force Force a delete if it is not empty
 	 *
 	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @throws \Exception
+	 * @return void
 	 */
-	public function deleteContainer( $container = '' )
+	public function deleteContainer( $container, $force = false )
 	{
 		$this->checkConnection();
 		try
@@ -386,11 +464,12 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @param string $name
 	 * @param string $src_container
 	 * @param string $src_name
+	 * @param array  $properties
 	 *
 	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @throws \Exception
 	 */
-	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '' )
+	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '', $properties = array() )
 	{
 		$this->checkConnection();
 		try
@@ -554,16 +633,16 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 			if ( !empty( $_obj->name ) )
 			{
 				$_out[] = array(
-					'name'         => $_obj->name,
-					'contentType'  => $_obj->content_type,
-					'size'         => $_obj->bytes,
-					'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', strtotime($_obj->last_modified))
+					'name'           => $_obj->name,
+					'content_type'   => $_obj->content_type,
+					'content_length' => $_obj->bytes,
+					'last_modified'  => gmdate( 'D, d M Y H:i:s \G\M\T', strtotime($_obj->last_modified))
 				);
 			}
 			elseif ( !empty( $_obj->subdir ) ) // sub directories formatted differently
 			{
 				$_out[] = array(
-					'name'         => $_obj->subdir
+					'name'           => $_obj->subdir
 				);
 			}
 		}
@@ -581,7 +660,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * @throws \Exception
 	 * @return array
 	 */
-	public function listBlob( $container, $name )
+	public function getBlobProperties( $container, $name )
 	{
 		$this->checkConnection();
 		try
@@ -596,10 +675,10 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 			$_obj = $_container->DataObject( $name );
 
 			$file = array(
-				'name'         => $_obj->name,
-				'contentType'  => $_obj->content_type,
-				'size'         => $_obj->bytes,
-				'lastModified' => gmdate( 'D, d M Y H:i:s \G\M\T', strtotime($_obj->last_modified))
+				'name'           => $_obj->name,
+				'content_type'   => $_obj->content_type,
+				'content_length' => $_obj->bytes,
+				'last_modified'  => gmdate( 'D, d M Y H:i:s \G\M\T', strtotime($_obj->last_modified))
 			);
 
 			return $file;
@@ -633,7 +712,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 			$_obj = $_container->DataObject( $name );
 
 			header( 'Last-Modified: ' . $_obj->last_modified );
-			header( 'Content-type: ' . $_obj->content_type );
+			header( 'Content-Type: ' . $_obj->content_type );
 			header( 'Content-Length:' . $_obj->content_length );
 
 			$disposition = ( isset( $params['disposition'] ) && !empty( $params['disposition'] ) ) ? $params['disposition'] : 'inline';
@@ -646,7 +725,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 			if ( 'Resource could not be accessed.' == $ex->getMessage() )
 			{
 				header( 'The specified file "' . $name . '" does not exist.' );
-				header( 'Content-type: text/html' );
+				header( 'Content-Type: text/html' );
 			}
 			else
 			{

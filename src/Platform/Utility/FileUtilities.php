@@ -1138,9 +1138,10 @@ class FileUtilities
 					while ( !feof( $readFrom ) )
 					{
 						// Write the url file to the directory.
-						fwrite( $writeTo,
-								fread( $readFrom, 1024 * 8 ),
-								1024 * 8
+						fwrite(
+							$writeTo,
+							fread( $readFrom, 1024 * 8 ),
+							1024 * 8
 						); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
 					}
 					fclose( $readFrom );
@@ -1342,4 +1343,26 @@ class FileUtilities
 			}
 		}
 	}
+
+	public static function rearrangePostedFiles( $arr )
+	{
+		$new = array();
+		foreach ( $arr as $key => $all )
+		{
+			if ( is_array( $all ) )
+			{
+				foreach ( $all as $i => $val )
+				{
+					$new[$i][$key] = $val;
+				}
+			}
+			else
+			{
+				$new[0][$key] = $all;
+			}
+		}
+
+		return $new;
+	}
+
 }

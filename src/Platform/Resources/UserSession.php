@@ -846,7 +846,7 @@ class UserSession extends RestResource
 
 		if ( $add_apps )
 		{
-			$appFields = 'id,api_name,name,description,url,is_url_external,requires_fullscreen,allow_fullscreen_toggle,toggle_location';
+			$appFields = 'id,api_name,name,description,launch_url,requires_fullscreen,allow_fullscreen_toggle,toggle_location';
 			/**
 			 * @var \App[] $theApps
 			 */

@@ -1,35 +1,19 @@
 {
-	"df_sys_service": [
-		{
-			"api_name": "email",
-			"name": "Email Service",
-			"is_active": 1,
-			"type": "Local Email Service",
-			"description": "Default system email utility access"
-		},
-		{
-			"api_name": "lib",
-			"name": "Library Storage",
-			"is_active": 1,
-			"type": "Local File Storage",
-			"storage_name": "libraries",
-			"description": "Storage for library files shared by applications"
-		},
-		{
-			"api_name": "doc",
-			"name": "Document Storage",
-			"is_active": 1,
-			"type": "Local File Storage",
-			"storage_name": "documents",
-			"description": "Default storage for documents"
-		}
-	],
 	"app_package": [
 		{
 			"url": "https://github.com/dreamfactorysoftware/app-helloworld/raw/master/helloworld.dfpkg"
 		},
 		{
 			"url": "https://github.com/dreamfactorysoftware/app-todo-angular/raw/master/todoangular.dfpkg"
+		},
+		{
+			"url": "https://github.com/dreamfactorysoftware/app-todo-jquery/raw/master/todojquery.dfpkg"
+		},
+		{
+			"url": "https://github.com/dreamfactorysoftware/app-todo-sencha/raw/master/todosencha.dfpkg"
+		},
+		{
+			"url": "https://github.com/dreamfactorysoftware/app-address-book/raw/master/add_min.dfpkg"
 		},
 		{
 			"url": "https://github.com/dreamfactorysoftware/app-calendar/raw/master/calendar.dfpkg"

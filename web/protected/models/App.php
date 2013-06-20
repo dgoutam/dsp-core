@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\FilterInput;
 use Platform\Exceptions\BadRequestException;
 use Platform\Services\SystemManager;
 use Platform\Utility\ServiceHandler;
@@ -37,6 +38,9 @@ use Platform\Yii\Utility\Pii;
  * @property string               $url
  * @property boolean              $is_url_external
  * @property string               $import_url
+ * @property string               $storage_service_id
+ * @property string               $storage_container
+ * @property string               $launch_url
  * @property boolean              $requires_fullscreen
  * @property boolean              $allow_fullscreen_toggle
  * @property boolean              $toggle_location
@@ -50,9 +54,23 @@ use Platform\Yii\Utility\Pii;
  * @property Role[]               $roles
  * @property AppServiceRelation[] $app_service_relation
  * @property Service[]            $services
+ * @property Service              $storage_service
  */
 class App extends BaseDspSystemModel
 {
+	//*************************************************************************
+	//* Members
+	//*************************************************************************
+
+	/**
+	 * @var string The url to launch the app from, comprised of its storage and starting file.
+	 */
+	protected $launch_url = '';
+
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
+
 	/**
 	 * Returns the static model of the specified AR class.
 	 *
@@ -84,15 +102,16 @@ class App extends BaseDspSystemModel
 				 array( 'name, api_name', 'required' ),
 				 array( 'name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
 				 array(
-					 'is_active, is_url_external, requires_fullscreen, requires_plugin, allow_fullscreen_toggle',
+					 'is_active, is_url_external, requires_fullscreen, requires_plugin, allow_fullscreen_toggle, storage_service_id',
 					 'numerical',
 					 'integerOnly' => true
 				 ),
-				 array( 'name', 'length', 'max' => 64 ),
-				 array( 'api_name', 'length', 'max' => 64 ),
+				 array( 'name, api_name', 'length', 'max' => 64 ),
+				 array( 'storage_container', 'length', 'max' => 255 ),
 				 array( 'description, url, import_url, toggle_location', 'safe' ),
 				 array(
-					 'id, name, api_name, is_active, is_url_external, requires_fullscreen, requires_plugin, allow_fullscreen_toggle, toggle_location, created_date, last_modified_date, created_by_id, last_modified_by_id',
+					 'id, name, api_name, is_active, is_url_external, requires_fullscreen, requires_plugin, allow_fullscreen_toggle, toggle_location," .
+					 " storage_service_id, storage_container, created_date, last_modified_date, created_by_id, last_modified_by_id',
 					 'safe',
 					 'on' => 'search'
 				 ),
@@ -112,6 +131,7 @@ class App extends BaseDspSystemModel
 			'roles'                 => array( self::MANY_MANY, 'Role', 'df_sys_app_to_role(app_id, role_id)' ),
 			'app_service_relations' => array( self::HAS_MANY, 'AppServiceRelation', 'app_id' ),
 			'services'              => array( self::MANY_MANY, 'Service', 'df_sys_app_to_service(app_id, service_id)' ),
+			'storage_service'       => array( self::BELONGS_TO, 'Service', 'storage_service_id' ),
 		);
 
 		return array_merge( parent::relations(), $_relations );
@@ -130,6 +150,8 @@ class App extends BaseDspSystemModel
 			'url'                     => 'Url',
 			'is_url_external'         => 'Is Url External',
 			'import_url'              => 'Import Url',
+			'storage_service_id'      => 'Storage Service',
+			'storage_container'       => 'Storage Container',
 			'requires_fullscreen'     => 'Requires Fullscreen',
 			'allow_fullscreen_toggle' => 'Allow Fullscreen Toggle',
 			'toggle_location'         => 'Toggle Location',
@@ -154,6 +176,8 @@ class App extends BaseDspSystemModel
 		$_criteria->compare( 'is_active', $this->is_active );
 		$_criteria->compare( 'is_url_external', $this->is_url_external );
 		$_criteria->compare( 'import_url', $this->import_url );
+		$_criteria->compare( 'storage_service_id', $this->storage_service_id );
+		$_criteria->compare( 'storage_container', $this->storage_container );
 		$_criteria->compare( 'requires_fullscreen', $this->requires_fullscreen );
 		$_criteria->compare( 'allow_fullscreen_toggle', $this->allow_fullscreen_toggle );
 		$_criteria->compare( 'toggle_location', $this->toggle_location );
@@ -275,6 +299,33 @@ class App extends BaseDspSystemModel
 		$this->requires_fullscreen = intval( $this->requires_fullscreen );
 		$this->allow_fullscreen_toggle = intval( $this->allow_fullscreen_toggle );
 		$this->requires_plugin = intval( $this->requires_plugin );
+		if ( !$this->is_url_external )
+		{
+			$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
+			$this->launch_url = $_protocol . '://' . FilterInput::server( 'HTTP_HOST' ) . '/';
+			if ( !empty( $this->storage_service_id ) )
+			{
+				/** @var $service Service */
+				$service = $this->getRelated( 'storage_service' );
+				if ( !empty( $service ) )
+				{
+					$this->launch_url .= $service->api_name . '/';
+				}
+				if ( !empty( $this->storage_container ) )
+				{
+					$this->launch_url .= $this->storage_container . '/';
+				}
+			}
+			else
+			{
+				$this->launch_url .= 'app/applications/';
+			}
+			$this->launch_url .= $this->api_name . $this->url;
+		}
+		else
+		{
+			$this->launch_url = $this->url;
+		}
 	}
 
 	/**
@@ -297,6 +348,9 @@ class App extends BaseDspSystemModel
 					 'url',
 					 'is_url_external',
 					 'import_url',
+					 'storage_service_id',
+					 'storage_container',
+					 'launch_url',
 					 'requires_fullscreen',
 					 'allow_fullscreen_toggle',
 					 'toggle_location',
