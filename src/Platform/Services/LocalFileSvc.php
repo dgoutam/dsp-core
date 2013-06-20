@@ -46,7 +46,7 @@ class LocalFileSvc extends BaseFileSvc
 		$container = self::addContainerToName( $this->_container, '' );
 		if ( !is_dir( $container ) )
 		{
-			if ( !mkdir( $container ) )
+			if ( !mkdir( $container, 0777, true ) )
 			{
 				throw new \Exception( 'Failed to create container.' );
 			}
@@ -959,11 +959,11 @@ class LocalFileSvc extends BaseFileSvc
 			$parent = FileUtilities::getParentFolder( $fullPathName );
 			if ( !empty( $parent ) )
 			{
-				$this->createFolder( $parent, true, array(), false );
+				$this->createFolder( $container, $parent, true, array(), false );
 			}
 			if ( '/' === substr( $fullPathName, -1 ) )
 			{
-				$this->createFolder( $fullPathName, true, array(), false );
+				$this->createFolder( $container, $fullPathName, true, array(), false );
 			}
 			else
 			{

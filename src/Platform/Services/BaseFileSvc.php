@@ -885,65 +885,6 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		return $result;
 	}
 
-	/*
-	protected function _handleResource()
-	{
-		// restrictions on default application storage
-		if ( 0 == strcasecmp( 'app', $this->getApiName() ) )
-		{
-			switch ( $this->_action )
-			{
-				case static::Get:
-					$this->checkPermission( 'read' );
-					if ( empty( $this->_resource ) )
-					{
-						// list app folders only for now
-						return $this->getFolder( $this->_container, '', false, true, false );
-					}
-					break;
-				case static::Post:
-					$this->checkPermission( 'create' );
-					if ( empty( $this->_resource ) )
-					{
-						// for application management at root directory,
-						throw new \Exception( "Application service root directory is not available for file creation." );
-					}
-					break;
-				case static::Put:
-				case static::Patch:
-				case static::Merge:
-					$this->checkPermission( 'update' );
-					if ( empty( $this->_resource ) || ( ( 1 === count( $this->_resourceArray ) ) && empty( $this->_resourceArray[0] ) ) )
-					{
-						// for application management at root directory,
-						throw new \Exception( "Application service root directory is not available for file updates." );
-					}
-					break;
-				case static::Delete:
-					$this->checkPermission( 'delete' );
-					if ( empty( $this->_resource ) )
-					{
-						// for application management at root directory,
-						throw new \Exception( "Application service root directory is not available for file deletes." );
-					}
-					$more = ( isset( $this->_resourceArray[1] ) ? $this->_resourceArray[1] : '' );
-					if ( empty( $more ) )
-					{
-						// dealing only with application root here
-						$content = RestRequest::getPostDataAsArray();
-						if ( empty( $content ) )
-						{
-							throw new \Exception( "Application root directory is not available for delete. Use the system API to delete the app." );
-						}
-					}
-					break;
-			}
-		}
-
-		return parent::_handleResource();
-	}
-	 */
-
 	/**
 	 * @param        $dest_path
 	 * @param        $dest_name

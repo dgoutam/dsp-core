@@ -530,6 +530,7 @@ class SystemApp extends SystemResource
 									{
 										case 'local sql db schema':
 										case 'remote sql db schema':
+											/** @var $db \Platform\Services\SchemaSvc */
 											$db = ServiceHandler::getServiceObject( $serviceName );
 											$describe = $db->describeTables( implode( ',', $component ) );
 											$temp = array(
@@ -557,10 +558,31 @@ class SystemApp extends SystemResource
 			if ( !$isExternal && $include_files )
 			{
 				// add files
-				$_service = ServiceHandler::getServiceObject( 'app' );
-				if ( $_service->folderExists( $app_root ) )
+				$_storageServiceId = Utilities::getArrayValue( 'storage_service_id', $record );
+				/** @var $_service \Platform\Services\BaseFileSvc */
+				if ( empty( $_storageServiceId ) )
 				{
-					$_service->getFolderAsZip( $app_root, $zip, $zipFileName, true );
+					$_service = ServiceHandler::getServiceObject( 'app' );
+					$_container = 'applications';
+				}
+				else
+				{
+					$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
+					$_container = Utilities::getArrayValue( 'storage_container', $record );
+				}
+				if ( empty( $_container ) )
+				{
+					if ( $_service->containerExists( $app_root ) )
+					{
+						$_service->getFolderAsZip( $app_root, '', $zip, $zipFileName, true );
+					}
+				}
+				else
+				{
+					if ( $_service->folderExists( $_container, $app_root ) )
+					{
+						$_service->getFolderAsZip( $_container, $app_root, $zip, $zipFileName, true );
+					}
 				}
 			}
 			$zip->close();
@@ -656,6 +678,7 @@ class SystemApp extends SystemResource
 						$tables = Utilities::getArrayValue( 'table', $schemas, array() );
 						if ( !empty( $tables ) )
 						{
+							/** @var $db \Platform\Services\SchemaSvc */
 							$result = $db->createTables( $tables, true );
 							if ( isset( $result[0]['error'] ) )
 							{
@@ -676,6 +699,7 @@ class SystemApp extends SystemResource
 						{
 							$serviceName = 'schema'; // for older packages
 						}
+						/** @var $db \Platform\Services\SchemaSvc */
 						$db = ServiceHandler::getServiceObject( $serviceName );
 						$result = $db->createTables( $tables, true );
 						if ( isset( $result[0]['error'] ) )
@@ -691,6 +715,7 @@ class SystemApp extends SystemResource
 						if ( !empty( $table ) )
 						{
 							$serviceName = 'schema';
+							/** @var $db \Platform\Services\SchemaSvc */
 							$db = ServiceHandler::getServiceObject( $serviceName );
 							$result = $db->createTables( $data, true );
 							if ( isset( $result['error'] ) )
@@ -719,6 +744,7 @@ class SystemApp extends SystemResource
 						{
 							$tableName = Utilities::getArrayValue( 'name', $table, '' );
 							$records = Utilities::getArrayValue( 'record', $table, array() );
+							/** @var $db \Platform\Services\BaseDbSvc */
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )
 							{
@@ -744,6 +770,7 @@ class SystemApp extends SystemResource
 						{
 							$tableName = Utilities::getArrayValue( 'name', $table, '' );
 							$records = Utilities::getArrayValue( 'record', $table, array() );
+							/** @var $db \Platform\Services\BaseDbSvc */
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )
 							{
@@ -761,6 +788,7 @@ class SystemApp extends SystemResource
 							$serviceName = 'db';
 							$db = ServiceHandler::getServiceObject( $serviceName );
 							$records = Utilities::getArrayValue( 'record', $data, array() );
+							/** @var $db \Platform\Services\BaseDbSvc */
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )
 							{
@@ -782,9 +810,28 @@ class SystemApp extends SystemResource
 		}
 
 		// extract the rest of the zip file into storage
-		$_service = ServiceHandler::getServiceObject( 'app' );
-		$name = Utilities::getArrayValue( 'api_name', $returnData );
-		$result = $_service->extractZipFile( '', $zip );
+		$_storageServiceId = Utilities::getArrayValue( 'storage_service_id', $record );
+		$_apiName = Utilities::getArrayValue( 'api_name', $record );
+
+		/** @var $_service \Platform\Services\BaseFileSvc */
+		if ( empty( $_storageServiceId ) )
+		{
+			$_service = ServiceHandler::getServiceObject( 'app' );
+			$_container = 'applications';
+		}
+		else
+		{
+			$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
+			$_container = Utilities::getArrayValue( 'storage_container', $record );
+		}
+		if ( empty( $_container ) )
+		{
+			$_service->extractZipFile( $_apiName, '', $zip, false, $_apiName . '/' );
+		}
+		else
+		{
+			$_service->extractZipFile( $_container, '', $zip );
+		}
 
 		return $returnData;
 	}
@@ -816,8 +863,28 @@ class SystemApp extends SystemResource
 			$dropPath = $zip->getNameIndex( 0 );
 			$dropPath = substr( $dropPath, 0, strpos( $dropPath, '/' ) ) . '/';
 
-			$_service = ServiceHandler::getServiceObject( 'app' );
-			$_service->extractZipFile( $name . DIRECTORY_SEPARATOR, $zip, false, $dropPath );
+			$_storageServiceId = Utilities::getArrayValue( 'storage_service_id', $record );
+			$_apiName = Utilities::getArrayValue( 'api_name', $record );
+
+			/** @var $_service \Platform\Services\BaseFileSvc */
+			if ( empty( $_storageServiceId ) )
+			{
+				$_service = ServiceHandler::getServiceObject( 'app' );
+				$_container = 'applications';
+			}
+			else
+			{
+				$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
+				$_container = Utilities::getArrayValue( 'storage_container', $record );
+			}
+			if ( empty( $_container ) )
+			{
+				$_service->extractZipFile( $_apiName, '', $zip, false, $dropPath );
+			}
+			else
+			{
+				$_service->extractZipFile( $_container, $_apiName, $zip, false, $dropPath );
+			}
 
 			return $result;
 		}

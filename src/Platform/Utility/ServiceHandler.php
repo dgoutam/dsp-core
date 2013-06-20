@@ -23,7 +23,6 @@ use Kisma\Core\Utility\Option;
 use Platform\Services\AwsDynamoDbSvc;
 use Platform\Services\AwsSimpleDbSvc;
 use Platform\Services\AwsS3Svc;
-use Platform\Services\BaseService;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
 use Platform\Services\OpenStackObjectStoreSvc;
@@ -35,7 +34,6 @@ use Platform\Services\SystemManager;
 use Platform\Services\UserManager;
 use Platform\Services\WindowsAzureBlobSvc;
 use Platform\Services\WindowsAzureTablesSvc;
-use Platform\Yii\Utility\Pii;
 
 /**
  * ServiceHandler.php
@@ -79,56 +77,6 @@ class ServiceHandler
 	}
 
 	/**
-	 * @return array
-	 * @throws \Exception
-	 */
-	public static function getServiceListing()
-	{
-		$command = Pii::db()->createCommand();
-
-		return $command->select( 'api_name,name' )->from( 'df_sys_service' )->queryAll();
-	}
-
-	/**
-	 * Retrieves the record of the particular service
-	 *
-	 * @access private
-	 *
-	 * @param string $api_name
-	 *
-	 * @return array The service record array
-	 * @throws \Exception if retrieving of service is not possible
-	 */
-	private static function getService( $api_name )
-	{
-		$command = Pii::db()->createCommand();
-		$result = $command->from( 'df_sys_service' )
-				  ->where( 'api_name=:name' )
-				  ->queryRow( true, array( ':name' => $api_name ) );
-		if ( !$result )
-		{
-			return array();
-		}
-
-		if ( isset( $result['credentials'] ) )
-		{
-			$result['credentials'] = json_decode( $result['credentials'], true );
-		}
-
-		if ( isset( $result['parameters'] ) )
-		{
-			$result['parameters'] = json_decode( $result['parameters'], true );
-		}
-
-		if ( isset( $result['headers'] ) )
-		{
-			$result['headers'] = json_decode( $result['headers'], true );
-		}
-
-		return $result;
-	}
-
-	/**
 	 * Retrieves the pointer to the particular service handler
 	 *
 	 * If the service is already created, it just returns the private class
@@ -169,79 +117,8 @@ class ServiceHandler
 					$service = new UserManager();
 					break;
 				default:
-					$record = static::getService( $api_name );
-					$type = Option::get( $record, 'type', '' );
-					switch ( $type )
-					{
-						case 'Remote Web Service':
-							$service = new RemoteWebSvc( $record );
-							break;
-						case 'Local File Storage':
-							$service = new LocalFileSvc( $record );
-							break;
-						case 'Remote File Storage':
-							$storageType = Option::get( $record, 'storage_type', '' );
-							switch ( strtolower( $storageType ) )
-							{
-								case 'azure blob':
-									$service = new WindowsAzureBlobSvc( $record );
-									break;
-								case 'aws s3':
-									$service = new AwsS3Svc( $record );
-									break;
-								case 'rackspace cloudfiles':
-								case 'openstack object storage':
-									$service = new OpenStackObjectStoreSvc( $record );
-									break;
-								default:
-									throw new \Exception( "Invalid Remote Blob Storage Type '$storageType' in configuration environment." );
-									break;
-							}
-							break;
-						case 'Local SQL DB':
-							$service = new SqlDbSvc( $record, true );
-							break;
-						case 'Remote SQL DB':
-							$service = new SqlDbSvc( $record, false );
-							break;
-						case 'Local SQL DB Schema':
-							$service = new SchemaSvc( $record, true );
-							break;
-						case 'Remote SQL DB Schema':
-							$service = new SchemaSvc( $record, false );
-							break;
-						case 'Local Email Service':
-							$service = new EmailSvc( $record, true );
-							break;
-						case 'Remote Email Service':
-							$service = new EmailSvc( $record, false );
-							break;
-						case 'NoSQL DB':
-							$storageType = Option::get( $record, 'storage_type', '' );
-							switch ( strtolower( $storageType ) )
-							{
-								case 'azure tables':
-									$service = new WindowsAzureTablesSvc( $record );
-									break;
-								case 'aws dynamodb':
-									$service = new AwsDynamoDbSvc( $record );
-									break;
-								case 'aws simpledb':
-									$service = new AwsSimpleDbSvc( $record );
-									break;
-								case 'mongodb':
-								case 'couchdb':
-									throw new \Exception( "NoSQL Storage Type not currently supported." );
-									break;
-								default:
-									throw new \Exception( "Invalid NoSQL Storage Type '$storageType' in configuration environment." );
-									break;
-							}
-							break;
-						default:
-							throw new \Exception( "Unknown type value '$type' in service record." );
-							break;
-					}
+					$record = \Service::getRecordByName( $api_name );
+					$service = static::createService( $record );
 					break;
 			}
 			static::$_services[$api_name] = $service;
@@ -259,4 +136,136 @@ class ServiceHandler
 		return $service;
 	}
 
+	/**
+	 * Retrieves the pointer to the particular service handler
+	 *
+	 * If the service is already created, it just returns the private class
+	 * member that holds the pointer, otherwise it calls the constructor for
+	 * the new service, passing in parameters based on the stored configuration settings.
+	 *
+	 * @access public
+	 *
+	 * @param int     $id
+	 * @param boolean $check_active Throws an exception if true and the service is not active.
+	 *
+	 * @return RestService The new or previously constructed XXXSvc
+	 * @throws \Exception if construction of service is not possible
+	 */
+	public static function getServiceObjectById( $id, $check_active = false )
+	{
+		if ( empty( $id ) )
+		{
+			throw new \Exception( "Failed to launch service, no service id given." );
+		}
+
+		$record = \Service::getRecordById( $id );
+		if ( empty( $record ) )
+		{
+			throw new \Exception( "Failed to launch service, no service record found." );
+		}
+
+		$_apiName = Option::get( $record, 'api_name' );
+
+		// if it hasn't been created, do so
+		$service = Option::get( static::$_services, $_apiName, null );
+		if ( isset( $service ) && !empty( $service ) )
+		{
+			return $service;
+		}
+
+		try
+		{
+			$service = static::createService( $record );
+			static::$_services[$_apiName] = $service;
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to launch service '$_apiName'.\n{$ex->getMessage()}" );
+		}
+
+		if ( $check_active && !$service->getIsActive() )
+		{
+			throw new \Exception( "Requested service '$_apiName' is not active." );
+		}
+
+		return $service;
+	}
+
+	protected static function createService( $record )
+	{
+		$type = Option::get( $record, 'type', '' );
+		switch ( $type )
+		{
+			case 'Remote Web Service':
+				$service = new RemoteWebSvc( $record );
+				break;
+			case 'Local File Storage':
+				$service = new LocalFileSvc( $record );
+				break;
+			case 'Remote File Storage':
+				$storageType = Option::get( $record, 'storage_type', '' );
+				switch ( strtolower( $storageType ) )
+				{
+					case 'azure blob':
+						$service = new WindowsAzureBlobSvc( $record );
+						break;
+					case 'aws s3':
+						$service = new AwsS3Svc( $record );
+						break;
+					case 'rackspace cloudfiles':
+					case 'openstack object storage':
+						$service = new OpenStackObjectStoreSvc( $record );
+						break;
+					default:
+						throw new \Exception( "Invalid Remote Blob Storage Type '$storageType' in configuration environment." );
+						break;
+				}
+				break;
+			case 'Local SQL DB':
+				$service = new SqlDbSvc( $record, true );
+				break;
+			case 'Remote SQL DB':
+				$service = new SqlDbSvc( $record, false );
+				break;
+			case 'Local SQL DB Schema':
+				$service = new SchemaSvc( $record, true );
+				break;
+			case 'Remote SQL DB Schema':
+				$service = new SchemaSvc( $record, false );
+				break;
+			case 'Local Email Service':
+				$service = new EmailSvc( $record, true );
+				break;
+			case 'Remote Email Service':
+				$service = new EmailSvc( $record, false );
+				break;
+			case 'NoSQL DB':
+				$storageType = Option::get( $record, 'storage_type', '' );
+				switch ( strtolower( $storageType ) )
+				{
+					case 'azure tables':
+						$service = new WindowsAzureTablesSvc( $record );
+						break;
+					case 'aws dynamodb':
+						$service = new AwsDynamoDbSvc( $record );
+						break;
+					case 'aws simpledb':
+						$service = new AwsSimpleDbSvc( $record );
+						break;
+					case 'mongodb':
+					case 'couchdb':
+						throw new \Exception( "NoSQL Storage Type not currently supported." );
+						break;
+					default:
+						throw new \Exception( "Invalid NoSQL Storage Type '$storageType' in configuration environment." );
+						break;
+				}
+				break;
+			default:
+				throw new \Exception( "Unknown type value '$type' in service record." );
+				break;
+		}
+
+		return $service;
+	}
 }

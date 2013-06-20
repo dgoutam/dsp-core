@@ -20,6 +20,7 @@
 use Kisma\Core\Utility\FilterInput;
 use Platform\Exceptions\BadRequestException;
 use Platform\Services\SystemManager;
+use Platform\Services\BaseFileSvc;
 use Platform\Utility\ServiceHandler;
 use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
@@ -247,19 +248,52 @@ class App extends BaseDspSystemModel
 		// make sure we have an app in the folder
 		if ( !$this->is_url_external )
 		{
-			$_service = ServiceHandler::getServiceObject( 'app' );
-			if ( !$_service->folderExists( $this->api_name ) )
+			/** @var $_service BaseFileSvc */
+			if ( empty( $this->storage_service_id ) )
 			{
-				// create in permanent storage
-				$_service->createFolder( $this->api_name );
-				$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
-				$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
-				$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
-				$path = $this->api_name . '/';
-				$path .= ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
-				if ( !$_service->fileExists( $path ) )
+				$_service = ServiceHandler::getServiceObject( 'app' );
+				$_container = 'applications';
+			}
+			else
+			{
+				$_service = ServiceHandler::getServiceObjectById( $this->storage_service_id );
+				$_container = $this->storage_container;
+			}
+			if ( empty( $_container ) )
+			{
+				if ( !$_service->containerExists( $this->api_name ) )
 				{
-					$_service->writeFile( $path, $content );
+					// create in permanent storage
+					$_service->createContainer( array( 'name' => $this->api_name ) );
+					$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
+					$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
+					$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
+					$path = ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
+					if ( !$_service->fileExists( $this->api_name, $path ) )
+					{
+						$_service->writeFile( $this->api_name, $path, $content );
+					}
+				}
+			}
+			else
+			{
+				if ( !$_service->containerExists( $_container ) )
+				{
+					$_service->createContainer( array( 'name' => $_container ) );
+				}
+				if ( !$_service->folderExists( $_container, $this->api_name ) )
+				{
+					// create in permanent storage
+					$_service->createFolder( $_container, $this->api_name );
+					$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
+					$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
+					$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
+					$path = $this->api_name . '/';
+					$path .= ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
+					if ( !$_service->fileExists( $_container, $path ) )
+					{
+						$_service->writeFile( $_container, $path, $content );
+					}
 				}
 			}
 		}
@@ -279,9 +313,6 @@ class App extends BaseDspSystemModel
 			throw new Exception( "The current application can not be deleted." );
 			//return false;
 		}
-
-		$store = ServiceHandler::getServiceObject( 'app' );
-		$store->deleteFolder( $this->api_name, true );
 
 		return parent::beforeDelete();
 	}

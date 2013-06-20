@@ -99,30 +99,97 @@ class Service extends BaseDspSystemModel
 			Log::debug( 'Reloading available service cache' );
 			$_serviceCache = Pii::getParam( 'dsp.default_services', array() );
 
+			// list all available services from db
+			$_command = Pii::db()->createCommand();
 			$_tableName = static::model()->tableName();
-
-			$_sql
-				= <<<MYSQL
-SELECT
-	api_name, name
-FROM
-	{$_tableName}
-ORDER BY
-	api_name
-MYSQL;
-
-			if ( false !== ( $_services = Sql::findAll( $_sql, array(), Pii::pdo() ) ) )
-			{
-				$_serviceCache = array_merge(
-					$_serviceCache,
-					$_services
-				);
-			}
+			$_services = $_command->select( 'api_name,name' )->from( $_tableName )->queryAll();
+			$_serviceCache = array_merge(
+				$_serviceCache,
+				$_services
+			);
 
 			Pii::setState( 'dsp.service_cache', $_serviceCache );
 		}
 
 		return $_serviceCache;
+	}
+
+	/**
+	 * Retrieves the record of the particular service
+	 *
+	 * @access private
+	 *
+	 * @param string $api_name
+	 *
+	 * @return array The service record array
+	 * @throws \Exception if retrieving of service is not possible
+	 */
+	public static function getRecordByName( $api_name )
+	{
+		$command = Pii::db()->createCommand();
+		$_tableName = static::model()->tableName();
+		$result = $command->from( $_tableName )
+			->where( 'api_name=:name' )
+			->queryRow( true, array( ':name' => $api_name ) );
+		if ( !$result )
+		{
+			return array();
+		}
+
+		if ( isset( $result['credentials'] ) )
+		{
+			$result['credentials'] = json_decode( $result['credentials'], true );
+		}
+
+		if ( isset( $result['parameters'] ) )
+		{
+			$result['parameters'] = json_decode( $result['parameters'], true );
+		}
+
+		if ( isset( $result['headers'] ) )
+		{
+			$result['headers'] = json_decode( $result['headers'], true );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Retrieves the record of the particular service
+	 *
+	 * @param int $id
+	 *
+	 * @return array The service record array
+	 * @throws \Exception if retrieving of service is not possible
+	 */
+	public static function getRecordById( $id )
+	{
+		$command = Pii::db()->createCommand();
+		$_tableName = static::model()->tableName();
+		$result = $command->from( $_tableName )
+			->where( 'id=:id' )
+			->queryRow( true, array( ':id' => $id ) );
+		if ( !$result )
+		{
+			return array();
+		}
+
+		if ( isset( $result['credentials'] ) )
+		{
+			$result['credentials'] = json_decode( $result['credentials'], true );
+		}
+
+		if ( isset( $result['parameters'] ) )
+		{
+			$result['parameters'] = json_decode( $result['parameters'], true );
+		}
+
+		if ( isset( $result['headers'] ) )
+		{
+			$result['headers'] = json_decode( $result['headers'], true );
+		}
+
+		return $result;
 	}
 
 	/**
