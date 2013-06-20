@@ -101,10 +101,6 @@ class RestRequest
 			}
 			gzclose( $gzfp );
 		}
-		else if ( isset( $_POST ) && !empty( $_POST ) )
-		{
-			$data = $_POST;
-		}
 		else
 		{
 			$data = file_get_contents( 'php://input' );
