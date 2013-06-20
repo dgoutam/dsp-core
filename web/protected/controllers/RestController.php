@@ -273,7 +273,8 @@ class RestController extends Controller
 		$_appName = null;
 
 		// 	Determine application if any
-		if ( null === ( $_appName = FilterInput::request( 'app_name', null, FILTER_SANITIZE_STRING ) ) )
+		$_appName = FilterInput::request( 'app_name', null, FILTER_SANITIZE_STRING );
+		if ( empty( $_appName ) )
 		{
 			if ( null === ( $_appName = Option::get( $_SERVER, 'HTTP_X_DREAMFACTORY_APPLICATION_NAME' ) ) )
 			{
@@ -286,7 +287,8 @@ class RestController extends Controller
 		if ( empty( $_appName ) )
 		{
 			//	Check for swagger documentation request
-			if ( null === ( $_appName = FilterInput::request( 'swagger_app_name', null, FILTER_SANITIZE_STRING ) ) )
+			$_appName = FilterInput::request( 'swagger_app_name', null, FILTER_SANITIZE_STRING );
+			if ( empty( $_appName ) )
 			{
 				RestResponse::sendErrors( new BadRequestException( 'No application name header or parameter value in REST request.' ) );
 			}
