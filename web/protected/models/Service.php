@@ -17,7 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
+use Platform\Yii\Utility\Pii;
 
 /**
  * Service.php
@@ -25,26 +28,26 @@ use Platform\Exceptions\BadRequestException;
  *
  * Columns:
  *
- * @property integer $id
- * @property string  $name
- * @property string  $api_name
- * @property string  $description
- * @property integer $is_active
- * @property integer $is_system
- * @property string  $type
- * @property string  $storage_name
- * @property string  $storage_type
- * @property string  $credentials
- * @property string  $native_format
- * @property string  $base_url
- * @property string  $parameters
- * @property string  $headers
+ * @property integer             $id
+ * @property string              $name
+ * @property string              $api_name
+ * @property string              $description
+ * @property integer             $is_active
+ * @property integer             $is_system
+ * @property string              $type
+ * @property string              $storage_name
+ * @property string              $storage_type
+ * @property string              $credentials
+ * @property string              $native_format
+ * @property string              $base_url
+ * @property string              $parameters
+ * @property string              $headers
  *
  * Related:
  *
  * @property RoleServiceAccess[] $role_service_accesses
- * @property App[] $apps
- * @property Role[] $roles
+ * @property App[]               $apps
+ * @property Role[]              $roles
  */
 class Service extends BaseDspSystemModel
 {
@@ -79,6 +82,47 @@ class Service extends BaseDspSystemModel
 	public function tableName()
 	{
 		return static::tableNamePrefix() . 'service';
+	}
+
+	/**
+	 * Down and dirty service cache which includes the DSP default services.
+	 * Clears when saves to services are made
+	 *
+	 * @param bool $bust If true, bust the cache
+	 *
+	 * @return array
+	 */
+	public static function available( $bust = false )
+	{
+		if ( false !== $bust || null === ( $_serviceCache = Pii::getState( 'dsp.service_cache' ) ) )
+		{
+			Log::debug( 'Reloading available service cache' );
+			$_serviceCache = Pii::getParam( 'dsp.default_services', array() );
+
+			$_tableName = static::model()->tableName();
+
+			$_sql
+				= <<<MYSQL
+SELECT
+	api_name, name
+FROM
+	{$_tableName}
+ORDER BY
+	api_name
+MYSQL;
+
+			if ( false !== ( $_services = Sql::findAll( $_sql, array(), Pii::pdo() ) ) )
+			{
+				$_serviceCache = array_merge(
+					$_serviceCache,
+					$_services
+				);
+			}
+
+			Pii::setState( 'dsp.service_cache', $_serviceCache );
+		}
+
+		return $_serviceCache;
 	}
 
 	/**
@@ -244,6 +288,28 @@ class Service extends BaseDspSystemModel
 		}
 
 		return parent::beforeSave();
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
+	protected function afterDelete()
+	{
+		//	Bust cache
+		static::available( true );
+
+		parent::afterDelete();
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
+	protected function afterSave()
+	{
+		//	Bust cache
+		static::available( true );
+
+		parent::afterSave();
 	}
 
 	/**

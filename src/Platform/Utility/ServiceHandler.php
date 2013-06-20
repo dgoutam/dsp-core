@@ -23,10 +23,12 @@ use Kisma\Core\Utility\Option;
 use Platform\Services\AwsDynamoDbSvc;
 use Platform\Services\AwsSimpleDbSvc;
 use Platform\Services\AwsS3Svc;
+use Platform\Services\BaseService;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
 use Platform\Services\OpenStackObjectStoreSvc;
 use Platform\Services\RemoteWebSvc;
+use Platform\Services\RestService;
 use Platform\Services\SchemaSvc;
 use Platform\Services\SqlDbSvc;
 use Platform\Services\SystemManager;
@@ -101,8 +103,8 @@ class ServiceHandler
 	{
 		$command = Pii::db()->createCommand();
 		$result = $command->from( 'df_sys_service' )
-			->where( 'api_name=:name' )
-			->queryRow( true, array( ':name' => $api_name ) );
+				  ->where( 'api_name=:name' )
+				  ->queryRow( true, array( ':name' => $api_name ) );
 		if ( !$result )
 		{
 			return array();
@@ -138,7 +140,7 @@ class ServiceHandler
 	 * @param string  $api_name
 	 * @param boolean $check_active Throws an exception if true and the service is not active.
 	 *
-	 * @return object The new or previously constructed XXXSvc
+	 * @return RestService The new or previously constructed XXXSvc
 	 * @throws \Exception if construction of service is not possible
 	 */
 	public static function getServiceObject( $api_name, $check_active = false )

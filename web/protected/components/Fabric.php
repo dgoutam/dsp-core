@@ -159,7 +159,7 @@ class Fabric extends SeedUtility
 			if ( HttpResponse::NotFound == Curl::getLastHttpCode() )
 			{
 				Log::error( 'DB Credential pull failure. Redirecting to df.com' );
-				header( 'Location: http://dreamfactory.com/' );
+				header( 'Location: https://www.dreamfactory.com/dsp-not-found?dn=' . urlencode( $_dspName ) );
 				exit();
 			}
 
