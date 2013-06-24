@@ -25,10 +25,12 @@ use Platform\Services\AwsSimpleDbSvc;
 use Platform\Services\AwsS3Svc;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
+use Platform\Services\OAuthService;
 use Platform\Services\OpenStackObjectStoreSvc;
 use Platform\Services\RemoteWebSvc;
 use Platform\Services\RestService;
 use Platform\Services\SchemaSvc;
+use Platform\Services\ServiceRegistry;
 use Platform\Services\SqlDbSvc;
 use Platform\Services\SystemManager;
 use Platform\Services\UserManager;
@@ -261,6 +263,15 @@ class ServiceHandler
 						break;
 				}
 				break;
+
+			case 'Service Registry':
+				$service = new ServiceRegistry( $record );
+				break;
+
+			case 'Remote OAuth Service':
+				$service = new OAuthService( $record );
+				break;
+
 			default:
 				throw new \Exception( "Unknown type value '$type' in service record." );
 				break;
