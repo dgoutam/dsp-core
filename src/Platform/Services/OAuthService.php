@@ -158,6 +158,15 @@ class OAuthService extends RestService
 				);
 				break;
 
+			case 'twitter':
+				$_client = new TwitterClient(
+					array(
+						 'client_id'     => Option::get( $_config, 'client_id' ),
+						 'client_secret' => Option::get( $_config, 'client_secret' ),
+					)
+				);
+				break;
+
 			case 'facebook':
 				$_client = new FacebookClient(
 					array(
@@ -298,16 +307,6 @@ class OAuthService extends RestService
 
 		//	Find service auth record
 		$_service = $this->_validateService( $_serviceTag );
-
-		if ( $_serviceTag == 'facebook' && !isset( $_service->service_config_text, $_service->service_config_text['client_id'] ) )
-		{
-			$_config = array(
-				'client_id'     => '1392217090991437',
-				'client_secret' => 'd5dd3a24b1ec6c5f204a300ed24c60d0',
-			);
-
-			$_service->update( array( 'service_config_text' => $_config ) );
-		}
 
 		$this->_client = $this->_createServiceClient( $_service );
 
