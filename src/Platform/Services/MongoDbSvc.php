@@ -19,47 +19,43 @@
  */
 namespace Platform\Services;
 
-use Kisma\Core\Utility\Option;
-use Kisma\Core\Utility\FilterInput;
+use Aws\DynamoDb\DynamoDbClient;
 use Platform\Exceptions\BadRequestException;
 use Platform\Utility\DataFormat;
-use WindowsAzure\Table\TableRestProxy;
-use WindowsAzure\Common\ServicesBuilder;
-use WindowsAzure\Common\ServiceException;
-use WindowsAzure\Table\Models\Entity;
-use WindowsAzure\Table\Models\EdmType;
-use WindowsAzure\Table\Models\Property;
-use WindowsAzure\Table\Models\GetTableResult;
-use WindowsAzure\Table\Models\QueryTablesResult;
-use WindowsAzure\Table\Models\GetEntityResult;
-use WindowsAzure\Table\Models\QueryEntitiesOptions;
-use WindowsAzure\Table\Models\QueryEntitiesResult;
-use WindowsAzure\Table\Models\InsertEntityResult;
-use WindowsAzure\Table\Models\UpdateEntityResult;
-use WindowsAzure\Table\Models\BatchOperations;
-use WindowsAzure\Table\Models\BatchResult;
-use WindowsAzure\Table\Models\Filters\QueryStringFilter;
+use Kisma\Core\Utility\Option;
 
 /**
- * WindowsAzureTablesSvc.php
+ * MongoDbSvc.php
  *
- * A service to handle Windows Azure Tables NoSQL (schema-less) database
+ * A service to handle Amazon Web Services DynamoDb NoSQL (schema-less) database
  * services accessed through the REST API.
  */
-class WindowsAzureTablesSvc extends NoSqlDbSvc
+class MongoDbSvc extends NoSqlDbSvc
 {
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
+
+	const DEFAULT_REGION = 'us-east-1';
+
 	//*************************************************************************
 	//	Members
 	//*************************************************************************
 
 	/**
-	 * @var TableRestProxy|null
+	 * @var DynamoDbClient|null
 	 */
 	protected $_dbConn = null;
 	/**
-	 * @var string
+	 * @var array
 	 */
-	protected $_defaultPartitionKey = 'df_service';
+	protected $_defaultTableKey = array(
+		array(
+			'name' => 'id',
+			'data_type' => 'S',
+			'key_type' => 'HASH'
+		)
+	);
 	/**
 	 * @var boolean
 	 */
@@ -70,7 +66,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	//*************************************************************************
 
 	/**
-	 * Create a new WindowsAzureTablesSvc
+	 * Create a new MongoDbSvc
 	 *
 	 * @param array $config
 	 *
@@ -82,32 +78,29 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		parent::__construct( $config );
 
 		$_credentials = Option::get( $config, 'credentials' );
-		$_name = Option::get( $_credentials, 'account_name' );
-		if ( empty( $_name ) )
+		$_accessKey = Option::get( $_credentials, 'access_key' );
+		if ( empty( $_accessKey ) )
 		{
-			throw new \Exception( 'WindowsAzure storage name can not be empty.' );
+			throw new \InvalidArgumentException( 'AWS access key can not be empty.' );
 		}
-
-		$_key = Option::get( $_credentials, 'account_key' );
-		if ( empty( $_key ) )
+		$_secretKey = Option::get( $_credentials, 'secret_key' );
+		if ( empty( $_secretKey ) )
 		{
-			throw new \Exception( 'WindowsAzure storage key can not be empty.' );
+			throw new \InvalidArgumentException( 'AWS secret key can not be empty.' );
+		}
+		$_region = Option::get( $_credentials, 'region' );
+		if ( empty( $_region ) )
+		{
+			$_region = static::DEFAULT_REGION;
 		}
 
 		// set up a default partition key
 		$_parameters = Option::get( $config, 'parameters' );
-		$_partitionKey = Option::get( $_parameters, 'partition_key' );
-		if ( empty( $_partitionKey ) )
+		$_key = Option::get( $_parameters, 'default_key' );
+		if ( !empty( $_key ) )
 		{
-			// use API name as the default partition key,
-			// it can be overridden by individual get/set methods
-			$_partitionKey = Option::get( $config, 'api_name' );
+			$this->_defaultTableKey = $_key;
 		}
-		if ( !empty( $_partitionKey ) )
-		{
-			$this->_defaultPartitionKey = $_partitionKey;
-		}
-
 		// reply in simple format by default
 		$_simpleFormat = Option::get( $_parameters, 'simple_format' );
 		if ( !empty( $_simpleFormat ) )
@@ -117,12 +110,17 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 		try
 		{
-			$_connectionString = "DefaultEndpointsProtocol=https;AccountName=$_name;AccountKey=$_key";
-			$this->_dbConn = ServicesBuilder::getInstance()->createTableService( $_connectionString );
+			$this->_dbConn = DynamoDbClient::factory(
+				array(
+					 'key'    => $_accessKey,
+					 'secret' => $_secretKey,
+					 'region' => $_region
+				)
+			);
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( 'Unexpected Windows Azure Table Service \Exception: ' . $ex->getMessage() );
+			throw new \Exception( "Unexpected Amazon DynamoDb Service Exception:\n{$ex->getMessage()}" );
 		}
 	}
 
@@ -166,6 +164,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $table
 	 * @param string $access
 	 *
+	 * @throws \Exception
 	 */
 	protected function validateTableAccess( $table, $access = 'read' )
 	{
@@ -179,11 +178,11 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 //		$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
 //		$order = Utilities::getArrayValue( 'order', $data, '' );
-//		$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
+//		$include_count = DataFormat::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
 
-		$_extras['limit'] = FilterInput::request( 'limit', 0, FILTER_VALIDATE_INT );
-		$_extras['order'] = FilterInput::request( 'order', '', FILTER_SANITIZE_STRING );
-		$_extras['include_count'] = FilterInput::request( 'include_count', false, FILTER_VALIDATE_BOOLEAN );
+		$_extras['limit'] = intval( Option::get( $_REQUEST, 'limit', 0 ) );
+		$_extras['order'] = Option::get( $_REQUEST, 'order', '' );
+		$_extras['include_count'] = DataFormat::boolval( Option::get( $_REQUEST, 'include_count', false ) );
 
 		return $_extras;
 	}
@@ -198,10 +197,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	{
 		try
 		{
-			/** @var QueryTablesResult $result */
-			$result = $this->_dbConn->queryTables();
-			/** @var GetTableResult[] $tables */
-			$tables = $result->getTables();
+			$iterator = $this->_dbConn->getIterator( 'ListTables' );
+
+			$tables = $iterator->toArray();
 			$out = array();
 			foreach ( $tables as $table )
 			{
@@ -210,9 +208,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 			return array( 'resource' => $out );
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to list tables of Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to list tables of DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -227,10 +225,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	{
 		try
 		{
-			/** @var QueryTablesResult $result */
-			$result = $this->_dbConn->queryTables();
-			/** @var GetTableResult[] $tables */
-			$tables = $result->getTables();
+			$iterator = $this->_dbConn->getIterator( 'ListTables' );
+
+			$tables = $iterator->toArray();
 			$out = array();
 			foreach ( $tables as $table )
 			{
@@ -239,9 +236,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 			return $out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to list tables of Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to list tables of DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -255,7 +252,14 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 */
 	public function getTable( $table )
 	{
-		return array( 'name' => $table );
+		$result = $this->_dbConn->describeTable(
+			array(
+				 'TableName' => $table
+			)
+		);
+
+		// The result of an operation can be used like an array
+		return $result['Table'];
 	}
 
 	/**
@@ -276,15 +280,42 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 				{
 					throw new \Exception( "No 'name' field in data." );
 				}
-				$this->_dbConn->createTable( $_name );
+				$this->_dbConn->createTable(
+					array(
+						 'TableName'             => $_name,
+						 'AttributeDefinitions'  => array(
+							 array(
+								 'AttributeName' => 'id',
+								 'AttributeType' => 'N'
+							 )
+						 ),
+						 'KeySchema'             => array(
+							 array(
+								 'AttributeName' => 'id',
+								 'KeyType'       => 'HASH'
+							 )
+						 ),
+						 'ProvisionedThroughput' => array(
+							 'ReadCapacityUnits'  => 10,
+							 'WriteCapacityUnits' => 20
+						 )
+					)
+				);
+
+				// Wait until the table is created and active
+				$this->_dbConn->waitUntilTableExists(
+					array(
+						 'TableName' => $_name
+					)
+				);
 				$_out[] = array( 'name' => $_name );
 			}
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to create table on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to create table on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -299,12 +330,39 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	{
 		try
 		{
-			$this->_dbConn->createTable( $table );
+			$this->_dbConn->createTable(
+				array(
+					 'TableName'             => $table,
+					 'AttributeDefinitions'  => array(
+						 array(
+							 'AttributeName' => 'id',
+							 'AttributeType' => 'N'
+						 )
+					 ),
+					 'KeySchema'             => array(
+						 array(
+							 'AttributeName' => 'id',
+							 'KeyType'       => 'HASH'
+						 )
+					 ),
+					 'ProvisionedThroughput' => array(
+						 'ReadCapacityUnits'  => 10,
+						 'WriteCapacityUnits' => 20
+					 )
+				)
+			);
+
+			// Wait until the table is created and active
+			$this->_dbConn->waitUntilTableExists(
+				array(
+					 'TableName' => $table
+				)
+			);
 			return array( 'name' => $table );
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to create table on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to create table on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -332,9 +390,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to update table on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to update table on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -349,8 +407,25 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 */
 	public function updateTable( $table, $properties = array() )
 	{
-		throw new \Exception( "Failed to update table '$table' on Windows Azure Tables service." );
-//		return array( 'name' => $table );
+		// Update the provisioned throughput capacity of the table
+		$this->_dbConn->updateTable(
+			array(
+				 'TableName'             => $table,
+				 'ProvisionedThroughput' => array(
+					 'ReadCapacityUnits'  => 15,
+					 'WriteCapacityUnits' => 25
+				 )
+			)
+		);
+
+		// Wait until the table is active again after updating
+		$this->_dbConn->waitUntilTableExists(
+			array(
+				 'TableName' => $table
+			)
+		);
+//		throw new \Exception( "Failed to update table '$table' on DynamoDb Tables service." );
+		return array( 'name' => $table );
 	}
 
 	/**
@@ -372,15 +447,25 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 				{
 					throw new \Exception( "No 'name' field in data." );
 				}
-				$this->_dbConn->deleteTable( $_name );
+				$this->_dbConn->deleteTable(
+					array(
+						 'TableName' => $_name
+					)
+				);
+
+				$this->_dbConn->waitUntilTableNotExists(
+					array(
+						 'TableName' => $_name
+					)
+				);
 				$_out[] = array( 'name' => $_name );
 			}
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to delete tables from Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to delete tables from DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -397,12 +482,22 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	{
 		try
 		{
-			$this->_dbConn->deleteTable( $table );
+			$this->_dbConn->deleteTable(
+				array(
+					 'TableName' => $table
+				)
+			);
+
+			$this->_dbConn->waitUntilTableNotExists(
+				array(
+					 'TableName' => $table
+				)
+			);
 			return array( 'name' => $table );
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to delete table '$table' from Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to delete table '$table' from DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -434,51 +529,47 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			// Create list of batch operation.
-			$operations = new BatchOperations();
-
 			$_out = array();
 			foreach ( $records as $record )
 			{
-				$entity = static::parseRecordToEntity( $record );
-				$_id = $entity->getRowKey();
-				if (empty($_id))
-				{
-					$_id = static::createItemId( $table );
-					$entity->setRowKey( $_id );
-				}
-				if (!$entity->getPartitionKey())
-				{
-					$entity->setPartitionKey( $this->_defaultPartitionKey );
-				}
-				$_out[] = array( 'RowKey' => $_id );
-
 				// Add operation to list of batch operations.
-				$operations->addInsertEntity( $table, $entity );
 			}
-
-			/** @var BatchResult $results */
-			$results = $this->_dbConn->batch( $operations );
+			$response = $this->_dbConn->batchWriteItem(array(
+													 "RequestItems" => array(
+														 $table => array(
+															 array(
+																 "PutRequest" => array(
+																	 "Item" => array(
+																		 "ForumName"   => array(Type::STRING => "S3 Forum"),
+																		 "Subject" => array(Type::STRING => "My sample question"),
+																		 "Message"=> array(Type::STRING => "Message Text."),
+																		 "KeywordTags"=>array(Type::STRING_SET => array("S3", "Bucket"))
+																	 ))
+															 ),
+															 array(
+																 "DeleteRequest" => array(
+																	 "Key" => array(
+																		 "ForumName" =>array(Type::STRING => "Some hash value"),
+																		 "Subject" => array(Type::STRING => "Some range key")
+																	 ))
+															 )
+														 )
+													 )
+												));
 
 			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
 			{
 				return $_out;
 			}
 
-			/** @var InsertEntityResult $result */
-			foreach ($results->getEntries() as $key => $result)
-			{
-				$_out[$key] = static::parseEntityToRecord($result->getEntity(), array(), $fields);
-			}
-
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to create items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to create items in '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -489,6 +580,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param array  $extras
 	 *
 	 * @throws \Exception
+	 * @throws BadRequestException
 	 * @return array
 	 */
 	public function createRecord( $table, $record, $fields = '', $extras = array() )
@@ -502,30 +594,24 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			// simple insert request
-			$entity = static::parseRecordToEntity( $record );
-			$_id = $entity->getRowKey();
-			if (empty($_id))
-			{
-				$_id = static::createItemId( $table );
-				$entity->setRowKey( $_id );
-			}
-			if (!$entity->getPartitionKey())
-			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
-			}
+			// add id to properties
 
-			/** @var InsertEntityResult $result */
-			$result = $this->_dbConn->insertEntity( $table, $entity );
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return array( 'RowKey' => $_id );
-			}
+			$result = $this->_dbConn->putItem(
+				array(
+					 'TableName'              => $table,
+					 'Item'                   => $this->_dbConn->formatAttributes( $record ),
+					 'ReturnConsumedCapacity' => 'TOTAL'
+				)
+			);
 
-			return static::parseEntityToRecord( $result->getEntity(), array(), $fields );
+			// The result will always contain ConsumedCapacityUnits
+//		echo $result->getPath( 'ConsumedCapacity/CapacityUnits' ) . "\n";
+
+			return array();
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to create item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to create item in '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -537,7 +623,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function updateRecords( $table, $records, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -555,9 +641,6 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			// Create list of batch operation.
-			$operations = new BatchOperations();
-
 			$_out = array();
 			foreach ( $records as $key => $record )
 			{
@@ -566,39 +649,21 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 				{
 					throw new BadRequestException("No identifier 'RowKey' exist in record index '$key'.");
 				}
-				$entity = static::parseRecordToEntity($record);
-				if (!$entity->getPartitionKey())
-				{
-					$entity->setPartitionKey( $this->_defaultPartitionKey );
-				}
-				$_out[] = array( 'RowKey' => $_id );
-
-				// Add operation to list of batch operations.
-				$operations->addUpdateEntity( $table, $entity );
 			}
-
-			/** @var BatchResult $results */
-			$results = $this->_dbConn->batch( $operations );
 
 			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
 			{
 				return $_out;
 			}
 
-			/** @var UpdateEntityResult $result */
-			foreach ($results->getEntries() as $result)
-			{
-				// not much good in here
-			}
-
 			return $this->retrieveRecords($table, $records, $id_field = '', $fields = '', $extras);
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to update items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to update items in '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -609,6 +674,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
+	 * @throws \Exception
 	 * @throws BadRequestException
 	 * @return array
 	 */
@@ -626,26 +692,21 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		}
 		try
 		{
-			$entity = static::parseRecordToEntity($record);
-			if (!$entity->getPartitionKey())
-			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
-			}
+			// add id to properties
 
-			/** @var UpdateEntityResult $result */
-			$result = $this->_dbConn->updateEntity( $table, $entity );
+			$result = $this->_dbConn->putItem(
+				array(
+					 'TableName'              => $table,
+					 'Item'                   => $this->_dbConn->formatAttributes( $record ),
+					 'ReturnConsumedCapacity' => 'TOTAL'
+				)
+			);
 
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return array( 'RowKey' => $entity->getRowKey() );
-			}
-
-			// get a new copy with properties
-			return $this->retrieveRecordById($table, $_id, '', $fields, $extras);
+			return array();
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to update item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to update item in '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -656,7 +717,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function updateRecordsByFilter( $table, $record, $filter = '', $fields = '', $extras = array() )
@@ -669,7 +730,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			// parse filter
-//			$rows = $this->_dbConn->updateItem( $table, $record, $filter );
+			$rows = $this->_dbConn->updateItem( $table, $record, $filter );
 
 			$results = array();
 			if ( !empty( $fields ) )
@@ -694,7 +755,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function updateRecordsByIds( $table, $record, $id_list, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -714,14 +775,6 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 		try
 		{
-			// Create list of batch operation.
-			$operations = new BatchOperations();
-
-			$entity = static::parseRecordToEntity($record);
-			if (!$entity->getPartitionKey())
-			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
-			}
 			$_out = array();
 			foreach ( $ids as $key => $_id )
 			{
@@ -730,35 +783,16 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 					throw new BadRequestException("No identifier exist in identifier index $key.");
 				}
 
-				$entity->setRowKey($id);
-
-				// Add operation to list of batch operations.
-				$operations->addUpdateEntity( $table, $entity );
-				$_out[] = array( 'RowKey' => $_id );
-			}
-
-			/** @var BatchResult $results */
-			$results = $this->_dbConn->batch( $operations );
-
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return $_out;
-			}
-
-			/** @var UpdateEntityResult $result */
-			foreach ($results->getEntries() as $result)
-			{
-				// not much good in here
 			}
 
 			return $this->retrieveRecordsByIds($table, $id_list, $id_field = '', $fields = '', $extras);
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to update items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to update items in '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -770,7 +804,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function updateRecordById( $table, $record, $id, $id_field = '', $fields = '', $extras = array() )
@@ -785,27 +819,12 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		}
 		try
 		{
-			$entity = static::parseRecordToEntity($record);
-			$entity->setRowKey( $id );
-			if (!$entity->getPartitionKey())
-			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
-			}
-
-			/** @var UpdateEntityResult $result */
-			$result = $this->_dbConn->updateEntity( $table, $entity );
-
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return array( 'RowKey' => $entity->getRowKey() );
-			}
-
 			// get a new copy with properties
 			return $this->retrieveRecordById($table, $id, '', $fields, $extras);
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to update item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to update item in '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -833,7 +852,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function mergeRecord( $table, $record, $id_field = '', $fields = '', $extras = array() )
@@ -849,7 +868,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function mergeRecordsByFilter( $table, $record, $filter = '', $fields = '', $extras = array() )
@@ -867,7 +886,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function mergeRecordsByIds( $table, $record, $id_list, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -884,7 +903,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function mergeRecordById( $table, $record, $id, $id_field = '', $fields = '', $extras = array() )
@@ -901,7 +920,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array|string
 	 */
 	public function deleteRecords( $table, $records, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -919,9 +938,6 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			// Create list of batch operation.
-			$operations = new BatchOperations();
-
 			$_outMore = array();
 			if ( !( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) ))
 			{
@@ -930,43 +946,16 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$_out = array();
 			foreach ( $records as $key => $record )
 			{
-				$_id = Option::get($record, 'rowkey');
-				if (empty($_id))
-				{
-					throw new BadRequestException("No identifier 'RowKey' exist in record index '$key'.");
-				}
-				$_partKey = Option::get($record, 'partitionkey');
-				if (empty($_partKey))
-				{
-					$_partKey = $this->_defaultPartitionKey;
-				}
-				$_out[] = array( 'RowKey' => $_id );
-
-				// Add operation to list of batch operations.
-				$operations->addDeleteEntity( $table, $_partKey, $_id );
-			}
-
-			/** @var BatchResult $results */
-			$results = $this->_dbConn->batch( $operations );
-
-			foreach ($results->getEntries() as $result)
-			{
-				// not much good in here
-			}
-
-			if ( !empty( $_outMore ) )
-			{
-				return $_outMore;
 			}
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to delete items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to delete items from '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -977,7 +966,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function deleteRecord( $table, $record, $id_field = '', $fields = '', $extras = array() )
@@ -999,7 +988,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$result = $this->retrieveRecordById($table, $_id, $id_field, $fields, $extras);
 		}
 
-		$this->_dbConn->deleteEntity( $table, $this->_defaultPartitionKey, $_id );
+		$this->_dbConn->deleteEntity( $table, $this->_partitionKey, $_id );
 
 		return $result;
 	}
@@ -1010,7 +999,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function deleteRecordsByFilter( $table, $filter, $fields = '', $extras = array() )
@@ -1030,7 +1019,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			}
 
 			// parse filter
-//			$id = $this->_dbConn->deleteItem( $table, $filter );
+			$id = $this->_dbConn->deleteItem( $table, $filter );
 
 			return $results;
 		}
@@ -1048,7 +1037,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function deleteRecordsByIds( $table, $id_list, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -1079,12 +1068,12 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			{
 				if (empty($id))
 				{
-					throw new BadRequestException("No identifier exist in identifier number $key.");
+					throw new Exception("No identifier exist in identifier number $key.");
 				}
 				$_out[] = array('RowKey' => $id);
 
 				// Add operation to list of batch operations.
-				$operations->addDeleteEntity( $table, $this->_defaultPartitionKey, $id );
+				$operations->addDeleteEntity( $table, $this->_partitionKey, $id );
 			}
 
 			/** @var BatchResult $results */
@@ -1102,12 +1091,12 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to delete items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to delete items from '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1125,30 +1114,27 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	{
 		try
 		{
-			$result = array( 'RowKey' => $id );
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				$result = $this->retrieveRecordById($table, $id, $id_field, $fields, $extras);
-			}
-			$this->_dbConn->deleteEntity( $table, $this->_defaultPartitionKey, $id );
+			$this->_dbConn->deleteItem(
+				array(
+					 'TableName' => $table,
+					 'Key'       => array(
+						 'id' => array( 'N' => $id )
+					 )
+				)
+			);
 
-			return $result;
+			return array();
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to delete item from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to delete item from '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
 	/**
 	 * @param        $table
-	 * @param string $fields
 	 * @param string $filter
-	 * @param int    $limit
-	 * @param string $order
-	 * @param int    $offset
-	 * @param bool   $include_count
-	 * @param bool   $include_schema
+	 * @param string $fields
 	 * @param array  $extras
 	 *
 	 * @throws \Exception
@@ -1160,46 +1146,41 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 		$this->checkConnection();
 
-		$_options = new QueryEntitiesOptions();
-		$_options->setSelectFields(array());
-		if ( !empty( $fields ) && ( '*' != $fields ) )
-		{
-			$fields = array_map( 'trim', explode( ',', trim( $fields, ',' ) ) );
-			$_options->setSelectFields($fields);
-		}
-		$limit = intval( Option::get($extras, 'limit', 0 ) );
-		if ($limit > 0)
-		{
-			$_options->setTop($limit);
-		}
-
-//		$filter = "PartitionKey eq '$_partKey'";
-//		$filter = "Location eq 'Office' and DueDate lt '2012-11-5'";
-		if (!empty($filter))
-		{
-			$_query = new QueryStringFilter($filter);
-			$_options->setFilter($_query);
-		}
-
 		try
 		{
-			/** @var QueryEntitiesResult $result */
-			$result = $this->_dbConn->queryEntities( $table, $_options );
+			$iterator = $this->_dbConn->getIterator(
+				'Scan',
+				array(
+					 'TableName'  => $table,
+					 'ScanFilter' => array(
+						 'error' => array(
+							 'AttributeValueList' => array(
+								 array( 'S' => 'overflow' )
+							 ),
+							 'ComparisonOperator' => 'CONTAINS'
+						 ),
+						 'time'  => array(
+							 'AttributeValueList' => array(
+								 array( 'N' => strtotime( '-15 minutes' ) )
+							 ),
+							 'ComparisonOperator' => 'GT'
+						 )
+					 )
+				)
+			);
 
-			/** @var Entity[] $entities */
-			$entities = $result->getEntities();
-
-			$_out = array();
-			foreach ( $entities as $entity )
+			// Each item will contain the attributes we added
+			foreach ( $iterator as $item )
 			{
-				$_out[] = static::parseEntityToRecord($entity);
+				// Grab the time number value
+//				echo $item['time']['N'] . "\n";
 			}
 
-			return $_out;
+			return $iterator->toArray();
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to filter items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to filter items from '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1240,7 +1221,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 				$_partKey = Option::get($record, 'partitionkey');
 				if (empty($_partKey))
 				{
-					$_partKey = $this->_defaultPartitionKey;
+					$_partKey = $this->_partitionKey;
 				}
 				/** @var GetEntityResult $result */
 				$result = $this->_dbConn->getEntity( $table, $_partKey, $_id );
@@ -1251,9 +1232,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to get items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to get items from '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1264,7 +1245,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
 	 * @return array
 	 */
 	public function retrieveRecord( $table, $record, $id_field = 'id', $fields = '', $extras = array() )
@@ -1282,7 +1263,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$_partKey = Option::get($record, 'partitionkey');
 		if (empty($_partKey))
 		{
-			$_partKey = $this->_defaultPartitionKey;
+			$_partKey = $this->_partitionKey;
 		}
 		try
 		{
@@ -1292,9 +1273,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 			return static::parseEntityToRecord($entity, array(), $fields);
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to get item '$table/$_id' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to get item '$table/$_id' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1318,21 +1299,40 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			$_out = array();
+			$_keys = array();
+
+			// Build the array for the "Keys" parameter
 			foreach ( $ids as $id )
 			{
-				/** @var GetEntityResult $result */
-				$result = $this->_dbConn->getEntity( $table, $this->_defaultPartitionKey, $id );
-				$entity = $result->getEntity();
+				$_keys[] = array(
+					'id' => array( 'N' => $id )
+				);
+			}
 
-				$_out[] = static::parseEntityToRecord($entity, array(), $fields);
+			// Get multiple items by key in a BatchGetItem request
+			$result = $this->_dbConn->batchGetItem(
+				array(
+					 'RequestItems' => array(
+						 $table => array(
+							 'Keys'           => $_keys,
+							 'ConsistentRead' => true
+						 )
+					 )
+				)
+			);
+
+			$_items = $result->getPath( "Responses/{$table}" );
+			$_out = array();
+			foreach ( $_items as $_item )
+			{
+				$_out[] = $_item['Item'];
 			}
 
 			return $_out;
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to get items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to get items from '$table' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1355,15 +1355,23 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			/** @var GetEntityResult $result */
-			$result = $this->_dbConn->getEntity( $table, $this->_defaultPartitionKey, $id );
-			$entity = $result->getEntity();
+			$result = $this->_dbConn->getItem(
+				array(
+					 'ConsistentRead' => true,
+					 'TableName'      => $table,
+					 'Key'            => array(
+						 'id' => array( 'N' => $id )
+					 )
+				)
+			);
 
-			return static::parseEntityToRecord($entity, array(), $fields);
+			// Grab value from the result object like an array
+			return $result['Item'];
+//		echo $result->getPath( 'Item/id/N' ) . "\n";
 		}
-		catch ( ServiceException $ex )
+		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to get item '$table/$id' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to get item '$table/$id' on DynamoDb Tables service.\n" . $ex->getMessage() );
 		}
 	}
 

@@ -130,8 +130,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 
 	protected function _listResources()
 	{
-		$_includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
-		$result = $this->listContainers( $_includeProperties );
+		$result = $this->listContainers();
 
 		return array( 'resource' => $result );
 	}
@@ -604,7 +603,11 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				{
 					// no resource
 					$_includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
-					$result = $this->listContainers( $_includeProperties );
+					if ( $_includeProperties )
+					{
+						return $this->_listResources();
+					}
+					$result = $this->listContainers( true );
 					$result = array( 'container' => $result );
 				}
 				else if ( empty( $this->_folderPath ) )

@@ -23,8 +23,10 @@ use Kisma\Core\Utility\Option;
 use Platform\Services\AwsDynamoDbSvc;
 use Platform\Services\AwsSimpleDbSvc;
 use Platform\Services\AwsS3Svc;
+use Platform\Services\CouchDbSvc;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
+use Platform\Services\MongoDbSvc;
 use Platform\Services\OAuthService;
 use Platform\Services\OpenStackObjectStoreSvc;
 use Platform\Services\RemoteWebSvc;
@@ -255,8 +257,10 @@ class ServiceHandler
 						$service = new AwsSimpleDbSvc( $record );
 						break;
 					case 'mongodb':
+						$service = new MongoDbSvc( $record );
+						break;
 					case 'couchdb':
-						throw new \Exception( "NoSQL Storage Type not currently supported." );
+						$service = new CouchDbSvc( $record );
 						break;
 					default:
 						throw new \Exception( "Invalid NoSQL Storage Type '$storageType' in configuration environment." );

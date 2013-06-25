@@ -20,6 +20,7 @@
 namespace Platform\Services;
 
 use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\FilterInput;
 use Platform\Exceptions\BadRequestException;
 use Platform\Utility\DataFormat;
 use Platform\Utility\RestRequest;
@@ -52,16 +53,6 @@ abstract class BaseDbSvc extends RestService
 		switch ( $this->_resource )
 		{
 			case '':
-				switch ( $this->_action )
-				{
-					case self::Get:
-						return $this->_listResources();
-						break;
-					default:
-						return false;
-				}
-				break;
-			case 'admin':
 				return $this->_handleAdmin();
 				break;
 			default:
@@ -403,147 +394,122 @@ abstract class BaseDbSvc extends RestService
 		switch ( $this->_action )
 		{
 			case self::Get:
-				$this->validateTableAccess( $this->_resource, 'read' );
-				if ( empty( $this->_resourceId ) )
+				$this->checkPermission( 'read' );
+				$_properties = FilterInput::request('include_properties', false, FILTER_VALIDATE_BOOLEAN );
+				$ids = FilterInput::request( 'ids' );
+				if ( empty( $ids ) )
 				{
-					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-					if ( empty( $ids ) )
-					{
-						$data = RestRequest::getPostDataAsArray();
-						$ids = Utilities::getArrayValue( 'ids', $data, '' );
-					}
+					$data = RestRequest::getPostDataAsArray();
+					$ids = Option::get( $data, 'ids' );
+				}
 
-					$result = $this->getTables( $ids );
-					$result = array( 'table' => $result );
-				}
-				else
+				if ( !$_properties && empty( $ids ) )
 				{
-					// single table by name
-					$result = $this->getTable( $this->_resourceId );
+					return $this->_listResources();
 				}
+				$result = $this->getTables( $ids );
+				$result = array( 'table' => $result );
 				break;
 			case self::Post:
 				$data = RestRequest::getPostDataAsArray();
-				$this->validateTableAccess( $this->_resource, 'create' );
-				if ( empty( $this->_resourceId ) )
+				$this->checkPermission( 'create' );
+				$tables = Utilities::getArrayValue( 'table', $data, null );
+				if ( empty( $tables ) )
 				{
-					$tables = Utilities::getArrayValue( 'table', $data, null );
-					if ( empty( $tables ) )
+					// xml to array conversion leaves them in plural wrapper
+					$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+				}
+				if ( empty( $tables ) )
+				{
+					$_name = Option::get( $data, 'name' );
+					if ( empty( $_name ) )
 					{
-						// xml to array conversion leaves them in plural wrapper
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+						throw new BadRequestException( 'No table name in POST create request.' );
 					}
-					if ( empty( $tables ) )
-					{
-						$_name = Option::get( $data, 'name' );
-						if ( empty( $_name ) )
-						{
-							throw new BadRequestException( 'No table name in POST create request.' );
-						}
-						$result = $this->createTable( $_name, $data );
-					}
-					else
-					{
-						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-						if ( !isset( $rollback ) )
-						{
-							$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-						}
-						$result = $this->createTables( $tables, $rollback );
-						$result = array( 'table' => $result );
-					}
+					$result = $this->createTable( $_name, $data );
 				}
 				else
-				{
-					// single table by name
-					$result = $this->createTable( $this->_resourceId, $data );
-				}
-				break;
-			case self::Put:
-			case self::Patch:
-			case self::Merge:
-				$data = RestRequest::getPostDataAsArray();
-				$this->validateTableAccess( $this->_resource, 'update' );
-				if ( empty( $this->_resourceId ) )
-				{
-					$tables = Utilities::getArrayValue( 'table', $data, null );
-					if ( empty( $tables ) )
-					{
-						// xml to array conversion leaves them in plural wrapper
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
-					}
-					if ( empty( $tables ) )
-					{
-						$_name = Option::get( $data, 'name' );
-						if ( empty( $_name ) )
-						{
-							throw new BadRequestException( 'No table name in POST create request.' );
-						}
-						$result = $this->updateTable( $_name, $data );
-					}
-					else
-					{
-						$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-						if ( !isset( $rollback ) )
-						{
-							$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-						}
-						$result = $this->updateTables( $tables, $rollback );
-						$result = array( 'table' => $result );
-					}
-				}
-				else
-				{
-					$result = $this->updateTable( $this->_resourceId, $data );
-				}
-				break;
-			case self::Delete:
-				$data = RestRequest::getPostDataAsArray();
-				$this->validateTableAccess( $this->_resource, 'delete' );
-				if ( empty( $this->_resourceId ) )
 				{
 					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
 					if ( !isset( $rollback ) )
 					{
 						$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
 					}
-					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
-					if ( empty( $ids ) )
+					$result = $this->createTables( $tables, $rollback );
+					$result = array( 'table' => $result );
+				}
+				break;
+			case self::Put:
+			case self::Patch:
+			case self::Merge:
+				$data = RestRequest::getPostDataAsArray();
+				$this->checkPermission( 'update' );
+				$tables = Utilities::getArrayValue( 'table', $data, null );
+				if ( empty( $tables ) )
+				{
+					// xml to array conversion leaves them in plural wrapper
+					$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+				}
+				if ( empty( $tables ) )
+				{
+					$_name = Option::get( $data, 'name' );
+					if ( empty( $_name ) )
 					{
-						$ids = Utilities::getArrayValue( 'ids', $data, '' );
+						throw new BadRequestException( 'No table name in POST create request.' );
 					}
-					if ( !empty( $ids ) )
-					{
-						$result = $this->deleteTables( $ids, $rollback );
-						$result = array( 'table' => $result );
-					}
-					else
-					{
-						$tables = Utilities::getArrayValue( 'table', $data, null );
-						if ( empty( $tables ) )
-						{
-							// xml to array conversion leaves them in plural wrapper
-							$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
-						}
-						if ( empty( $tables ) )
-						{
-							$_name = Option::get( $data, 'name' );
-							if ( empty( $_name ) )
-							{
-								throw new BadRequestException( 'No table name in DELETE request.' );
-							}
-							$result = $this->deleteTable( $_name );
-						}
-						else
-						{
-							$result = $this->deleteTables( $tables, $rollback );
-							$result = array( 'table' => $result );
-						}
-					}
+					$result = $this->updateTable( $_name, $data );
 				}
 				else
 				{
-					$result = $this->deleteTable( $this->_resourceId );
+					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
+					if ( !isset( $rollback ) )
+					{
+						$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+					}
+					$result = $this->updateTables( $tables, $rollback );
+					$result = array( 'table' => $result );
+				}
+				break;
+			case self::Delete:
+				$data = RestRequest::getPostDataAsArray();
+				$this->checkPermission( 'delete' );
+				$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
+				if ( !isset( $rollback ) )
+				{
+					$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
+				}
+				$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+				if ( empty( $ids ) )
+				{
+					$ids = Utilities::getArrayValue( 'ids', $data, '' );
+				}
+				if ( !empty( $ids ) )
+				{
+					$result = $this->deleteTables( $ids, $rollback );
+					$result = array( 'table' => $result );
+				}
+				else
+				{
+					$tables = Option::get( $data, 'table' );
+					if ( empty( $tables ) )
+					{
+						// xml to array conversion leaves them in plural wrapper
+						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+					}
+					if ( empty( $tables ) )
+					{
+						$_name = Option::get( $data, 'name' );
+						if ( empty( $_name ) )
+						{
+							throw new BadRequestException( 'No table name in DELETE request.' );
+						}
+						$result = $this->deleteTable( $_name );
+					}
+					else
+					{
+						$result = $this->deleteTables( $tables, $rollback );
+						$result = array( 'table' => $result );
+					}
 				}
 				break;
 			default:
