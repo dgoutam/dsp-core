@@ -1709,7 +1709,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 		$count = 0;
 		$created = array();
 
-		if ( !empty( $tables ) && is_array( $tables ) )
+		if ( isset( $tables[0] ) )
 		{
 			foreach ( $tables as $table )
 			{
