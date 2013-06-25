@@ -34,7 +34,7 @@ use Platform\Yii\Utility\Pii;
  * @property int                 $service_type_nbr
  * @property string              $service_name_text
  * @property string              $service_tag_text
- * @property string              $service_config_text
+ * @property array               $service_config_text
  * @property int                 $enabled_ind
  * @property string              $last_use_date
  */
@@ -93,7 +93,8 @@ class Registry extends BaseDspSystemModel
 			$_serviceCache = Pii::getParam( static::CONFIG_ID, array() );
 
 			//	List all available services from db
-			$_sql = <<<MYSQL
+			$_sql
+				= <<<MYSQL
 SELECT
 	service_tag_text,
 	service_name_text

@@ -19,16 +19,20 @@
  */
 namespace Platform\Services;
 
+use DreamFactory\Common\Exceptions\RestException;
 use DreamFactory\Platform\Services\Authentication\OAuth\BaseClient;
+use DreamFactory\Platform\Services\Authentication\OAuth\FacebookClient;
 use DreamFactory\Platform\Services\Authentication\OAuth\GithubClient;
 use DreamFactory\Yii\Utility\Pii;
+use Kisma\Core\Enums\HttpResponse;
+use Kisma\Core\Utility\Curl;
+use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Resources\UserSession;
-use Platform\Utility\Curl;
 use Platform\Utility\RestRequest;
 use Platform\Utility\Utilities;
 
@@ -91,6 +95,7 @@ class OAuthService extends RestService
 					break;
 			}
 		}
+
 		if ( !empty( $this->_parameters ) )
 		{
 			foreach ( $this->_parameters as $param )
@@ -140,17 +145,33 @@ class OAuthService extends RestService
 	 */
 	protected function _createServiceClient( $service )
 	{
+		$_config = $service->service_config_text;
 
 		switch ( $service->service_tag_text )
 		{
 			case 'github':
-				$_config = $service->service_config_text;
-
 				$_client = new GithubClient(
 					array(
 						 'client_id'     => Option::get( $_config, 'client_id' ),
 						 'client_secret' => Option::get( $_config, 'client_secret' ),
-						 //						 'redirect_proxy_url' => 'http://api.cloud.dreamfactory.com/oauth/redirect',
+					)
+				);
+				break;
+
+			case 'twitter':
+				$_client = new TwitterClient(
+					array(
+						 'client_id'     => Option::get( $_config, 'client_id' ),
+						 'client_secret' => Option::get( $_config, 'client_secret' ),
+					)
+				);
+				break;
+
+			case 'facebook':
+				$_client = new FacebookClient(
+					array(
+						 'client_id'     => Option::get( $_config, 'client_id' ),
+						 'client_secret' => Option::get( $_config, 'client_secret' ),
 					)
 				);
 				break;
@@ -181,6 +202,92 @@ class OAuthService extends RestService
 	}
 
 	/**
+	 * @param string $state
+	 * @param array  $config
+	 *
+	 * @return string
+	 * @throws \DreamFactory\Common\Exceptions\RestException
+	 */
+	protected function _registerAuthorization( $state, $config )
+	{
+		$_payload = array(
+			'state'  => $state,
+			'config' => json_encode( $config ),
+		);
+
+		$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/oauth/register';
+		$_redirectUri = Pii::getParam( 'cloud.endpoint' ) . '/oauth/authorize';
+
+		$_result = Curl::post( $_endpoint, $_payload );
+
+		if ( false === $_result || !is_object( $_result ) )
+		{
+			throw new RestException( 'Error registering authorization request.', HttpResponse::InternalServerError );
+		}
+
+		if ( !$_result->success || !$_result->details )
+		{
+			throw new RestException( 'Error registering authorization request.', HttpResponse::InternalServerError );
+		}
+
+		return $_redirectUri;
+	}
+
+	/**
+	 * @param string $state
+	 * @param int    $registryId
+	 *
+	 * @return string
+	 */
+	protected function _checkPriorAuthorization( $state, $registryId )
+	{
+		//	See if there's an entry in the service auth table...
+		$_model = \ServiceAuth::model()->find(
+			'user_id = :user_id and registry_id = :registry_id',
+			array(
+				 ':user_id'     => UserSession::getCurrentUserId(),
+				 ':registry_id' => $registryId,
+			)
+		);
+
+		if ( empty( $_model ) )
+		{
+			Log::info( 'Registering auth request: ' . $state );
+
+			$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/oauth/register?state=' . $state;
+			$_result = Curl::get( $_endpoint );
+
+			if ( false === $_result || !is_object( $_result ) )
+			{
+				Log::error( 'Error checking authorization request.', HttpResponse::InternalServerError );
+
+				return false;
+			}
+
+			if ( !$_result->success || !$_result->details )
+			{
+				return false;
+			}
+
+			//	Looks like we have a token, save it!
+			$_model = new \ServiceAuth();
+			$_model->user_id = UserSession::getCurrentUserId();
+			$_model->registry_id = $registryId;
+			$_model->auth_text = $_result->details->token;
+			$_model->save();
+
+			$_token = $_result->details->token;
+		}
+		else
+		{
+			$_token = $_model->auth_text;
+		}
+
+		//	Looks like we have a token
+		return $_token;
+	}
+
+	/**
 	 * Handle an OAuth service request
 	 *
 	 * Comes in like this:
@@ -196,6 +303,7 @@ class OAuthService extends RestService
 	protected function _handleResource()
 	{
 		$_serviceTag = $this->_resource;
+		$_host = \Kisma::get( 'app.host_name' );
 
 		//	Find service auth record
 		$_service = $this->_validateService( $_serviceTag );
@@ -204,22 +312,47 @@ class OAuthService extends RestService
 
 		$_state = UserSession::getCurrentUserId() . '_' . $_serviceTag . '_' . $this->_client->getClientId();
 
-		$_host = \Kisma::get( 'app.host_name' );
+		$_token = $this->_checkPriorAuthorization( $_state, $_service->id );
 
-		$_host = 'jablan.is-a-geek.com';
+		if ( false !== $_token )
+		{
+			$this->_client->setAccessToken( $_token );
+		}
+		else
+		{
+			if ( !$this->_client->authorized( false ) )
+			{
+				$_config = array_merge(
+					$_service->getAttributes(),
+					array(
+						 'host_name'              => $_host,
+						 'client'                 => serialize( $this->_client ),
+						 'resource'               => $this->_resourcePath,
+						 'authorize_redirect_uri' => 'http://' . Option::server( 'HTTP_HOST', $_host ) . Option::server( 'REQUEST_URI', '/' ),
+					)
+				);
 
-		$this->_client->setRedirectUri( 'http://' . $_host . '/' . $this->_resourcePath );
+				$_redirectUri = $this->_registerAuthorization( $_state, $_config );
+				$this->_client->setRedirectUri( $_redirectUri );
+			}
+		}
 
 		if ( $this->_client->authorized( true, array( 'state' => $_state ) ) )
 		{
 			//	Recreate the request...
+			$_params = $this->_resourceArray;
+
+			//	Shift off the service name
+			array_shift( $_params );
+			$_path = '/' . implode( '/', $_params );
+
 			$_queryString = $this->buildParameterString( $this->_action );
 
 			$_response = $this->_client->fetch(
-				$this->_resourcePath . '?' . $_queryString,
+				$_path,
 				RestRequest::getPostDataAsArray(),
 				$this->_action,
-				$this->_headers
+				$this->_headers ? : array()
 			);
 
 			if ( false === $_response )
@@ -227,7 +360,12 @@ class OAuthService extends RestService
 				throw new InternalServerErrorException( 'Network error', $_response['code'] );
 			}
 
-			return $_response;
+			if ( false !== stripos( $_response['content_type'], 'application/json', 0 ) )
+			{
+				return json_decode( $_response['result'] );
+			}
+
+			return $_response['result'];
 		}
 	}
 }
