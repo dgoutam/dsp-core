@@ -41,8 +41,6 @@ class SiteController extends Controller
 		parent::init();
 
 		$this->layout = 'initial';
-
-		Log::debug( 'Requested route: /' . $this->route );
 	}
 
 	/**
@@ -69,7 +67,18 @@ class SiteController extends Controller
 			//	Allow authenticated users access to init commands
 			array(
 				'allow',
-				'actions' => array( 'initSystem', 'initAdmin', 'initSchema', 'upgradeSchema', 'initData', 'upgrade', 'environment', 'metrics', 'fileTree', 'logout' ),
+				'actions' => array(
+					'initSystem',
+					'initAdmin',
+					'initSchema',
+					'upgradeSchema',
+					'initData',
+					'upgrade',
+					'environment',
+					'metrics',
+					'fileTree',
+					'logout'
+				),
 				'users'   => array( '@' ),
 			),
 			//	Deny all others access to init commands
@@ -290,7 +299,7 @@ class SiteController extends Controller
 			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
 		}
 
-		/** @var \CWebUser $_user  */
+		/** @var \CWebUser $_user */
 		$_user = \Yii::app()->user;
 		// Create and login first admin user
 		if ( !$_user->getState( 'df_authenticated' ) )
@@ -308,7 +317,7 @@ class SiteController extends Controller
 		$_current = SystemManager::getCurrentVersion();
 		$_temp = SystemManager::getDspVersions();
 		$_versions = array();
-		foreach ($_temp as $_version)
+		foreach ( $_temp as $_version )
 		{
 			$_name = Option::get( $_version, 'name', '' );
 			if ( version_compare( $_current, $_name, '<' ) )

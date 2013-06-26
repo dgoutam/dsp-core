@@ -19,6 +19,8 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
 use Platform\Exceptions\BadRequestException;
 use Platform\Interfaces\RestServiceLike;
 use Swagger\Annotations as SWG;
@@ -30,13 +32,13 @@ use Swagger\Annotations as SWG;
  * Some basic models used in REST interfaces
  *
  * @SWG\Model(id="Resources",
- *   @SWG\Property(name="resource",type="Array", items="$ref:Resource")
+ * @SWG\Property(name="resource",type="Array", items="$ref:Resource")
  * )
  * @SWG\Model(id="Resource",
- *   @SWG\Property(name="name",type="string")
+ * @SWG\Property(name="name",type="string")
  * )
  * @SWG\Model(id="Success",
- *   @SWG\Property(name="success",type="boolean")
+ * @SWG\Property(name="success",type="boolean")
  * )
  *
  */
@@ -162,4 +164,57 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 		return $results;
 	}
+
+	/**
+	 * Adds criteria garnered from the query string from DataTables
+	 *
+	 * @param array|\CDbCriteria $criteria
+	 * @param array              $columns
+	 *
+	 * @return array|\CDbCriteria
+	 */
+	protected function _buildCriteria( $columns, $criteria = null )
+	{
+		$criteria = $criteria ? : array();
+
+		$_criteria = ( !( $criteria instanceof \CDbCriteria ) ? new \CDbCriteria( $criteria ) : $criteria );
+
+		//	Columns
+		$_criteria->select = ( !empty( $_columns ) ? implode( ', ', $_columns ) : array_keys( \Registry::model()->restMap() ) );
+
+		//	Limits
+		$_limit = FilterInput::get( INPUT_GET, 'iDisplayLength', -1, FILTER_SANITIZE_NUMBER_INT );
+		$_limitStart = FilterInput::get( INPUT_GET, 'iDisplayStart', 0, FILTER_SANITIZE_NUMBER_INT );
+
+		if ( -1 != $_limit )
+		{
+			$_criteria->limit = $_limit;
+			$_criteria->offset = $_limitStart;
+		}
+
+		//	Sort
+		$_order = array();
+
+		if ( isset( $_GET['iSortCol_0'] ) )
+		{
+			for ( $_i = 0, $_count = FilterInput::get( INPUT_GET, 'iSortingCols', 0, FILTER_SANITIZE_NUMBER_INT ); $_i < $_count; $_i++ )
+			{
+				$_column = FilterInput::get( INPUT_GET, 'iSortCol_' . $_i, 0, FILTER_SANITIZE_NUMBER_INT );
+
+				if ( isset( $_GET['bSortable_' . $_column] ) && 'true' == $_GET['bSortable_' . $_column] )
+				{
+					$_order[] = $columns[$_column] . ' ' . FilterInput::get( INPUT_GET, 'sSortDir_' . $_i, null, FILTER_SANITIZE_STRING );
+				}
+			}
+		}
+
+		if ( !empty( $_order ) )
+		{
+			Log::debug( 'Order: ' . implode( ', ', $_order ) );
+			$_criteria->order = implode( ', ', $_order );
+		}
+
+		return $_criteria;
+	}
+
 }

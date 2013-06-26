@@ -19,6 +19,7 @@
  */
 namespace Platform\Services;
 
+use Aws\CloudFront\Exception\Exception;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -300,14 +301,39 @@ class SystemManager extends RestService
 				try
 				{
 					$command->reset();
-					$command->dropIndex( 'undx_df_sys_user_username', 'df_sys_user' );
-					$command->dropindex( 'ndx_df_sys_user_email', 'df_sys_user' );
+
+					try
+					{
+						$command->dropIndex( 'undx_df_sys_user_username', 'df_sys_user' );
+					}
+					catch ( \Exception $_ex )
+					{
+						//	Ignore missing index error
+						if ( false === stripos( $_ex->getMessage(), '1091 Can\'t drop' ) )
+						{
+							throw $_ex;
+						}
+					}
+
+					try
+					{
+						$command->dropindex( 'ndx_df_sys_user_email', 'df_sys_user' );
+					}
+					catch ( \Exception $_ex )
+					{
+						//	Ignore missing index error
+						if ( false === stripos( $_ex->getMessage(), '1091 Can\'t drop' ) )
+						{
+							throw $_ex;
+						}
+					}
 				}
 				catch ( \Exception $_ex )
 				{
-					Log::error( 'Exception clearing username index: ' . $_ex->getMessage() );
+					Log::error( 'Exception removing prior indexes: ' . $_ex->getMessage() );
 				}
 			}
+
 			// initialize config table if not already
 			try
 			{

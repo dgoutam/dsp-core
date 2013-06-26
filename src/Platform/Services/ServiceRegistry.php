@@ -19,12 +19,14 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\NotFoundException;
+use Platform\Exceptions\RestException;
 use Platform\Resources\UserSession;
 use Platform\Utility\RestRequest;
 use Swagger\Annotations as SWG;
@@ -54,8 +56,7 @@ class ServiceRegistry extends RestService
 	//*************************************************************************
 
 	/**
-	 * @throws \Platform\Exceptions\NotFoundException
-	 * @throws \Platform\Exceptions\BadRequestException
+	 * @throws \Platform\Exceptions\RestException
 	 * @return array|bool
 	 */
 	protected function _handleResource()
@@ -63,6 +64,11 @@ class ServiceRegistry extends RestService
 		switch ( $this->_action )
 		{
 			case static::Get:
+				if ( empty( $this->_resource ) )
+				{
+					return $this->_listResources();
+				}
+
 				return $this->_get( $this->_resource );
 
 			case static::Post:
@@ -72,7 +78,7 @@ class ServiceRegistry extends RestService
 				return $this->_delete( $this->_resource );
 
 			default:
-				return false;
+				throw new RestException( HttpResponse::BadRequest );
 		}
 	}
 
@@ -86,13 +92,14 @@ class ServiceRegistry extends RestService
 	 */
 	protected function _get( $request )
 	{
-		Log::debug( 'Registry GET/' . $request );
+		$_columns = \Registry::model()->mapRestColumns(
+			isset( $_GET['sColumns'] )
+				? explode( ',', FilterInput::get( INPUT_GET, 'sColumns', null, FILTER_SANITIZE_STRING ) )
+				: array()
+		);
 
-		$_columns = explode( ',', FilterInput::get( INPUT_GET, 'c', null, FILTER_SANITIZE_STRING ) );
-		$_criteria = ( !empty( $_columns ) ? array( 'select' => implode( ', ', $_columns ) ) : array_keys( \Registry::model()->restMap() ) );
-
-		/** @var  $_resource */
-		$_resource = \Registry::model()->userTag( UserSession::getCurrentUserId(), $request )->find( $_criteria );
+		/** @var \Registry $_resource */
+		$_resource = \Registry::model()->userTag( UserSession::getCurrentUserId(), $request )->find( $this->_buildCriteria( $_columns ) );
 
 		if ( empty( $_resource ) )
 		{
@@ -100,14 +107,7 @@ class ServiceRegistry extends RestService
 		}
 
 		return array(
-			'resource' => array(
-				'id'        => $_resource->service_tag_text,
-				'type'      => $_resource->service_type_nbr,
-				'name'      => $_resource->service_name_text,
-				'config'    => $_resource->service_config_text,
-				'enabled'   => $_resource->enabled_ind,
-				'last_used' => $_resource->last_use_date,
-			)
+			'resource' => $_resource->getRestAttributes( $_columns ),
 		);
 	}
 
@@ -129,31 +129,16 @@ class ServiceRegistry extends RestService
 	protected function _listResources()
 	{
 		$_count = 0;
-		$_dataTablesOutput = isset( $_GET['dt'] );
+		$_dataTablesOutput = isset( $_GET['sEcho'] );
 
-		$_restMap = \Registry::model()->restMap();
-		$_columns = explode( ',', FilterInput::get( INPUT_GET, 'c', null, FILTER_SANITIZE_STRING ) );
-
-		if ( empty( $_columns ) )
-		{
-			$_columns = array_keys( $_restMap );
-		}
-
-		//	Translate the columns...
-		$_new = array();
-		$_map = array_flip( $_restMap );
-
-		foreach ( $_columns as $_column )
-		{
-			$_new[] = Option::get( $_map, $_column );
-		}
-
-		$_columns = $_new;
-
-		$_criteria = ( !empty( $_columns ) ? array( 'select' => implode( ', ', $_columns ) ) : array_keys( $_restMap ) );
+		$_columns = \Registry::model()->mapRestColumns(
+			isset( $_GET['sColumns'] )
+				? explode( ',', FilterInput::get( INPUT_GET, 'sColumns', null, FILTER_SANITIZE_STRING ) )
+				: array()
+		);
 
 		/** @var \Registry[] $_rows */
-		$_rows = \Registry::model()->userTag( UserSession::getCurrentUserId() )->findAll( $_criteria );
+		$_rows = \Registry::model()->userTag( UserSession::getCurrentUserId() )->findAll( $this->_buildCriteria( $_columns ) );
 
 		$_response = array();
 
@@ -161,6 +146,7 @@ class ServiceRegistry extends RestService
 		{
 			foreach ( $_rows as $_row )
 			{
+				//	DataTables just gets the values, not the keys
 				$_response[] = ( $_dataTablesOutput ? array_values( $_row->getRestAttributes( $_columns ) ) : $_row->getRestAttributes( $_columns ) );
 				$_count++;
 
@@ -174,13 +160,15 @@ class ServiceRegistry extends RestService
 		if ( $_dataTablesOutput )
 		{
 			$_output = array(
-				'sEcho'                => intval( $_GET['sEcho'] ),
 				'iTotalRecords'        => $_count,
 				'iTotalDisplayRecords' => $_count,
 				'aaData'               => $_response,
 			);
 
-			Log::debug( print_r( $_output, true ) );
+			if ( isset( $_GET, $_GET['sEcho'] ) )
+			{
+				$_output['sEcho'] = intval( $_GET['sEcho'] );
+			}
 
 			return $_output;
 		}

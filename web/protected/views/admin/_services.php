@@ -25,12 +25,12 @@ use Kisma\Core\Utility\Bootstrap;
 use Platform\Yii\Utility\Validate;
 
 ?>
-<h4>Registered Services</h4>
+<h4>Registered Authenticated Services</h4>
 
-<table class="table table-striped table-hover table-condensed" id="services-table">
+<table class="table table-striped table-hover table-bordered" id="services-table">
 	<thead>
 	<tr>
-		<th>Id</th>
+		<th>ID</th>
 		<th>Name</th>
 		<th>Path</th>
 		<th>Enabled</th>
