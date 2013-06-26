@@ -124,13 +124,13 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 	/**
 	 * List all possible resources accessible via this service,
-	 * return false if this is not applicable
+	 * or empty array if this is not applicable
 	 *
-	 * @return array|boolean
+	 * @return array
 	 */
 	protected function _listResources()
 	{
-		return false;
+		return array();
 	}
 
 	/**
@@ -148,17 +148,7 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 		$this->_preProcess();
 
-		if ( empty( $this->_resource ) && ( 0 == strcasecmp( self::Get, $action ) ) )
-		{
-			if ( false === ( $results = $this->_listResources() ) )
-			{
-				$results = $this->_handleResource();
-			}
-		}
-		else
-		{
-			$results = $this->_handleResource();
-		}
+		$results = $this->_handleResource();
 
 		$this->_postProcess( $results );
 
