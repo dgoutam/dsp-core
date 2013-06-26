@@ -488,7 +488,8 @@ class CouchDbSvc extends NoSqlDbSvc
 			$_out = static::cleanRecords( $result, $fields );
 			if ( static::requireMoreFields( $fields ) )
 			{
-				return $this->retrieveRecords( $table, $_out, '', $fields, $extras );
+				// merge in rev info
+				$_out = static::recordArrayMerge( $records, $_out );
 			}
 
 			return $_out;
@@ -520,11 +521,11 @@ class CouchDbSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			$result = $this->_dbConn->asArray()->storeDoc( (object)$record );
+			$result = $this->_dbConn->asArray()->storeDoc( (object) $record );
 			$_out = static::cleanRecord( $result, $fields );
 			if ( static::requireMoreFields( $fields ) )
 			{
-				return $this->retrieveRecord( $table, $_out, '', $fields, $extras );
+				$_out = static::recordArrayMerge( $record, $_out );
 			}
 
 			return $_out;
@@ -665,25 +666,15 @@ class CouchDbSvc extends NoSqlDbSvc
 			// get all fields of each record
 			$_merges = $this->retrieveRecords( $table, $records, $id_field, '*', $extras );
 			// merge in changes from $records to $_merges
-			foreach ( $_merges as $_key => $_merge )
-			{
-				$_mergeId = Option::get( $_merge, '_id' );
-				foreach ( $records as $_record )
-				{
-					$_recordId = Option::get( $_record, '_id' );
-					if ( $_mergeId == $_recordId )
-					{
-						$_merges[$_key] = array_merge( $_merge, $_record );
-					}
-				}
-			}
+			$_merges = static::recordArrayMerge( $_merges, $records );
 			// write back the changes
 			$result = $this->_dbConn->asArray()->storeDocs( $_merges, $rollback );
 			$_out = static::cleanRecords( $result, $fields );
 			if ( static::requireMoreFields( $fields ) )
 			{
 				// merge in rev updates
-				return static::cleanRecords( $_merges, $fields );
+				$_merges = static::recordArrayMerge($_merges, $_out );
+				$_out =  static::cleanRecords( $_merges, $fields );
 			}
 
 			return $_out;
@@ -771,6 +762,7 @@ class CouchDbSvc extends NoSqlDbSvc
 			if ( static::requireMoreFields( $fields ) )
 			{
 				// merge in rev updates
+				$_merges = static::recordArrayMerge($_merges, $_out );
 				return static::cleanRecords( $_merges, $fields );
 			}
 
