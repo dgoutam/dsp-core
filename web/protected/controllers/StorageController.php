@@ -54,6 +54,7 @@ class StorageController extends Controller
 					$_obj->streamFile( $_container, $_path );
 					break;
 			}
+
 			Pii::end();
 		}
 		catch ( \Exception $ex )
@@ -69,4 +70,5 @@ class StorageController extends Controller
 	{
 		Pii::end();
 	}
+
 }

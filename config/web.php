@@ -36,17 +36,18 @@ $_commonConfig = require( __DIR__ . '/common.config.php' );
 return array(
 
 	/**    Basics */
-	'basePath'        => $_docRoot . '/protected',
-	'name'            => $_appName,
-	'runtimePath'     => $_logFilePath,
+	'basePath'          => $_docRoot . '/protected',
+	'name'              => $_appName,
+	'runtimePath'       => $_logFilePath,
+	'defaultController' => $_defaultController,
 	/** CORS Configuration */
-	'corsWhitelist'   => array( '*' ),
-	'autoAddHeaders'  => true,
-	'extendedHeaders' => true,
+	'corsWhitelist'     => array( '*' ),
+	'autoAddHeaders'    => true,
+	'extendedHeaders'   => true,
 	/**    Preloads */
-	'preload'         => array( 'log' ),
+	'preload'           => array( 'log' ),
 	/**    Imports */
-	'import'          => array(
+	'import'            => array(
 		'system.utils.*',
 		'application.models.*',
 		'application.models.forms.*',
@@ -56,7 +57,7 @@ return array(
 		'Platform.Yii.Utility.*'   => $_basePath . '/src/Platform/Yii/Utility',
 	),
 	/**    Components */
-	'components'      => array(
+	'components'        => array(
 		//	Asset management
 		'assetManager' => array(
 			'class'      => 'CAssetManager',
@@ -68,7 +69,7 @@ return array(
 		'db'           => $_dbConfig,
 		//	Error management
 		'errorHandler' => array(
-			'errorAction' => 'site/error',
+			'errorAction' => 'web/error',
 		),
 		//	Route configuration
 		'urlManager'   => array(
@@ -93,6 +94,7 @@ return array(
 		//	User configuration
 		'user'         => array(
 			'allowAutoLogin' => true,
+			'loginUrl'       => array( $_defaultController . '/login' ),
 		),
 		//	Logging configuration
 		'log'          => array(
@@ -114,5 +116,5 @@ return array(
 	//. Global application parameters
 	//.........................................................................
 
-	'params'          => $_commonConfig,
+	'params'            => $_commonConfig,
 );

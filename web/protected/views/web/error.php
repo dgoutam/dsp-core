@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* @var $this SiteController */
+/* @var $this WebController */
 /* @var $error array */
 
 $this->pageTitle=Yii::app()->name . ' - Error';

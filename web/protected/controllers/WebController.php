@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Yii\Controllers\BaseWebController;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
@@ -28,19 +29,16 @@ use Platform\Resources\UserSession;
 use Platform\Yii\Utility\Pii;
 
 /**
- * SiteController.php
+ * WebController.php
  * The initialization and set-up controller
  */
-class SiteController extends Controller
+class WebController extends BaseWebController
 {
-	/**
-	 * {@InheritDoc}
-	 */
 	public function init()
 	{
 		parent::init();
 
-		$this->layout = 'initial';
+		$this->defaultAction = 'index';
 	}
 
 	/**
@@ -77,7 +75,8 @@ class SiteController extends Controller
 					'environment',
 					'metrics',
 					'fileTree',
-					'logout'
+					'logout',
+					'index'
 				),
 				'users'   => array( '@' ),
 			),
@@ -123,20 +122,20 @@ class SiteController extends Controller
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					$this->redirect( 'site/initSystem' );
+					$this->redirect( 'web/initSystem' );
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( 'site/initAdmin' );
+					$this->redirect( 'web/initAdmin' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( 'site/upgradeSchema' );
+					$this->redirect( 'web/upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( 'site/initData' );
+					$this->redirect( 'web/initData' );
 					break;
 			}
 		}
@@ -188,7 +187,7 @@ class SiteController extends Controller
 			{
 				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
 				{
-					$_returnUrl = Pii::url( 'site/index' );
+					$_returnUrl = Pii::url( 'web/index' );
 				}
 
 				$this->redirect( $_returnUrl );
@@ -204,18 +203,14 @@ class SiteController extends Controller
 		$this->render(
 			'login',
 			array(
-				 'model' => $_model
+				 'model'     => $_model,
+				 'activated' => ( 0 != \User::model()->count(
+						 'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+						 array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+					 )
+				 ),
 			)
 		);
-	}
-
-	/**
-	 * Logs out the current user and redirect to homepage.
-	 */
-	public function actionLogout()
-	{
-		Pii::user()->logout();
-		$this->redirect( '/' );
 	}
 
 	/**
@@ -292,6 +287,9 @@ class SiteController extends Controller
 		);
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function actionUpgrade()
 	{
 		if ( \Fabric::fabricHosted() )

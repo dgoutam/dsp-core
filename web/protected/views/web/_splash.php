@@ -18,29 +18,12 @@
  * limitations under the License.
  */
 /**
- * @var $this SiteController
+ * @var $this  WebController
+ * @var $for   The process we're displaying for
  */
-
-$this->pageTitle = Yii::app()->name;
-?>
-
-<h1><i><?php echo CHtml::encode( Yii::app()->name ); ?></i> Environment</h1>
-
-<?php
-
-if ( !isset( $_SESSION ) )
-{
-	session_start();
-}
-echo "Session Info: <br />";
-echo 'Module: ' . session_module_name() . ' Name: ' . session_name() . ' Id: ' . session_id();
-echo "<br /><br />";
-echo 'Session Env: ' . print_r( $_SESSION, true );
-echo "<br /><br />";
-echo 'API Version: ' . Versions::API_VERSION . "<br />";
-echo 'SQL DB Data Source Name: ' . Yii::app()->db->connectionString . "<br />";
-echo 'Blob Storage Type: ' . Yii::app()->params['BlobStorageStorageType'] . "<br />";
-echo "<br /><br />";
-phpinfo();
+use Kisma\Core\Utility\Bootstrap;
 
 ?>
+<h2 class="headline">One moment please...</h2>
+<p>Since this is a brand new DSP, we need to initialize the database. This is happening now...</p>
+<div class="spacer"></div>

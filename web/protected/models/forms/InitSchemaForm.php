@@ -20,7 +20,7 @@
 /**
  * InitSchemaForm class.
  * InitSchemaForm is the data structure for keeping system schema initialization data.
- * It is used by the 'initSchema' action of 'SiteController'.
+ * It is used by the 'initSchema' action of 'WebController'.
  */
 class InitSchemaForm extends CFormModel
 {

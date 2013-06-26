@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 /**
- * @var $this  SiteController
+ * @var $this  WebController
  * @var $model InitAdminForm
  */
 use Kisma\Core\Utility\Bootstrap;

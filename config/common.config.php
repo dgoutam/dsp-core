@@ -41,7 +41,7 @@ $_vendorPath = $_basePath . '/vendor';
 //	Set to false to disable database caching
 $_dbCacheEnabled = true;
 //	The name of the default controller. "site" just sucks
-$_defaultController = 'site';
+$_defaultController = 'web';
 //	Load the BLOB storage configuration settings
 $_blobConfig = ( file_exists( __DIR__ . '/blob.config.php' ) ? require_once( __DIR__ . '/blob.config.php' ) : array() );
 //	Where the log files go and the name...

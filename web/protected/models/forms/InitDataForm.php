@@ -20,7 +20,7 @@
 /**
  * InitDataForm class.
  * InitDataForm is the data structure for keeping system initialization data.
- * It is used by the 'initData' action of 'SiteController'.
+ * It is used by the 'initData' action of 'WebController'.
  */
 class InitDataForm extends CFormModel
 {

@@ -20,7 +20,7 @@
 /**
  * InitAdminForm class.
  * InitAdminForm is the data structure for keeping system admin initialization data.
- * It is used by the 'initAdmin' action of 'SiteController'.
+ * It is used by the 'initAdmin' action of 'WebController'.
  */
 class InitAdminForm extends CFormModel
 {

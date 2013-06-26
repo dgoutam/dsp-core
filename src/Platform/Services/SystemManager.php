@@ -388,7 +388,7 @@ class SystemManager extends RestService
 
 		if ( empty( $email ) || empty( $pwd ) )
 		{
-			Pii::redirect( '/site/login' );
+			Pii::redirect( '/web/login' );
 		}
 
 		try

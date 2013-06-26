@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 /**
- * @var $this  SiteController
+ * @var $this  WebController
  * @var $model LoginForm
  */
 use Kisma\Core\Utility\Bootstrap;
@@ -32,8 +32,10 @@ Validate::register(
 		 'errorPlacement' => 'function(error,element){error.appendTo(element.parent("div"));error.css("margin","-10px 0 0");}',
 	)
 );
+
+$_headline = ( isset( $activated ) && $activated ) ? 'Welcome!' : 'Activate Your New DSP!';
 ?>
-<h2 class="headline">Activate Your New DSP!</h2>
+<h2 class="headline"><?php echo $_headline; ?></h2>
 <p>In order to activate this DSP, you must enter your <strong>DreamFactory.com</strong> site credentials.</p><p>Please enter the email address and
 	password you used to register on the <strong>DreamFactory.com</strong> web site. If you have not yet registered, you may <a
 		href="https://www.dreamfactory.com/user/register"

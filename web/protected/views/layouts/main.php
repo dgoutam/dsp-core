@@ -1,14 +1,14 @@
 <?php
 /**
  * @var string        $content
- * @var AppController $this
+ * @var WebController $this
  */
 $_route = $this->route;
 $_step = 'DreamFactory Powers';
 
-if ( $_route != 'site/login' )
+if ( $_route != 'web/login' )
 {
-	if ( false === strpos( $_route, 'site/', 0 ) )
+	if ( false === strpos( $_route, 'web/', 0 ) )
 	{
 		$_step = 'light';
 		$_headline = 'DreamFactory Services Platform&trade;';
@@ -24,7 +24,6 @@ else
 	$_headline = 'DreamFactory Powers Activate!';
 	$_step = 'step1';
 }
-
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,7 +45,7 @@ else
 	<link rel="stylesheet" type="text/css" href="//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css" />
 	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.4.4/bootstrap-editable/css/bootstrap-editable.css" rel="stylesheet">
 	<link rel="stylesheet" type="text/css" href="/public/css/df.datatables.css" />
-	<link rel="stylesheet" type="text/css" href="/public/css/admin.css" />
+	<link rel="stylesheet" type="text/css" href="/public/css/main.css" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->    <!--[if lt IE 9]>
 	<script type="text/javascript" src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>    <![endif]-->
 	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>

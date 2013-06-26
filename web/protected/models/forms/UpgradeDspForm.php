@@ -20,7 +20,7 @@
 /**
  * UpgradeDspForm class.
  * UpgradeDspForm is the dummy form for upgrading the DSP.
- * It is used by the 'upgradeDsp' action of 'SiteController'.
+ * It is used by the 'upgradeDsp' action of 'WebController'.
  */
 class UpgradeDspForm extends CFormModel
 {
