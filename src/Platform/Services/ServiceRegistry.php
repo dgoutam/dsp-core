@@ -19,6 +19,7 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
@@ -87,7 +88,11 @@ class ServiceRegistry extends RestService
 	{
 		Log::debug( 'Registry GET/' . $request );
 
-		$_resource = \Registry::model()->userTag( UserSession::getCurrentUserId(), $request )->find();
+		$_columns = explode( ',', FilterInput::get( INPUT_GET, 'c', null, FILTER_SANITIZE_STRING ) );
+		$_criteria = ( !empty( $_columns ) ? array( 'select' => implode( ', ', $_columns ) ) : array_keys( \Registry::model()->restMap() ) );
+
+		/** @var  $_resource */
+		$_resource = \Registry::model()->userTag( UserSession::getCurrentUserId(), $request )->find( $_criteria );
 
 		if ( empty( $_resource ) )
 		{
@@ -104,6 +109,83 @@ class ServiceRegistry extends RestService
 				'last_used' => $_resource->last_use_date,
 			)
 		);
+	}
+
+	/**
+	 * @SWG\Api(
+	 *       path="/{service}", description="The currently available user-owned services.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *       httpMethod="GET", summary="List user-owned services.",
+	 *       notes="See listed operations for each resource available.",
+	 *       responseClass="Resources", nickname="getResources"
+	 *     )
+	 *   )
+	 * )
+	 *
+	 * @throws \Exception
+	 * @return array
+	 */
+	protected function _listResources()
+	{
+		$_count = 0;
+		$_dataTablesOutput = isset( $_GET['dt'] );
+
+		$_restMap = \Registry::model()->restMap();
+		$_columns = explode( ',', FilterInput::get( INPUT_GET, 'c', null, FILTER_SANITIZE_STRING ) );
+
+		if ( empty( $_columns ) )
+		{
+			$_columns = array_keys( $_restMap );
+		}
+
+		//	Translate the columns...
+		$_new = array();
+		$_map = array_flip( $_restMap );
+
+		foreach ( $_columns as $_column )
+		{
+			$_new[] = Option::get( $_map, $_column );
+		}
+
+		$_columns = $_new;
+
+		$_criteria = ( !empty( $_columns ) ? array( 'select' => implode( ', ', $_columns ) ) : array_keys( $_restMap ) );
+
+		/** @var \Registry[] $_rows */
+		$_rows = \Registry::model()->userTag( UserSession::getCurrentUserId() )->findAll( $_criteria );
+
+		$_response = array();
+
+		if ( !empty( $_rows ) )
+		{
+			foreach ( $_rows as $_row )
+			{
+				$_response[] = ( $_dataTablesOutput ? array_values( $_row->getRestAttributes( $_columns ) ) : $_row->getRestAttributes( $_columns ) );
+				$_count++;
+
+				unset( $_row );
+			}
+
+			unset( $_rows );
+		}
+
+		//	If this is for datatables, we need to format differently
+		if ( $_dataTablesOutput )
+		{
+			$_output = array(
+				'sEcho'                => intval( $_GET['sEcho'] ),
+				'iTotalRecords'        => $_count,
+				'iTotalDisplayRecords' => $_count,
+				'aaData'               => $_response,
+			);
+
+			Log::debug( print_r( $_output, true ) );
+
+			return $_output;
+		}
+
+		return array( 'resource' => $_response );
 	}
 
 	/**
@@ -144,9 +226,8 @@ class ServiceRegistry extends RestService
 	 */
 	protected function _post( $request )
 	{
-		$_userId = 1; //UserSession::getCurrentUserId();
+		$_userId = UserSession::getCurrentUserId();
 
-		Log::debug( 'Registry POST/' . $request );
 		$_resource = \Registry::model()->userTag( $_userId, $request )->find();
 
 		if ( empty( $_resource ) )
@@ -154,7 +235,6 @@ class ServiceRegistry extends RestService
 			$_resource = new \Registry();
 			$_resource->user_id = $_userId;
 			$_resource->service_tag_text = $request;
-			Log::debug( 'new row' );
 		}
 
 		$_data = RestRequest::getPostDataAsArray();
@@ -173,49 +253,6 @@ class ServiceRegistry extends RestService
 			throw new InternalServerErrorException( 'Error saving to registry: ' . $_ex->getMessage() );
 		}
 
-		return array(
-			'resource' => array(
-				'id'        => $_resource->service_tag_text,
-				'type'      => $_resource->service_type_nbr,
-				'name'      => $_resource->service_name_text,
-				'config'    => $_resource->service_config_text,
-				'enabled'   => $_resource->enabled_ind,
-				'last_used' => $_resource->last_use_date,
-			)
-		);
-	}
-
-	/**
-	 * @SWG\Api(
-	 *       path="/{service}", description="Operations available for SQL database tables.",
-	 * @SWG\Operations(
-	 * @SWG\Operation(
-	 *       httpMethod="GET", summary="List resources available for database schema.",
-	 *       notes="See listed operations for each resource available.",
-	 *       responseClass="Resources", nickname="getResources"
-	 *     )
-	 *   )
-	 * )
-	 *
-	 * @throws \Exception
-	 * @return array
-	 */
-	protected function _listResources()
-	{
-		try
-		{
-			$_resources = \Registry::model()->findAll(
-				'user_id = :user_id',
-				array(
-					 ':user_id' => UserSession::getCurrentUserId(),
-				)
-			);
-
-			return array( 'resource' => $_resources );
-		}
-		catch ( \Exception $_ex )
-		{
-			throw new \Exception( 'Error retrieving resources: ' . $_ex->getMessage() );
-		}
+		return array( 'resource' => $_resource->getRestAttributes() );
 	}
 }

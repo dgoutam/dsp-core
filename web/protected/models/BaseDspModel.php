@@ -417,9 +417,11 @@ class BaseDspModel extends \CActiveRecord
 	/**
 	 * If a model has a REST mapping, attributes are mapped an returned in an array.
 	 *
+	 * @param array $filter Only columns in $filter will be returned. All columns if empty( $filter )
+	 *
 	 * @return array|null The resulting view
 	 */
-	public function getRestAttributes()
+	public function getRestAttributes( $filter = array() )
 	{
 		$_map = $this->restMap();
 
@@ -433,6 +435,12 @@ class BaseDspModel extends \CActiveRecord
 
 		foreach ( $this->restMap() as $_key => $_value )
 		{
+			//	Apply the filter
+			if ( !empty( $filter ) && !in_array( $_key, array_values( $filter ) ) )
+			{
+				continue;
+			}
+
 			$_attributeValue = $this->getAttribute( $_key );
 
 			//	Apply formats

@@ -1,5 +1,5 @@
 {
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -915,6 +915,120 @@
 					"allow_null": false,
 					"length":     1,
 					"default":    0
+				},
+				{
+					"name":       "created_date",
+					"type":       "timestamp_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_date",
+					"type":       "timestamp_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		},
+		{
+			"name":  "df_sys_registry",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name":          "user_id",
+					"type":          "integer",
+					"ref_table":     "df_sys_user",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
+				},
+				{
+					"name":       "service_type_nbr",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
+				},
+				{
+					"name":       "service_name_text",
+					"type":       "text",
+					"allow_null": false
+				},
+				{
+					"name":       "service_tag_text",
+					"type":       "text",
+					"allow_null": false,
+					"is_unique":  true
+				},
+				{
+					"name":       "service_config_text",
+					"type":       "mediumtext",
+					"allow_null": false
+				},
+				{
+					"name":       "enabled_ind",
+					"type":       "integer",
+					"length":     1,
+					"allow_null": false,
+					"default":    1
+				},
+				{
+					"name":       "last_use_date",
+					"type":       "datetime",
+					"allow_null": true
+				},
+				{
+					"name":       "created_date",
+					"type":       "timestamp_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_date",
+					"type":       "timestamp_on_update",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_by_id",
+					"type":       "user_id_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_by_id",
+					"type":       "user_id_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		},
+		{
+			"name":  "df_sys_service_auth",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name":          "user_id",
+					"type":          "integer",
+					"ref_table":     "df_sys_user",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
+				},
+				{
+					"name":          "registry_id",
+					"type":          "integer",
+					"allow_null":    false,
+					"ref_table":     "df_sys_registry",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE"
+				},
+				{
+					"name":       "auth_text",
+					"type":       "mediumtext",
+					"allow_null": false
 				},
 				{
 					"name":       "created_date",

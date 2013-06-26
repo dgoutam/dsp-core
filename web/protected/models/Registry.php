@@ -62,7 +62,7 @@ class Registry extends BaseDspSystemModel
 	 *
 	 * @param string $className active record class name.
 	 *
-	 * @return Registry the static model class
+	 * @return \Registry the static model class
 	 */
 	public static function model( $className = __CLASS__ )
 	{
@@ -287,22 +287,56 @@ MYSQL;
 	}
 
 	/**
-	 * Named scope for easy lookups
+	 * @return array
+	 */
+	public function restMap()
+	{
+		return array_merge(
+			parent::restMap(),
+			array(
+				 'id'                  => 'id',
+				 'service_type_nbr'   => 'type',
+				 'service_tag_text'    => 'tag',
+				 'service_name_text'   => 'name',
+				 'service_config_text' => 'config',
+				 'enabled_ind'         => 'enabled',
+				 'last_use_date'       => 'last_used',
+			)
+		);
+	}
+
+	/**
+	 * Named scope for easy lookups.
 	 *
-	 * @param int    $userId
-	 * @param string $serviceTag
+	 * @param int    $userId     Admin users get full list
+	 * @param string $serviceTag If null, all user rows are returned
 	 *
 	 * @return $this
 	 */
-	public function userTag( $userId, $serviceTag )
+	public function userTag( $userId, $serviceTag = null )
 	{
+		$_params = $_condition = array();
+
+		if ( !empty( $serviceTag ) )
+		{
+			$_conditions[] = 'service_tag_text = :service_tag_text';
+			$_params[':service_tag_text'] = $serviceTag;
+		}
+
+		if ( !UserSession::isSystemAdmin() )
+		{
+			$_condition[] = 'user_id = :user_id';
+			$_params[':user_id'] = $userId;
+		}
+
+		$_condition = !empty( $_condition ) ? implode( ' AND ', $_condition ) : null;
+
+		Log::debug( 'condition: ' . $_condition );
+
 		$this->getDbCriteria()->mergeWith(
 			array(
-				 'condition' => 'service_tag_text = :service_tag_text and user_id = :user_id',
-				 'params'    => array(
-					 ':service_tag_text' => $serviceTag,
-					 ':user_id'          => $userId,
-				 )
+				 'condition' => $_condition,
+				 'params'    => $_params,
 			)
 		);
 

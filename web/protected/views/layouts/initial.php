@@ -8,8 +8,16 @@ $_step = 'DreamFactory Powers';
 
 if ( $_route != 'site/login' )
 {
-	$_headline = 'DreamFactory Powers Activated!';
-	$_step = 'step2';
+	if ( false === strpos( $_route, 'site/', 0 ) )
+	{
+		$_step = 'light';
+		$_headline = 'DreamFactory Services Platform&trade;';
+	}
+	else
+	{
+		$_headline = 'DreamFactory Powers Activated!';
+		$_step = 'step2';
+	}
 }
 else
 {
@@ -42,9 +50,14 @@ else
 	<div class="navbar-inner">
 		<div class="container">
 
-			<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span> <span
-					class="icon-bar"></span> <span class="icon-bar"></span> </a> <img id="logo-img" src="/public/images/logo-48x48.png"><a
-				class="brand" href="#"><?php echo $_headline; ?></a>
+			<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+			</a>
+			<img id="logo-img" src="/public/images/logo-48x48.png">
+
+			<a class="brand" href="#"><?php echo $_headline; ?></a>
 
 			<div class="nav-collapse collapse">
 				<ul class="nav"></ul>

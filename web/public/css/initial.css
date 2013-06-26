@@ -46,6 +46,11 @@ h2.headline {
 	width: 960px;
 }
 
+.light {
+	background: url(../images/bg-initial-light.png) 50% 0 no-repeat;
+	height:     640px;
+}
+
 label.error {
 	color:       darkred;
 	padding-top: 0;
