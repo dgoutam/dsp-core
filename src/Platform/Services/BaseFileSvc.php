@@ -603,7 +603,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				{
 					// no resource
 					$_includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
-					if ( $_includeProperties )
+					if ( !$_includeProperties )
 					{
 						return $this->_listResources();
 					}

@@ -267,6 +267,7 @@ class CouchDbSvc extends NoSqlDbSvc
 		{
 			$this->correctTableName( $table );
 			$result = $this->_dbConn->asArray()->createDatabase();
+
 			// $result['ok'] = true
 
 			return array( 'name' => $table );
@@ -368,6 +369,7 @@ class CouchDbSvc extends NoSqlDbSvc
 		{
 			$this->correctTableName( $table );
 			$result = $this->_dbConn->asArray()->deleteDatabase();
+
 			// $result['ok'] = true
 
 			return array( 'name' => $table );
@@ -441,7 +443,7 @@ class CouchDbSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			$result = $this->_dbConn->asArray()->storeDoc( (object) $record );
+			$result = $this->_dbConn->asArray()->storeDoc( (object)$record );
 			$_out = static::cleanRecord( $result, $fields );
 			if ( static::requireMoreFields( $fields ) )
 			{
@@ -518,7 +520,7 @@ class CouchDbSvc extends NoSqlDbSvc
 		$table = $this->correctTableName( $table );
 		try
 		{
-			$result = $this->_dbConn->asArray()->storeDoc( (object) $record );
+			$result = $this->_dbConn->asArray()->storeDoc( (object)$record );
 			$_out = static::cleanRecord( $result, $fields );
 			if ( static::requireMoreFields( $fields ) )
 			{
@@ -555,12 +557,12 @@ class CouchDbSvc extends NoSqlDbSvc
 		{
 			$_results = $this->retrieveRecordsByFilter( $table, $filter, '', $extras );
 			$_updates = array();
-			foreach($_results as $result)
+			foreach ( $_results as $result )
 			{
-				$_updates[] = array_merge(static::cleanRecord($result, ''), $record);
+				$_updates[] = array_merge( static::cleanRecord( $result, '' ), $record );
 			}
 
-			return $this->updateRecords($table, $_updates, '', true, $fields, $extras );
+			return $this->updateRecords( $table, $_updates, '', true, $fields, $extras );
 		}
 		catch ( \Exception $ex )
 		{
@@ -602,10 +604,10 @@ class CouchDbSvc extends NoSqlDbSvc
 				throw new BadRequestException( "No identifier exist in identifier index $_key." );
 			}
 
-			$_updates[] = array_merge( $record, array( '_id' => $_id));
+			$_updates[] = array_merge( $record, array( '_id' => $_id ) );
 		}
 
-		return $this->updateRecords($table, $_updates, $id_field, $rollback, $fields, $extras );
+		return $this->updateRecords( $table, $_updates, $id_field, $rollback, $fields, $extras );
 	}
 
 	/**
@@ -629,9 +631,9 @@ class CouchDbSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( "No identifier exist in record." );
 		}
-		$_update = array_merge( $record, array( '_id' => $id));
+		$_update = array_merge( $record, array( '_id' => $id ) );
 
-		return $this->updateRecord($table, $_update, $id_field, $fields, $extras );
+		return $this->updateRecord( $table, $_update, $id_field, $fields, $extras );
 	}
 
 	/**
@@ -647,8 +649,49 @@ class CouchDbSvc extends NoSqlDbSvc
 	 */
 	public function mergeRecords( $table, $records, $id_field = '', $rollback = false, $fields = '', $extras = array() )
 	{
-		// currently the same as update here
-		return $this->updateRecords( $table, $records, $id_field, $rollback, $fields, $extras );
+		if ( empty( $records ) || !is_array( $records ) )
+		{
+			throw new BadRequestException( 'There are no record sets in the request.' );
+		}
+		if ( !isset( $records[0] ) )
+		{
+			// single record possibly passed in without wrapper array
+			$records = array( $records );
+		}
+
+		$table = $this->correctTableName( $table );
+		try
+		{
+			// get all fields of each record
+			$_merges = $this->retrieveRecords( $table, $records, $id_field, '*', $extras );
+			// merge in changes from $records to $_merges
+			foreach ( $_merges as $_key => $_merge )
+			{
+				$_mergeId = Option::get( $_merge, '_id' );
+				foreach ( $records as $_record )
+				{
+					$_recordId = Option::get( $_record, '_id' );
+					if ( $_mergeId == $_recordId )
+					{
+						$_merges[$_key] = array_merge( $_merge, $_record );
+					}
+				}
+			}
+			// write back the changes
+			$result = $this->_dbConn->asArray()->storeDocs( $_merges, $rollback );
+			$_out = static::cleanRecords( $result, $fields );
+			if ( static::requireMoreFields( $fields ) )
+			{
+				// merge in rev updates
+				return static::cleanRecords( $_merges, $fields );
+			}
+
+			return $_out;
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update items in '$table' on CouchDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -663,8 +706,34 @@ class CouchDbSvc extends NoSqlDbSvc
 	 */
 	public function mergeRecord( $table, $record, $id_field = '', $fields = '', $extras = array() )
 	{
-		// currently the same as update here
-		return $this->updateRecord( $table, $record, $id_field, $fields, $extras );
+		if ( empty( $record ) || !is_array( $record ) )
+		{
+			throw new BadRequestException( 'There are no record fields in the request.' );
+		}
+
+		$table = $this->correctTableName( $table );
+		try
+		{
+			// get all fields of record
+			$_merge = $this->retrieveRecord( $table, $record, $id_field, '*', $extras );
+			// merge in changes from $record to $_merge
+			$_merge = array_merge( $_merge, $record );
+			// write back the changes
+			$result = $this->_dbConn->asArray()->storeDoc( (object) $_merge );
+			$_out = static::cleanRecord( $result, $fields );
+			if ( static::requireMoreFields( $fields ) )
+			{
+				// merge in rev updates
+				$_merge['_rev'] = Option::get( $_out, '_rev' );
+				return static::cleanRecord( $_merge, $fields );
+			}
+
+			return $_out;
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update item in '$table' on CouchDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -679,8 +748,38 @@ class CouchDbSvc extends NoSqlDbSvc
 	 */
 	public function mergeRecordsByFilter( $table, $record, $filter = '', $fields = '', $extras = array() )
 	{
-		// currently the same as update here
-		return $this->updateRecordsByFilter( $table, $record, $filter, $fields, $extras );
+		if ( !is_array( $record ) || empty( $record ) )
+		{
+			throw new BadRequestException( 'There are no fields in the record.' );
+		}
+
+		$table = $this->correctTableName( $table );
+		try
+		{
+			// get all fields of each record
+			$_merges = $this->retrieveRecordsByFilter( $table, $filter, '*', $extras );
+			// merge in changes from $records to $_merges
+			unset($record['_id']);
+			unset($record['_rev']);
+			foreach ( $_merges as $_key => $_merge )
+			{
+				$_merges[$_key] = array_merge( $_merge, $record );
+			}
+			// write back the changes
+			$result = $this->_dbConn->asArray()->storeDocs( $_merges, true );
+			$_out = static::cleanRecords( $result, $fields );
+			if ( static::requireMoreFields( $fields ) )
+			{
+				// merge in rev updates
+				return static::cleanRecords( $_merges, $fields );
+			}
+
+			return $_out;
+		}
+		catch ( \Exception $ex )
+		{
+			throw $ex;
+		}
 	}
 
 	/**
@@ -697,8 +796,30 @@ class CouchDbSvc extends NoSqlDbSvc
 	 */
 	public function mergeRecordsByIds( $table, $record, $id_list, $id_field = '', $rollback = false, $fields = '', $extras = array() )
 	{
-		// currently the same as update here
-		return $this->updateRecordsByIds( $table, $record, $id_list, $id_field, $rollback, $fields, $extras );
+		if ( !is_array( $record ) || empty( $record ) )
+		{
+			throw new BadRequestException( "No record fields were passed in the request." );
+		}
+		$table = $this->correctTableName( $table );
+
+		if ( empty( $id_list ) )
+		{
+			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
+		}
+
+		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
+		$_updates = array();
+		foreach ( $_ids as $_key => $_id )
+		{
+			if ( empty( $_id ) )
+			{
+				throw new BadRequestException( "No identifier exist in identifier index $_key." );
+			}
+
+			$_updates[] = array_merge( $record, array( '_id' => $_id ) );
+		}
+
+		return $this->mergeRecords( $table, $_updates, $id_field, $rollback, $fields, $extras );
 	}
 
 	/**
@@ -714,8 +835,17 @@ class CouchDbSvc extends NoSqlDbSvc
 	 */
 	public function mergeRecordById( $table, $record, $id, $id_field = '', $fields = '', $extras = array() )
 	{
-		// currently the same as update here
-		return $this->updateRecordById( $table, $record, $id, $id_field, $fields, $extras );
+		if ( !isset( $record ) || empty( $record ) )
+		{
+			throw new BadRequestException( 'There are no fields in the record.' );
+		}
+		if ( empty( $id ) )
+		{
+			throw new BadRequestException( "No identifier exist in record." );
+		}
+		$_update = array_merge( $record, array( '_id' => $id ) );
+
+		return $this->mergeRecord( $table, $_update, $id_field, $fields, $extras );
 	}
 
 	/**
@@ -1081,15 +1211,15 @@ class CouchDbSvc extends NoSqlDbSvc
 		if ( '*' !== $include )
 		{
 			$_id = Option::get( $record, '_id' );
-			if (empty( $_id))
+			if ( empty( $_id ) )
 			{
 				$_id = Option::get( $record, 'id' );
 			}
 			$_rev = Option::get( $record, '_rev' );
-			if (empty( $_rev))
+			if ( empty( $_rev ) )
 			{
 				$_rev = Option::get( $record, 'rev' );
-				if (empty( $_rev))
+				if ( empty( $_rev ) )
 				{
 					$_rev = Option::getDeep( $record, 'value', 'rev' );
 				}
@@ -1106,9 +1236,9 @@ class CouchDbSvc extends NoSqlDbSvc
 			}
 			foreach ( $include as $key )
 			{
-				if (0 == strcasecmp($key, '_id') || 0 == strcasecmp($key, '_rev'))
+				if ( 0 == strcasecmp( $key, '_id' ) || 0 == strcasecmp( $key, '_rev' ) )
 				{
-						continue;
+					continue;
 				}
 				$_out[$key] = Option::get( $record, $key );
 			}
@@ -1122,7 +1252,7 @@ class CouchDbSvc extends NoSqlDbSvc
 	protected static function cleanRecords( $records, $include, $use_doc = false )
 	{
 		$_out = array();
-		foreach( $records as $_record )
+		foreach ( $records as $_record )
 		{
 			if ( $use_doc )
 			{
@@ -1136,7 +1266,7 @@ class CouchDbSvc extends NoSqlDbSvc
 
 	protected static function requireMoreFields( $fields = null )
 	{
-		if (empty($fields))
+		if ( empty( $fields ) )
 		{
 			return false;
 		}
@@ -1146,5 +1276,23 @@ class CouchDbSvc extends NoSqlDbSvc
 		}
 
 		return true;
+	}
+
+	protected static function recordArrayMerge( $first_array, $second_array )
+	{
+		foreach ( $first_array as $_key => $_first )
+		{
+			$_firstId = Option::get( $_first, '_id' );
+			foreach ( $second_array as $_second )
+			{
+				$_secondId = Option::get( $_second, '_id' );
+				if ( $_firstId == $_secondId )
+				{
+					$first_array[$_key] = array_merge( $_first, $_second );
+				}
+			}
+		}
+
+		return $first_array;
 	}
 }
