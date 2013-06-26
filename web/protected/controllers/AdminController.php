@@ -130,7 +130,8 @@ class AdminController extends BaseWebController
 		$_columnList = implode( ',', $_columns );
 		$_sort = !empty( $_order ) ? 'ORDER BY ' . implode( ', ', $_order ) : null;
 
-		$_sql = <<<MYSQL
+		$_sql
+			= <<<MYSQL
 SELECT
 	{$_columnList}
 FROM

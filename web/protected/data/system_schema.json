@@ -1,5 +1,5 @@
 {
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -952,12 +952,14 @@
 				},
 				{
 					"name":       "service_name_text",
-					"type":       "text",
+					"type":       "string",
+					"length":     128,
 					"allow_null": false
 				},
 				{
 					"name":       "service_tag_text",
-					"type":       "text",
+					"type":       "string",
+					"length":     64,
 					"allow_null": false,
 					"is_unique":  true
 				},
@@ -968,7 +970,7 @@
 				},
 				{
 					"name":       "enabled_ind",
-					"type":       "integer",
+					"type":       "tinyint",
 					"length":     1,
 					"allow_null": false,
 					"default":    1

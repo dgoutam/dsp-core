@@ -331,8 +331,6 @@ MYSQL;
 
 		$_condition = !empty( $_condition ) ? implode( ' AND ', $_condition ) : null;
 
-		Log::debug( 'condition: ' . $_condition );
-
 		$this->getDbCriteria()->mergeWith(
 			array(
 				 'condition' => $_condition,

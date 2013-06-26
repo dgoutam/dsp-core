@@ -56,8 +56,7 @@
 		"aws/aws-sdk-php":               "2.*",
 		"microsoft/windowsazure":        "*",
 		"rackspace/php-opencloud":       "dev-master",
-		"dready92/php-on-couch":         "dev-master",
-		"sag/sag":                       "dev-master"
+		"dready92/php-on-couch":         "dev-master"
 	},
 	"repositories":      [
 		{

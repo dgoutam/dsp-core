@@ -488,6 +488,34 @@ class BaseDspModel extends \CActiveRecord
 		return $this;
 	}
 
+	/**
+	 * Maps a set of REST columns to actual columns
+	 *
+	 * @param array $restColumns
+	 *
+	 * @return array
+	 */
+	public function mapRestColumns( $restColumns )
+	{
+		$_restMap = \Registry::model()->restMap();
+
+		if ( empty( $restColumns ) )
+		{
+			$restColumns = array_values( $_restMap );
+		}
+
+		//	Translate the columns...
+		$_new = array();
+		$_map = array_flip( $_restMap );
+
+		foreach ( $restColumns as $_column )
+		{
+			$_new[] = Option::get( $_map, $_column );
+		}
+
+		return $_new;
+	}
+
 	//*************************************************************************
 	//* Static Helper Methods
 	//*************************************************************************
