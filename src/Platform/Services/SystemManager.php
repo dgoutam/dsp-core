@@ -1001,4 +1001,43 @@ class SystemManager extends RestService
 	{
 		return static::getAppIdFromName( static::getCurrentAppName() );
 	}
+
+	/**
+	 * Returns true if this DSP has been activated
+	 *
+	 * @return bool
+	 */
+	public static function activated()
+	{
+		return ( 0 != \User::model()->count(
+				'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+				array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+			)
+		);
+	}
+
+	/**
+	 * Automatically logs in the first admin user
+	 * @return bool
+	 */
+	public static function autoLoginAdmin()
+	{
+		/** @var \User $_user */
+		$_user = \User::model()->find(
+			'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+			array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+		);
+
+		if ( !empty( $_user ) )
+		{
+			$_identity = new \PlatformUserIdentity( $_user->email, null );
+
+			if ( $_identity->logInUser( $_user ) )
+			{
+				return Pii::user()->login( $_identity, 0 );
+			}
+		}
+
+		return false;
+	}
 }

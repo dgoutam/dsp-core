@@ -34,11 +34,33 @@ use Platform\Yii\Utility\Pii;
  */
 class WebController extends BaseWebController
 {
+	//*************************************************************************
+	//* Members
+	//*************************************************************************
+
+	/**
+	 * @var bool
+	 */
+	protected $_activated = false;
+
+	//*************************************************************************
+	//* Methods
+	//*************************************************************************
+
+	/**
+	 * Initialize
+	 */
 	public function init()
 	{
 		parent::init();
 
 		$this->defaultAction = 'index';
+		$this->_activated = SystemManager::activated();
+
+		if ( $this->_activated && Pii::guest() )
+		{
+			SystemManager::autoLoginAdmin();
+		}
 	}
 
 	/**
@@ -204,11 +226,7 @@ class WebController extends BaseWebController
 			'login',
 			array(
 				 'model'     => $_model,
-				 'activated' => ( 0 != \User::model()->count(
-						 'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-						 array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-					 )
-				 ),
+				 'activated' => $this->_activated,
 			)
 		);
 	}

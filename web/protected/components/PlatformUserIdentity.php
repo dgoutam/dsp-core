@@ -60,6 +60,54 @@ class PlatformUserIdentity extends \CUserIdentity
 	//*************************************************************************
 
 	/**
+	 * @param \User $user
+	 *
+	 * @return bool
+	 */
+	public function logInUser( $user )
+	{
+		return $this->_initializeSession( $user );
+	}
+
+	/**
+	 * @param \User $user
+	 *
+	 * @return bool
+	 */
+	protected function _initializeSession( $user )
+	{
+		if ( empty( $user ) )
+		{
+			return false;
+		}
+
+		//	Create entry in stat table...
+		\Stat::create(
+			Stat::TYPE_LOCAL_AUTH,
+			$user->id,
+			array_merge(
+				isset( $_SESSION ) ? $_SESSION : array(),
+				$user->getAttributes()
+			)
+		);
+
+		$this->_user = $user;
+		$this->_userId = $user->id;
+
+		$this->setState( 'display_name', $user->display_name );
+		$this->setState( 'email', $user->email );
+		$this->setState( 'first_name', $user->first_name );
+		$this->setState( 'last_name', $user->last_name );
+		$this->setState( 'display_name', $user->display_name );
+		$this->setState( 'password', $user->password );
+		$this->setState( 'df_authenticated', false );
+
+		$this->errorCode = static::Authenticated;
+
+		return true;
+	}
+
+	/**
 	 * Authenticates a user.
 	 *
 	 * @param DrupalUserIdentity $drupalIdentity
@@ -78,30 +126,7 @@ class PlatformUserIdentity extends \CUserIdentity
 			return false;
 		}
 
-		$this->errorCode = static::Authenticated;
-
-		//	Create entry in stat table...
-		\Stat::create(
-			Stat::TYPE_LOCAL_AUTH,
-			$_user->id,
-			array_merge(
-				isset( $_SESSION ) ? $_SESSION : array(),
-				$_user->getAttributes()
-			)
-		);
-
-		$this->_user = $_user;
-		$this->_userId = $_user->id;
-
-		$this->setState( 'display_name', $_user->display_name );
-		$this->setState( 'email', $_user->email );
-		$this->setState( 'first_name', $_user->first_name );
-		$this->setState( 'last_name', $_user->last_name );
-		$this->setState( 'display_name', $_user->display_name );
-		$this->setState( 'password', $_user->password );
-		$this->setState( 'df_authenticated', false );
-
-		return true;
+		return $this->_initializeSession( $_user );
 	}
 
 	/**
