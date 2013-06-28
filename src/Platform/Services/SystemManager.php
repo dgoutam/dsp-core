@@ -19,7 +19,6 @@
  */
 namespace Platform\Services;
 
-use Aws\CloudFront\Exception\Exception;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;

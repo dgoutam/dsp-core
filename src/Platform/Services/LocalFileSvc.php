@@ -39,11 +39,13 @@ class LocalFileSvc extends BaseFileSvc
 	/**
 	 * Creates the container for this file management if it does not already exist
 	 *
+	 * @param string $container
+	 *
 	 * @throws \Exception
 	 */
-	public function checkContainerForWrite()
+	public function checkContainerForWrite( $container )
 	{
-		$container = self::addContainerToName( $this->_container, '' );
+		$container = self::addContainerToName( $container, '' );
 		if ( !is_dir( $container ) )
 		{
 			if ( !mkdir( $container, 0777, true ) )
@@ -389,7 +391,7 @@ class LocalFileSvc extends BaseFileSvc
 		}
 
 		// create the folder
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$key = self::addContainerToName( $container, $path );
 		if ( !mkdir( $key ) )
 		{
@@ -434,7 +436,7 @@ class LocalFileSvc extends BaseFileSvc
 			throw new NotFoundException( "Folder '$parent' does not exist." );
 		}
 		// create the folder
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		FileUtilities::copyTree(
 			static::addContainerToName( $src_container, $src_path ),
 			static::addContainerToName( $container, $dest_path )
@@ -476,7 +478,6 @@ class LocalFileSvc extends BaseFileSvc
 	 */
 	public function deleteFolder( $container, $path, $force = false )
 	{
-		$this->checkContainerForWrite(); // need to be able to write to storage
 		$dirPath = static::addContainerToName( $container, $path );
 		FileUtilities::deleteTree( $dirPath, $force );
 	}
@@ -704,7 +705,7 @@ class LocalFileSvc extends BaseFileSvc
 		}
 
 		// create the file
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		if ( $content_is_base )
 		{
 			$content = base64_decode( $content );
@@ -751,7 +752,7 @@ class LocalFileSvc extends BaseFileSvc
 		}
 
 		// create the file
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$key = static::addContainerToName( $container, $path );
 		if ( !rename( $local_path, $key ) )
 		{
@@ -793,7 +794,7 @@ class LocalFileSvc extends BaseFileSvc
 		}
 
 		// create the file
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$key = self::addContainerToName( $src_container, $dest_path );
 		$src_key = self::addContainerToName( $container, $src_path );
 		$result = copy( $src_key, $key );

@@ -39,13 +39,15 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	/**
 	 * Creates the container for this file management if it does not already exist
 	 *
+	 * @param string $container
+	 *
 	 * @throws \Exception
 	 */
-	public function checkContainerForWrite()
+	public function checkContainerForWrite( $container )
 	{
-		if ( !$this->containerExists( $this->_container ) )
+		if ( !$this->containerExists( $container ) )
 		{
-			$this->createContainer( $this->_container );
+			$this->createContainer( $container );
 		}
 	}
 
@@ -122,9 +124,9 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	public function folderExists( $container, $path )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		if ( $this->containerExists( $this->_container ) )
+		if ( $this->containerExists( $container ) )
 		{
-			if ( $this->blobExists( $this->_container, $path ) )
+			if ( $this->blobExists( $container, $path ) )
 			{
 				return true;
 			}
@@ -150,11 +152,11 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		{
 			// properties
 			$path = FileUtilities::fixFolderPath( $path );
-			if ( !$this->blobExists( $this->_container, $path ) )
+			if ( !$this->blobExists( $container, $path ) )
 			{
 				throw new NotFoundException( "Folder '$path' does not exist in storage." );
 			}
-			$properties = $this->getBlobProperties( $this->_container, $path );
+			$properties = $this->getBlobProperties( $container, $path );
 			$shortName = FileUtilities::getNameFromPath( $path );
 			$properties['path'] = $path;
 			$properties['name'] = $shortName;
@@ -165,16 +167,16 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		$delimiter = ( $full_tree ) ? '' : '/';
 		$files = array();
 		$folders = array();
-		if ( $this->containerExists( $this->_container ) )
+		if ( $this->containerExists( $container ) )
 		{
 			if ( !empty( $path ) )
 			{
-				if ( !$this->blobExists( $this->_container, $path ) )
+				if ( !$this->blobExists( $container, $path ) )
 				{
 					throw new NotFoundException( "Folder '$path' does not exist in storage." );
 				}
 			}
-			$results = $this->listBlobs( $this->_container, $path, $delimiter );
+			$results = $this->listBlobs( $container, $path, $delimiter );
 			foreach ( $results as $blob )
 			{
 				$fullPathName = $blob['name'];
@@ -254,9 +256,9 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 
 		// create the folder
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$properties = ( empty( $properties ) ) ? '' : json_encode( $properties );
-		$this->putBlobData( $this->_container, $path, $properties );
+		$this->putBlobData( $container, $path, $properties );
 	}
 
 	/**
@@ -292,10 +294,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			throw new NotFoundException( "Folder '$parent' does not exist." );
 		}
 		// create the folder
-		$this->checkContainerForWrite(); // need to be able to write to storage
-		$this->copyBlob( $this->_container, $dest_path, $this->_container, $src_path );
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
+		$this->copyBlob( $container, $dest_path, $src_container, $src_path );
 		// now copy content of folder...
-		$blobs = $this->listBlobs( $this->_container, $src_path );
+		$blobs = $this->listBlobs( $src_container, $src_path );
 		if ( !empty( $blobs ) )
 		{
 			foreach ( $blobs as $blob )
@@ -306,7 +308,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 					// not self properties blob
 					$name = FileUtilities::getNameFromPath( $srcName );
 					$fullPathName = $dest_path . $name;
-					$this->copyBlob( $this->_container, $fullPathName, $this->_container, $srcName );
+					$this->copyBlob( $container, $fullPathName, $src_container, $srcName );
 				}
 			}
 		}
@@ -331,7 +333,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 		// update the file that holds folder properties
 		$properties = json_encode( $properties );
-		$this->putBlobData( $this->_container, $path, $properties );
+		$this->putBlobData( $container, $path, $properties );
 	}
 
 	/**
@@ -345,9 +347,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function deleteFolder( $container, $path, $force = false )
 	{
-		$this->checkContainerForWrite(); // need to be able to write to storage
-		error_log( $path );
-		$blobs = $this->listBlobs( $this->_container, $path );
+		$blobs = $this->listBlobs( $container, $path );
 		if ( !empty( $blobs ) )
 		{
 			if ( ( 1 === count( $blobs ) ) && ( 0 === strcasecmp( $path, $blobs[0]['name'] ) ) )
@@ -362,11 +362,11 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				}
 				foreach ( $blobs as $blob )
 				{
-					$this->deleteBlob( $this->_container, $blob['name'] );
+					$this->deleteBlob( $container, $blob['name'] );
 				}
 			}
 		}
-		$this->deleteBlob( $this->_container, $path );
+		$this->deleteBlob( $container, $path );
 	}
 
 	/**
@@ -427,9 +427,9 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function fileExists( $container, $path )
 	{
-		if ( $this->containerExists( $this->_container ) )
+		if ( $this->containerExists( $container ) )
 		{
-			if ( $this->blobExists( $this->_container, $path ) )
+			if ( $this->blobExists( $container, $path ) )
 			{
 				return true;
 			}
@@ -450,21 +450,21 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function getFileContent( $container, $path, $local_file = '', $content_as_base = true )
 	{
-		if ( !$this->blobExists( $this->_container, $path ) )
+		if ( !$this->blobExists( $container, $path ) )
 		{
 			throw new NotFoundException( "File '$path' does not exist in storage." );
 		}
 		if ( !empty( $local_file ) )
 		{
 			// write to local or temp file
-			$this->getBlobAsFile( $this->_container, $path, $local_file );
+			$this->getBlobAsFile( $container, $path, $local_file );
 
 			return '';
 		}
 		else
 		{
 			// get content as raw or encoded as base64 for transport
-			$data = $this->getBlobData( $this->_container, $path );
+			$data = $this->getBlobData( $container, $path );
 			if ( $content_as_base )
 			{
 				$data = base64_encode( $data );
@@ -486,17 +486,17 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function getFileProperties( $container, $path, $include_content = false, $content_as_base = true )
 	{
-		if ( !$this->blobExists( $this->_container, $path ) )
+		if ( !$this->blobExists( $container, $path ) )
 		{
 			throw new NotFoundException( "File '$path' does not exist in storage." );
 		}
-		$blob = $this->getBlobProperties( $this->_container, $path );
+		$blob = $this->getBlobProperties( $container, $path );
 		$shortName = FileUtilities::getNameFromPath( $path );
 		$blob['path'] = $path;
 		$blob['name'] = $shortName;
 		if ( $include_content )
 		{
-			$data = $this->getBlobData( $this->_container, $path );
+			$data = $this->getBlobData( $container, $path );
 			if ( $content_as_base )
 			{
 				$data = base64_encode( $data );
@@ -518,7 +518,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	public function streamFile( $container, $path, $download = false )
 	{
 		$params = ( $download ) ? array( 'disposition' => 'attachment' ) : array();
-		$this->streamBlob( $this->_container, $path, $params );
+		$this->streamBlob( $container, $path, $params );
 	}
 
 	/**
@@ -540,7 +540,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 		// update the file properties
 		$properties = json_encode( $properties );
-		$this->putBlobData( $this->_container, $path, $properties );
+		$this->putBlobData( $container, $path, $properties );
 	}
 
 	/**
@@ -572,14 +572,14 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 
 		// create the file
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		if ( $content_is_base )
 		{
 			$content = base64_decode( $content );
 		}
 		$ext = FileUtilities::getFileExtension( $path );
 		$mime = FileUtilities::determineContentType( $ext, $content );
-		$this->putBlobData( $this->_container, $path, $content, $mime );
+		$this->putBlobData( $container, $path, $content, $mime );
 	}
 
 	/**
@@ -616,10 +616,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 
 		// create the file
-		$this->checkContainerForWrite(); // need to be able to write to storage
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$ext = FileUtilities::getFileExtension( $path );
 		$mime = FileUtilities::determineContentType( $ext, '', $local_path );
-		$this->putBlobFromFile( $this->_container, $path, $local_path, $mime );
+		$this->putBlobFromFile( $container, $path, $local_path, $mime );
 	}
 
 	/**
@@ -656,8 +656,8 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 
 		// create the file
-		$this->checkContainerForWrite(); // need to be able to write to storage
-		$this->copyBlob( $this->_container, $dest_path, $this->_container, $src_path );
+		$this->checkContainerForWrite( $container ); // need to be able to write to storage
+		$this->copyBlob( $container, $dest_path, $src_container, $src_path );
 	}
 
 	/**
@@ -734,9 +734,9 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	{
 		$path = FileUtilities::fixFolderPath( $path );
 		$delimiter = '';
-		if ( $this->containerExists( $this->_container ) )
+		if ( $this->containerExists( $container ) )
 		{
-			throw new BadRequestException( "Can not find directory '$this->_container'." );
+			throw new BadRequestException( "Can not find directory '$container'." );
 		}
 		$needClose = false;
 		if ( !isset( $zip ) )
@@ -748,7 +748,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				$temp = FileUtilities::getNameFromPath( $path );
 				if ( empty( $temp ) )
 				{
-					$temp = $this->_container;
+					$temp = $container;
 				}
 				$tempDir = rtrim( sys_get_temp_dir(), DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 				$zipFileName = $tempDir . $temp . '.zip';
@@ -758,7 +758,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				throw new \Exception( "Can not create zip file for directory '$path'." );
 			}
 		}
-		$results = $this->listBlobs( $this->_container, $path, $delimiter );
+		$results = $this->listBlobs( $container, $path, $delimiter );
 		foreach ( $results as $blob )
 		{
 			$fullPathName = $blob['name'];
@@ -779,7 +779,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			else
 			{
 				// files
-				$content = $this->getBlobData( $this->_container, $fullPathName );
+				$content = $this->getBlobData( $container, $fullPathName );
 				if ( !$zip->addFromString( $shortName, $content ) )
 				{
 					throw new \Exception( "Can not include file '$shortName' in zip file." );
@@ -811,14 +811,14 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			try
 			{
 				// clear out anything in this directory
-				$blobs = $this->listBlobs( $this->_container, $path );
+				$blobs = $this->listBlobs( $container, $path );
 				if ( !empty( $blobs ) )
 				{
 					foreach ( $blobs as $blob )
 					{
 						if ( ( 0 !== strcasecmp( $path, $blob['name'] ) ) )
 						{ // not folder itself
-							$this->deleteBlob( $this->_container, $blob['name'] );
+							$this->deleteBlob( $container, $blob['name'] );
 						}
 					}
 				}
