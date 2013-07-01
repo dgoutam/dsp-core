@@ -208,15 +208,16 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$this->checkConnection();
+		$result = $this->getFolder( $container, '', $include_files, $include_folders, $full_tree, false );
+		$result['name'] = $container;
 
-		if ( !$include_files && !$include_folders )
+		if ( $include_properties )
 		{
 			try
 			{
 				/** @var Container $_container */
 				$_container = $this->_blobConn->Container( $container );
-
-				return array( 'name' => $_container->name );
+				$result['size'] = $_container->bytes;
 			}
 			catch ( ContainerNotFoundError $ex )
 			{
@@ -228,7 +229,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 			}
 		}
 
-		return $this->listBlobs( $container );
+		return $result;
 	}
 
 	/**

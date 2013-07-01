@@ -148,23 +148,19 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
-		$out = array();
+		$path = FileUtilities::fixFolderPath( $path );
+		$shortName = FileUtilities::getNameFromPath( $path );
+		$out = array( 'container' => $container, 'name' => $shortName, 'path' => $path );
 		if ( $include_properties )
 		{
 			// properties
-			$path = FileUtilities::fixFolderPath( $path );
-			if ( !$this->blobExists( $container, $path ) )
+			if ( $this->blobExists( $container, $path ) )
 			{
-				throw new NotFoundException( "Folder '$path' does not exist in storage." );
-			}
-			$properties = $this->getBlobProperties( $container, $path );
-			$shortName = FileUtilities::getNameFromPath( $path );
-			$properties['path'] = $path;
-			$properties['name'] = $shortName;
+				$properties = $this->getBlobProperties( $container, $path );
 
-			$out = $properties;
+				$out = array_merge( $properties, $out );
+			}
 		}
-		$path = FileUtilities::fixFolderPath( $path );
 		$delimiter = ( $full_tree ) ? '' : '/';
 		$files = array();
 		$folders = array();

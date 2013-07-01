@@ -291,19 +291,20 @@ class LocalFileSvc extends BaseFileSvc
 	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		$out = array();
+		$out = array( 'container' => $container );
+		if ( empty( $path ) )
+		{
+			$out['name'] = $container;
+		}
+		else
+		{
+			$name = basename( $path );
+			$out['name'] = $name;
+			$out['path'] = $path;
+		}
 		if ( $include_properties )
 		{
 			$dirPath = self::addContainerToName( $container, $path );
-			if ( empty( $path ) )
-			{
-				$out = array( 'name' => $container );
-			}
-			else
-			{
-				$name = basename( $path );
-				$out = array( 'name' => $name, 'path' => $path );
-			}
 			$temp = stat( $dirPath );
 			$out['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', Option::get( $temp, 'mtime', 0 ) );
 		}

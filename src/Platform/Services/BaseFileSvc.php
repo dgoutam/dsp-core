@@ -47,6 +47,7 @@ use Swagger\Annotations as SWG;
  * @SWG\Model(id="FoldersAndFiles",
  *   @SWG\Property(name="name",type="string",description="Identifier/Name for the current folder."),
  *   @SWG\Property(name="path",type="string",description="Path of the folder localized to requested folder resource."),
+ *   @SWG\Property(name="container",type="string",description="Container for the current folder."),
  *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
  *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
  *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs."),

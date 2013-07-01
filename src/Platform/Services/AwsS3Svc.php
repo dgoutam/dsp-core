@@ -144,15 +144,13 @@ class AwsS3Svc extends RemoteFileSvc
 	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$result = $this->getFolder( $container, '', $include_files, $include_folders, $full_tree, false );
+		$result['name'] = $container;
 
 		if ( $include_properties )
 		{
-			if ( !$this->containerExists( $container ) )
+			if ( $this->containerExists( $container ) )
 			{
-				throw new \Exception( "No container named '$container'" );
 			}
-
-			$result['name'] = $container;
 		}
 
 		return $result;

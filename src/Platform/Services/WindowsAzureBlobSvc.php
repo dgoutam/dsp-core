@@ -185,11 +185,11 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 		$this->checkConnection();
 
 		$result = $this->getFolder( $container, '', $include_files, $include_folders, $full_tree, false );
+		$result['name'] = $container;
 		if ( $include_properties )
 		{
 			/** @var \WindowsAzure\Blob\Models\GetContainerPropertiesResult $props  */
 			$props = $this->_blobConn->getContainerProperties( $container );
-			$result['name'] = $container;
 			$result['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() );
 		}
 
