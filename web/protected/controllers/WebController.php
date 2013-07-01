@@ -136,7 +136,7 @@ class WebController extends BaseWebController
 
 		if ( !$this->_activated && isset( $_POST, $_POST['skipped'] ) )
 		{
-			Log::debug( 'Login skipped.' );
+//			Log::debug( 'Login skipped.' );
 			$this->redirect( '/web/initAdmin' );
 		}
 
@@ -325,7 +325,7 @@ class WebController extends BaseWebController
 			}
 			else
 			{
-				Log::debug( 'Failed validation' );
+//				Log::debug( 'Failed validation' );
 			}
 
 			$this->refresh();
@@ -346,12 +346,12 @@ class WebController extends BaseWebController
 	{
 		if ( $this->_activated )
 		{
-			Log::debug( 'initAdmin activated' );
+//			Log::debug( 'initAdmin activated' );
 			SystemManager::initAdmin();
 			$this->redirect( '/' );
 		}
 
-		Log::debug( 'initAdmin NOT activated' );
+//		Log::debug( 'initAdmin NOT activated' );
 
 		$_model = new InitAdminForm();
 
