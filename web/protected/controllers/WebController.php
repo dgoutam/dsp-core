@@ -198,7 +198,12 @@ class WebController extends BaseWebController
 	{
 		try
 		{
-			$_state = !$this->_activated ? PlatformStates::ADMIN_REQUIRED : SystemManager::getSystemState();
+			$_state = SystemManager::getSystemState();
+
+			if ( !$this->_activated && $_state != PlatformStates::INIT_REQUIRED )
+			{
+				$_state = PlatformStates::ADMIN_REQUIRED;
+			}
 
 			switch ( $_state )
 			{
