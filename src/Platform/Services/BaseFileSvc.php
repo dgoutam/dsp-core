@@ -45,11 +45,13 @@ use Swagger\Annotations as SWG;
  *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
  * )
  * @SWG\Model(id="FoldersAndFiles",
- *   @SWG\Property(name="folder",type="Array",items="$ref:Folder",description="An array of folders."),
- *   @SWG\Property(name="file",type="Array",items="$ref:File",description="An array of files.")
- * )
- * @SWG\Model(id="Folders",
- *   @SWG\Property(name="folder",type="Array",items="$ref:Folder",description="An array of folders.")
+ *   @SWG\Property(name="name",type="string",description="Identifier/Name for the current folder."),
+ *   @SWG\Property(name="path",type="string",description="Path of the folder localized to requested folder resource."),
+ *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
+ *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
+ *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs."),
+ *   @SWG\Property(name="folder",type="Array",items="$ref:Folder",description="An array of contained folders."),
+ *   @SWG\Property(name="file",type="Array",items="$ref:File",description="An array of contained files.")
  * )
  * @SWG\Model(id="Folder",
  *   @SWG\Property(name="name",type="string",description="Identifier/Name for the folder."),
@@ -57,9 +59,6 @@ use Swagger\Annotations as SWG;
  *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
  *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
  *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
- * )
- * @SWG\Model(id="Files",
- *   @SWG\Property(name="file",type="Array",items="$ref:File",description="An array of files.")
  * )
  * @SWG\Model(id="File",
  *   @SWG\Property(name="name",type="string",description="Identifier/Name for the file."),
@@ -146,7 +145,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *       @SWG\Parameters(
 	 *         @SWG\Parameter(
 	 *           name="include_properties", description="Return all properties of the container, if any.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required=false, allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
 	 *       @SWG\ErrorResponses(
@@ -166,7 +165,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the container to create already exists.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
 	 *       @SWG\ErrorResponses(
@@ -198,8 +197,8 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *   path="/{file}/{container}/", description="Operations on containers.",
 	 *   @SWG\Operations(
 	 *     @SWG\Operation(
-	 *       httpMethod="GET", summary="List the container's properties or folders and files.",
-	 *       notes="Use with no parameters to get properties of the container or use the 'include_folders' and/or 'include_files' to return a listing.",
+	 *       httpMethod="GET", summary="List the container's properties, including folders and files.",
+	 *       notes="Use 'include_properties' to get properties of the container. Use the 'include_folders' and/or 'include_files' to return a listing.",
 	 *       responseClass="FoldersAndFiles", nickname="getContainer",
 	 *       @SWG\Parameters(
 	 *         @SWG\Parameter(
@@ -207,20 +206,24 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
 	 *         @SWG\Parameter(
+	 *           name="include_properties", description="Return all properties of the container, if any.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
+	 *         ),
+	 *         @SWG\Parameter(
 	 *           name="include_folders", description="Include folders in the returned listing.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="include_files", description="Include files in the returned listing.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="full_tree", description="List the contents of all sub-folders as well.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="zip", description="Return the zipped content of the folder.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
 	 *       @SWG\ErrorResponses(
@@ -241,19 +244,19 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="url", description="The full URL of the file to upload.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="string"
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="extract", description="Extract an uploaded zip file into the container.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="clean", description="Option when 'extract' is true, clean the current folder before extracting files and folders.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the file or folder to create already exists.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="data", description="Array of folders and/or files.",
@@ -329,20 +332,24 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
 	 *         @SWG\Parameter(
+	 *           name="include_properties", description="Return all properties of the folder, if any.",
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
+	 *         ),
+	 *         @SWG\Parameter(
 	 *           name="include_folders", description="Include folders in the returned listing.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="include_files", description="Include files in the returned listing.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="full_tree", description="List the contents of all sub-folders as well.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="zip", description="Return the zipped content of the folder.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
 	 *       @SWG\ErrorResponses(
@@ -367,19 +374,19 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="url", description="The full URL of the file to upload.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="string"
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="extract", description="Extract an uploaded zip file into the folder.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="clean", description="Option when 'extract' is true, clean the current folder before extracting files and folders.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the file or folder to create already exists.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="data", description="Array of folders and/or files.",
@@ -465,15 +472,15 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="include_properties", description="Return properties of the file.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="content", description="Return the content as base64 of the file, only applies when 'include_properties' is true.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
 	 *         @SWG\Parameter(
 	 *           name="download", description="Prompt the user to download the file from the browser.",
-	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
 	 *       @SWG\ErrorResponses(
@@ -647,9 +654,9 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				{
 					// resource is a folder
 					$includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
+					$includeFiles = FilterInput::request( 'include_files', true, FILTER_VALIDATE_BOOLEAN );
+					$includeFolders = FilterInput::request( 'include_folders', true, FILTER_VALIDATE_BOOLEAN );
 					$fullTree = FilterInput::request( 'full_tree', false, FILTER_VALIDATE_BOOLEAN );
-					$includeFiles = FilterInput::request( 'include_files', false, FILTER_VALIDATE_BOOLEAN );
-					$includeFolders = FilterInput::request( 'include_folders', false, FILTER_VALIDATE_BOOLEAN );
 					$asZip = FilterInput::request( 'zip', false, FILTER_VALIDATE_BOOLEAN );
 					if ( $asZip )
 					{
