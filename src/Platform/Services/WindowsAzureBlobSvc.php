@@ -172,27 +172,28 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * Gets all properties of a particular container, if options are false,
 	 * otherwise include content from the container
 	 *
-	 * @param  string $container Container name
-	 * @param  bool   $include_files
-	 * @param  bool   $include_folders
-	 * @param  bool   $full_tree
+	 * @param string $container Container name
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @return array
 	 */
-	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$this->checkConnection();
-		if ( !$include_folders && !$include_files )
+
+		$result = $this->getFolder( $container, '', $include_files, $include_folders, $full_tree, false );
+		if ( $include_properties )
 		{
 			/** @var \WindowsAzure\Blob\Models\GetContainerPropertiesResult $props  */
 			$props = $this->_blobConn->getContainerProperties( $container );
-			return array(
-				'name'            => $container,
-				'last_modified'    => gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() )
-			);
+			$result['name'] = $container;
+			$result['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', $props->getLastModified()->getTimestamp() );
 		}
 
-		return $this->getFolder( $container, '', $include_files, $include_folders, $full_tree );
+		return $result;
 	}
 
 	/**

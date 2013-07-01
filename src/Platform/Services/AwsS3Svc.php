@@ -136,22 +136,26 @@ class AwsS3Svc extends RemoteFileSvc
 	 * @param  bool   $include_files
 	 * @param  bool   $include_folders
 	 * @param  bool   $full_tree
+	 * @param  bool   $include_properties
 	 *
+	 * @throws \Exception
 	 * @return array
 	 */
-	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
-		if ( !$include_folders && !$include_files )
+		$result = $this->getFolder( $container, '', $include_files, $include_folders, $full_tree, false );
+
+		if ( $include_properties )
 		{
 			if ( !$this->containerExists( $container ) )
 			{
 				throw new \Exception( "No container named '$container'" );
 			}
 
-			return array( 'name' => $container );
+			$result['name'] = $container;
 		}
 
-		return $this->getFolder( $container, '', $include_files, $include_folders, $full_tree );
+		return $result;
 	}
 
 	/**

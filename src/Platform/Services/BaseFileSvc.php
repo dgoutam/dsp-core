@@ -602,8 +602,8 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				if ( empty( $this->_container ) )
 				{
 					// no resource
-					$_includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
-					if ( !$_includeProperties )
+					$includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
+					if ( !$includeProperties )
 					{
 						return $this->_listResources();
 					}
@@ -613,9 +613,10 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				else if ( empty( $this->_folderPath ) )
 				{
 					// resource is a container
+					$includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
+					$includeFiles = FilterInput::request( 'include_files', true, FILTER_VALIDATE_BOOLEAN );
+					$includeFolders = FilterInput::request( 'include_folders', true, FILTER_VALIDATE_BOOLEAN );
 					$fullTree = FilterInput::request( 'full_tree', false, FILTER_VALIDATE_BOOLEAN );
-					$includeFiles = FilterInput::request( 'include_files', false, FILTER_VALIDATE_BOOLEAN );
-					$includeFolders = FilterInput::request( 'include_folders', false, FILTER_VALIDATE_BOOLEAN );
 					$asZip = FilterInput::request( 'zip', false, FILTER_VALIDATE_BOOLEAN );
 					if ( $asZip )
 					{
@@ -639,12 +640,13 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					}
 					else
 					{
-						$result = $this->getContainer( $this->_container, $includeFiles, $includeFolders, $fullTree );
+						$result = $this->getContainer( $this->_container, $includeFiles, $includeFolders, $fullTree, $includeProperties );
 					}
 				}
 				else if ( empty( $this->_filePath ) )
 				{
 					// resource is a folder
+					$includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
 					$fullTree = FilterInput::request( 'full_tree', false, FILTER_VALIDATE_BOOLEAN );
 					$includeFiles = FilterInput::request( 'include_files', false, FILTER_VALIDATE_BOOLEAN );
 					$includeFolders = FilterInput::request( 'include_folders', false, FILTER_VALIDATE_BOOLEAN );
@@ -671,14 +673,14 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					}
 					else
 					{
-						$result = $this->getFolder( $this->_container, $this->_folderPath, $includeFiles, $includeFolders, $fullTree );
+						$result = $this->getFolder( $this->_container, $this->_folderPath, $includeFiles, $includeFolders, $fullTree, $includeProperties );
 					}
 				}
 				else
 				{
 					// resource is a file
-					$_includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
-					if ( $_includeProperties )
+					$includeProperties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
+					if ( $includeProperties )
 					{
 						// just properties of the file itself
 						$content = FilterInput::request( 'content', false, FILTER_VALIDATE_BOOLEAN );
@@ -686,9 +688,9 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					}
 					else
 					{
-						$_download = FilterInput::request( 'download', false, FILTER_VALIDATE_BOOLEAN );
+						$download = FilterInput::request( 'download', false, FILTER_VALIDATE_BOOLEAN );
 						// stream the file, exits processing
-						$this->streamFile( $this->_container, $this->_filePath, $_download );
+						$this->streamFile( $this->_container, $this->_filePath, $download );
 						$result = null;	// output handled by file handler
 					}
 				}
@@ -709,24 +711,24 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					$extract = FilterInput::request( 'extract', false, FILTER_VALIDATE_BOOLEAN );
 					$clean = FilterInput::request( 'clean', false, FILTER_VALIDATE_BOOLEAN );
 					$checkExist = FilterInput::request( 'check_exist', false, FILTER_VALIDATE_BOOLEAN );
-					$_fileNameHeader = FilterInput::server( 'HTTP_X_FILE_NAME' );
-					$_folderNameHeader = FilterInput::server( 'HTTP_X_FOLDER_NAME' );
+					$fileNameHeader = FilterInput::server( 'HTTP_X_FILE_NAME' );
+					$folderNameHeader = FilterInput::server( 'HTTP_X_FOLDER_NAME' );
 					$fileUrl = FilterInput::request( 'url', '', FILTER_SANITIZE_URL );
-					if ( !empty( $_fileNameHeader ) )
+					if ( !empty( $fileNameHeader ) )
 					{
 						// html5 single posting for file create
 						$content = RestRequest::getPostData();
 						$contentType = FilterInput::server( 'CONTENT_TYPE', '' );
-						$result = $this->_handleFileContent( $this->_folderPath, $_fileNameHeader, $content, $contentType,
+						$result = $this->_handleFileContent( $this->_folderPath, $fileNameHeader, $content, $contentType,
 															 $extract, $clean, $checkExist );
 					}
-					elseif ( !empty( $_folderNameHeader ) )
+					elseif ( !empty( $folderNameHeader ) )
 					{
 						// html5 single posting for folder create
-						$fullPathName = $this->_folderPath . $_folderNameHeader;
+						$fullPathName = $this->_folderPath . $folderNameHeader;
 						$content = RestRequest::getPostDataAsArray();
 						$this->createFolder( $this->_container, $fullPathName, true, $content, true );
-						$result = array( 'folder' => array( array( 'name' => $_folderNameHeader, 'path' => $fullPathName ) ) );
+						$result = array( 'folder' => array( array( 'name' => $folderNameHeader, 'path' => $fullPathName ) ) );
 					}
 					elseif ( !empty( $fileUrl ) )
 					{
@@ -838,13 +840,13 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				break;
 			case self::Delete:
 				$this->checkPermission( 'delete' );
-				$_force = FilterInput::request( 'force', false, FILTER_VALIDATE_BOOLEAN );
+				$force = FilterInput::request( 'force', false, FILTER_VALIDATE_BOOLEAN );
 				$content = RestRequest::getPostDataAsArray();
 				if ( empty( $this->_container ) )
 				{
 					// delete multiple containers
-					$_containers = Option::get( $content, 'container' );
-					$result = $this->deleteContainers( $_containers, $_force );
+					$containers = Option::get( $content, 'container' );
+					$result = $this->deleteContainers( $containers, $force );
 				}
 				else if ( empty( $this->_folderPath ) )
 				{
@@ -852,12 +854,12 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					// or just folders and files from the container
 					if ( empty( $content ) )
 					{
-						$this->deleteContainer( $this->_container, $_force );
+						$this->deleteContainer( $this->_container, $force );
 						$result = array( 'container' => array( array( 'name' => $this->_container ) ) );
 					}
 					else
 					{
-						$result = $this->_deleteFolderContent( $content, '', $_force );
+						$result = $this->_deleteFolderContent( $content, '', $force );
 					}
 				}
 				else if ( empty( $this->_filePath ) )
@@ -866,12 +868,12 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					// multi-file or folder delete via post data
 					if ( empty( $content ) )
 					{
-						$this->deleteFolder( $this->_container, $this->_folderPath, $_force );
+						$this->deleteFolder( $this->_container, $this->_folderPath, $force );
 						$result = array( 'folder' => array( array( 'path' => $this->_folderPath ) ) );
 					}
 					else
 					{
-						$result = $this->_deleteFolderContent( $content, $this->_folderPath, $_force );
+						$result = $this->_deleteFolderContent( $content, $this->_folderPath, $force );
 					}
 				}
 				else
@@ -1201,14 +1203,15 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	/**
 	 * Gets all properties of a particular container
 	 *
-	 * @param  string $container Container name
-	 * @param  bool   $include_files
-	 * @param  bool   $include_folders
-	 * @param  bool   $full_tree
+	 * @param string $container Container name
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @return array
 	 */
-	abstract public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false );
+	abstract public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
 
 	/**
 	 * Create a container using properties, where at least name is required
@@ -1272,16 +1275,17 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	abstract public function folderExists( $container, $path );
 
 	/**
-	 * @param        $container
+	 * @param string $container
 	 * @param string $path
 	 * @param bool   $include_files
 	 * @param bool   $include_folders
 	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @return bool
 	 * @throw \Exception
 	 */
-	abstract public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false );
+	abstract public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
 
 	/**
 	 * @param        $container

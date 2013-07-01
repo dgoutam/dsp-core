@@ -51,10 +51,11 @@ interface FileServiceLike
 	 * @param  bool   $include_files
 	 * @param  bool   $include_folders
 	 * @param  bool   $full_tree
+	 * @param  bool   $include_properties
 	 *
 	 * @return array
 	 */
-	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false );
+	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
 
 	/**
 	 * Create a container using properties, where at least name is required
@@ -118,15 +119,16 @@ interface FileServiceLike
 	 * Gets all properties of a particular folder, if options are false,
 	 * otherwise include content from the folder
 	 *
-	 * @param        $container
+	 * @param string $container
 	 * @param string $path
 	 * @param bool   $include_files
 	 * @param bool   $include_folders
 	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @return array
 	 */
-	public function getFolder( $container, $path, $include_files = false, $include_folders = false, $full_tree = false );
+	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
 
 	/**
 	 * @param        $container

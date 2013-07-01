@@ -21,10 +21,10 @@ namespace Platform\Services;
 
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use OpenCloud\Base\Exceptions\ContainerNotFoundError;
+use OpenCloud\Common\Exceptions\ContainerNotFoundError;
 use OpenCloud\OpenStack;
 use OpenCloud\Rackspace;
-use OpenCloud\AbstractClass\Collection;
+use OpenCloud\Common\Collection;
 use OpenCloud\ObjectStore\Container;
 use OpenCloud\ObjectStore\DataObject;
 use OpenCloud\ObjectStore\Service;
@@ -196,14 +196,16 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 * Gets all properties of a particular container, if options are false,
 	 * otherwise include content from the container
 	 *
-	 * @param  string $container Container name
-	 * @param  bool   $include_files
-	 * @param  bool   $include_folders
-	 * @param  bool   $full_tree
+	 * @param string $container Container name
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @return array
 	 */
-	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$this->checkConnection();
 
@@ -234,6 +236,7 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	 *
 	 * @param  string $container Container name
 	 *
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @return boolean
 	 */
 	public function containerExists( $container = '' )

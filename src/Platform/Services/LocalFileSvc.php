@@ -106,16 +106,17 @@ class LocalFileSvc extends BaseFileSvc
 	 * Gets all properties of a particular container, if options are false,
 	 * otherwise include content from the container
 	 *
-	 * @param  string $container Container name
-	 * @param  bool   $include_files
-	 * @param  bool   $include_folders
-	 * @param  bool   $full_tree
+	 * @param string $container Container name
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @return array
 	 */
-	public function getContainer( $container, $include_files = false, $include_folders = false, $full_tree = false )
+	public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
-		return $this->getFolder( $container, '', $include_files, $include_folders, $full_tree );
+		return $this->getFolder( $container, '', $include_files, $include_folders, $full_tree, $include_properties );
 	}
 
 	/**
@@ -279,32 +280,32 @@ class LocalFileSvc extends BaseFileSvc
 	/**
 	 * @param string $container
 	 * @param string $path
-	 * @param  bool  $include_files
-	 * @param  bool  $include_folders
-	 * @param  bool  $full_tree
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @throws \Platform\Exceptions\NotFoundException
 	 * @return array
 	 */
-	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false )
+	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		if ( !$include_folders && !$include_files )
+		$out = array();
+		if ( $include_properties )
 		{
 			$dirPath = self::addContainerToName( $container, $path );
 			if ( empty( $path ) )
 			{
-				$result = array( 'name' => $container );
+				$out = array( 'name' => $container );
 			}
 			else
 			{
 				$name = basename( $path );
-				$result = array( 'name' => $name, 'path' => $path );
+				$out = array( 'name' => $name, 'path' => $path );
 			}
 			$temp = stat( $dirPath );
-			$result['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', Option::get( $temp, 'mtime', 0 ) );
-
-			return $result;
+			$out['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', Option::get( $temp, 'mtime', 0 ) );
 		}
 
 		$delimiter = ( $full_tree ) ? '' : DIRECTORY_SEPARATOR;
@@ -346,7 +347,10 @@ class LocalFileSvc extends BaseFileSvc
 			// container root doesn't really exist until first write creates it
 		}
 
-		return array( "folder" => $folders, "file" => $files );
+		$out['folder'] = $folders;
+		$out['file'] = $files;
+
+		return $out;
 	}
 
 	/**

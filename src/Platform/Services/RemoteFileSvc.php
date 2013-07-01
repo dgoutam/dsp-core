@@ -138,17 +138,18 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	/**
 	 * @param string $container
 	 * @param string $path
-	 * @param  bool  $include_files
-	 * @param  bool  $include_folders
-	 * @param  bool  $full_tree
+	 * @param bool   $include_files
+	 * @param bool   $include_folders
+	 * @param bool   $full_tree
+	 * @param bool   $include_properties
 	 *
 	 * @throws \Platform\Exceptions\NotFoundException
-	 * @throws \Exception
 	 * @return array
 	 */
-	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false )
+	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
-		if ( !$include_files && !$include_folders )
+		$out = array();
+		if ( $include_properties )
 		{
 			// properties
 			$path = FileUtilities::fixFolderPath( $path );
@@ -161,7 +162,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			$properties['path'] = $path;
 			$properties['name'] = $shortName;
 
-			return $properties;
+			$out = $properties;
 		}
 		$path = FileUtilities::fixFolderPath( $path );
 		$delimiter = ( $full_tree ) ? '' : '/';
@@ -211,7 +212,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			// container root doesn't really exist until first write creates it
 		}
 
-		return array( "folder" => $folders, "file" => $files );
+		$out['folder'] = $folders;
+		$out['files'] = $files;
+
+		return $out;
 	}
 
 	/**
