@@ -90,24 +90,29 @@ class WebController extends BaseWebController
 		return array(
 			array(
 				'allow',
-				'actions' => array( 'index', 'login', 'error', 'activate', 'initAdmin' ),
-				'users'   => array( '*' ),
-			),
-			//	Allow authenticated users access to init commands
-			array(
-				'allow',
 				'actions' => array(
+					'index',
+					'login',
+					'error',
+					'activate',
+					'initAdmin',
 					'initSystem',
 					'initAdmin',
 					'initSchema',
 					'upgradeSchema',
 					'initData',
 					'upgrade',
+				),
+				'users'   => array( '*' ),
+			),
+			//	Allow authenticated users access to init commands
+			array(
+				'allow',
+				'actions' => array(
 					'environment',
 					'metrics',
 					'fileTree',
 					'logout',
-					'index'
 				),
 				'users'   => array( '@' ),
 			),
@@ -137,7 +142,7 @@ class WebController extends BaseWebController
 		if ( !$this->_activated && isset( $_POST, $_POST['skipped'] ) )
 		{
 //			Log::debug( 'Login skipped.' );
-			$this->redirect( '/web/initAdmin' );
+			$this->redirect( '/' );
 		}
 
 		if ( isset( $_POST, $_POST['LoginForm'] ) )
@@ -167,6 +172,7 @@ class WebController extends BaseWebController
 			{
 				if ( !$this->_activated )
 				{
+//					Log::debug( 'redirect' );
 					$this->redirect( '/' . $this->id . '/initAdmin' );
 				}
 				else

@@ -1008,11 +1008,18 @@ class SystemManager extends RestService
 	 */
 	public static function activated()
 	{
-		return ( 0 != \User::model()->count(
-				'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-				array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-			)
-		);
+		try
+		{
+			return ( 0 != \User::model()->count(
+					'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+					array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+				)
+			);
+		}
+		catch ( \CDbException $_ex )
+		{
+			return false;
+		}
 	}
 
 	/**
@@ -1022,22 +1029,29 @@ class SystemManager extends RestService
 	 */
 	public static function autoLoginAdmin()
 	{
-		/** @var \User $_user */
-		$_user = \User::model()->find(
-			'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-			array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-		);
-
-		if ( !empty( $_user ) )
+		try
 		{
-			$_identity = new \PlatformUserIdentity( $_user->email, null );
+			/** @var \User $_user */
+			$_user = \User::model()->find(
+				'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+				array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+			);
 
-			if ( $_identity->logInUser( $_user ) )
+			if ( !empty( $_user ) )
 			{
-				return Pii::user()->login( $_identity, 0 );
-			}
-		}
+				$_identity = new \PlatformUserIdentity( $_user->email, null );
 
-		return false;
+				if ( $_identity->logInUser( $_user ) )
+				{
+					return Pii::user()->login( $_identity, 0 );
+				}
+			}
+
+			return false;
+		}
+		catch ( \CDbException $_ex )
+		{
+			return false;
+		}
 	}
 }
