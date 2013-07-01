@@ -97,7 +97,7 @@ abstract class BaseResource
 	 */
 	protected function checkPermission( $request )
 	{
-		\UserSession::checkSessionPermission( $request, $this->_serviceName, $this->_apiName );
+		UserSession::checkSessionPermission( $request, $this->_serviceName, $this->_apiName );
 	}
 
 	/**

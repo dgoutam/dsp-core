@@ -32,13 +32,13 @@ use Swagger\Annotations as SWG;
  * Some basic models used in REST interfaces
  *
  * @SWG\Model(id="Resources",
- * @SWG\Property(name="resource",type="Array", items="$ref:Resource")
+ *   @SWG\Property(name="resource",type="Array", items="$ref:Resource")
  * )
  * @SWG\Model(id="Resource",
- * @SWG\Property(name="name",type="string")
+ *   @SWG\Property(name="name",type="string")
  * )
  * @SWG\Model(id="Success",
- * @SWG\Property(name="success",type="boolean")
+ *   @SWG\Property(name="success",type="boolean")
  * )
  *
  */
