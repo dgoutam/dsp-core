@@ -21,53 +21,52 @@
 /* @var $model UpgradeDspForm */
 /* @var $form CActiveForm */
 
-$this->pageTitle=Yii::app()->name . ' - Upgrade';
-$this->breadcrumbs=array(
+$this->pageTitle = Yii::app()->name . ' - Upgrade';
+$this->breadcrumbs = array(
 	'Upgrade DSP',
 );
 ?>
 
-<h1>DreamFactory Services Platform Upgrade</h1>
+	<h2 class="headline">DreamFactory Services Platform&trade; Upgrade</h2>
 
-<?php if(Yii::app()->user->hasFlash('upgrade-dsp')): ?>
+<?php if ( Yii::app()->user->hasFlash( 'upgrade-dsp' ) ): ?>
 
-<div class="flash-success">
-	<?php echo Yii::app()->user->getFlash('upgrade-dsp'); ?>
-</div>
+	<div class="flash-success">
+		<?php echo Yii::app()->user->getFlash( 'upgrade-dsp' ); ?>
+	</div>
 
 <?php else: ?>
 
-<p>
-Your DreamFactory Services Platform has an upgrade available.
-When you are ready, select the desired version and click the 'Upgrade DSP' button below.
-</p>
+	<p>There is a software update available for this DreamFactory Services Platform&trade;. When you are ready, select the desired version and click the 'Upgrade DSP' button below. </p>
 
-<div class="form">
+	<div class="form">
 
-<?php $form=$this->beginWidget('CActiveForm', array(
-	'id'=>'upgrade-dsp-form',
-	'enableClientValidation'=>true,
-	'clientOptions'=>array(
-		'validateOnSubmit'=>true,
-	),
-)); ?>
+		<?php $form = $this->beginWidget(
+			'CActiveForm',
+			array(
+				 'id'                     => 'upgrade-dsp-form',
+				 'enableClientValidation' => true,
+				 'clientOptions'          => array(
+					 'validateOnSubmit' => true,
+				 ),
+			)
+		); ?>
 
-	<?php echo $form->errorSummary($model); ?>
+		<?php echo $form->errorSummary( $model ); ?>
 
-    <div class="row">
-   		<?php echo $form->hiddenField($model, 'dummy'); ?>
-   	</div>
-	<div class="row">
-		<?php echo $form->dropDownList($model, 'selected', $model->versions ); ?>
-	</div>
+		<div class="row">
+			<?php echo $form->hiddenField( $model, 'dummy' ); ?>
+		</div>
+		<div class="row">
+			<?php echo $form->dropDownList( $model, 'selected', $model->versions ); ?>
+		</div>
 
+		<div class="row buttons">
+			<?php echo CHtml::submitButton( 'Upgrade DSP' ); ?>
+		</div>
 
-	<div class="row buttons">
-		<?php echo CHtml::submitButton('Upgrade DSP'); ?>
-	</div>
+		<?php $this->endWidget(); ?>
 
-<?php $this->endWidget(); ?>
-
-</div><!-- form -->
+	</div><!-- form -->
 
 <?php endif; ?>

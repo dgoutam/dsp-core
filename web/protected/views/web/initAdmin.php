@@ -51,10 +51,10 @@ Validate::register(
 		 ),
 	)
 );
-?><h2 class="headline">Now Let's Get Your Mojo Working!</h2>
+?><h2 class="headline">Create a System Admin User</h2>
 
-<p>One last step... Your DreamFactory Services Platform(tm) needs a system administrator.</p><p>This user is a separate account that exists only
-	inside your DSP. It cannot be used elsewhere, like on the <strong>DreamFactory.com</strong> site for instance.</p><p>More administrative and
+<p>Your DreamFactory Services Platform(tm) requires a local system administrator.</p><p>This user is a separate account that exists only
+	inside your DSP. It cannot be used elsewhere, like on the <strong>dreamfactory.com</strong> site for instance.</p><p>More administrative and
 	regular users can be easily added using the DSP's built-in 'Admin' application.</p>
 <div class="spacer"></div>
 

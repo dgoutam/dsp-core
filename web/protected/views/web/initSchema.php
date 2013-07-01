@@ -21,49 +21,32 @@
 /* @var $model InitSchemaForm */
 /* @var $form CActiveForm */
 
-$this->pageTitle=Yii::app()->name . ' - Upgrade Schema';
-$this->breadcrumbs=array(
+$this->pageTitle = Yii::app()->name . ' - Upgrade Schema';
+$this->breadcrumbs = array(
 	'Upgrade Schema',
 );
 ?>
 
-<h1>Upgrade Schema</h1>
+	<h2 class="headline">Database Upgrade Available!</h2>
 
-<?php if(Yii::app()->user->hasFlash('init-schema')): ?>
+<?php if ( Yii::app()->user->hasFlash( 'init-schema' ) ): ?>
 
-<div class="flash-success">
-	<?php echo Yii::app()->user->getFlash('init-schema'); ?>
-</div>
+	<div class="flash-success">
+		<?php echo Yii::app()->user->getFlash( 'init-schema' ); ?>
+	</div>
 
 <?php else: ?>
 
-<p>
-Your Document Services Platform database needs some schema that is missing to continue.
-When you are ready, click the 'Upgrade Schema' button below.
-</p>
+	<p>A database update is available for this DreamFactory Services Platform&trade;. Click the 'Update' button below to start the update.</p>
 
-<div class="form">
+	<div class="space200"></div>
+	<div class="space200"></div>
+	<form id="init-schema-form" method="POST">
+		<input type="hidden" name="InitSchemaForm[dummy]" id="InitSchemaForm_dummy" value="1">
 
-<?php $form=$this->beginWidget('CActiveForm', array(
-	'id'=>'init-schema-form',
-	'enableClientValidation'=>true,
-	'clientOptions'=>array(
-		'validateOnSubmit'=>true,
-	),
-)); ?>
-
-	<?php echo $form->errorSummary($model); ?>
-
-    <div class="row">
-   		<?php echo $form->hiddenField($model,'dummy'); ?>
-   	</div>
-
-	<div class="row buttons">
-		<?php echo CHtml::submitButton('Upgrade Schema'); ?>
-	</div>
-
-<?php $this->endWidget(); ?>
-
-</div><!-- form -->
+		<div class="form-actions">
+			<button type="submit" class="btn btn-success btn-primary">Update!</button>
+		</div>
+	</form>
 
 <?php endif; ?>

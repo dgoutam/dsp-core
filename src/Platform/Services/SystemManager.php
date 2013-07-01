@@ -380,36 +380,35 @@ class SystemManager extends RestService
 	 */
 	public static function initAdmin()
 	{
-		/** @var \CWebUser $_user */
-		$_user = \Yii::app()->user;
-		// Create and login first admin user
-		$email = $_user->getState( 'email' );
-		$pwd = $_user->getState( 'password' );
+		//	Create and login first admin user
+		$_model = Option::get( $_POST, 'InitAdminForm' );
 
-		if ( empty( $email ) || empty( $pwd ) )
+		$_email = Pii::getState( 'email', Option::get( $_model, 'email' ) );
+		$_password = Pii::getState( 'password', Option::get( $_model, 'password' ) );
+
+		if ( empty( $_email ) || empty( $_password ) )
 		{
-			Pii::redirect( '/web/login' );
+			Pii::redirect( '/web/activate' );
 		}
 
 		try
 		{
-			$theUser = \User::model()->find( 'email = :email', array( ':email' => $email ) );
+			/** @var \User $_user */
+			$_user = \User::model()->find( 'email = :email', array( ':email' => $_email ) );
 
-			if ( empty( $theUser ) )
+			if ( empty( $_user ) )
 			{
-				$theUser = new \User();
-				$firstName = $_user->getState( 'first_name' );
-				$lastName = $_user->getState( 'last_name' );
-				$displayName = $_user->getState( 'display_name' );
-				$displayName = ( empty( $displayName )
-					? $firstName . ( empty( $lastName ) ? '' : ' ' . $lastName )
-					: $displayName );
-				$fields = array(
-					'email'        => $email,
-					'password'     => $pwd,
-					'first_name'   => $firstName,
-					'last_name'    => $lastName,
-					'display_name' => $displayName,
+				$_user = new \User();
+				$_firstName = Pii::getState( 'first_name', Option::get( $_model, 'firstName' ) );
+				$_lastName = Pii::getState( 'last_name', Option::get( $_model, 'lastName' ) );
+				$_displayName = Pii::getState( 'display_name', Option::get( $_model, 'displayName', $_firstName . ( $_lastName ? : ' ' . $_lastName ) ) );
+
+				$_fields = array(
+					'email'        => $_email,
+					'password'     => $_password,
+					'first_name'   => $_firstName,
+					'last_name'    => $_lastName,
+					'display_name' => $_displayName,
 					'is_active'    => true,
 					'is_sys_admin' => true,
 					'confirm_code' => 'y'
@@ -417,28 +416,29 @@ class SystemManager extends RestService
 			}
 			else
 			{
-				// in case something is messed up
-				$fields = array(
+				//	in case something is messed up
+				$_fields = array(
 					'is_active'    => true,
 					'is_sys_admin' => true,
 					'confirm_code' => 'y'
 				);
 			}
 
-			$theUser->setAttributes( $fields );
+			$_user->setAttributes( $_fields );
 
 			// write back login datetime
-			$theUser->last_login_date = date( 'c' );
-			$theUser->save();
+			$_user->last_login_date = date( 'c' );
+			$_user->save();
 
 			// update session with current real user
-			$_user->setId( $theUser->primaryKey );
-			$_user->setState( 'df_authenticated', false ); // removes catch
-			$_user->setState( 'password', $pwd, $pwd ); // removes password
+			$_identity = Pii::user();
+			$_identity->setId( $_user->primaryKey );
+			$_identity->setState( 'df_authenticated', false ); // removes catch
+			$_identity->setState( 'password', $_password, $_password ); // removes password
 		}
-		catch ( \Exception $ex )
+		catch ( \Exception $_ex )
 		{
-			throw new BadRequestException( "Failed to create a new user.\n{$ex->getMessage()}" );
+			throw new BadRequestException( 'Failed to create a new user: ' . $_ex->getMessage() );
 		}
 	}
 
@@ -1018,6 +1018,7 @@ class SystemManager extends RestService
 
 	/**
 	 * Automatically logs in the first admin user
+	 *
 	 * @return bool
 	 */
 	public static function autoLoginAdmin()

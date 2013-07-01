@@ -94,7 +94,7 @@ return array(
 		//	User configuration
 		'user'         => array(
 			'allowAutoLogin' => true,
-			'loginUrl'       => array( $_defaultController . '/login' ),
+			'loginUrl'       => array( $_defaultController . '/activate' ),
 		),
 		//	Logging configuration
 		'log'          => array(

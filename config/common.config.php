@@ -126,5 +126,7 @@ return array_merge(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
+		 /** The default application to start */
+		 'dsp.default_app' => '/public/launchpad/index.html',
 	)
 );

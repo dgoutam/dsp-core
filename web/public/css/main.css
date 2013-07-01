@@ -82,3 +82,8 @@ label.error {
 	margin-right: 5px;
 }
 
+.space200 {
+	width:   1px;
+	height:  200px;
+	display: block;
+}

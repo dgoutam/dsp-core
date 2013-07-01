@@ -35,6 +35,15 @@ use Platform\Yii\Utility\Pii;
 class WebController extends BaseWebController
 {
 	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const DEFAULT_STARTUP_APP = '/public/launchpad/index.html';
+
+	//*************************************************************************
 	//* Members
 	//*************************************************************************
 
@@ -81,7 +90,7 @@ class WebController extends BaseWebController
 		return array(
 			array(
 				'allow',
-				'actions' => array( 'index', 'login', 'error', ),
+				'actions' => array( 'index', 'login', 'error', 'activate', 'initAdmin' ),
 				'users'   => array( '*' ),
 			),
 			//	Allow authenticated users access to init commands
@@ -121,6 +130,61 @@ class WebController extends BaseWebController
 		$this->actionInitSystem();
 	}
 
+	public function actionActivate()
+	{
+		$_model = new LoginForm();
+
+		if ( !$this->_activated && isset( $_POST, $_POST['skipped'] ) )
+		{
+			Log::debug( 'Login skipped.' );
+			$this->redirect( '/web/initAdmin' );
+		}
+
+		if ( isset( $_POST, $_POST['LoginForm'] ) )
+		{
+			$_model->attributes = $_POST['LoginForm'];
+
+			if ( !empty( $_model->username ) && !empty( $_model->password ) )
+			{
+				//	Validate user input and redirect to the previous page if valid
+				if ( $_model->validate() && $_model->login() )
+				{
+					if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
+					{
+						$_returnUrl = Pii::url( $this->id . '/index' );
+					}
+
+					$this->redirect( $_returnUrl );
+
+					return;
+				}
+				else
+				{
+					$_model->addError( 'username', 'Invalid user name and password combination.' );
+				}
+			}
+			else
+			{
+				if ( !$this->_activated )
+				{
+					$this->redirect( '/' . $this->id . '/initAdmin' );
+				}
+				else
+				{
+					$this->redirect( '/' . $this->id . '/index' );
+				}
+			}
+		}
+
+		$this->render(
+			'activate',
+			array(
+				 'model'     => $_model,
+				 'activated' => $this->_activated,
+			)
+		);
+	}
+
 	/**
 	 * {@InheritDoc}
 	 */
@@ -128,15 +192,17 @@ class WebController extends BaseWebController
 	{
 		try
 		{
-			$_state = SystemManager::getSystemState();
+			$_state = !$this->_activated ? PlatformStates::ADMIN_REQUIRED : SystemManager::getSystemState();
 
 			switch ( $_state )
 			{
 				case PlatformStates::READY:
-					// try local launchpad
-					if ( is_file( \Kisma::get( 'app.app_path' ) . '/public/launchpad/index.html' ) )
+					$_defaultApp = Pii::getParam( 'dsp.default_app', static::DEFAULT_STARTUP_APP );
+
+					//	Try local launchpad
+					if ( is_file( \Kisma::get( 'app.app_path' ) . $_defaultApp ) )
 					{
-						$this->redirect( '/public/launchpad/index.html' );
+						$this->redirect( $_defaultApp );
 					}
 
 					//	Fall back to this app default site
@@ -144,20 +210,20 @@ class WebController extends BaseWebController
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					$this->redirect( 'web/initSystem' );
+					$this->redirect( '/' . $this->id . '/initSystem' );
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( 'web/initAdmin' );
+					$this->redirect( '/' . $this->id . '/initAdmin' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( 'web/upgradeSchema' );
+					$this->redirect( '/' . $this->id . '/upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( 'web/initData' );
+					$this->redirect( '/' . $this->id . '/initData' );
 					break;
 			}
 		}
@@ -190,45 +256,46 @@ class WebController extends BaseWebController
 	 */
 	public function actionLogin()
 	{
-		$_model = new LoginForm();
-
-		// if it is ajax validation request
-		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
-		{
-			echo CActiveForm::validate( $_model );
-			Pii::end();
-		}
-
-		// collect user input data
-		if ( isset( $_POST['LoginForm'] ) )
-		{
-			$_model->attributes = $_POST['LoginForm'];
-
-			//	Validate user input and redirect to the previous page if valid
-			if ( $_model->validate() && $_model->login() )
-			{
-				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
-				{
-					$_returnUrl = Pii::url( 'web/index' );
-				}
-
-				$this->redirect( $_returnUrl );
-
-				return;
-			}
-			else
-			{
-				$_model->addError( 'username', 'Invalid user name and password combination.' );
-			}
-		}
-
-		$this->render(
-			'login',
-			array(
-				 'model'     => $_model,
-				 'activated' => $this->_activated,
-			)
-		);
+		$this->actionActivate();
+//		$_model = new LoginForm();
+//
+//		// if it is ajax validation request
+//		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
+//		{
+//			echo CActiveForm::validate( $_model );
+//			Pii::end();
+//		}
+//
+//		// collect user input data
+//		if ( isset( $_POST['LoginForm'] ) )
+//		{
+//			$_model->attributes = $_POST['LoginForm'];
+//
+//			//	Validate user input and redirect to the previous page if valid
+//			if ( $_model->validate() && $_model->login() )
+//			{
+//				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
+//				{
+//					$_returnUrl = Pii::url( $this->id . '/index' );
+//				}
+//
+//				$this->redirect( $_returnUrl );
+//
+//				return;
+//			}
+//			else
+//			{
+//				$_model->addError( 'username', 'Invalid user name and password combination.' );
+//			}
+//		}
+//
+//		$this->render(
+//			'login',
+//			array(
+//				 'model'     => $_model,
+//				 'activated' => $this->_activated,
+//			)
+//		);
 	}
 
 	/**
@@ -256,6 +323,10 @@ class WebController extends BaseWebController
 				SystemManager::initSchema();
 				$this->redirect( '/' );
 			}
+			else
+			{
+				Log::debug( 'Failed validation' );
+			}
 
 			$this->refresh();
 		}
@@ -273,8 +344,36 @@ class WebController extends BaseWebController
 	 */
 	public function actionInitAdmin()
 	{
-		SystemManager::initAdmin();
-		$this->redirect( '/' );
+		if ( $this->_activated )
+		{
+			Log::debug( 'initAdmin activated' );
+			SystemManager::initAdmin();
+			$this->redirect( '/' );
+		}
+
+		Log::debug( 'initAdmin NOT activated' );
+
+		$_model = new InitAdminForm();
+
+		if ( isset( $_POST, $_POST['InitAdminForm'] ) )
+		{
+			$_model->attributes = $_POST['InitAdminForm'];
+
+			if ( $_model->validate() )
+			{
+				SystemManager::initAdmin();
+				$this->redirect( '/' );
+			}
+
+			$this->refresh();
+		}
+
+		$this->render(
+			'initAdmin',
+			array(
+				 'model' => $_model
+			)
+		);
 	}
 
 	/**
