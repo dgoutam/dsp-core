@@ -209,7 +209,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 
 		$out['folder'] = $folders;
-		$out['files'] = $files;
+		$out['file'] = $files;
 
 		return $out;
 	}
