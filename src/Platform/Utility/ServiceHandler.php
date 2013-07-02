@@ -154,12 +154,14 @@ class ServiceHandler
 				throw new \Exception( 'Service not found' );
 			}
 
+			$_service = static::_createService( $_config );
+
 			if ( $check_active && !$_service->getIsActive() )
 			{
 				throw new \Exception( 'Requested service "' . $api_name . '" is not active.' );
 			}
 
-			return static::$_serviceCache[$api_name] = static::_createService( $_config );
+			return static::$_serviceCache[$api_name] = $_service;
 		}
 		catch ( \Exception $_ex )
 		{
