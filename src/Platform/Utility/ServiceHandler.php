@@ -20,24 +20,13 @@
 namespace Platform\Utility;
 
 use Kisma\Core\Utility\Option;
-use Platform\Services\AwsDynamoDbSvc;
-use Platform\Services\AwsSimpleDbSvc;
-use Platform\Services\AwsS3Svc;
-use Platform\Services\CouchDbSvc;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
-use Platform\Services\MongoDbSvc;
-use Platform\Services\OAuthService;
-use Platform\Services\OpenStackObjectStoreSvc;
 use Platform\Services\RemoteWebSvc;
 use Platform\Services\RestService;
 use Platform\Services\SchemaSvc;
-use Platform\Services\ServiceRegistry;
-use Platform\Services\SqlDbSvc;
 use Platform\Services\SystemManager;
 use Platform\Services\UserManager;
-use Platform\Services\WindowsAzureBlobSvc;
-use Platform\Services\WindowsAzureTablesSvc;
 
 /**
  * ServiceHandler.php
@@ -45,24 +34,68 @@ use Platform\Services\WindowsAzureTablesSvc;
  */
 class ServiceHandler
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
-	 * Services
-	 *
-	 * array of created services
-	 *
-	 * @access private
+	 * @var array Created services
+	 */
+	protected static $_serviceCache = array();
+	/**
+	 * @var array The services available
+	 */
+	protected static $_serviceConfig = array();
+	/**
 	 * @var array
 	 */
-	private static $_services = array();
+	protected static $_baseServices
+		= array(
+			'system' => 'Platform\\Services\\SystemManager',
+			'user'   => 'Platform\\Services\\UserManager',
+		);
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
+
+	/**
+	 * Initialize the service handler
+	 *
+	 * @param string|array $config
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	protected static function _initialize( $config = null )
+	{
+		if ( empty( static::$_serviceConfig ) )
+		{
+			$_config = $config ? : \Kisma::get( 'app.config_path' ) . '/services.config.php';
+
+			if ( is_string( $_config ) )
+			{
+				if ( !is_file( $_config ) || !is_readable( $_config ) )
+				{
+					throw new \InvalidArgumentException( 'The configuration file "' . $_config . '" cannot be loaded.' );
+				}
+
+				/** @noinspection PhpIncludeInspection */
+				static::$_serviceConfig = require_once( $_config );
+			}
+			else if ( is_array( $_config ) )
+			{
+				static::$_serviceConfig = $_config;
+			}
+		}
+	}
 
 	/**
 	 * Creates a new ServiceHandler instance
-	 *
 	 */
 	public function __construct()
 	{
-		// create services as needed, store local pointer in array for speed
-		static::$_services = array();
+		//	Create services as needed, store local pointer in array for speed
+		static::$_serviceConfig = static::$_serviceCache = array();
 	}
 
 	/**
@@ -70,13 +103,14 @@ class ServiceHandler
 	 */
 	public function __destruct()
 	{
-		if ( !empty( static::$_services ) )
+		if ( !empty( static::$_serviceCache ) )
 		{
-			foreach ( static::$_services as $key => $service )
+			foreach ( static::$_serviceCache as $_key => $_service )
 			{
-				unset( static::$_services[$key] );
+				unset( static::$_serviceCache[$_key] );
 			}
-			static::$_services = null;
+
+			static::$_serviceCache = null;
 		}
 	}
 
@@ -97,47 +131,40 @@ class ServiceHandler
 	 */
 	public static function getServiceObject( $api_name, $check_active = false )
 	{
-		if ( empty( $api_name ) )
+		static::_initialize();
+
+		$_tag = strtolower( trim( $api_name ) );
+
+		//	Cached?
+		if ( null !== ( $_service = Option::get( static::$_serviceCache, $_tag ) ) )
 		{
-			throw new \Exception( "Failed to launch service, no service name given." );
+			return $_service;
 		}
 
-		// if it hasn't been created, do so
-		$service = Option::get( static::$_services, $api_name, null );
-		if ( isset( $service ) && !empty( $service ) )
+		//	A base service?
+		if ( isset( static::$_baseServices[$_tag] ) )
 		{
-			return $service;
+			return new static::$_baseServices[$_tag];
 		}
 
 		try
 		{
-			switch ( strtolower( $api_name ) )
+			if ( null === ( $_config = \Service::getRecordByName( $api_name ) ) )
 			{
-				// some special cases first
-				case 'system':
-					$service = new SystemManager();
-					break;
-				case 'user':
-					$service = new UserManager();
-					break;
-				default:
-					$record = \Service::getRecordByName( $api_name );
-					$service = static::createService( $record );
-					break;
+				throw new \Exception( 'Service not found' );
 			}
-			static::$_services[$api_name] = $service;
-		}
-		catch ( \Exception $ex )
-		{
-			throw new \Exception( "Failed to launch service '$api_name'.\n{$ex->getMessage()}" );
-		}
 
-		if ( $check_active && !$service->getIsActive() )
-		{
-			throw new \Exception( "Requested service '$api_name' is not active." );
-		}
+			if ( $check_active && !$_service->getIsActive() )
+			{
+				throw new \Exception( 'Requested service "' . $api_name . '" is not active.' );
+			}
 
-		return $service;
+			return static::$_serviceCache[$api_name] = static::_createService( $_config );
+		}
+		catch ( \Exception $_ex )
+		{
+			throw new \Exception( 'Failed to launch service "' . $api_name . '": ' . $_ex->getMessage() );
+		}
 	}
 
 	/**
@@ -147,8 +174,6 @@ class ServiceHandler
 	 * member that holds the pointer, otherwise it calls the constructor for
 	 * the new service, passing in parameters based on the stored configuration settings.
 	 *
-	 * @access public
-	 *
 	 * @param int     $id
 	 * @param boolean $check_active Throws an exception if true and the service is not active.
 	 *
@@ -157,130 +182,47 @@ class ServiceHandler
 	 */
 	public static function getServiceObjectById( $id, $check_active = false )
 	{
-		if ( empty( $id ) )
-		{
-			throw new \Exception( "Failed to launch service, no service id given." );
-		}
-
-		$record = \Service::getRecordById( $id );
-		if ( empty( $record ) )
+		if ( null === ( $_record = \Service::getRecordById( $id ) ) )
 		{
 			throw new \Exception( "Failed to launch service, no service record found." );
 		}
 
-		$_apiName = Option::get( $record, 'api_name' );
-
-		// if it hasn't been created, do so
-		$service = Option::get( static::$_services, $_apiName, null );
-		if ( isset( $service ) && !empty( $service ) )
-		{
-			return $service;
-		}
-
-		try
-		{
-			$service = static::createService( $record );
-			static::$_services[$_apiName] = $service;
-		}
-		catch ( \Exception $ex )
-		{
-			throw new \Exception( "Failed to launch service '$_apiName'.\n{$ex->getMessage()}" );
-		}
-
-		if ( $check_active && !$service->getIsActive() )
-		{
-			throw new \Exception( "Requested service '$_apiName' is not active." );
-		}
-
-		return $service;
+		return static::getServiceObject( $_record['api_name'], $check_active );
 	}
 
-	protected static function createService( $record )
+	/**
+	 * Creates a new instance of a configured service
+	 *
+	 * @param array $record
+	 *
+	 * @return RestService
+	 * @throws \InvalidArgumentException
+	 */
+	protected static function _createService( $record )
 	{
-		$type = Option::get( $record, 'type', '' );
-		switch ( $type )
+		$_serviceType = trim( strtolower( Option::get( $record, 'type' ) ) );
+
+		if ( null === ( $_config = Option::get( static::$_serviceConfig, $_serviceType ) ) )
 		{
-			case 'Remote Web Service':
-				$service = new RemoteWebSvc( $record );
-				break;
-			case 'Local File Storage':
-				$service = new LocalFileSvc( $record );
-				break;
-			case 'Remote File Storage':
-				$storageType = Option::get( $record, 'storage_type', '' );
-				switch ( strtolower( $storageType ) )
-				{
-					case 'azure blob':
-						$service = new WindowsAzureBlobSvc( $record );
-						break;
-					case 'aws s3':
-						$service = new AwsS3Svc( $record );
-						break;
-					case 'rackspace cloudfiles':
-					case 'openstack object storage':
-						$service = new OpenStackObjectStoreSvc( $record );
-						break;
-					default:
-						throw new \Exception( "Invalid Remote Blob Storage Type '$storageType' in configuration environment." );
-						break;
-				}
-				break;
-			case 'Local SQL DB':
-				$service = new SqlDbSvc( $record, true );
-				break;
-			case 'Remote SQL DB':
-				$service = new SqlDbSvc( $record, false );
-				break;
-			case 'Local SQL DB Schema':
-				$service = new SchemaSvc( $record, true );
-				break;
-			case 'Remote SQL DB Schema':
-				$service = new SchemaSvc( $record, false );
-				break;
-			case 'Local Email Service':
-				$service = new EmailSvc( $record, true );
-				break;
-			case 'Remote Email Service':
-				$service = new EmailSvc( $record, false );
-				break;
-			case 'NoSQL DB':
-				$storageType = Option::get( $record, 'storage_type', '' );
-				switch ( strtolower( $storageType ) )
-				{
-					case 'azure tables':
-						$service = new WindowsAzureTablesSvc( $record );
-						break;
-					case 'aws dynamodb':
-						$service = new AwsDynamoDbSvc( $record );
-						break;
-					case 'aws simpledb':
-						$service = new AwsSimpleDbSvc( $record );
-						break;
-					case 'mongodb':
-						$service = new MongoDbSvc( $record );
-						break;
-					case 'couchdb':
-						$service = new CouchDbSvc( $record );
-						break;
-					default:
-						throw new \Exception( "Invalid NoSQL Storage Type '$storageType' in configuration environment." );
-						break;
-				}
-				break;
-
-			case 'Service Registry':
-				$service = new ServiceRegistry( $record );
-				break;
-
-			case 'Remote OAuth Service':
-				$service = new OAuthService( $record );
-				break;
-
-			default:
-				throw new \Exception( "Unknown type value '$type' in service record." );
-				break;
+			throw new \InvalidArgumentException( 'Service type "' . $_serviceType . '" is invalid.' );
 		}
 
-		return $service;
+		if ( null !== ( $_serviceClass = Option::get( $_config, 'class' ) ) )
+		{
+			$_arguments = array( $record );
+
+			if ( is_array( $_serviceClass ) )
+			{
+				$_storageType = strtolower( trim( Option::get( $record, 'storage_type' ) ) );
+				$_serviceClass = Option::get( $_serviceClass, $_storageType );
+				$_arguments = array( $record, Option::get( $_config, 'local', true ) );
+			}
+
+			$_mirror = new \ReflectionClass( $_serviceClass );
+
+			return $_mirror->newInstanceArgs( $_arguments );
+		}
+
+		throw new \InvalidArgumentException( 'The service requested is invalid.' );
 	}
 }

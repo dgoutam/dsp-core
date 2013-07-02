@@ -34,49 +34,49 @@ class ServiceTypes extends SeedEnum
 	/**
 	 * @var string
 	 */
-	const REMOTE_WEB_SERVICE = 'Remote Web Service';
+	const REMOTE_WEB_SERVICE = 'remote web service';
 	/**
 	 * @var string
 	 */
-	const LOCAL_FILE_STORAGE = 'Local File Storage';
+	const LOCAL_FILE_STORAGE = 'local file storage';
 	/**
 	 * @var string
 	 */
-	const REMOTE_FILE_STORAGE = 'Remote File Storage';
+	const REMOTE_FILE_STORAGE = 'remote file storage';
 	/**
 	 * @var string
 	 */
-	const LOCAL_SQL_DB = 'Local SQL DB';
+	const LOCAL_SQL_DB = 'local sql db';
 	/**
 	 * @var string
 	 */
-	const REMOTE_SQL_DB = 'Remote SQL DB';
+	const REMOTE_SQL_DB = 'remote sql db';
 	/**
 	 * @var string
 	 */
-	const LOCAL_SQL_DB_SCHEMA = 'Local SQL DB Schema';
+	const LOCAL_SQL_DB_SCHEMA = 'local sql db schema';
 	/**
 	 * @var string
 	 */
-	const REMOTE_SQL_DB_SCHEMA = 'Remote SQL DB Schema';
+	const REMOTE_SQL_DB_SCHEMA = 'remote sql db schema';
 	/**
 	 * @var string
 	 */
-	const LOCAL_EMAIL_SERVICE = 'Local Email Service';
+	const LOCAL_EMAIL_SERVICE = 'local email service';
 	/**
 	 * @var string
 	 */
-	const REMOTE_EMAIL_SERVICE = 'Remote Email Service';
+	const REMOTE_EMAIL_SERVICE = 'remote email service';
 	/**
 	 * @var string
 	 */
-	const NOSQL_DB = 'NoSQL DB';
+	const NOSQL_DB = 'nosql db';
 	/**
 	 * @var string
 	 */
-	const SERVICE_REGISTRY = 'Service Registry';
+	const SERVICE_REGISTRY = 'service registry';
 	/**
 	 * @var string
 	 */
-	const REMOTE_OAUTH_SERVICE = 'Remote OAuth Service';
+	const REMOTE_OAUTH_SERVICE = 'remote oauth service';
 }
