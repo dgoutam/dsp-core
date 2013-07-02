@@ -133,7 +133,7 @@ use Swagger\Annotations as SWG;
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
- *           name="properties_only", description="Return just the properties of the table.",
+ *           name="include_properties", description="Return any properties or metadata available for the table.",
  *           paramType="query", required="false", allowMultiple=true, dataType="boolean"
  *         ),
  *         @SWG\Parameter(
