@@ -126,32 +126,9 @@ class Service extends BaseDspSystemModel
 	 */
 	public static function getRecordByName( $api_name )
 	{
-		$command = Pii::db()->createCommand();
-		$_tableName = static::model()->tableName();
-		$result = $command->from( $_tableName )
-			->where( 'api_name=:name' )
-			->queryRow( true, array( ':name' => $api_name ) );
-		if ( !$result )
-		{
-			return array();
-		}
+		$_model = static::model()->find( 'api_name = :api_name', array( ':api_name' => trim( strtolower( $api_name ) ) ) );
 
-		if ( isset( $result['credentials'] ) )
-		{
-			$result['credentials'] = json_decode( $result['credentials'], true );
-		}
-
-		if ( isset( $result['parameters'] ) )
-		{
-			$result['parameters'] = json_decode( $result['parameters'], true );
-		}
-
-		if ( isset( $result['headers'] ) )
-		{
-			$result['headers'] = json_decode( $result['headers'], true );
-		}
-
-		return $result;
+		return $_model ? $_model->getAttributes() : null;
 	}
 
 	/**
@@ -164,32 +141,9 @@ class Service extends BaseDspSystemModel
 	 */
 	public static function getRecordById( $id )
 	{
-		$command = Pii::db()->createCommand();
-		$_tableName = static::model()->tableName();
-		$result = $command->from( $_tableName )
-			->where( 'id=:id' )
-			->queryRow( true, array( ':id' => $id ) );
-		if ( !$result )
-		{
-			return array();
-		}
+		$_model = static::model()->findByPk( $id );
 
-		if ( isset( $result['credentials'] ) )
-		{
-			$result['credentials'] = json_decode( $result['credentials'], true );
-		}
-
-		if ( isset( $result['parameters'] ) )
-		{
-			$result['parameters'] = json_decode( $result['parameters'], true );
-		}
-
-		if ( isset( $result['headers'] ) )
-		{
-			$result['headers'] = json_decode( $result['headers'], true );
-		}
-
-		return $result;
+		return $_model ? $_model->getAttributes() : null;
 	}
 
 	/**
