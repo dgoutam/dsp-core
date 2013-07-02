@@ -181,62 +181,64 @@ class SystemManager extends RestService
 	 */
 	public static function getSystemState()
 	{
-		// Refresh the schema that we just added
-		$_db = Pii::db();
-		$_schema = $_db->getSchema();
+		static $_isReady = false;
 
-		$tables = $_schema->getTableNames();
-
-		if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
+		if ( !$_isReady )
 		{
-			return PlatformStates::INIT_REQUIRED;
-		}
+			// Refresh the schema that we just added
+			$_db = Pii::db();
+			$_schema = $_db->getSchema();
+			Sql::setConnection( $_db->pdoInstance );
 
-		// need to check for db upgrade, based on tables or version
-		$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+			$tables = $_schema->getTableNames();
 
-		if ( !empty( $contents ) )
-		{
-			$contents = DataFormat::jsonToArray( $contents );
-
-			// check for any missing necessary tables
-			$needed = Utilities::getArrayValue( 'table', $contents, array() );
-
-			foreach ( $needed as $table )
+			if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
 			{
-				$name = Utilities::getArrayValue( 'name', $table, '' );
-				if ( !empty( $name ) && !in_array( $name, $tables ) )
+				return PlatformStates::INIT_REQUIRED;
+			}
+
+			// need to check for db upgrade, based on tables or version
+			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+
+			if ( !empty( $contents ) )
+			{
+				$contents = DataFormat::jsonToArray( $contents );
+
+				// check for any missing necessary tables
+				$needed = Utilities::getArrayValue( 'table', $contents, array() );
+
+				foreach ( $needed as $table )
+				{
+					$name = Utilities::getArrayValue( 'name', $table, '' );
+					if ( !empty( $name ) && !in_array( $name, $tables ) )
+					{
+						return PlatformStates::SCHEMA_REQUIRED;
+					}
+				}
+
+				$_version = Utilities::getArrayValue( 'version', $contents );
+				$_oldVersion = Sql::scalar( 'select db_version from df_sys_config order by id desc' );
+
+				if ( static::doesDbVersionRequireUpgrade( $_oldVersion, $_version ) )
 				{
 					return PlatformStates::SCHEMA_REQUIRED;
 				}
 			}
 
-			$version = Utilities::getArrayValue( 'version', $contents );
-			$oldVersion = $_db->createCommand()
-						  ->select( 'db_version' )->from( 'df_sys_config' )
-						  ->order( 'id DESC' )->limit( 1 )
-						  ->queryScalar();
-			if ( static::doesDbVersionRequireUpgrade( $oldVersion, $version ) )
+			// Check for at least one system admin user
+			if ( !static::activated() )
 			{
-				return PlatformStates::SCHEMA_REQUIRED;
+				return PlatformStates::ADMIN_REQUIRED;
+			}
+
+			//	Need to check for the default services
+			if ( 0 == \Service::model()->count() )
+			{
+				return PlatformStates::DATA_REQUIRED;
 			}
 		}
 
-		// Check for at least one system admin user
-		$command = $_db->createCommand()
-				   ->select( '(COUNT(*))' )->from( 'df_sys_user' )->where( 'is_sys_admin=:is' );
-		if ( 0 == $command->queryScalar( array( ':is' => 1 ) ) )
-		{
-			return PlatformStates::ADMIN_REQUIRED;
-		}
-
-		// Need to check for the default services
-		$command = $_db->createCommand()
-				   ->select( '(COUNT(*))' )->from( 'df_sys_service' );
-		if ( 0 == $command->queryScalar() )
-		{
-			return PlatformStates::DATA_REQUIRED;
-		}
+		$_isReady = true;
 
 		return PlatformStates::READY;
 	}
@@ -432,6 +434,7 @@ class SystemManager extends RestService
 			// update session with current real user
 			$_identity = Pii::user();
 			$_identity->setId( $_user->primaryKey );
+			$_identity->setState( 'email', $_email );
 			$_identity->setState( 'df_authenticated', false ); // removes catch
 			$_identity->setState( 'password', $_password, $_password ); // removes password
 		}

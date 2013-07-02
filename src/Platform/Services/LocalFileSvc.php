@@ -145,7 +145,7 @@ class LocalFileSvc extends BaseFileSvc
 
 		// create the container
 		$key = self::addContainerToName( $container, '' );
-		if ( !mkdir( $key ) )
+		if ( !mkdir( $key, 0777, true ) )
 		{
 			throw new \Exception( 'Failed to create container.' );
 		}
@@ -398,9 +398,11 @@ class LocalFileSvc extends BaseFileSvc
 		// create the folder
 		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$key = self::addContainerToName( $container, $path );
-		if ( !mkdir( $key ) )
+
+		if ( false === @mkdir( $key, 0777, true ) )
 		{
-			throw new \Exception( 'Failed to create folder.' );
+			Log::error( 'Unable to create directory: ' . $key );
+			throw new \Exception( 'Failed to create folder: ' . $key );
 		}
 //            $properties = (empty($properties)) ? '' : json_encode($properties);
 //            $result = file_put_contents($key, $properties);
@@ -464,7 +466,7 @@ class LocalFileSvc extends BaseFileSvc
 		{
 			throw new NotFoundException( "Folder '$path' does not exist." );
 		}
-			// update the file that holds folder properties
+		// update the file that holds folder properties
 //            $properties = json_encode($properties);
 //            $key = self::addContainerToName($container, $path);
 //            $result = file_put_contents($key, $properties);
@@ -538,7 +540,7 @@ class LocalFileSvc extends BaseFileSvc
 
 	/**
 	 * @param string $container
-	 * @param $path
+	 * @param        $path
 	 *
 	 * @return bool
 	 */
@@ -655,7 +657,7 @@ class LocalFileSvc extends BaseFileSvc
 			header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $key ) ) );
 			header( 'Content-type: ' . FileUtilities::determineContentType( $ext, '', $key ) );
 			header( 'Content-Length:' . filesize( $key ) );
-			$disposition = ($download) ? 'attachment' : 'inline';
+			$disposition = ( $download ) ? 'attachment' : 'inline';
 			header( "Content-Disposition: $disposition; filename=\"$path\";" );
 			echo $result;
 		}
@@ -678,11 +680,10 @@ class LocalFileSvc extends BaseFileSvc
 	 */
 	public function updateFileProperties( $container, $path, $properties = array() )
 	{
-
 	}
 
 	/**
-	 * @param string $container
+	 * @param string  $container
 	 * @param string  $path
 	 * @param string  $content
 	 * @param boolean $content_is_base
@@ -879,7 +880,7 @@ class LocalFileSvc extends BaseFileSvc
 	}
 
 	/**
-	 * @param string $container
+	 * @param string      $container
 	 * @param string      $path
 	 * @param \ZipArchive $zip
 	 * @param string      $zipFileName
@@ -926,11 +927,11 @@ class LocalFileSvc extends BaseFileSvc
 	}
 
 	/**
-	 * @param string $container
-	 * @param string     $path
+	 * @param string      $container
+	 * @param string      $path
 	 * @param \ZipArchive $zip
-	 * @param bool       $clean
-	 * @param string     $drop_path
+	 * @param bool        $clean
+	 * @param string      $drop_path
 	 *
 	 * @throws \Exception
 	 * @return array
