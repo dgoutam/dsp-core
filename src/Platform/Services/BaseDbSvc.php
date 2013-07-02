@@ -22,9 +22,7 @@ namespace Platform\Services;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\FilterInput;
 use Platform\Exceptions\BadRequestException;
-use Platform\Utility\DataFormat;
 use Platform\Utility\RestRequest;
-use Platform\Utility\Utilities;
 
 /**
  * BaseDbSvc
@@ -61,12 +59,12 @@ abstract class BaseDbSvc extends RestService
 					case self::Get:
 						$this->validateTableAccess( $this->_resource, 'read' );
 						// Most requests contain 'returned fields' parameter, all by default
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
+						$fields = FilterInput::request( 'fields', '*' );
 						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+						$id_field = FilterInput::request( 'id_field' );
 						if ( empty( $this->_resourceId ) )
 						{
-							$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
+							$ids = FilterInput::request( 'ids' );
 							if ( !empty( $ids ) )
 							{
 								$result = $this->retrieveRecordsByIds( $this->_resource, $ids, $id_field, $fields, $extras );
@@ -77,10 +75,10 @@ abstract class BaseDbSvc extends RestService
 								$data = RestRequest::getPostDataAsArray();
 								if ( !empty( $data ) )
 								{ // complex filters or large numbers of ids require post
-									$ids = Utilities::getArrayValue( 'ids', $data, '' );
+									$ids = Option::get( $data, 'ids', '' );
 									if ( empty( $id_field ) )
 									{
-										$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+										$id_field = Option::get( $data, 'id_field', '' );
 									}
 									if ( !empty( $ids ) )
 									{
@@ -89,7 +87,7 @@ abstract class BaseDbSvc extends RestService
 									}
 									else
 									{
-										$records = Utilities::getArrayValue( 'record', $data, null );
+										$records = Option::get( $data, 'record', null );
 										if ( empty( $records ) )
 										{
 											// xml to array conversion leaves them in plural wrapper
@@ -103,7 +101,7 @@ abstract class BaseDbSvc extends RestService
 										}
 										else
 										{
-											$filter = Utilities::getArrayValue( 'filter', $data, '' );
+											$filter = Option::get( $data, 'filter', '' );
 											$result = $this->retrieveRecordsByFilter( $this->_resource, $filter, $fields, $extras );
 											if ( isset( $result['meta'] ) )
 											{
@@ -120,7 +118,7 @@ abstract class BaseDbSvc extends RestService
 								}
 								else
 								{
-									$filter = Utilities::getArrayValue( 'filter', $_REQUEST, '' );
+									$filter = FilterInput::request( 'filter', '' );
 									$result = $this->retrieveRecordsByFilter( $this->_resource, $filter, $fields, $extras );
 									if ( isset( $result['meta'] ) )
 									{
@@ -142,12 +140,12 @@ abstract class BaseDbSvc extends RestService
 						}
 						break;
 					case self::Post:
-						$data = RestRequest::getPostDataAsArray();
 						$this->validateTableAccess( $this->_resource, 'create' );
+						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+						$fields = FilterInput::request( 'fields', '' );
 						$extras = $this->gatherExtrasFromRequest();
-						$records = Utilities::getArrayValue( 'record', $data, null );
+						$records = Option::get( $data, 'record', null );
 						if ( empty( $records ) )
 						{
 							// xml to array conversion leaves them in plural wrapper
@@ -163,37 +161,29 @@ abstract class BaseDbSvc extends RestService
 						}
 						else
 						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
+							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 							$result = $this->createRecords( $this->_resource, $records, $rollback, $fields, $extras );
 							$result = array( 'record' => $result );
 						}
 						break;
 					case self::Put:
-						$data = RestRequest::getPostDataAsArray();
 						$this->validateTableAccess( $this->_resource, 'update' );
+						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+						$fields = FilterInput::request( 'fields', '' );
 						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+						$id_field = FilterInput::request( 'id_field', '' );
 						if ( empty( $id_field ) )
 						{
-							$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+							$id_field = Option::get( $data, 'id_field', '' );
 						}
 						if ( empty( $this->_resourceId ) )
 						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
+							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
 							if ( empty( $ids ) )
 							{
-								$ids = Utilities::getArrayValue( 'ids', $data, '' );
+								$ids = Option::get( $data, 'ids', '' );
 							}
 							if ( !empty( $ids ) )
 							{
@@ -205,7 +195,7 @@ abstract class BaseDbSvc extends RestService
 								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
 								if ( !isset( $filter ) )
 								{
-									$filter = Utilities::getArrayValue( 'filter', $data, null );
+									$filter = Option::get( $data, 'filter', null );
 								}
 								if ( isset( $filter ) )
 								{
@@ -214,7 +204,7 @@ abstract class BaseDbSvc extends RestService
 								}
 								else
 								{
-									$records = Utilities::getArrayValue( 'record', $data, null );
+									$records = Option::get( $data, 'record', null );
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
@@ -243,27 +233,23 @@ abstract class BaseDbSvc extends RestService
 						break;
 					case self::Patch:
 					case self::Merge:
-						$data = RestRequest::getPostDataAsArray();
 						$this->validateTableAccess( $this->_resource, 'update' );
+						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+						$fields = FilterInput::request( 'fields', '' );
 						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+						$id_field = FilterInput::request( 'id_field', '' );
 						if ( empty( $id_field ) )
 						{
-							$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+							$id_field = Option::get( $data, 'id_field', '' );
 						}
 						if ( empty( $this->_resourceId ) )
 						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
+							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
 							if ( empty( $ids ) )
 							{
-								$ids = Utilities::getArrayValue( 'ids', $data, '' );
+								$ids = Option::get( $data, 'ids', '' );
 							}
 							if ( !empty( $ids ) )
 							{
@@ -275,7 +261,7 @@ abstract class BaseDbSvc extends RestService
 								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
 								if ( !isset( $filter ) )
 								{
-									$filter = Utilities::getArrayValue( 'filter', $data, null );
+									$filter = Option::get( $data, 'filter', null );
 								}
 								if ( isset( $filter ) )
 								{
@@ -284,7 +270,7 @@ abstract class BaseDbSvc extends RestService
 								}
 								else
 								{
-									$records = Utilities::getArrayValue( 'record', $data, null );
+									$records = Option::get( $data, 'record', null );
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
@@ -312,27 +298,23 @@ abstract class BaseDbSvc extends RestService
 						}
 						break;
 					case self::Delete:
-						$data = RestRequest::getPostDataAsArray();
 						$this->validateTableAccess( $this->_resource, 'delete' );
+						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
-						$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '' );
+						$fields = FilterInput::request( 'fields', '' );
 						$extras = $this->gatherExtrasFromRequest();
-						$id_field = Utilities::getArrayValue( 'id_field', $_REQUEST, '' );
+						$id_field = FilterInput::request( 'id_field', '' );
 						if ( empty( $id_field ) )
 						{
-							$id_field = Utilities::getArrayValue( 'id_field', $data, '' );
+							$id_field = Option::get( $data, 'id_field', '' );
 						}
 						if ( empty( $this->_resourceId ) )
 						{
-							$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-							if ( !isset( $rollback ) )
-							{
-								$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-							}
+							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
 							if ( empty( $ids ) )
 							{
-								$ids = Utilities::getArrayValue( 'ids', $data, '' );
+								$ids = Option::get( $data, 'ids', '' );
 							}
 							if ( !empty( $ids ) )
 							{
@@ -344,7 +326,7 @@ abstract class BaseDbSvc extends RestService
 								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
 								if ( !isset( $filter ) )
 								{
-									$filter = Utilities::getArrayValue( 'filter', $data, null );
+									$filter = Option::get( $data, 'filter', null );
 								}
 								if ( isset( $filter ) )
 								{
@@ -353,7 +335,7 @@ abstract class BaseDbSvc extends RestService
 								}
 								else
 								{
-									$records = Utilities::getArrayValue( 'record', $data, null );
+									$records = Option::get( $data, 'record', null );
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
@@ -411,9 +393,9 @@ abstract class BaseDbSvc extends RestService
 				$result = array( 'table' => $result );
 				break;
 			case self::Post:
-				$data = RestRequest::getPostDataAsArray();
 				$this->checkPermission( 'create' );
-				$tables = Utilities::getArrayValue( 'table', $data, null );
+				$data = RestRequest::getPostDataAsArray();
+				$tables = Option::get( $data, 'table', null );
 				if ( empty( $tables ) )
 				{
 					// xml to array conversion leaves them in plural wrapper
@@ -430,11 +412,7 @@ abstract class BaseDbSvc extends RestService
 				}
 				else
 				{
-					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-					if ( !isset( $rollback ) )
-					{
-						$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-					}
+					$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 					$result = $this->createTables( $tables, $rollback );
 					$result = array( 'table' => $result );
 				}
@@ -442,9 +420,9 @@ abstract class BaseDbSvc extends RestService
 			case self::Put:
 			case self::Patch:
 			case self::Merge:
-				$data = RestRequest::getPostDataAsArray();
 				$this->checkPermission( 'update' );
-				$tables = Utilities::getArrayValue( 'table', $data, null );
+				$data = RestRequest::getPostDataAsArray();
+				$tables = Option::get( $data, 'table', null );
 				if ( empty( $tables ) )
 				{
 					// xml to array conversion leaves them in plural wrapper
@@ -461,27 +439,19 @@ abstract class BaseDbSvc extends RestService
 				}
 				else
 				{
-					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-					if ( !isset( $rollback ) )
-					{
-						$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-					}
+					$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 					$result = $this->updateTables( $tables, $rollback );
 					$result = array( 'table' => $result );
 				}
 				break;
 			case self::Delete:
-				$data = RestRequest::getPostDataAsArray();
 				$this->checkPermission( 'delete' );
-				$rollback = ( isset( $_REQUEST['rollback'] ) ) ? DataFormat::boolval( $_REQUEST['rollback'] ) : null;
-				if ( !isset( $rollback ) )
-				{
-					$rollback = DataFormat::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-				}
+				$data = RestRequest::getPostDataAsArray();
+				$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 				$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
 				if ( empty( $ids ) )
 				{
-					$ids = Utilities::getArrayValue( 'ids', $data, '' );
+					$ids = Option::get( $data, 'ids', '' );
 				}
 				if ( !empty( $ids ) )
 				{
