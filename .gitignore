@@ -1,7 +1,7 @@
 .idea
 vendor
 !web/public/vendor/bootstrap
-shared/
+shared
 log
 storage
 composer.phar

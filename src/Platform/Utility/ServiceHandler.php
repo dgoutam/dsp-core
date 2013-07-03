@@ -19,6 +19,8 @@
  */
 namespace Platform\Utility;
 
+use DreamFactory\Yii\Utility\Pii;
+use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
@@ -58,36 +60,6 @@ class ServiceHandler
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
-
-	/**
-	 * Initialize the service handler
-	 *
-	 * @param string|array $config
-	 *
-	 * @throws \InvalidArgumentException
-	 */
-	protected static function _initialize( $config = null )
-	{
-		if ( empty( static::$_serviceConfig ) )
-		{
-			$_config = $config ? : \Kisma::get( 'app.config_path' ) . '/services.config.php';
-
-			if ( is_string( $_config ) )
-			{
-				if ( !is_file( $_config ) || !is_readable( $_config ) )
-				{
-					throw new \InvalidArgumentException( 'The configuration file "' . $_config . '" cannot be loaded.' );
-				}
-
-				/** @noinspection PhpIncludeInspection */
-				static::$_serviceConfig = require_once( $_config );
-			}
-			else if ( is_array( $_config ) )
-			{
-				static::$_serviceConfig = $_config;
-			}
-		}
-	}
 
 	/**
 	 * Creates a new ServiceHandler instance
@@ -131,7 +103,10 @@ class ServiceHandler
 	 */
 	public static function getServiceObject( $api_name, $check_active = false )
 	{
-		static::_initialize();
+		if ( empty( static::$_serviceConfig ) )
+		{
+			static::$_serviceConfig = Pii::getParam( 'dsp.service_config', array() );
+		}
 
 		$_tag = strtolower( trim( $api_name ) );
 
@@ -211,14 +186,14 @@ class ServiceHandler
 
 		if ( null !== ( $_serviceClass = Option::get( $_config, 'class' ) ) )
 		{
-			$_arguments = array( $record );
-
 			if ( is_array( $_serviceClass ) )
 			{
 				$_storageType = strtolower( trim( Option::get( $record, 'storage_type' ) ) );
-				$_serviceClass = Option::get( $_serviceClass, $_storageType );
-				$_arguments = array( $record, Option::get( $_config, 'local', true ) );
+				$_config = Option::get( $_serviceClass, $_storageType );
+				$_serviceClass = Option::get( $_config, 'class' );
 			}
+
+			$_arguments = array( $record, Option::get( $_config, 'local', true ) );
 
 			$_mirror = new \ReflectionClass( $_serviceClass );
 

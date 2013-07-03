@@ -21,6 +21,8 @@ namespace Platform\Utility;
 
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Sql;
+use Platform\Enums\StorageDrivers;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Interfaces\SqlDbDriverTypes;
@@ -45,23 +47,23 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	{
 		switch ( $db->driverName )
 		{
-			case 'mssql':
-			case 'dblib':
-			case 'sqlsrv':
+			case StorageDrivers::MS_SQL:
+			case StorageDrivers::SYBASE:
+			case StorageDrivers::SQL_SERVER:
 				return static::DRV_SQLSRV;
 
-			case 'mysqli':
-			case 'mysql':
+			case StorageDrivers::MYSQL:
+			case StorageDrivers::MYSQLI:
 				return static::DRV_MYSQL;
 
-			case 'sqlite':
-			case 'sqlite2':
+			case StorageDrivers::SQLITE:
+			case StorageDrivers::SQLITE2:
 				return static::DRV_SQLITE;
 
-			case 'oci':
+			case StorageDrivers::ORACLE:
 				return static::DRV_OCSQL;
 
-			case 'pgsql':
+			case StorageDrivers::POSTGRESQL:
 				return static::DRV_PGSQL;
 
 			default:
@@ -71,7 +73,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $name
+	 * @param string         $name
 	 *
 	 * @throws BadRequestException
 	 * @throws NotFoundException
@@ -79,74 +81,63 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	 */
 	public static function correctTableName( $db, $name )
 	{
-		if ( empty( $name ) )
+		if ( false !== ( $_table = static::doesTableExist( $db, $name, true ) ) )
 		{
-			throw new BadRequestException( 'Table name can not be empty.' );
+			return $_table;
 		}
 
-		$tables = $db->schema->getTableNames();
-
-		// make search case insensitive
-		foreach ( $tables as $table )
-		{
-			if ( 0 == strcasecmp( $table, $name ) )
-			{
-				return $table;
-			}
-		}
-
-		Log::error( 'Unknown table "' . $name . '" requested.' );
-
-		throw new NotFoundException( "Table '$name' does not exist in the database." );
+		throw new NotFoundException( 'Table "' . $name . '" does not exist in the database.' );
 	}
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $name
+	 * @param string         $name
+	 * @param bool           $returnName If true, the table name is returned instead of TRUE
 	 *
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return bool
-	 * @throws BadRequestException
 	 */
-	public static function doesTableExist( $db, $name )
+	public static function doesTableExist( $db, $name, $returnName = false )
 	{
 		if ( empty( $name ) )
 		{
 			throw new BadRequestException( 'Table name can not be empty.' );
 		}
 
-		$tables = Pii::db()->getSchema()->getTableNames();
+		$_tables = $db->schema->getTableNames();
 
 		//	make search case insensitive
-		foreach ( $tables as $table )
+		foreach ( $_tables as $_table )
 		{
-			if ( 0 == strcasecmp( $table, $name ) )
+			if ( 0 == strcasecmp( $_table, $name ) )
 			{
-				return true;
+				return $returnName ? $_table : true;
 			}
 		}
 
-		Log::notice( 'Table "' . $name . '" does not exist.' );
+		Log::error( 'Unknown table "' . $name . '" requested.' );
 
 		return false;
 	}
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $include
-	 * @param string        $exclude
+	 * @param string         $include
+	 * @param string         $exclude
 	 *
 	 * @return array
 	 * @throws \Exception
 	 */
 	public static function listTables( $db, $include = '', $exclude = '' )
 	{
-		// todo need to assess schemas in ms sql and load them separately.
+		//	Todo need to assess schemas in ms sql and load them separately.
 		try
 		{
 			$names = $db->schema->getTableNames();
 			$includeArray = array_map( 'trim', explode( ',', strtolower( $include ) ) );
 			$excludeArray = array_map( 'trim', explode( ',', strtolower( $exclude ) ) );
 			$temp = array();
+
 			foreach ( $names as $name )
 			{
 				if ( !empty( $include ) )
@@ -178,8 +169,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $include_prefix
-	 * @param string        $exclude_prefix
+	 * @param string         $include_prefix
+	 * @param string         $exclude_prefix
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -251,8 +242,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param null          $names
-	 * @param string        $remove_prefix
+	 * @param null           $names
+	 * @param string         $remove_prefix
 	 *
 	 * @throws \Exception
 	 * @return array|string
@@ -277,8 +268,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $name
-	 * @param string        $remove_prefix
+	 * @param string         $name
+	 * @param string         $remove_prefix
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -326,7 +317,6 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				'field'       => static::describeTableFields( $db, $name, $labels ),
 				'related'     => static::describeTableRelated( $db, $name )
 			);
-
 		}
 		catch ( \Exception $ex )
 		{
@@ -336,8 +326,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $name
-	 * @param array         $labels
+	 * @param                $name
+	 * @param array          $labels
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -376,8 +366,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $field_names
+	 * @param string         $table_name
+	 * @param array          $field_names
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -421,8 +411,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $table_name
-	 * @param               $field_name
+	 * @param                $table_name
+	 * @param                $field_name
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -466,8 +456,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbColumnSchema $column
-	 * @param array           $foreign_keys
-	 * @param array           $label_info
+	 * @param array            $foreign_keys
+	 * @param array            $label_info
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -523,7 +513,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $parent_table
+	 * @param                $parent_table
 	 *
 	 * @return array
 	 * @throws \Exception
@@ -1108,9 +1098,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	}
 
 	/**
-	 * @param string              $table_name
-	 * @param array               $fields
-	 * @param bool                $allow_update
+	 * @param string               $table_name
+	 * @param array                $fields
+	 * @param bool                 $allow_update
 	 * @param null|\CDbTableSchema $schema
 	 *
 	 * @throws \Exception
@@ -1384,7 +1374,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param array         $extras
+	 * @param array          $extras
 	 *
 	 * @return array
 	 */
@@ -1454,18 +1444,22 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				}
 				$unique = Utilities::boolval( Utilities::getArrayValue( 'unique', $index, false ) );
 				$rows = $command->createIndex( $name, $table, $index['column'], $unique );
-
 			}
 		}
+
 		$labels = Utilities::getArrayValue( 'labels', $extras, array() );
-		static::setLabels( $labels );
+
+		if ( !empty( $labels ) )
+		{
+			static::setLabels( $labels );
+		}
 	}
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $fields
-	 * @param bool          $allow_update
+	 * @param string         $table_name
+	 * @param array          $fields
+	 * @param bool           $allow_update
 	 *
 	 * @return array
 	 * @throws \Exception
@@ -1518,9 +1512,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $data
-	 * @param bool          $return_labels_refs
+	 * @param string         $table_name
+	 * @param array          $data
+	 * @param bool           $return_labels_refs
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -1600,9 +1594,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $data
-	 * @param bool          $return_labels_refs
+	 * @param string         $table_name
+	 * @param array          $data
+	 * @param bool           $return_labels_refs
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -1691,9 +1685,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param array         $tables
-	 * @param bool          $allow_merge
-	 * @param bool          $rollback
+	 * @param array          $tables
+	 * @param bool           $allow_merge
+	 * @param bool           $rollback
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -1809,7 +1803,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
+	 * @param string         $table_name
 	 *
 	 * @throws \Exception
 	 */
@@ -1843,8 +1837,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param string        $field_name
+	 * @param string         $table_name
+	 * @param string         $field_name
 	 *
 	 * @throws \Exception
 	 */
@@ -1863,7 +1857,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 		{
 			$command = $db->createCommand();
 			$command->dropColumn( $table_name, $field_name );
-			/** @var \CDbConnection $_dbLocal Local connection*/
+			/** @var \CDbConnection $_dbLocal Local connection */
 			$_dbLocal = Pii::db();
 			$where = $_dbLocal->quoteColumnName( 'table' ) . ' = :tn';
 			$where .= ' and ' . $_dbLocal->quoteColumnName( 'field' ) . ' = :fn';
@@ -1903,37 +1897,105 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	}
 
 	/**
-	 * @param $labels
+	 * @param array $labels
 	 *
+	 * @throws \CDbException
 	 * @return void
 	 */
 	public static function setLabels( $labels )
 	{
 		$_db = Pii::db();
+
 		if ( !empty( $labels ) && static::doesTableExist( $_db, 'df_sys_schema_extras' ) )
 		{
 			// todo batch this for speed
-			$command = $_db->createCommand();
-			foreach ( $labels as $each )
+			//@TODO Batched it a bit... still probably slow...
+			$_sql = <<<SQL
+SELECT
+	id
+FROM
+	df_sys_schema_extras
+WHERE
+	:table_column = :table_value AND
+	:field_column = :field_value
+SQL;
+
+			$_inserts = $_updates = array();
+
+			$_tableColumn = $_db->quoteColumnName( 'table' );
+			$_fieldColumn = $_db->quoteColumnName( 'field' );
+
+			Sql::setConnection( Pii::pdo() );
+
+			foreach ( $labels as $_label )
 			{
-//                $service_id = Utilities::getArrayValue('service_id', $label);
-				$table = Utilities::getArrayValue( 'table', $each );
-				$field = Utilities::getArrayValue( 'field', $each );
-				$where = $_db->quoteColumnName( 'table' ) . " = '$table'";
-				$where .= ' and ' . $_db->quoteColumnName( 'field' ) . " = '$field'";
-				$command->reset();
-				$command->select( '(COUNT(*)) as ' . $_db->quoteColumnName( 'count' ) );
-				$command->from( 'df_sys_schema_extras' );
-				$command->where( $where );
-				$count = intval( $command->queryScalar() );
-				$command->reset();
-				if ( 0 >= $count )
+				$_id = Sql::scalar(
+					$_sql,
+					0,
+					array(
+						 ':table_column' => $_tableColumn,
+						 ':table_value'  => Option::get( $_label, 'table' ),
+						 ':field_column' => $_fieldColumn,
+						 ':field_value'  => Option::get( $_label, 'field' ),
+					)
+				);
+
+				if ( empty( $_id ) )
 				{
-					$rows = $command->insert( 'df_sys_schema_extras', $each );
+					$_inserts[] = $_label;
 				}
 				else
 				{
-					$rows = $command->update( 'df_sys_schema_extras', $each, $where );
+					$_updates[$_id] = $_label;
+				}
+			}
+
+			$_transaction = null;
+
+			try
+			{
+				$_transaction = $_db->beginTransaction();
+			}
+			catch ( \Exception $_ex )
+			{
+				//	No transaction support
+				$_transaction = false;
+			}
+
+			try
+			{
+				$_command = new \CDbCommand( $_db );
+
+				if ( !empty( $_inserts ) )
+				{
+					foreach ( $_inserts as $_insert )
+					{
+						$_command->reset();
+						$_command->insert( 'df_sys_schema_extras', $_insert );
+					}
+				}
+
+				if ( !empty( $_updates ) )
+				{
+					foreach ( $_updates as $_id => $_update )
+					{
+						$_command->reset();
+						$_command->update( 'df_sys_schema_extras', $_update, 'id = :id', array( ':id' => $_id ) );
+					}
+				}
+
+				if ( $_transaction )
+				{
+					$_transaction->commit();
+				}
+			}
+			catch ( \Exception $_ex )
+			{
+				Log::error( 'Exception storing schema updates: ' . $_ex->getMessage() );
+
+				if ( $_transaction )
+				{
+					$_transaction->rollback();
 				}
 			}
 		}
@@ -1946,6 +2008,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	public static function removeLabels( $where, $params = null )
 	{
 		$_db = Pii::db();
+
 		if ( static::doesTableExist( $_db, 'df_sys_schema_extras' ) )
 		{
 			$command = $_db->createCommand();
@@ -1954,19 +2017,19 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	}
 
 	/**
-	 * @param $original
+	 * @param array $original
 	 *
 	 * @return array
 	 */
 	public static function reformatFieldLabelArray( $original )
 	{
-		$new = array();
-		foreach ( $original as $label )
+		$_new = array();
+
+		foreach ( $original as $_label )
 		{
-			$field = Utilities::getArrayValue( 'field', $label, '' );
-			$new[$field] = $label;
+			$_new[Option::get( $_label, 'field' )] = $_label;
 		}
 
-		return $new;
+		return $_new;
 	}
 }

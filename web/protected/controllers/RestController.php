@@ -100,8 +100,7 @@ class RestController extends Controller
 			}
 			else
 			{
-				$svcObj = ServiceHandler::getServiceObject( $this->service );
-				$result = $svcObj->processRequest( $this->resource, HttpMethod::Get );
+				$result = ServiceHandler::getServiceObject( $this->service )->processRequest( $this->resource, HttpMethod::Get );
 			}
 
 			RestResponse::sendResults( $result, RestResponse::Ok, $_resultFormat, $this->format );

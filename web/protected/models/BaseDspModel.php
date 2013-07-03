@@ -19,10 +19,11 @@
  */
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Yii\Behaviors\TimestampBehavior;
+use DreamFactory\Yii\Behaviors\DataFormatBehavior;
 
-require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/DataFormatBehavior.php';
-require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/TimestampBehavior.php';
+//require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/DataFormatBehavior.php';
+//require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/TimestampBehavior.php';
 
 /**
  * BaseDspModel.php
@@ -186,15 +187,15 @@ class BaseDspModel extends \CActiveRecord
 			array(
 				 //	Data formatter
 				 'base_model.data_format_behavior' => array(
-					 'class' => '\\Platform\\Yii\\Behaviors\\DataFormatBehavior',
+					 'class' => '\\DreamFactory\\Yii\\Behaviors\\DataFormatBehavior',
 				 ),
 				 //	Timestamper
 				 'base_model.timestamp_behavior'   => array(
-					 'class'              => '\\Platform\\Yii\\Behaviors\\TimestampBehavior',
-					 'createdColumn'      => 'created_date',
-//					 'createdByColumn'      => 'created_by_id',
-					 'lastModifiedColumn' => 'last_modified_date',
-//					 'lastModifiedByColumn' => 'last_modified_by_id',
+					 'class'                => '\\DreamFactory\\Yii\\Behaviors\\TimestampBehavior',
+					 'createdColumn'        => 'created_date',
+					 'createdByColumn'      => 'created_by_id',
+					 'lastModifiedColumn'   => 'last_modified_date',
+					 'lastModifiedByColumn' => 'last_modified_by_id',
 				 ),
 			)
 		);
