@@ -501,7 +501,18 @@ abstract class BaseDbSvc extends RestService
 
 	protected function gatherExtrasFromRequest()
 	{
-		return array();
+		$_extras = array();
+
+		// most DBs support the following filter extras
+		// accept top as well as limit
+		$_extras['limit'] = FilterInput::request( 'limit', FilterInput::request( 'top', 0 ), FILTER_VALIDATE_INT );
+		// accept skip as well as offset
+		$_extras['offset'] = FilterInput::request( 'offset', FilterInput::request( 'skip', 0 ), FILTER_VALIDATE_INT );
+		// accept sort as well as order
+		$_extras['order'] = FilterInput::request( 'order', FilterInput::request( 'sort' ) );
+		$_extras['include_count'] = FilterInput::request( 'include_count', false, FILTER_VALIDATE_BOOLEAN );
+
+		return $_extras;
 	}
 
 	/**

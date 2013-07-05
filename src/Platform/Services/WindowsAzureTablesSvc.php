@@ -175,15 +175,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 	protected function gatherExtrasFromRequest()
 	{
-		$_extras = array();
-
-//		$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-//		$order = Utilities::getArrayValue( 'order', $data, '' );
-//		$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-
-		$_extras['limit'] = FilterInput::request( 'limit', 0, FILTER_VALIDATE_INT );
-		$_extras['order'] = FilterInput::request( 'order', '', FILTER_SANITIZE_STRING );
-		$_extras['include_count'] = FilterInput::request( 'include_count', false, FILTER_VALIDATE_BOOLEAN );
+		$_extras = parent::gatherExtrasFromRequest();
 
 		return $_extras;
 	}

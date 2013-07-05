@@ -19,9 +19,10 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Utility\DataFormat;
-use Kisma\Core\Utility\Option;
 
 /**
  * MongoDbSvc.php
@@ -137,15 +138,7 @@ class MongoDbSvc extends NoSqlDbSvc
 
 	protected function gatherExtrasFromRequest()
 	{
-		$_extras = array();
-
-//		$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-//		$order = Utilities::getArrayValue( 'order', $data, '' );
-//		$include_count = DataFormat::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-
-		$_extras['limit'] = intval( Option::get( $_REQUEST, 'limit', 0 ) );
-		$_extras['order'] = Option::get( $_REQUEST, 'order', '' );
-		$_extras['include_count'] = DataFormat::boolval( Option::get( $_REQUEST, 'include_count', false ) );
+		$_extras = parent::gatherExtrasFromRequest();
 
 		return $_extras;
 	}
@@ -538,7 +531,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		unset( $record['_id'] ); // make sure the record has no identifier
 		$_coll = $this->selectTable( $table );
 		// build criteria from filter parameters
-		$_criteria = array();
+		$_criteria = static::buildFilterArray( $filter );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -677,7 +670,7 @@ class MongoDbSvc extends NoSqlDbSvc
 				}
 				$result = $_coll->findAndModify(
 					array( '_id' => $_id ),
-					$_record,
+					array( '$set' => $_record ),
 					$_fieldArray,
 					array( 'new' => true )
 				);
@@ -761,7 +754,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		unset( $record['_id'] );
 		$_coll = $this->selectTable( $table );
 		// build criteria from filter parameters
-		$_criteria = array();
+		$_criteria = static::buildFilterArray( $filter );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -971,16 +964,21 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
+		// build criteria from filter parameters
+		$_criteria = static::buildFilterArray( $filter );
+		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$_records = $this->retrieveRecordsByFilter( $table, $filter, $fields, $extras );
-			$results = $_coll->remove( $filter );
+			/** @var \MongoCursor $result */
+			$result = $_coll->find( $_criteria, $_fieldArray );
+			$_out = iterator_to_array( $result );
+			$result = $_coll->remove( $_criteria );
 
-			return $_records;
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
-			throw $ex;
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1074,14 +1072,35 @@ class MongoDbSvc extends NoSqlDbSvc
 	{
 		$_coll = $this->selectTable( $table );
 		$_fieldArray = static::buildFieldArray( $fields );
-		$_criteria = array();
+		$_criteria = static::buildFilterArray( $filter );
+		$_limit = intval( Option::get( $extras, 'limit', 0 ) );
+		$_offset = intval( Option::get( $extras, 'offset', 0 ) );
+		$_sort = static::buildSortArray( Option::get( $extras, 'order' ) );
+		$_count = Option::get( $extras, 'include_count', false );
 		try
 		{
-			/** @var \MongoCursor $result */
-			$result = $_coll->find( $_criteria, $_fieldArray );
-			$_out = iterator_to_array( $result );
+			/** @var \MongoCursor $_result */
+			$_result = $_coll->find( $_criteria, $_fieldArray );
+			if ( $_offset )
+			{
+				$_result = $_result->skip( $_offset );
+			}
+			if ( $_sort )
+			{
+				$_result = $_result->sort( $_sort );
+			}
+			if ( $_limit )
+			{
+				$_result = $_result->limit( $_limit );
+			}
+			$_out = iterator_to_array( $_result );
+			$_out =  static::cleanRecords( $_out );
+			if ( $_count )
+			{
+				$_out['meta']['count'] = $_result->count();
+			}
 
-			return static::cleanRecords( $_out );
+			return $_out;
 		}
 		catch ( \Exception $ex )
 		{
@@ -1258,6 +1277,262 @@ class MongoDbSvc extends NoSqlDbSvc
 				continue;
 			}
 			$_out[$key] = true;
+		}
+
+		return $_out;
+	}
+
+	/**
+	 * @param string|array $filter Filter for querying records by
+	 *
+	 * @return array
+	 */
+	protected static function buildFilterArray( $filter )
+	{
+		if ( empty( $filter ) )
+		{
+			return array();
+		}
+
+		if ( is_array( $filter ) )
+		{
+			return $filter; // assume they know what they are doing
+		}
+
+		$_search = array( ' or ', ' and ', ' nor ' );
+		$_replace = array( ' || ', ' && ', ' NOR ' );
+		$filter = trim( str_ireplace( $_search, $_replace, $filter ) );
+
+		// handle logical operators first
+		$_ops = array_map( 'trim', explode( ' || ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_parts = array();
+			foreach ( $_ops as $_op )
+			{
+				$_parts[] = static::buildFilterArray( $_op );
+			}
+
+			return array( '$or' => $_parts );
+		}
+
+		$_ops = array_map( 'trim', explode( ' NOR ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_parts = array();
+			foreach ( $_ops as $_op )
+			{
+				$_parts[] = static::buildFilterArray( $_op );
+			}
+
+			return array( '$nor' => $_parts );
+		}
+
+		$_ops = array_map( 'trim', explode( ' && ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_parts = array();
+			foreach ( $_ops as $_op )
+			{
+				$_parts[] = static::buildFilterArray( $_op );
+			}
+
+			return array( '$and' => $_parts );
+		}
+
+		// handle negation operator, i.e. starts with NOT?
+		if ( 0 == substr_compare( $filter, 'not ', 0, 4, true ) )
+		{
+			$_parts = trim( substr( $filter, 4 ) );
+
+			return array( '$not' => $_parts );
+		}
+
+		// the rest should be comparison operators
+		$_search = array( ' eq ', ' ne ', ' gte ', ' lte ', ' gt ', ' lt ', ' in ', ' nin ', ' all ', ' like ' );
+		$_replace = array( ' = ', ' != ', ' >= ', ' <= ', ' > ', ' < ', ' IN ', ' NIN ', ' ALL ', ' LIKE ' );
+		$filter = trim( str_ireplace( $_search, $_replace, $filter ) );
+
+		$_ops = array_map( 'trim', explode( ' = ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => $_val );
+		}
+
+		$_ops = array_map( 'trim', explode( ' != ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$ne' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' >= ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$gte' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' <= ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$lte' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' > ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$gt' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' < ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$lt' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' IN ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$in' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' NIN ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$nin' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' ALL ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => array( '$all' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( ' LIKE ', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+//			WHERE name LIKE "%Joe%"	find(array("name" => new MongoRegex("/Joe/")));
+//			WHERE name LIKE "Joe%"	find(array("name" => new MongoRegex("/^Joe/")));
+//			WHERE name LIKE "%Joe"	find(array("name" => new MongoRegex("/Joe$/")));
+			$_val = static::_determineValue( $_ops[1] );
+			if ( '%' == $_val[ strlen( $_val ) - 1 ] )
+			{
+				if ( '%' == $_val[0] )
+				{
+					$_val = '/' . trim( $_val, '%' ) . '/ ';
+				}
+				else
+				{
+					$_val = '/^' . rtrim( $_val, '%' ) . '/ ';
+				}
+			}
+			else
+			{
+				if ( '%' == $_val[0] )
+				{
+					$_val = '/' . trim( $_val, '%' ) . '$/ ';
+				}
+				else
+				{
+					$_val = '/' . $_val . '/ ';
+				}
+			}
+
+			return array( $_ops[0] => new \MongoRegex( $_val ) );
+		}
+
+		return $filter;
+	}
+
+	private static function _determineValue( $value )
+	{
+		if ( trim( $value, "'\"" ) !== $value )
+		{
+			return trim( $value, "'\"" ); // meant to be a string
+		}
+
+		if ( is_numeric( $value ) )
+		{
+			return ( $value == strval( intval( $value ) ) ) ? intval( $value ) : floatval( $value );
+		}
+
+		if ( 0 == strcasecmp( $value, 'true' ) )
+		{
+			return true;
+		}
+
+		if ( 0 == strcasecmp( $value, 'false' ) )
+		{
+			return false;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * @param string|array $sort List of fields to sort the output records by
+	 *
+	 * @return array
+	 */
+	protected static function buildSortArray( $sort )
+	{
+		if ( empty( $sort ) )
+		{
+			return null;
+		}
+
+		if ( !is_array( $sort ) )
+		{
+			$sort = array_map( 'trim', explode( ',', trim( $sort, ',' ) ) );
+		}
+		$_out = array();
+		foreach ( $sort as $_combo )
+		{
+			if ( !is_array( $_combo ) )
+			{
+				$_combo = array_map( 'trim', explode( ' ', trim( $_combo, ' ' ) ) );
+			}
+			$_dir = 1;
+			$_field = '';
+			switch ( count( $_combo ) )
+			{
+				case 1:
+					$_field = $_combo[0];
+					break;
+				case 2:
+					$_field = $_combo[0];
+					switch ( $_combo[1] )
+					{
+						case -1:
+						case 'desc':
+						case 'DESC':
+						case 'dsc':
+						case 'DSC':
+							$_dir = -1;
+							break;
+					}
+			}
+			if ( !empty( $_field ) )
+			{
+				$_out[$_field] = $_dir;
+			}
 		}
 
 		return $_out;
