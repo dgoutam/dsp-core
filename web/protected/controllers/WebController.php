@@ -26,6 +26,7 @@ use Kisma\Core\Utility\Option;
 use Platform\Interfaces\PlatformStates;
 use Platform\Services\SystemManager;
 use Platform\Resources\UserSession;
+use Platform\Services\UserManager;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -95,13 +96,12 @@ class WebController extends BaseWebController
 					'login',
 					'error',
 					'activate',
-					'initAdmin',
 					'initSystem',
-					'initAdmin',
 					'initSchema',
 					'upgradeSchema',
 					'initData',
 					'upgrade',
+					'initAdmin',
 				),
 				'users'   => array( '*' ),
 			),
@@ -139,7 +139,7 @@ class WebController extends BaseWebController
 	{
 		$_model = new LoginForm();
 
-		if ( !$this->_activated && isset( $_POST, $_POST['skipped'] ) )
+		if ( !$this->_activated && 0 != FilterInput::post( 'skipped', 0, FILTER_SANITIZE_NUMBER_INT ) )
 		{
 //			Log::debug( 'Login skipped.' );
 			$this->redirect( '/' );
@@ -154,6 +154,11 @@ class WebController extends BaseWebController
 				//	Validate user input and redirect to the previous page if valid
 				if ( $_model->validate() && $_model->login() )
 				{
+					if ( !$this->_activated )
+					{
+						SystemManager::initAdmin();
+					}
+
 					if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
 					{
 						$_returnUrl = Pii::url( $this->id . '/index' );
@@ -172,7 +177,6 @@ class WebController extends BaseWebController
 			{
 				if ( !$this->_activated )
 				{
-//					Log::debug( 'redirect' );
 					$this->redirect( '/' . $this->id . '/initAdmin' );
 				}
 				else

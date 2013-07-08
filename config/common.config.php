@@ -121,12 +121,14 @@ return array_merge(
 		  */
 		 'blobStorageConfig'    => $_blobConfig,
 		 'adminEmail'           => 'support@dreamfactory.com',
+		 /** The default service configuration */
+		 'dsp.service_config'   => require( __DIR__ . '/services.config.php' ),
 		 /** Default services provided by all DSPs */
 		 'dsp.default_services' => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
 		 /** The default application to start */
-		 'dsp.default_app' => '/public/launchpad/index.html',
+		 'dsp.default_app'      => '/public/launchpad/index.html',
 	)
 );

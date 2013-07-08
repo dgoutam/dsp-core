@@ -19,8 +19,6 @@
  */
 namespace Platform\Services;
 
-use Aws\Sns\Exception\InternalErrorException;
-use Kisma\Core\Exceptions\ServiceException;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -71,11 +69,6 @@ class SystemManager extends RestService
 	//	Members
 	//*************************************************************************
 
-	/**
-	 * @var string The config path
-	 */
-	protected static $_configPath = null;
-
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
@@ -86,11 +79,6 @@ class SystemManager extends RestService
 	 */
 	public function __construct()
 	{
-		if ( empty( static::$_configPath ) )
-		{
-			static::$_configPath = \Kisma::get( 'app.config_path' );
-		}
-
 		$config = array(
 			'name'        => 'System Configuration Management',
 			'api_name'    => 'system',
@@ -193,62 +181,64 @@ class SystemManager extends RestService
 	 */
 	public static function getSystemState()
 	{
-		// Refresh the schema that we just added
-		$_db = Pii::db();
-		$_schema = $_db->getSchema();
+		static $_isReady = false;
 
-		$tables = $_schema->getTableNames();
-
-		if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
+		if ( !$_isReady )
 		{
-			return PlatformStates::INIT_REQUIRED;
-		}
+			// Refresh the schema that we just added
+			$_db = Pii::db();
+			$_schema = $_db->getSchema();
+			Sql::setConnection( $_db->pdoInstance );
 
-		//	Need to check for db upgrade, based on tables or version
-		$_contents = file_get_contents( static::$_configPath . '/schema/system_schema.json' );
+			$tables = $_schema->getTableNames();
 
-		if ( !empty( $contents ) )
-		{
-			$contents = DataFormat::jsonToArray( $contents );
-
-			// check for any missing necessary tables
-			$needed = Utilities::getArrayValue( 'table', $contents, array() );
-
-			foreach ( $needed as $table )
+			if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
 			{
-				$name = Utilities::getArrayValue( 'name', $table, '' );
-				if ( !empty( $name ) && !in_array( $name, $tables ) )
+				return PlatformStates::INIT_REQUIRED;
+			}
+
+			// need to check for db upgrade, based on tables or version
+			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+
+			if ( !empty( $contents ) )
+			{
+				$contents = DataFormat::jsonToArray( $contents );
+
+				// check for any missing necessary tables
+				$needed = Utilities::getArrayValue( 'table', $contents, array() );
+
+				foreach ( $needed as $table )
+				{
+					$name = Utilities::getArrayValue( 'name', $table, '' );
+					if ( !empty( $name ) && !in_array( $name, $tables ) )
+					{
+						return PlatformStates::SCHEMA_REQUIRED;
+					}
+				}
+
+				$_version = Utilities::getArrayValue( 'version', $contents );
+				$_oldVersion = Sql::scalar( 'select db_version from df_sys_config order by id desc' );
+
+				if ( static::doesDbVersionRequireUpgrade( $_oldVersion, $_version ) )
 				{
 					return PlatformStates::SCHEMA_REQUIRED;
 				}
 			}
 
-			$version = Utilities::getArrayValue( 'version', $contents );
-			$oldVersion = $_db->createCommand()
-						  ->select( 'db_version' )->from( 'df_sys_config' )
-						  ->order( 'id DESC' )->limit( 1 )
-						  ->queryScalar();
-			if ( static::doesDbVersionRequireUpgrade( $oldVersion, $version ) )
+			// Check for at least one system admin user
+			if ( !static::activated() )
 			{
-				return PlatformStates::SCHEMA_REQUIRED;
+				return PlatformStates::ADMIN_REQUIRED;
+			}
+
+			//	Need to check for the default services
+			if ( 0 == \Service::model()->count() )
+			{
+				return PlatformStates::DATA_REQUIRED;
 			}
 		}
 
-		// Check for at least one system admin user
-		$command = $_db->createCommand()
-				   ->select( '(COUNT(*))' )->from( 'df_sys_user' )->where( 'is_sys_admin=:is' );
-		if ( 0 == $command->queryScalar( array( ':is' => 1 ) ) )
-		{
-			return PlatformStates::ADMIN_REQUIRED;
-		}
-
-		// Need to check for the default services
-		$command = $_db->createCommand()
-				   ->select( '(COUNT(*))' )->from( 'df_sys_service' );
-		if ( 0 == $command->queryScalar() )
-		{
-			return PlatformStates::DATA_REQUIRED;
-		}
+		$_isReady = true;
 
 		return PlatformStates::READY;
 	}
@@ -279,91 +269,26 @@ class SystemManager extends RestService
 
 		try
 		{
-			$_json = file_get_contents( static::$_configPath . '/schema/system_schema.json' );
+			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
 
-			if ( false === ( $_contents = json_decode( $_json, true ) ) )
+			if ( empty( $contents ) )
 			{
-				throw new InternalServerErrorException( 'System schema file is corrupt.' );
+				throw new \Exception( "Empty or no system schema file found." );
 			}
 
-			if ( empty( $_contents ) )
-			{
-				throw new InternalServerErrorException( 'Empty or no system schema file found.' );
-			}
+			$contents = DataFormat::jsonToArray( $contents );
+			$version = Utilities::getArrayValue( 'version', $contents );
 
-			$version = Option::get( $_contents, 'version' );
 			$command = $_db->createCommand();
 			$oldVersion = '';
-
 			if ( SqlDbUtilities::doesTableExist( $_db, static::SYSTEM_TABLE_PREFIX . 'config' ) )
 			{
 				$command->reset();
 				$oldVersion = $command->select( 'db_version' )->from( 'df_sys_config' )->queryScalar();
 			}
 
-			/**
-			 * Optionally run any DDL scripts, if provided, instead of building the schema from JSON.
-			 *
-			 * Config file format expected is:
-			 *
-			 * "scripts":  {
-			 *        "pre-install": {
-			 *            "<database_driver_name>": [
-			 *                "relative/path/to/script.sql"
-			 *            ],
-			 *        },
-			 *        "install": {
-			 *            "<database_driver_name>": [
-			 *                "relative/path/to/script.sql"
-			 *            ],
-			 *        },
-			 *        "post-install": {
-			 *            "<database_driver_name>": [
-			 *                "relative/path/to/script.sql"
-			 *            ],
-			 *        },
-			 *        "pre-migrate": {
-			 *            "<database_driver_name>": [
-			 *                "relative/path/to/script.sql"
-			 *            ],
-			 *        },
-			 *        "migrate": {
-			 *            "<database_driver_name>": [
-			 *                "relative/path/to/script.sql"
-			 *            ],
-			 *        },
-			 *        "post-migrate": {
-			 *            "<database_driver_name>": [
-			 *                "relative/path/to/script.sql"
-			 *            ],
-			 *        },
-			 * }
-			 *
-			 * This usage is optional.
-			 *
-			 */
-			if ( null !== ( $_scripts = Option::get( $_contents, 'scripts' ) ) )
-			{
-				$_driver = $_db->getPdoInstance()->getAttribute( \PDO::ATTR_DRIVER_NAME );
-
-				if ( 1 == 0 )
-				{
-					if ( null !== ( $_script = Option::getDeep( $_scripts, 'install', $_driver ) ) )
-					{
-						//	Run the script
-					}
-				}
-				else
-				{
-					if ( null !== ( $_script = Option::getDeep( $_scripts, 'migrate', $_driver ) ) )
-					{
-						//	Run the script
-					}
-				}
-			}
-
 			// create system tables
-			$tables = Utilities::getArrayValue( 'table', $_contents );
+			$tables = Utilities::getArrayValue( 'table', $contents );
 			if ( empty( $tables ) )
 			{
 				throw new \Exception( "No default system schema found." );
@@ -509,6 +434,7 @@ class SystemManager extends RestService
 			// update session with current real user
 			$_identity = Pii::user();
 			$_identity->setId( $_user->primaryKey );
+			$_identity->setState( 'email', $_email );
 			$_identity->setState( 'df_authenticated', false ); // removes catch
 			$_identity->setState( 'password', $_password, $_password ); // removes password
 		}
@@ -528,13 +454,13 @@ class SystemManager extends RestService
 	public static function initData()
 	{
 		// init with system required data
-		$_contents = file_get_contents( static::$_configPath . '/schema/system_data.json' );
-		if ( empty( $_contents ) )
+		$contents = file_get_contents( Pii::basePath() . '/data/system_data.json' );
+		if ( empty( $contents ) )
 		{
 			throw new \Exception( "Empty or no system data file found." );
 		}
-		$_contents = DataFormat::jsonToArray( $_contents );
-		foreach ( $_contents as $table => $content )
+		$contents = DataFormat::jsonToArray( $contents );
+		foreach ( $contents as $table => $content )
 		{
 			switch ( $table )
 			{
@@ -586,11 +512,11 @@ class SystemManager extends RestService
 			}
 		}
 		// init system with sample setup
-		$_contents = file_get_contents( static::$_configPath . '/schema/sample_data.json' );
-		if ( !empty( $_contents ) )
+		$contents = file_get_contents( Pii::basePath() . '/data/sample_data.json' );
+		if ( !empty( $contents ) )
 		{
-			$_contents = DataFormat::jsonToArray( $_contents );
-			foreach ( $_contents as $table => $content )
+			$contents = DataFormat::jsonToArray( $contents );
+			foreach ( $contents as $table => $content )
 			{
 				switch ( $table )
 				{
@@ -1085,11 +1011,6 @@ class SystemManager extends RestService
 	 */
 	public static function activated()
 	{
-		if ( empty( static::$_configPath ) )
-		{
-			static::$_configPath = \Kisma::get( 'app.config_path' );
-		}
-
 		try
 		{
 			return ( 0 != \User::model()->count(

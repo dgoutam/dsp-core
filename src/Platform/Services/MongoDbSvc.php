@@ -212,6 +212,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	{
 		$_coll = $this->selectTable( $table );
 		$_out = array( 'name' => $_coll->getName() );
+		$_out['indexes'] = $_coll->getIndexInfo();
 
 		return $_out;
 	}
@@ -257,8 +258,10 @@ class MongoDbSvc extends NoSqlDbSvc
 		try
 		{
 			$result = $this->_dbConn->createCollection( $table );
+			$_out = array( 'name' => $result->getName() );
+			$_out['indexes'] = $result->getIndexInfo();
 
-			return array( 'name' => $table );
+			return $_out;
 		}
 		catch ( \Exception $ex )
 		{
@@ -393,7 +396,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_coll = $this->selectTable( $table );
 		try
 		{
-			$result = $_coll->batchInsert( $records );
+			$result = $_coll->batchInsert( $records, array( 'continueOnError' => !$rollback ) );
 			$_out = static::cleanRecords( $records, $fields );
 
 			return $_out;
@@ -422,9 +425,10 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
+		$record = static::idToMongoId( $record );
 		try
 		{
-			$result = $_coll->insert( $record );
+			$result = $_coll->save( $record ); // same as insert if no _id
 			$_out = static::cleanRecord( $record, $fields );
 
 			return $_out;
@@ -459,17 +463,27 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		try
+		$records = static::idsToMongoIds( $records );
+		$_out = array();
+		foreach ( $records as $_record )
 		{
-			$result = $_coll->batchInsert( $records );
-			$_out = static::cleanRecords( $records, $fields );
+			try
+			{
+				$result = $_coll->save( $_record ); // same as update if _id
+				$_out[] = static::cleanRecord( $_record, $fields );
+			}
+			catch ( \Exception $ex )
+			{
+				if ( $rollback )
+				{
+					throw new \Exception( "Failed to update items in '$table' on MongoDb service.\n" . $ex->getMessage() );
+				}
 
-			return $_out;
+				$_out[] = $ex->getMessage();
+			}
 		}
-		catch ( \Exception $ex )
-		{
-			throw new \Exception( "Failed to update items in '$table' on MongoDb service.\n" . $ex->getMessage() );
-		}
+
+		return $_out;
 	}
 
 	/**
@@ -491,12 +505,12 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
+		$record = static::idToMongoId( $record );
 		try
 		{
-			$result = $_coll->insert( $record );
-			$_out = static::cleanRecord( $record, $fields );
+			$result = $_coll->save( $record ); // same as update if _id
 
-			return $_out;
+			return static::cleanRecord( $record, $fields );
 		}
 		catch ( \Exception $ex )
 		{
@@ -521,14 +535,24 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
 
-		$_results = $this->retrieveRecordsByFilter( $table, $filter, '', $extras );
-		$_updates = array();
-		foreach ( $_results as $result )
+		unset( $record['_id'] ); // make sure the record has no identifier
+		$_coll = $this->selectTable( $table );
+		// build criteria from filter parameters
+		$_criteria = array();
+		$_fieldArray = static::buildFieldArray( $fields );
+		try
 		{
-			$_updates[] = array_merge( static::cleanRecord( $result, '' ), $record );
-		}
+			$result = $_coll->update( $_criteria, $record, array( 'multiple' => true ) );
+			/** @var \MongoCursor $result */
+			$result = $_coll->find( $_criteria, $_fieldArray );
+			$_out = iterator_to_array( $result );
 
-		return $this->updateRecords( $table, $_updates, '', true, $fields, $extras );
+			return static::cleanRecords( $_out );
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -555,24 +579,33 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
 		}
 
-		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
-		$_updates = array();
-		foreach ( $_ids as $_key => $_id )
+		$_coll = $this->selectTable( $table );
+		$_ids = static::idsToMongoIds( $id_list );
+		// build criteria from filter parameters
+		$_criteria = array( '_id' => array( '$in' => $_ids ) );
+		$_fieldArray = static::buildFieldArray( $fields );
+		unset( $record['_id'] ); // make sure the record has no identifier
+		try
 		{
-			if ( empty( $_id ) )
+			$result = $_coll->update( $_criteria, $record, array( 'multiple' => true ) );
+			$_out = array();
+			foreach ( $_ids as $_id )
 			{
-				throw new BadRequestException( "No identifier exist in identifier index $_key." );
+				$record['_id'] = $_id;
+				$_out[] = static::cleanRecords( $record );
 			}
 
-			$_updates[] = array_merge( $record, array( '_id' => $_id ) );
+			return $_out;
 		}
-
-		return $this->updateRecords( $table, $_updates, $id_field, $rollback, $fields, $extras );
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
-	 * @param        $table
-	 * @param        $record
+	 * @param string $table
+	 * @param array  $record
 	 * @param        $id
 	 * @param string $id_field
 	 * @param string $fields
@@ -591,9 +624,19 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( "No identifier exist in record." );
 		}
-		$_update = array_merge( $record, array( '_id' => $id ) );
 
-		return $this->updateRecord( $table, $_update, $id_field, $fields, $extras );
+		$_coll = $this->selectTable( $table );
+		$record['_id'] = static::idToMongoId( $id );
+		try
+		{
+			$result = $_coll->save( $record );
+
+			return static::cleanRecord( $record, $fields );
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -620,28 +663,39 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		try
+		$records = static::idsToMongoIds( $records );
+		$_fieldArray = static::buildFieldArray( $fields );
+		$_out = array();
+		foreach ( $records as $_record )
 		{
-			// get all fields of each record
-			$_merges = $this->retrieveRecords( $table, $records, $id_field, '*', $extras );
-			// merge in changes from $records to $_merges
-			$_merges = static::recordArrayMerge( $_merges, $records );
-			// write back the changes
-			$result = $_coll->update( $_merges, $rollback );
-			$_out = static::cleanRecords( $result, $fields );
-			if ( static::requireMoreFields( $fields ) )
+			try
 			{
-				// merge in rev updates
-				$_merges = static::recordArrayMerge($_merges, $_out );
-				$_out =  static::cleanRecords( $_merges, $fields );
-			}
+				$_id = Option::get( $_record, '_id', null, true );
+				if ( empty( $_id ) )
+				{
+					throw new BadRequestException( "Identifying field '_id' can not be empty for merge record request." );
+				}
+				$result = $_coll->findAndModify(
+					array( '_id' => $_id ),
+					$_record,
+					$_fieldArray,
+					array( 'new' => true )
+				);
 
-			return $_out;
+				$_out[] = static::mongoIdToId( $result );
+			}
+			catch ( \Exception $ex )
+			{
+				if ( $rollback )
+				{
+					throw new \Exception( "Failed to update items in '$table' on MongoDb service.\n" . $ex->getMessage() );
+				}
+
+				$_out[] = $ex->getMessage();
+			}
 		}
-		catch ( \Exception $ex )
-		{
-			throw new \Exception( "Failed to update items in '$table' on MongoDb service.\n" . $ex->getMessage() );
-		}
+
+		return $_out;
 	}
 
 	/**
@@ -661,24 +715,25 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no record fields in the request.' );
 		}
 
+		$_id = Option::get( $record, '_id', null, true );
+		if ( empty( $_id ) )
+		{
+			throw new BadRequestException( "Identifying field '_id' can not be empty for merge record request." );
+		}
+
 		$_coll = $this->selectTable( $table );
+		$_criteria = array( '_id' => static::idToMongoId( $_id ) );
+		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			// get all fields of record
-			$_merge = $this->retrieveRecord( $table, $record, $id_field, '*', $extras );
-			// merge in changes from $record to $_merge
-			$_merge = array_merge( $_merge, $record );
-			// write back the changes
-			$result = $_coll->insert( $_merge );
-			$_out = static::cleanRecord( $result, $fields );
-			if ( static::requireMoreFields( $fields ) )
-			{
-				// merge in rev updates
-				$_merge['_rev'] = Option::get( $_out, '_rev' );
-				return static::cleanRecord( $_merge, $fields );
-			}
+			$result = $_coll->findAndModify(
+				$_criteria,
+				array( '$set' => $record ),
+				$_fieldArray,
+				array( 'new' => true )
+			);
 
-			return $_out;
+			return static::mongoIdToId( $result );
 		}
 		catch ( \Exception $ex )
 		{
@@ -703,33 +758,23 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
 
+		unset( $record['_id'] );
 		$_coll = $this->selectTable( $table );
+		// build criteria from filter parameters
+		$_criteria = array();
+		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			// get all fields of each record
-			$_merges = $this->retrieveRecordsByFilter( $table, $filter, '*', $extras );
-			// merge in changes from $records to $_merges
-			unset($record['_id']);
-			unset($record['_rev']);
-			foreach ( $_merges as $_key => $_merge )
-			{
-				$_merges[$_key] = array_merge( $_merge, $record );
-			}
-			// write back the changes
-			$result = $_coll->update( $_merges, true );
-			$_out = static::cleanRecords( $result, $fields );
-			if ( static::requireMoreFields( $fields ) )
-			{
-				// merge in rev updates
-				$_merges = static::recordArrayMerge($_merges, $_out );
-				return static::cleanRecords( $_merges, $fields );
-			}
+			$result = $_coll->update( $_criteria, array( '$set' => $record ), array( 'multiple' => true ) );
+			/** @var \MongoCursor $result */
+			$result = $_coll->find( $_criteria, $_fieldArray );
+			$_out = iterator_to_array( $result );
 
-			return $_out;
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
-			throw $ex;
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -751,26 +796,37 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( "No record fields were passed in the request." );
 		}
-		$_coll = $this->selectTable( $table );
-
 		if ( empty( $id_list ) )
 		{
 			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
 		}
 
-		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
-		$_updates = array();
-		foreach ( $_ids as $_key => $_id )
+		$_coll = $this->selectTable( $table );
+		$_ids = static::idsToMongoIds( $id_list );
+		$_criteria = array( '_id' => array( '$in' => $_ids ) );
+		$_fieldArray = static::buildFieldArray( $fields );
+		unset( $record['_id'] ); // make sure the record has no identifier
+
+		try
 		{
-			if ( empty( $_id ) )
+			$result = $_coll->update( $_criteria, array( '$set' => $record ), array( 'multiple' => true ) );
+			if ( static::requireMoreFields( $fields ) )
 			{
-				throw new BadRequestException( "No identifier exist in identifier index $_key." );
+				/** @var \MongoCursor $result */
+				$result = $_coll->find( $_criteria, $_fieldArray );
+				$_out = iterator_to_array( $result );
+			}
+			else
+			{
+				$_out = static::idsAsRecords( $_ids );
 			}
 
-			$_updates[] = array_merge( $record, array( '_id' => $_id ) );
+			return static::cleanRecords( $_out );
 		}
-
-		return $this->mergeRecords( $table, $_updates, $id_field, $rollback, $fields, $extras );
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -794,9 +850,26 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( "No identifier exist in record." );
 		}
-		$_update = array_merge( $record, array( '_id' => $id ) );
 
-		return $this->mergeRecord( $table, $_update, $id_field, $fields, $extras );
+		$_coll = $this->selectTable( $table );
+		$_criteria = array( '_id' => static::idToMongoId( $id ) );
+		$_fieldArray = static::buildFieldArray( $fields );
+		unset( $record['_id'] );
+		try
+		{
+			$result = $_coll->findAndModify(
+				$_criteria,
+				array( '$set' => $record ),
+				$_fieldArray,
+				array( 'new' => true )
+			);
+
+			return static::mongoIdToId( $result );
+		}
+		catch ( \Exception $ex )
+		{
+			throw new \Exception( "Failed to update item in '$table' on MongoDb service.\n" . $ex->getMessage() );
+		}
 	}
 
 	/**
@@ -823,21 +896,25 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
+		$_ids = static::recordsAsIds( $records );
+		$_criteria = array( '_id' => array( '$in' => static::idsToMongoIds( $_ids ) ) );
+		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$_out = array();
 			if ( static::requireMoreFields( $fields ) )
 			{
-				$_out = $this->retrieveRecords( $table, $records, $id_field, $fields, $extras );
+				/** @var \MongoCursor $result */
+				$result = $_coll->find( $_criteria, $_fieldArray );
+				$_out = iterator_to_array( $result );
 			}
-
-			$result = $_coll->remove( $records, $rollback );
-			if ( empty( $_out ) )
+			else
 			{
-				$_out = static::cleanRecords( $result, $fields );;
+				$_out = static::idsAsRecords( $_ids );
 			}
 
-			return $_out;
+			$result = $_coll->remove( $_criteria );
+
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
@@ -863,24 +940,17 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
+		$_criteria = static::idToMongoId( $record );
+		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$_out = array();
-			if ( static::requireMoreFields( $fields ) )
-			{
-				$_out = $this->retrieveRecord( $table, $record, $id_field, $fields, $extras );
-			}
-			$result = $_coll->remove( $record );
-			if ( empty( $_out ) )
-			{
-				$_out = static::cleanRecord( $result, $fields );;
-			}
+			$result = $_coll->findAndModify( $_criteria, null, $_fieldArray, array( 'remove' => true ) );
 
-			return $_out;
+			return static::mongoIdToId( $result );
 		}
 		catch ( \Exception $ex )
 		{
-			throw new \Exception( "Failed to delete items from '$table' on MongoDb service.\n" . $ex->getMessage() );
+			throw new \Exception( "Failed to delete item from '$table' on MongoDb service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -933,16 +1003,25 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
+		$_ids = static::idsToMongoIds( $id_list );
+		$_criteria = array( '_id' => array( '$in' => $_ids ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			/** @var \MongoCursor $result */
-			$result = $_coll->find( array( '$in' => $_ids ), $_fieldArray );
-			$_out = iterator_to_array( $result );
-			$result = $_coll->remove( array( '$in' => $_ids ), $rollback );
+			if ( static::requireMoreFields( $fields ) )
+			{
+				/** @var \MongoCursor $result */
+				$result = $_coll->find( $_criteria, $_fieldArray );
+				$_out = iterator_to_array( $result );
+			}
+			else
+			{
+				$_out = static::idsAsRecords( $_ids );
+			}
 
-			return $_out;
+			$result = $_coll->remove( $_criteria );
+
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
@@ -962,15 +1041,19 @@ class MongoDbSvc extends NoSqlDbSvc
 	 */
 	public function deleteRecordById( $table, $id, $id_field = '', $fields = '', $extras = array() )
 	{
+		if ( empty( $id ) )
+		{
+			throw new BadRequestException( "No identifier exist in record." );
+		}
+
 		$_coll = $this->selectTable( $table );
+		$_criteria = array( '_id' => static::idToMongoId( $id ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$_out = $_coll->findOne( array( '_id' => new \MongoId( $id ) ), $_fieldArray );
-			$_record = $this->retrieveRecordById( $table, $id, $id_field, $fields, $extras );
-			$result = $_coll->remove( array( '_id' => new \MongoId( $id ) ) );
+			$result = $_coll->findAndModify( $_criteria, null, $_fieldArray, array( 'remove' => true ) );
 
-			return $_record;
+			return static::mongoIdToId( $result );
 		}
 		catch ( \Exception $ex )
 		{
@@ -991,13 +1074,14 @@ class MongoDbSvc extends NoSqlDbSvc
 	{
 		$_coll = $this->selectTable( $table );
 		$_fieldArray = static::buildFieldArray( $fields );
+		$_criteria = array();
 		try
 		{
 			/** @var \MongoCursor $result */
-			$result = $_coll->find( array(), $_fieldArray );
-			$_out = static::cleanIds( iterator_to_array( $result ) );
+			$result = $_coll->find( $_criteria, $_fieldArray );
+			$_out = iterator_to_array( $result );
 
-			return $_out;
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
@@ -1028,17 +1112,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_ids = array();
-		foreach ( $records as $key => $record )
-		{
-			$_id = Option::get( $record, '_id' );
-			if ( empty( $_id ) )
-			{
-				throw new BadRequestException( "Identifying field '_id' can not be empty for retrieve record index '$key' request." );
-			}
-			$_ids[] = $_id;
-		}
-
+		$_ids = static::idsToMongoIds( static::recordsAsIds( $records ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -1046,7 +1120,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			$result = $_coll->find( array( '$in' => $_ids ), $_fieldArray );
 			$_out = iterator_to_array( $result );
 
-			return $_out;
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
@@ -1083,7 +1157,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			$result = $_coll->findOne( array( '_id' => new \MongoId( $_id ) ), $_fieldArray );
 
-			return $result;
+			return static::mongoIdToId( $result );
 		}
 		catch ( \Exception $ex )
 		{
@@ -1109,15 +1183,15 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
+		$_ids = static::idsToMongoIds( $id_list );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
 			/** @var \MongoCursor $result */
-			$result = $_coll->find( array( '$in' => $_ids ), $_fieldArray );
+			$result = $_coll->find( array( '_id' => array( '$in' => $_ids ) ), $_fieldArray );
 			$_out = iterator_to_array( $result );
 
-			return $_out;
+			return static::cleanRecords( $_out );
 		}
 		catch ( \Exception $ex )
 		{
@@ -1148,7 +1222,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			$result = $_coll->findOne( array( '_id' => new \MongoId( $id ) ), $_fieldArray );
 
-			return $result;
+			return static::mongoIdToId( $result );
 		}
 		catch ( \Exception $ex )
 		{
@@ -1204,63 +1278,147 @@ class MongoDbSvc extends NoSqlDbSvc
 			{
 				$_id = Option::get( $record, 'id' );
 			}
-			if ( is_object( $_id ) )
-			{
-				$_id = (string) $_id;
-			}
-			$_out = array( '_id' => $_id );
+			$_out = array( '_id' => static::mongoIdToId( $_id ) );
 
-			if ( empty( $include ) )
+			if ( !empty( $include ) )
 			{
-				return $_out;
-			}
-			if ( !is_array( $include ) )
-			{
-				$include = array_map( 'trim', explode( ',', trim( $include, ',' ) ) );
-			}
-			foreach ( $include as $key )
-			{
-				if ( 0 == strcasecmp( $key, '_id' ) )
+				if ( !is_array( $include ) )
 				{
-					continue;
+					$include = array_map( 'trim', explode( ',', trim( $include, ',' ) ) );
 				}
-				$_out[$key] = Option::get( $record, $key );
+				foreach ( $include as $key )
+				{
+					if ( 0 == strcasecmp( $key, '_id' ) )
+					{
+						continue;
+					}
+					$_out[$key] = Option::get( $record, $key );
+				}
 			}
 
 			return $_out;
 		}
 
-		return static::cleanIds( $record );
+		return static::mongoIdToId( $record );
 	}
 
-	protected static function cleanRecords( $records, $include = '*', $use_doc = false )
+	protected static function cleanRecords( $records, $include = '*' )
 	{
 		$_out = array();
 		foreach ( $records as $_record )
 		{
-			if ( $use_doc )
-			{
-				$_record = Option::get( $_record, 'doc', $_record );
-			}
 			$_out[] = static::cleanRecord( $_record, $include );
 		}
 
 		return $_out;
 	}
 
-	protected static function cleanIds( $records )
+	protected static function mongoIdsToIds( $records )
 	{
-		$_out = array();
-		foreach ( $records as $_record )
+		foreach ( $records as $key => $_record )
+		{
+			$records[$key] = static::mongoIdToId( $_record );
+		}
+
+		return $records;
+	}
+
+	protected static function mongoIdToId( $record )
+	{
+		if ( !is_array( $record ) )
+		{
+			if ( is_object( $record ) )
+			{
+				/** $record \MongoId */
+				$record = (string)$record;
+			}
+		}
+		else
 		{
 			/** @var \MongoId $_id */
-			$_id = Option::get( $_record, '_id' );
+			$_id = Option::get( $record, '_id' );
 			if ( is_object( $_id ) )
 			{
 				/** $_id \MongoId */
-				$_record['_id'] = (string) $_id;
+				$record['_id'] = (string)$_id;
 			}
-			$_out[] = $_record;
+		}
+
+		return $record;
+	}
+
+	protected static function idToMongoId( $record )
+	{
+		if ( !is_array( $record ) )
+		{
+			// single id
+			try
+			{
+				$record = new \MongoId( $record );
+			}
+			catch ( \Exception $ex )
+			{
+				// obviously not a Mongo created Id, let it be
+			}
+		}
+		else
+		{
+			// single record with fields
+			$_id = Option::get( $record, '_id' );
+			if ( !is_object( $_id ) )
+			{
+				try
+				{
+					$record['_id'] = new \MongoId( $_id );
+				}
+				catch ( \Exception $ex )
+				{
+					// obviously not a Mongo created Id, let it be
+				}
+			}
+		}
+
+		return $record;
+	}
+
+	protected static function idsToMongoIds( $records )
+	{
+		if ( !is_array( $records ) )
+		{
+			// comma delimited list of ids
+			$records = array_map( 'trim', explode( ',', trim( $records, ',' ) ) );
+		}
+
+		foreach ( $records as $key => $_record )
+		{
+			$records[$key] = static::idToMongoId( $_record );
+		}
+
+		return $records;
+	}
+
+	protected static function recordsAsIds( $records, $id_field = '_id' )
+	{
+		$_ids = array();
+		foreach ( $records as $_key => $_record )
+		{
+			$_id = Option::get( $_record, $id_field );
+			if ( empty( $_id ) )
+			{
+				throw new BadRequestException( "Identifying field '$id_field' can not be empty for retrieve record index '$_key' request." );
+			}
+			$_ids[] = $_id;
+		}
+
+		return $_ids;
+	}
+
+	protected static function idsAsRecords( $ids, $id_field = '_id' )
+	{
+		$_out = array();
+		foreach ( $ids as $_id )
+		{
+			$_out[] = array( $id_field => $_id );
 		}
 
 		return $_out;

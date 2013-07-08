@@ -165,13 +165,14 @@ class App extends BaseDspSystemModel
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
-	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
+	 * @param \CDbCriteria $criteria
+	 *
+	 * @return \CActiveDataProvider
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria;
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'name', $this->name, true );
 		$_criteria->compare( 'api_name', $this->api_name, true );
 		$_criteria->compare( 'is_active', $this->is_active );
@@ -183,12 +184,8 @@ class App extends BaseDspSystemModel
 		$_criteria->compare( 'allow_fullscreen_toggle', $this->allow_fullscreen_toggle );
 		$_criteria->compare( 'toggle_location', $this->toggle_location );
 		$_criteria->compare( 'requires_plugin', $this->requires_plugin );
-		$_criteria->compare( 'created_date', $this->created_date, true );
-		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-		$_criteria->compare( 'created_by_id', $this->created_by_id );
-		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider( $this, array( 'criteria' => $_criteria, ) );
+		return parent::search( $criteria );
 	}
 
 	/**
@@ -197,19 +194,19 @@ class App extends BaseDspSystemModel
 	 */
 	public function setRelated( $values, $id )
 	{
-		if ( isset( $values['app_groups'] ) )
+		if ( null !== ( $_groups = Option::get( $values, 'app_groups' ) ) )
 		{
-			$this->assignManyToOneByMap( $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $values['app_groups'] );
+			$this->assignManyToOneByMap( $id, 'app_group', 'app_to_app_group', 'app_id', 'app_group_id', $_groups );
 		}
 
-		if ( isset( $values['roles'] ) )
+		if ( null !== ( $_roles = Option::get( $values, 'roles' ) ) )
 		{
-			$this->assignManyToOneByMap( $id, 'role', 'app_to_role', 'app_id', 'role_id', $values['roles'] );
+			$this->assignManyToOneByMap( $id, 'role', 'app_to_role', 'app_id', 'role_id', $_roles );
 		}
 
-		if ( isset( $values['app_service_relations'] ) )
+		if ( null !== ( $_relations = Option::get( $values, 'app_service_relations' ) ) )
 		{
-			$this->assignAppServiceRelations( $id, $values['app_service_relations'] );
+			$this->assignAppServiceRelations( $id, $_relations );
 		}
 	}
 
@@ -531,5 +528,4 @@ class App extends BaseDspSystemModel
 			throw new Exception( "Error updating app to service assignment.\n{$ex->getMessage()}", $ex->getCode() );
 		}
 	}
-
 }

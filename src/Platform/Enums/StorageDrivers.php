@@ -17,20 +17,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace Platform\Enums;
+
+use Kisma\Core\Enums\SeedEnum;
+
 /**
- * aliases.config.php
- * A single location for all your aliasing needs!
+ * StorageDrivers
+ * Storage driver string constants
  */
-use Platform\Yii\Utility\Pii;
+class StorageDrivers extends SeedEnum
+{
+	//*************************************************************************
+	//	Constants
+	//*************************************************************************
 
-$_basePath = dirname( __DIR__ );
-$_vendorPath = $_basePath . '/vendor';
-
-Pii::setPathOfAlias( 'vendor', $_vendorPath );
-
-Pii::alias( 'Platform', $_basePath . '/src/Platform' );
-Pii::alias( 'Platform.Yii.Behaviors', $_basePath . '/src/Platform/Yii/Behaviors' );
-Pii::alias( 'DreamFactory.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Behaviors' );
-Pii::alias( 'Platform.Yii.Components', $_basePath . '/src/Platform/Yii/Components' );
-Pii::alias( 'Platform.Yii.Utility', $_basePath . '/src/Platform/Yii/Utility' );
-Pii::alias( 'Swift', $_vendorPath . '/swiftmailer/swiftmailer/lib/classes' );
+	/**
+	 * @var string
+	 */
+	const MS_SQL = 'mssql';
+	/**
+	 * @var string
+	 */
+	const SYBASE = 'dblib';
+	/**
+	 * @var string
+	 */
+	const SQL_SERVER = 'sqlsrv';
+	/**
+	 * @var string
+	 */
+	const MYSQL = 'mysql';
+	/**
+	 * @var string
+	 */
+	const MYSQLI = 'mysqli';
+	/**
+	 * @var string
+	 */
+	const SQLITE = 'sqlite';
+	/**
+	 * @var string
+	 */
+	const SQLITE2 = 'sqlite2';
+	/**
+	 * @var string
+	 */
+	const ORACLE = 'oci';
+	/**
+	 * @var string
+	 */
+	const POSTGRESQL = 'pgsql';
+}
