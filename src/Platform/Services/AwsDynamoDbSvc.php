@@ -174,15 +174,7 @@ class AwsDynamoDbSvc extends NoSqlDbSvc
 
 	protected function gatherExtrasFromRequest()
 	{
-		$_extras = array();
-
-//		$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-//		$order = Utilities::getArrayValue( 'order', $data, '' );
-//		$include_count = DataFormat::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-
-		$_extras['limit'] = intval( Option::get( $_REQUEST, 'limit', 0 ) );
-		$_extras['order'] = Option::get( $_REQUEST, 'order', '' );
-		$_extras['include_count'] = DataFormat::boolval( Option::get( $_REQUEST, 'include_count', false ) );
+		$_extras = parent::gatherExtrasFromRequest();
 
 		return $_extras;
 	}

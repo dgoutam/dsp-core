@@ -19,6 +19,7 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
@@ -248,28 +249,23 @@ class SqlDbSvc extends BaseDbSvc
 	 */
 	protected function gatherExtrasFromRequest()
 	{
-		$_extras = array();
+		$_extras = parent::gatherExtrasFromRequest();
+
 		$_relations = array();
-		$_related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
+		$_related = FilterInput::request( 'related' );
 		if ( !empty( $_related ) )
 		{
 			$_related = array_map( 'trim', explode( ',', $_related ) );
 			foreach ( $_related as $_relative )
 			{
-				$_extraFields = Utilities::getArrayValue( $_relative . '_fields', $_REQUEST, '*' );
-				$_extraOrder = Utilities::getArrayValue( $_relative . '_order', $_REQUEST, '' );
+				$_extraFields = FilterInput::request( $_relative . '_fields', '*' );
+				$_extraOrder = FilterInput::request( $_relative . '_order', '' );
 				$_relations[] = array( 'name' => $_relative, 'fields' => $_extraFields, 'order' => $_extraOrder );
 			}
 		}
 		$_extras['related'] = $_relations;
 
-		// todo get these from post data as well
-
-		$_extras['limit'] = intval( Option::get( $_REQUEST, 'limit', 0 ) );
-		$_extras['offset'] = intval( Option::get( $_REQUEST, 'offset', 0 ) );
-		$_extras['order'] = Option::get( $_REQUEST, 'order', '' );
-		$_extras['include_count'] = Utilities::boolval( Option::get( $_REQUEST, 'include_count', false ) );
-		$_extras['include_schema'] = Utilities::boolval( Option::get( $_REQUEST, 'include_schema', false ) );
+		$_extras['include_schema'] = FilterInput::request( 'include_schema', false, FILTER_VALIDATE_BOOLEAN );
 
 		return $_extras;
 	}

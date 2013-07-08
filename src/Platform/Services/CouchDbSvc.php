@@ -64,7 +64,7 @@ class CouchDbSvc extends NoSqlDbSvc
 		$_dsn = Option::get( $_credentials, 'dsn' );
 		if ( empty( $_dsn ) )
 		{
-			throw new \InvalidArgumentException( 'CouchDb DSN can not be empty.' );
+			$_dsn = 'http://localhost:5984';
 		}
 
 		try
@@ -130,15 +130,7 @@ class CouchDbSvc extends NoSqlDbSvc
 
 	protected function gatherExtrasFromRequest()
 	{
-		$_extras = array();
-
-//		$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-//		$order = Utilities::getArrayValue( 'order', $data, '' );
-//		$include_count = DataFormat::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-
-		$_extras['limit'] = intval( Option::get( $_REQUEST, 'limit', 0 ) );
-		$_extras['order'] = Option::get( $_REQUEST, 'order', '' );
-		$_extras['include_count'] = DataFormat::boolval( Option::get( $_REQUEST, 'include_count', false ) );
+		$_extras = parent::gatherExtrasFromRequest();
 
 		return $_extras;
 	}
@@ -554,21 +546,20 @@ class CouchDbSvc extends NoSqlDbSvc
 		}
 
 		$table = $this->correctTableName( $table );
-		try
-		{
-			$_results = $this->retrieveRecordsByFilter( $table, $filter, '', $extras );
-			$_updates = array();
-			foreach ( $_results as $result )
-			{
-				$_updates[] = array_merge( static::cleanRecord( $result, '' ), $record );
-			}
 
-			return $this->updateRecords( $table, $_updates, '', true, $fields, $extras );
-		}
-		catch ( \Exception $ex )
+		// retrieve records to get latest rev and id
+		$_results = $this->retrieveRecordsByFilter( $table, $filter, '', $extras );
+		// make sure record doesn't contain identifiers
+		unset($record['_id']);
+		unset($record['_rev']);
+
+		$_updates = array();
+		foreach ( $_results as $result )
 		{
-			throw $ex;
+			$_updates[] = array_merge( $result, $record );
 		}
+
+		return $this->updateRecords( $table, $_updates, '', true, $fields, $extras );
 	}
 
 	/**
@@ -591,24 +582,19 @@ class CouchDbSvc extends NoSqlDbSvc
 		}
 		$table = $this->correctTableName( $table );
 
-		if ( empty( $id_list ) )
-		{
-			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
-		}
+		// retrieve records to get latest rev and id
+		$_results = $this->retrieveRecordsByIds( $table, $id_list, $id_field, '', $extras );
+		// make sure record doesn't contain identifiers
+		unset($record['_id']);
+		unset($record['_rev']);
 
-		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
 		$_updates = array();
-		foreach ( $_ids as $_key => $_id )
+		foreach ( $_results as $_result )
 		{
-			if ( empty( $_id ) )
-			{
-				throw new BadRequestException( "No identifier exist in identifier index $_key." );
-			}
-
-			$_updates[] = array_merge( $record, array( '_id' => $_id ) );
+			$_updates[] = array_merge( $_result, $record );
 		}
 
-		return $this->updateRecords( $table, $_updates, $id_field, $rollback, $fields, $extras );
+		return $this->updateRecords( $table, $_updates, '', true, $fields, $extras );
 	}
 
 	/**
@@ -628,13 +614,16 @@ class CouchDbSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
-		if ( empty( $id ) )
-		{
-			throw new BadRequestException( "No identifier exist in record." );
-		}
-		$_update = array_merge( $record, array( '_id' => $id ) );
 
-		return $this->updateRecord( $table, $_update, $id_field, $fields, $extras );
+		// retrieve record to get latest rev and id
+		$_result = $this->retrieveRecordById( $table, $id, $id_field, '', $extras );
+		// make sure record doesn't contain identifiers
+		unset($record['_id']);
+		unset($record['_rev']);
+
+		$_update = array_merge( $_result, $record );
+
+		return $this->updateRecord( $table, $_update, '', true, $fields, $extras );
 	}
 
 	/**
