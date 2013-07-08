@@ -44,7 +44,7 @@
 	"minimum-stability": "dev",
 	"require":           {
 		"php":                             ">=5.3.10",
-		"kisma/kisma":                     "dev-master",
+		"kisma/kisma":                     ">=0.1.1",
 		"dreamfactory/yii":                "dev-master",
 		"dreamfactory/lib-php-common-yii": "dev-master",
 		"dreamfactory/app-admin":          "1.0.4",
