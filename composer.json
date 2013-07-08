@@ -43,7 +43,7 @@
 	},
 	"minimum-stability": "dev",
 	"require":           {
-		"php":                           ">=5.3.15",
+		"php":                           ">=5.3.10",
 		"kisma/kisma":                   "dev-master",
 		"dreamfactory/yii":              "dev-master",
 		"dreamfactory/service-facebook": "dev-master",

@@ -19,6 +19,8 @@
  */
 namespace Platform\Services;
 
+use Aws\Sns\Exception\InternalErrorException;
+use Kisma\Core\Exceptions\ServiceException;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -69,6 +71,11 @@ class SystemManager extends RestService
 	//	Members
 	//*************************************************************************
 
+	/**
+	 * @var string The config path
+	 */
+	protected static $_configPath = null;
+
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
@@ -79,6 +86,11 @@ class SystemManager extends RestService
 	 */
 	public function __construct()
 	{
+		if ( empty( static::$_configPath ) )
+		{
+			static::$_configPath = \Kisma::get( 'app.config_path' );
+		}
+
 		$config = array(
 			'name'        => 'System Configuration Management',
 			'api_name'    => 'system',
@@ -192,8 +204,8 @@ class SystemManager extends RestService
 			return PlatformStates::INIT_REQUIRED;
 		}
 
-		// need to check for db upgrade, based on tables or version
-		$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+		//	Need to check for db upgrade, based on tables or version
+		$_contents = file_get_contents( static::$_configPath . '/schema/system_schema.json' );
 
 		if ( !empty( $contents ) )
 		{
@@ -267,26 +279,91 @@ class SystemManager extends RestService
 
 		try
 		{
-			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+			$_json = file_get_contents( static::$_configPath . '/schema/system_schema.json' );
 
-			if ( empty( $contents ) )
+			if ( false === ( $_contents = json_decode( $_json, true ) ) )
 			{
-				throw new \Exception( "Empty or no system schema file found." );
+				throw new InternalServerErrorException( 'System schema file is corrupt.' );
 			}
 
-			$contents = DataFormat::jsonToArray( $contents );
-			$version = Utilities::getArrayValue( 'version', $contents );
+			if ( empty( $_contents ) )
+			{
+				throw new InternalServerErrorException( 'Empty or no system schema file found.' );
+			}
 
+			$version = Option::get( $_contents, 'version' );
 			$command = $_db->createCommand();
 			$oldVersion = '';
+
 			if ( SqlDbUtilities::doesTableExist( $_db, static::SYSTEM_TABLE_PREFIX . 'config' ) )
 			{
 				$command->reset();
 				$oldVersion = $command->select( 'db_version' )->from( 'df_sys_config' )->queryScalar();
 			}
 
+			/**
+			 * Optionally run any DDL scripts, if provided, instead of building the schema from JSON.
+			 *
+			 * Config file format expected is:
+			 *
+			 * "scripts":  {
+			 *        "pre-install": {
+			 *            "<database_driver_name>": [
+			 *                "relative/path/to/script.sql"
+			 *            ],
+			 *        },
+			 *        "install": {
+			 *            "<database_driver_name>": [
+			 *                "relative/path/to/script.sql"
+			 *            ],
+			 *        },
+			 *        "post-install": {
+			 *            "<database_driver_name>": [
+			 *                "relative/path/to/script.sql"
+			 *            ],
+			 *        },
+			 *        "pre-migrate": {
+			 *            "<database_driver_name>": [
+			 *                "relative/path/to/script.sql"
+			 *            ],
+			 *        },
+			 *        "migrate": {
+			 *            "<database_driver_name>": [
+			 *                "relative/path/to/script.sql"
+			 *            ],
+			 *        },
+			 *        "post-migrate": {
+			 *            "<database_driver_name>": [
+			 *                "relative/path/to/script.sql"
+			 *            ],
+			 *        },
+			 * }
+			 *
+			 * This usage is optional.
+			 *
+			 */
+			if ( null !== ( $_scripts = Option::get( $_contents, 'scripts' ) ) )
+			{
+				$_driver = $_db->getPdoInstance()->getAttribute( \PDO::ATTR_DRIVER_NAME );
+
+				if ( 1 == 0 )
+				{
+					if ( null !== ( $_script = Option::getDeep( $_scripts, 'install', $_driver ) ) )
+					{
+						//	Run the script
+					}
+				}
+				else
+				{
+					if ( null !== ( $_script = Option::getDeep( $_scripts, 'migrate', $_driver ) ) )
+					{
+						//	Run the script
+					}
+				}
+			}
+
 			// create system tables
-			$tables = Utilities::getArrayValue( 'table', $contents );
+			$tables = Utilities::getArrayValue( 'table', $_contents );
 			if ( empty( $tables ) )
 			{
 				throw new \Exception( "No default system schema found." );
@@ -451,13 +528,13 @@ class SystemManager extends RestService
 	public static function initData()
 	{
 		// init with system required data
-		$contents = file_get_contents( Pii::basePath() . '/data/system_data.json' );
-		if ( empty( $contents ) )
+		$_contents = file_get_contents( static::$_configPath . '/schema/system_data.json' );
+		if ( empty( $_contents ) )
 		{
 			throw new \Exception( "Empty or no system data file found." );
 		}
-		$contents = DataFormat::jsonToArray( $contents );
-		foreach ( $contents as $table => $content )
+		$_contents = DataFormat::jsonToArray( $_contents );
+		foreach ( $_contents as $table => $content )
 		{
 			switch ( $table )
 			{
@@ -509,11 +586,11 @@ class SystemManager extends RestService
 			}
 		}
 		// init system with sample setup
-		$contents = file_get_contents( Pii::basePath() . '/data/sample_data.json' );
-		if ( !empty( $contents ) )
+		$_contents = file_get_contents( static::$_configPath . '/schema/sample_data.json' );
+		if ( !empty( $_contents ) )
 		{
-			$contents = DataFormat::jsonToArray( $contents );
-			foreach ( $contents as $table => $content )
+			$_contents = DataFormat::jsonToArray( $_contents );
+			foreach ( $_contents as $table => $content )
 			{
 				switch ( $table )
 				{
@@ -1008,6 +1085,11 @@ class SystemManager extends RestService
 	 */
 	public static function activated()
 	{
+		if ( empty( static::$_configPath ) )
+		{
+			static::$_configPath = \Kisma::get( 'app.config_path' );
+		}
+
 		try
 		{
 			return ( 0 != \User::model()->count(
