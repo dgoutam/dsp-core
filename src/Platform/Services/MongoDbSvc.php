@@ -22,6 +22,7 @@ namespace Platform\Services;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
+use Platform\Exceptions\NotFoundException;
 use Platform\Utility\DataFormat;
 
 /**
@@ -1174,7 +1175,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$result = $_coll->findOne( array( '_id' => new \MongoId( $_id ) ), $_fieldArray );
+			$result = $_coll->findOne( array( '_id' => static::idToMongoId( $_id ) ), $_fieldArray );
 
 			return static::mongoIdToId( $result );
 		}
@@ -1239,14 +1240,25 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$result = $_coll->findOne( array( '_id' => new \MongoId( $id ) ), $_fieldArray );
-
-			return static::mongoIdToId( $result );
+			$result = $_coll->findOne( array( '_id' => static::idToMongoId( $id ) ), $_fieldArray );
+			if ( empty( $result ) && is_numeric( $id ) )
+			{
+				// defaults to string ids, could be numeric, try that
+				$id = ( $id == strval( intval( $id ) ) ) ? intval( $id ) : floatval( $id );
+				$result = $_coll->findOne( array( '_id' => $id ), $_fieldArray );
+			}
 		}
 		catch ( \Exception $ex )
 		{
 			throw new \Exception( "Failed to get item '$table/$id' on MongoDb service.\n" . $ex->getMessage() );
 		}
+
+		if ( empty( $result ) )
+		{
+			throw new NotFoundException( "Record with id '$id' was not found.");
+		}
+
+		return static::mongoIdToId( $result );
 	}
 
 	/**
@@ -1350,10 +1362,10 @@ class MongoDbSvc extends NoSqlDbSvc
 
 		// the rest should be comparison operators
 		$_search = array( ' eq ', ' ne ', ' gte ', ' lte ', ' gt ', ' lt ', ' in ', ' nin ', ' all ', ' like ' );
-		$_replace = array( ' = ', ' != ', ' >= ', ' <= ', ' > ', ' < ', ' IN ', ' NIN ', ' ALL ', ' LIKE ' );
+		$_replace = array( '=', '!=', '>=', '<=', '>', '<', ' IN ', ' NIN ', ' ALL ', ' LIKE ' );
 		$filter = trim( str_ireplace( $_search, $_replace, $filter ) );
 
-		$_ops = array_map( 'trim', explode( ' = ', $filter ) );
+		$_ops = array_map( 'trim', explode( '=', $filter ) );
 		if ( count( $_ops ) > 1 )
 		{
 			$_val = static::_determineValue( $_ops[1] );
@@ -1361,7 +1373,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			return array( $_ops[0] => $_val );
 		}
 
-		$_ops = array_map( 'trim', explode( ' != ', $filter ) );
+		$_ops = array_map( 'trim', explode( '!=', $filter ) );
 		if ( count( $_ops ) > 1 )
 		{
 			$_val = static::_determineValue( $_ops[1] );
@@ -1369,7 +1381,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			return array( $_ops[0] => array( '$ne' => $_val ) );
 		}
 
-		$_ops = array_map( 'trim', explode( ' >= ', $filter ) );
+		$_ops = array_map( 'trim', explode( '>=', $filter ) );
 		if ( count( $_ops ) > 1 )
 		{
 			$_val = static::_determineValue( $_ops[1] );
@@ -1377,7 +1389,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			return array( $_ops[0] => array( '$gte' => $_val ) );
 		}
 
-		$_ops = array_map( 'trim', explode( ' <= ', $filter ) );
+		$_ops = array_map( 'trim', explode( '<=', $filter ) );
 		if ( count( $_ops ) > 1 )
 		{
 			$_val = static::_determineValue( $_ops[1] );
@@ -1385,7 +1397,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			return array( $_ops[0] => array( '$lte' => $_val ) );
 		}
 
-		$_ops = array_map( 'trim', explode( ' > ', $filter ) );
+		$_ops = array_map( 'trim', explode( '>', $filter ) );
 		if ( count( $_ops ) > 1 )
 		{
 			$_val = static::_determineValue( $_ops[1] );
@@ -1393,7 +1405,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			return array( $_ops[0] => array( '$gt' => $_val ) );
 		}
 
-		$_ops = array_map( 'trim', explode( ' < ', $filter ) );
+		$_ops = array_map( 'trim', explode( '<', $filter ) );
 		if ( count( $_ops ) > 1 )
 		{
 			$_val = static::_determineValue( $_ops[1] );
@@ -1626,29 +1638,38 @@ class MongoDbSvc extends NoSqlDbSvc
 	{
 		if ( !is_array( $record ) )
 		{
-			// single id
-			try
+			if ( is_string( $record ) )
 			{
-				$record = new \MongoId( $record );
-			}
-			catch ( \Exception $ex )
-			{
-				// obviously not a Mongo created Id, let it be
+				if ( ( 24 == sizeof( $record ) ) )
+				{
+					// single id
+					try
+					{
+						$record = new \MongoId( $record );
+					}
+					catch ( \Exception $ex )
+					{
+						// obviously not a Mongo created Id, let it be
+					}
+				}
 			}
 		}
 		else
 		{
 			// single record with fields
 			$_id = Option::get( $record, '_id' );
-			if ( !is_object( $_id ) )
+			if ( is_string( $_id ) )
 			{
-				try
+				if ( ( 24 == sizeof( $_id ) ) )
 				{
-					$record['_id'] = new \MongoId( $_id );
-				}
-				catch ( \Exception $ex )
-				{
-					// obviously not a Mongo created Id, let it be
+					try
+					{
+						$record['_id'] = new \MongoId( $_id );
+					}
+					catch ( \Exception $ex )
+					{
+						// obviously not a Mongo created Id, let it be
+					}
 				}
 			}
 		}

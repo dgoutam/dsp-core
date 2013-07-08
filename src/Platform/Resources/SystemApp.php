@@ -19,13 +19,15 @@
  */
 namespace Platform\Resources;
 
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Sql;
 use Platform\Utility\DataFormat;
 use Platform\Utility\FileUtilities;
 use Platform\Utility\ServiceHandler;
 use Platform\Utility\SwaggerUtilities;
 use Platform\Utility\Utilities;
-use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\Sql;
 use Swagger\Annotations as SWG;
 
 /**
@@ -329,47 +331,50 @@ class SystemApp extends SystemResource
 			case self::Get:
 				if ( !empty( $this->_resourceId ) )
 				{
-					$asPkg = Utilities::boolval( Utilities::getArrayValue( 'pkg', $_REQUEST, false ) );
+					$asPkg = FilterInput::request( 'pkg', false, FILTER_VALIDATE_BOOLEAN );
 					if ( $asPkg )
 					{
-						$includeFiles = Utilities::boolval( Utilities::getArrayValue( 'include_files', $_REQUEST, false ) );
-						$includeServices = Utilities::boolval( Utilities::getArrayValue( 'include_services', $_REQUEST, false ) );
-						$includeSchema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
-						$includeData = Utilities::boolval( Utilities::getArrayValue( 'include_data', $_REQUEST, false ) );
+						$includeFiles = FilterInput::request( 'include_files', false, FILTER_VALIDATE_BOOLEAN  );
+						$includeServices = FilterInput::request( 'include_services', false, FILTER_VALIDATE_BOOLEAN  );
+						$includeSchema = FilterInput::request( 'include_schema', false, FILTER_VALIDATE_BOOLEAN  );
+						$includeData = FilterInput::request( 'include_data', false, FILTER_VALIDATE_BOOLEAN  );
 						return static::exportAppAsPackage( $this->_resourceId, $includeFiles, $includeServices, $includeSchema, $includeData );
 					}
 				}
 				break;
 			case self::Post:
 				// you can import an application package file, local or remote, or from zip, but nothing else
-				$fileUrl = Utilities::getArrayValue( 'url', $_REQUEST, '' );
-				if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
+				$fileUrl = FilterInput::request( 'url', '' );
+				if ( !empty( $fileUrl ) )
 				{
-					// need to download and extract zip file and move contents to storage
-					$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-					try
+					if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
 					{
-						return static::importAppFromPackage( $filename, $fileUrl );
+						// need to download and extract zip file and move contents to storage
+						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
+						try
+						{
+							return static::importAppFromPackage( $filename, $fileUrl );
+						}
+						catch ( \Exception $ex )
+						{
+							throw new \Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
+						}
 					}
-					catch ( \Exception $ex )
+					$name = FilterInput::request( 'name', '' );
+					// from repo or remote zip file
+					if ( !empty( $name ) && ( 0 === strcasecmp( 'zip', FileUtilities::getFileExtension( $fileUrl ) ) ) )
 					{
-						throw new \Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
-					}
-				}
-				$name = Utilities::getArrayValue( 'name', $_REQUEST, '' );
-				// from repo or remote zip file
-				if ( !empty( $name ) && ( 0 === strcasecmp( 'zip', FileUtilities::getFileExtension( $fileUrl ) ) ) )
-				{
-					// need to download and extract zip file and move contents to storage
-					$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-					try
-					{
-						return static::importAppFromZip( $name, $filename );
-						// todo save url for later updates
-					}
-					catch ( \Exception $ex )
-					{
-						throw new \Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
+						// need to download and extract zip file and move contents to storage
+						$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
+						try
+						{
+							return static::importAppFromZip( $name, $filename );
+							// todo save url for later updates
+						}
+						catch ( \Exception $ex )
+						{
+							throw new \Exception( "Failed to import application package $fileUrl.\n{$ex->getMessage()}" );
+						}
 					}
 				}
 				if ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
@@ -461,7 +466,7 @@ class SystemApp extends SystemResource
 			'requires_plugin'
 		);
 		$record = $app->getAttributes( $fields );
-		$app_root = Utilities::getArrayValue( 'api_name', $record );
+		$app_root = Option::get( $record, 'api_name' );
 
 		try
 		{
@@ -511,7 +516,7 @@ class SystemApp extends SystemResource
 						{
 							if ( $include_services )
 							{
-								if ( !Utilities::boolval( $service->getAttribute( 'is_system' ) ) )
+								if ( !DataFormat::boolval( $service->getAttribute( 'is_system' ) ) )
 								{
 									// get service details to restore with app
 									$temp = $service->getAttributes( $serviceFields );
@@ -554,11 +559,11 @@ class SystemApp extends SystemResource
 					}
 				}
 			}
-			$isExternal = Utilities::boolval( Utilities::getArrayValue( 'is_url_external', $record, false ) );
+			$isExternal = DataFormat::boolval( Option::get( $record, 'is_url_external', false ) );
 			if ( !$isExternal && $include_files )
 			{
 				// add files
-				$_storageServiceId = Utilities::getArrayValue( 'storage_service_id', $record );
+				$_storageServiceId = Option::get( $record, 'storage_service_id' );
 				/** @var $_service \Platform\Services\BaseFileSvc */
 				if ( empty( $_storageServiceId ) )
 				{
@@ -568,7 +573,7 @@ class SystemApp extends SystemResource
 				else
 				{
 					$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
-					$_container = Utilities::getArrayValue( 'storage_container', $record );
+					$_container = Option::get( $record, 'storage_container' );
 				}
 				if ( empty( $_container ) )
 				{
@@ -644,7 +649,7 @@ class SystemApp extends SystemResource
 		{
 			throw new \Exception( "Could not create the application.\n{$ex->getMessage()}" );
 		}
-		$id = Utilities::getArrayValue( 'id', $returnData );
+		$id = Option::get( $returnData, 'id' );
 		$zip->deleteName( 'description.json' );
 		try
 		{
@@ -668,14 +673,14 @@ class SystemApp extends SystemResource
 			if ( false !== $data )
 			{
 				$data = DataFormat::jsonToArray( $data );
-				$services = Utilities::getArrayValue( 'service', $data, array() );
+				$services = Option::get( $data, 'service' );
 				if ( !empty( $services ) )
 				{
 					foreach ( $services as $schemas )
 					{
-						$serviceName = Utilities::getArrayValue( 'api_name', $schemas, '' );
+						$serviceName = Option::get( $schemas, 'api_name' );
 						$db = ServiceHandler::getServiceObject( $serviceName );
-						$tables = Utilities::getArrayValue( 'table', $schemas, array() );
+						$tables = Option::get( $schemas, 'table' );
 						if ( !empty( $tables ) )
 						{
 							/** @var $db \Platform\Services\SchemaSvc */
@@ -691,10 +696,10 @@ class SystemApp extends SystemResource
 				else
 				{
 					// single or multiple tables for one service
-					$tables = Utilities::getArrayValue( 'table', $data, array() );
+					$tables = Option::get( $data, 'table' );
 					if ( !empty( $tables ) )
 					{
-						$serviceName = Utilities::getArrayValue( 'api_name', $data, '' );
+						$serviceName = Option::get( $data, 'api_name' );
 						if ( empty( $serviceName ) )
 						{
 							$serviceName = 'schema'; // for older packages
@@ -711,7 +716,7 @@ class SystemApp extends SystemResource
 					else
 					{
 						// single table with no wrappers - try default schema service
-						$table = Utilities::getArrayValue( 'name', $data, '' );
+						$table = Option::get( $data, 'name' );
 						if ( !empty( $table ) )
 						{
 							$serviceName = 'schema';
@@ -732,18 +737,18 @@ class SystemApp extends SystemResource
 			if ( false !== $data )
 			{
 				$data = DataFormat::jsonToArray( $data );
-				$services = Utilities::getArrayValue( 'service', $data, array() );
+				$services = Option::get( $data, 'service' );
 				if ( !empty( $services ) )
 				{
 					foreach ( $services as $service )
 					{
-						$serviceName = Utilities::getArrayValue( 'api_name', $service, '' );
+						$serviceName = Option::get( $service, 'api_name' );
 						$db = ServiceHandler::getServiceObject( $serviceName );
-						$tables = Utilities::getArrayValue( 'table', $data, array() );
+						$tables = Option::get( $data, 'table' );
 						foreach ( $tables as $table )
 						{
-							$tableName = Utilities::getArrayValue( 'name', $table, '' );
-							$records = Utilities::getArrayValue( 'record', $table, array() );
+							$tableName = Option::get( $table, 'name' );
+							$records = Option::get( $table, 'record' );
 							/** @var $db \Platform\Services\BaseDbSvc */
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )
@@ -757,10 +762,10 @@ class SystemApp extends SystemResource
 				else
 				{
 					// single or multiple tables for one service
-					$tables = Utilities::getArrayValue( 'table', $data, array() );
+					$tables = Option::get( $data, 'table' );
 					if ( !empty( $tables ) )
 					{
-						$serviceName = Utilities::getArrayValue( 'api_name', $data, '' );
+						$serviceName = Option::get( $data, 'api_name' );
 						if ( empty( $serviceName ) )
 						{
 							$serviceName = 'db'; // for older packages
@@ -768,8 +773,8 @@ class SystemApp extends SystemResource
 						$db = ServiceHandler::getServiceObject( $serviceName );
 						foreach ( $tables as $table )
 						{
-							$tableName = Utilities::getArrayValue( 'name', $table, '' );
-							$records = Utilities::getArrayValue( 'record', $table, array() );
+							$tableName = Option::get( $table, 'name' );
+							$records = Option::get( $table, 'record' );
 							/** @var $db \Platform\Services\BaseDbSvc */
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )
@@ -782,12 +787,12 @@ class SystemApp extends SystemResource
 					else
 					{
 						// single table with no wrappers - try default database service
-						$tableName = Utilities::getArrayValue( 'name', $data, '' );
+						$tableName = Option::get( $data, 'name' );
 						if ( !empty( $tableName ) )
 						{
 							$serviceName = 'db';
 							$db = ServiceHandler::getServiceObject( $serviceName );
-							$records = Utilities::getArrayValue( 'record', $data, array() );
+							$records = Option::get( $data, 'record' );
 							/** @var $db \Platform\Services\BaseDbSvc */
 							$result = $db->createRecords( $tableName, $records );
 							if ( isset( $result['record'][0]['error'] ) )
@@ -810,8 +815,8 @@ class SystemApp extends SystemResource
 		}
 
 		// extract the rest of the zip file into storage
-		$_storageServiceId = Utilities::getArrayValue( 'storage_service_id', $record );
-		$_apiName = Utilities::getArrayValue( 'api_name', $record );
+		$_storageServiceId = Option::get( $record, 'storage_service_id' );
+		$_apiName = Option::get( $record, 'api_name' );
 
 		/** @var $_service \Platform\Services\BaseFileSvc */
 		if ( empty( $_storageServiceId ) )
@@ -822,7 +827,7 @@ class SystemApp extends SystemResource
 		else
 		{
 			$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
-			$_container = Utilities::getArrayValue( 'storage_container', $record );
+			$_container = Option::get( $record, 'storage_container' );
 		}
 		if ( empty( $_container ) )
 		{
@@ -863,8 +868,8 @@ class SystemApp extends SystemResource
 			$dropPath = $zip->getNameIndex( 0 );
 			$dropPath = substr( $dropPath, 0, strpos( $dropPath, '/' ) ) . '/';
 
-			$_storageServiceId = Utilities::getArrayValue( 'storage_service_id', $record );
-			$_apiName = Utilities::getArrayValue( 'api_name', $record );
+			$_storageServiceId = Option::get( $record, 'storage_service_id' );
+			$_apiName = Option::get( $record, 'api_name' );
 
 			/** @var $_service \Platform\Services\BaseFileSvc */
 			if ( empty( $_storageServiceId ) )
@@ -875,7 +880,7 @@ class SystemApp extends SystemResource
 			else
 			{
 				$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
-				$_container = Utilities::getArrayValue( 'storage_container', $record );
+				$_container = Option::get( $record, 'storage_container' );
 			}
 			if ( empty( $_container ) )
 			{
