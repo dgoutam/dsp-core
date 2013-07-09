@@ -17,11 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Common\Enums\GelfLevels;
+use DreamFactory\Common\Services\Graylog\GelfLogger;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Option;
-use Platform\Interfaces\Graylog;
-use Platform\Interfaces\GraylogLevels;
-use Platform\Services\Graylog\GelfLogger;
 
 /**
  * Controller
@@ -60,8 +59,8 @@ class Controller extends \CController
 		$_logInfo = array(
 			'short_message' => strtoupper( $action->id ) . ' /' . $this->route,
 			'full_message'  => 'Inbound API request from "' . $_host . '": ' . $action->id,
-			'level'         => GraylogLevels::Info,
-			'facility'      => Graylog::DefaultFacility . '/api',
+			'level'         => GelfLevels::Info,
+			'facility'      => 'platform/api',
 			'_dsp_name'     => $_host,
 			'_source'       => $_SERVER['REMOTE_ADDR'],
 			'_payload'      => $_REQUEST,

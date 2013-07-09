@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Utility\Fabric;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 

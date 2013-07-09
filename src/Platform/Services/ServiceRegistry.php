@@ -19,11 +19,11 @@
  */
 namespace Platform\Services;
 
+use DreamFactory\Platform\Services\BasePlatformRestService;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Exceptions\RestException;
@@ -49,7 +49,7 @@ use Swagger\Annotations as SWG;
  * )
  *
  */
-class ServiceRegistry extends RestService
+class ServiceRegistry extends BasePlatformRestService
 {
 	//*************************************************************************
 	//	Methods
