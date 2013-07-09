@@ -17,8 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Platform\Enums\ServiceTypes;
-use Platform\Enums\StorageTypes;
+use DreamFactory\Platform\Enums\PlatformServiceTypes;
+use DreamFactory\Platform\Enums\PlatformStorageTypes;
 
 /**
  * services.config.php
@@ -26,75 +26,72 @@ use Platform\Enums\StorageTypes;
  */
 return
 	array(
-		ServiceTypes::LOCAL_FILE_STORAGE   => array(
+		PlatformServiceTypes::LOCAL_FILE_STORAGE   => array(
 			'class' => 'Platform\\Services\\LocalFileSvc',
 		),
-		ServiceTypes::REMOTE_FILE_STORAGE  => array(
+		PlatformServiceTypes::REMOTE_FILE_STORAGE  => array(
 			'class' => array(
-				StorageTypes::AZURE_BLOB               => array(
+				PlatformStorageTypes::AZURE_BLOB               => array(
 					'class' => 'Platform\\Services\\WindowsAzureBlobSvc',
 				),
-				StorageTypes::AWS_S3                   => array(
+				PlatformStorageTypes::AWS_S3                   => array(
 					'class' => 'Platform\\Services\\AwsS3Svc',
 				),
-				StorageTypes::OPENSTACK_OBJECT_STORAGE => array(
+				PlatformStorageTypes::OPENSTACK_OBJECT_STORAGE => array(
 					'class' => 'Platform\\Services\\OpenStackObjectStoreSvc',
 				),
-				StorageTypes::RACKSPACE_CLOUDFILES     => array(
+				PlatformStorageTypes::RACKSPACE_CLOUDFILES     => array(
 					'class' => 'Platform\\Services\\OpenStackObjectStoreSvc',
 				),
 			),
 		),
-		ServiceTypes::LOCAL_SQL_DB         => array(
+		PlatformServiceTypes::LOCAL_SQL_DB         => array(
 			'class' => 'Platform\\Services\\SqlDbSvc',
 			'local' => true,
 		),
-		ServiceTypes::REMOTE_SQL_DB        => array(
+		PlatformServiceTypes::REMOTE_SQL_DB        => array(
 			'class' => 'Platform\\Services\\SqlDbSvc',
 			'local' => false,
 		),
-		ServiceTypes::LOCAL_SQL_DB_SCHEMA  => array(
+		PlatformServiceTypes::LOCAL_SQL_DB_SCHEMA  => array(
 			'class' => 'Platform\\Services\\SchemaSvc',
 			'local' => true,
 		),
-		ServiceTypes::REMOTE_SQL_DB_SCHEMA => array(
+		PlatformServiceTypes::REMOTE_SQL_DB_SCHEMA => array(
 			'class' => 'Platform\\Services\\SchemaSvc',
 			'local' => false,
 		),
-		ServiceTypes::LOCAL_EMAIL_SERVICE  => array(
+		PlatformServiceTypes::LOCAL_EMAIL_SERVICE  => array(
 			'class' => 'Platform\\Services\\EmailSvc',
 			'local' => true,
 		),
-		ServiceTypes::REMOTE_EMAIL_SERVICE => array(
+		PlatformServiceTypes::REMOTE_EMAIL_SERVICE => array(
 			'class' => 'Platform\\Services\\EmailSvc',
 			'local' => false,
 		),
-		ServiceTypes::NOSQL_DB             => array(
+		PlatformServiceTypes::REMOTE_NOSQL_DB      => array(
 			'class' => array(
-				StorageTypes::AZURE_TABLES => array(
+				PlatformStorageTypes::AZURE_TABLES => array(
 					'class' => 'Platform\\Services\\WindowsAzureTablesSvc',
 				),
-				StorageTypes::AWS_DYNAMODB => array(
+				PlatformStorageTypes::AWS_DYNAMODB => array(
 					'class' => 'Platform\\Services\\AwsDynamoDbSvc',
 				),
-				StorageTypes::AWS_SIMPLEDB => array(
+				PlatformStorageTypes::AWS_SIMPLEDB => array(
 					'class' => 'Platform\\Services\\AwsSimpleDbSvc',
 				),
-				StorageTypes::MONGODB      => array(
+				PlatformStorageTypes::MONGODB      => array(
 					'class' => 'Platform\\Services\\MongoDbSvc',
 				),
-				StorageTypes::COUCHDB      => array(
+				PlatformStorageTypes::COUCHDB      => array(
 					'class' => 'Platform\\Services\\CouchDbSvc',
 				),
 			),
 		),
-		ServiceTypes::SERVICE_REGISTRY     => array(
-			'class' => 'Platform\\Services\\ServiceRegistry',
-		),
-		ServiceTypes::REMOTE_OAUTH_SERVICE => array(
+		PlatformServiceTypes::REMOTE_OAUTH_SERVICE => array(
 			'class' => 'Platform\\Services\\OAuthService',
 		),
-		ServiceTypes::REMOTE_WEB_SERVICE   => array(
+		PlatformServiceTypes::REMOTE_WEB_SERVICE   => array(
 			'class' => 'Platform\\Services\\RemoteWebSvc',
 		),
 	);

@@ -21,7 +21,12 @@ namespace Platform\Interfaces;
 
 use Kisma\Core\Interfaces\HttpMethod;
 
+/**
+ * RestServiceLike
+ *
+ * @package Platform\Interfaces
+ */
 interface RestServiceLike extends HttpMethod
 {
-	public function processRequest( $resource = null, $action = self::Get);
+	public function processRequest( $resource = null, $action = self::Get );
 }

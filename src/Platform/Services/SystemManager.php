@@ -19,6 +19,9 @@
  */
 namespace Platform\Services;
 
+use DreamFactory\Platform\Enums\PlatformServiceTypes;
+use DreamFactory\Platform\Services\BasePlatformRestService;
+use DreamFactory\Platform\Services\BasePlatformService;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -50,7 +53,7 @@ use Swagger\Annotations as SWG;
  * )
  *
  */
-class SystemManager extends RestService
+class SystemManager extends BasePlatformRestService
 {
 	//*************************************************************************
 	//	Constants
@@ -66,8 +69,13 @@ class SystemManager extends RestService
 	const CORS_DEFAULT_CONFIG_FILE = '/cors.config.json';
 
 	//*************************************************************************
-	//	Members
+	//* Members
 	//*************************************************************************
+
+	/**
+	 * @var string Where the configuration information is stored
+	 */
+	protected static $_configPath = null;
 
 	//*************************************************************************
 	//	Methods
@@ -79,84 +87,18 @@ class SystemManager extends RestService
 	 */
 	public function __construct()
 	{
-		$config = array(
-			'name'        => 'System Configuration Management',
-			'api_name'    => 'system',
-			'type'        => 'System',
-			'description' => 'Service for system administration.',
-			'is_active'   => true,
-		);
+		static::$_configPath = \Kisma::get( 'app.config_path' );
+		$this->_name = 'System Configuration Management';
+		$this->_apiName = 'system';
+		$this->_typeId = PlatformServiceTypes::SYSTEM_SERVICE;
+		$this->_type = 'System';
+		$this->_description = 'Service for system administration.';
+		$this->_isActive = true;
 
-		parent::__construct( $config );
+		parent::__construct();
 	}
 
 	// Service interface implementation
-
-	/**
-	 * @param string $apiName
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setApiName( $apiName )
-	{
-		throw new \Exception( 'SystemManager API name can not be changed.' );
-	}
-
-	/**
-	 * @param string $type
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setType( $type )
-	{
-		throw new \Exception( 'SystemManager type can not be changed.' );
-	}
-
-	/**
-	 * @param string $description
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setDescription( $description )
-	{
-		throw new \Exception( 'SystemManager description can not be changed.' );
-	}
-
-	/**
-	 * @param boolean $isActive
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setIsActive( $isActive )
-	{
-		throw new \Exception( 'SystemManager active flag can not be changed.' );
-	}
-
-	/**
-	 * @param string $name
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setName( $name )
-	{
-		throw new \Exception( 'SystemManager name can not be changed.' );
-	}
-
-	/**
-	 * @param string $nativeFormat
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setNativeFormat( $nativeFormat )
-	{
-		throw new \Exception( 'SystemManager native format can not be changed.' );
-	}
 
 	/**
 	 * @param string $old
@@ -188,6 +130,7 @@ class SystemManager extends RestService
 			// Refresh the schema that we just added
 			$_db = Pii::db();
 			$_schema = $_db->getSchema();
+
 			Sql::setConnection( $_db->pdoInstance );
 
 			$tables = $_schema->getTableNames();
@@ -198,7 +141,7 @@ class SystemManager extends RestService
 			}
 
 			// need to check for db upgrade, based on tables or version
-			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+			$contents = file_get_contents( static::$_configPath . '/schema/system_schema.json' );
 
 			if ( !empty( $contents ) )
 			{
@@ -269,7 +212,7 @@ class SystemManager extends RestService
 
 		try
 		{
-			$contents = file_get_contents( Pii::basePath() . '/data/system_schema.json' );
+			$contents = file_get_contents( static::$_configPath . '/schema/system_schema.json' );
 
 			if ( empty( $contents ) )
 			{
@@ -454,7 +397,7 @@ class SystemManager extends RestService
 	public static function initData()
 	{
 		// init with system required data
-		$contents = file_get_contents( Pii::basePath() . '/data/system_data.json' );
+		$contents = file_get_contents( static::$_configPath . '/schema/system_data.json' );
 		if ( empty( $contents ) )
 		{
 			throw new \Exception( "Empty or no system data file found." );
@@ -512,7 +455,7 @@ class SystemManager extends RestService
 			}
 		}
 		// init system with sample setup
-		$contents = file_get_contents( Pii::basePath() . '/data/sample_data.json' );
+		$contents = file_get_contents( \Kisma::get( 'app.config_path' ) . '/schema/sample_data.json' );
 		if ( !empty( $contents ) )
 		{
 			$contents = DataFormat::jsonToArray( $contents );
@@ -652,6 +595,9 @@ class SystemManager extends RestService
 		chdir( $_oldWorkingDir );
 	}
 
+	/**
+	 * @return array|mixed|string
+	 */
 	public static function getDspVersions()
 	{
 		$_results = Curl::get(
@@ -674,6 +620,9 @@ class SystemManager extends RestService
 		return array();
 	}
 
+	/**
+	 * @return string
+	 */
 	public static function getLatestVersion()
 	{
 		$_versions = static::getDspVersions();
@@ -686,6 +635,9 @@ class SystemManager extends RestService
 		return '';
 	}
 
+	/**
+	 * @return string
+	 */
 	public static function getCurrentVersion()
 	{
 
@@ -1057,4 +1009,97 @@ class SystemManager extends RestService
 			return false;
 		}
 	}
+
+	/**
+	 * @param string $apiName
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
+	public function setApiName( $apiName )
+	{
+		throw new \Exception( 'SystemManager API name can not be changed.' );
+	}
+
+	/**
+	 * @param string $type
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
+	public function setType( $type )
+	{
+		throw new \Exception( 'SystemManager type can not be changed.' );
+	}
+
+	/**
+	 * @param string $description
+	 *
+	 * @return BasePlatformService
+	 * @throws \Exception
+	 */
+	public function setDescription( $description )
+	{
+		throw new \Exception( 'SystemManager description can not be changed.' );
+	}
+
+	/**
+	 * @param boolean $isActive
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
+	public function setIsActive( $isActive = false )
+	{
+		throw new \Exception( 'SystemManager active flag can not be changed.' );
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getIsActive()
+	{
+		return $this->_isActive;
+	}
+
+	/**
+	 * @param string $name
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
+	public function setName( $name )
+	{
+		throw new \Exception( 'SystemManager name can not be changed.' );
+	}
+
+	/**
+	 * @param string $nativeFormat
+	 *
+	 * @return \Platform\Services\BaseService|void
+	 * @throws \Exception
+	 */
+	public function setNativeFormat( $nativeFormat )
+	{
+		throw new \Exception( 'SystemManager native format can not be changed.' );
+	}
+
+	/**
+	 * @return string
+	 */
+	public static function getConfigPath()
+	{
+		return self::$_configPath;
+	}
+
+	/**
+	 * @param string $configPath
+	 */
+	public static function setConfigPath( $configPath )
+	{
+		self::$_configPath = $configPath;
+	}
 }
+
+//	Set the config path...
+SystemManager::setConfigPath( \Kisma::get( 'app.config_path' ) );

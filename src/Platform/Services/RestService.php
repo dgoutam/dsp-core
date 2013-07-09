@@ -19,10 +19,11 @@
  */
 namespace Platform\Services;
 
+use DreamFactory\Platform\Services\BasePlatformService;
+use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Interfaces\RestServiceLike;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
-use Platform\Exceptions\BadRequestException;
-use Platform\Interfaces\RestServiceLike;
 use Swagger\Annotations as SWG;
 
 /**
@@ -32,17 +33,16 @@ use Swagger\Annotations as SWG;
  * Some basic models used in REST interfaces
  *
  * @SWG\Model(id="Resources",
- *   @SWG\Property(name="resource",type="Array", items="$ref:Resource")
+ * @SWG\Property(name="resource",type="Array", items="$ref:Resource")
  * )
  * @SWG\Model(id="Resource",
- *   @SWG\Property(name="name",type="string")
+ * @SWG\Property(name="name",type="string")
  * )
  * @SWG\Model(id="Success",
- *   @SWG\Property(name="success",type="boolean")
+ * @SWG\Property(name="success",type="boolean")
  * )
- *
  */
-abstract class RestService extends BaseService implements RestServiceLike
+abstract class RestService extends BasePlatformService implements RestServiceLike
 {
 	//*************************************************************************
 	//* Members
@@ -52,17 +52,14 @@ abstract class RestService extends BaseService implements RestServiceLike
 	 * @var string Full path coming from the URL of the REST call
 	 */
 	protected $_resourcePath = null;
-
 	/**
 	 * @var array Resource path broken into array by path divider ('/')
 	 */
 	protected $_resourceArray = null;
-
 	/**
 	 * @var string First piece of the resource path array
 	 */
 	protected $_resource = null;
-
 	/**
 	 * @var string REST verb to take action on
 	 */
@@ -216,5 +213,4 @@ abstract class RestService extends BaseService implements RestServiceLike
 
 		return $_criteria;
 	}
-
 }
