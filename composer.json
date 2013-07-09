@@ -46,6 +46,7 @@
 		"php":                                  ">=5.3.10",
 		"kisma/kisma":                          ">=0.1.2",
 		"dreamfactory/yii":                     "dev-master",
+		"dreamfactory/lib-php-common":          "dev-master",
 		"dreamfactory/lib-php-common-yii":      "dev-master",
 		"dreamfactory/lib-php-common-platform": "dev-master",
 		"dreamfactory/app-admin":               "1.0.4",
