@@ -83,40 +83,37 @@ class AppGroup extends BaseDspSystemModel
 	}
 
 	/**
+	 * @param array $additionalLabels
+	 *
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		$_labels = array(
-			'name'        => 'Name',
-			'description' => 'Description',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'name'        => 'Name',
+					 'description' => 'Description',
+				)
+			)
 		);
-
-		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
+	 * @param CDbCriteria $criteria
+	 *
 	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria();
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'name', $this->name, true );
-		$_criteria->compare( 'created_date', $this->created_date, true );
-		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-		$_criteria->compare( 'created_by_id', $this->created_by_id );
-		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider(
-			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
-		);
+		return parent::search( $_criteria );
 	}
 
 	/**

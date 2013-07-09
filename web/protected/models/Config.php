@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use Platform\Utility\DataFormat;
+
 /**
  * Config.php
  * The system configuration model for the DSP
@@ -86,39 +87,41 @@ class Config extends BaseDspSystemModel
 	}
 
 	/**
+	 * @param array $attributeLabels
+	 *
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $attributeLabels = array() )
 	{
-		return array(
-			'id'                      => 'Config Id',
-			'db_version'              => 'Db Version',
-			'allow_open_registration' => 'Allow Open Registration',
-			'open_reg_role_id'        => 'Open Registration Default Role Id',
-			'allow_guest_user'        => 'Allow Guest User',
-			'guest_role_id'           => 'Guest Role Id',
-			'editable_profile_fields' => 'Editable Profile Fields',
+		return parent::attributeLabels(
+			array_merge(
+				$attributeLabels,
+				array(
+					 'db_version'              => 'Db Version',
+					 'allow_open_registration' => 'Allow Open Registration',
+					 'open_reg_role_id'        => 'Open Registration Default Role Id',
+					 'allow_guest_user'        => 'Allow Guest User',
+					 'guest_role_id'           => 'Guest Role Id',
+					 'editable_profile_fields' => 'Editable Profile Fields',
+				)
+			)
 		);
 	}
 
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
+	 * @param null $criteria
+	 *
 	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria();
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'db_version', $this->db_version, true );
 
-		return new CActiveDataProvider(
-			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
-		);
+		return parent::search( $_criteria );
 	}
 
 	/** {@InheritDoc} */

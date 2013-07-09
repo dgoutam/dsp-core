@@ -82,36 +82,41 @@ class AppServiceRelation extends BaseDspSystemModel
 	}
 
 	/**
+	 * @param array $additionalLabels
+	 *
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		return array(
-			'id'         => 'Id',
-			'app_id'     => 'App',
-			'service_id' => 'Service',
-			'component'  => 'Component',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'id'         => 'Id',
+					 'app_id'     => 'App',
+					 'service_id' => 'Service',
+					 'component'  => 'Component',
+				)
+			)
 		);
 	}
 
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
+	 * @param null $criteria
+	 *
 	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$criteria = new CDbCriteria;
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$criteria->compare( 'id', $this->id );
-		$criteria->compare( 'app_id', $this->app_id );
-		$criteria->compare( 'service_id', $this->service_id );
-		$criteria->compare( 'component', $this->component );
+		$_criteria->compare( 'app_id', $this->app_id );
+		$_criteria->compare( 'service_id', $this->service_id );
+		$_criteria->compare( 'component', $this->component );
 
-		return new CActiveDataProvider(
-			$this,
-			array( 'criteria' => $criteria, )
-		);
+		return parent::search( $_criteria );
 	}
 
 	/**
