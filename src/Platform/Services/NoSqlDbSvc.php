@@ -149,6 +149,10 @@ use Swagger\Annotations as SWG;
  *           paramType="query", required="false", allowMultiple=false, dataType="int"
  *         ),
  *         @SWG\Parameter(
+ *           name="offset", description="Set to offset the filter results to a particular record count.",
+ *           paramType="query", required="false", allowMultiple=false, dataType="int"
+ *         ),
+ *         @SWG\Parameter(
  *           name="order", description="SQL-like order containing field and direction for filter results.",
  *           paramType="query", required="false", allowMultiple=false, dataType="string"
  *         ),
@@ -249,7 +253,7 @@ use Swagger\Annotations as SWG;
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
- *           name="ids", description="Comma-delimited list of the identifiers of the resources to retrieve.",
+ *           name="ids", description="Comma-delimited list of the identifiers of the resources to delete.",
  *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
  *         @SWG\Parameter(
@@ -342,7 +346,7 @@ use Swagger\Annotations as SWG;
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
- *           name="id", description="Identifier of the resource to retrieve.",
+ *           name="id", description="Identifier of the resource to update.",
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
@@ -396,7 +400,7 @@ use Swagger\Annotations as SWG;
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
- *           name="id", description="Identifier of the resource to retrieve.",
+ *           name="id", description="Identifier of the resource to delete.",
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(

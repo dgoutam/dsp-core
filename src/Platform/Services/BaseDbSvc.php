@@ -91,7 +91,7 @@ abstract class BaseDbSvc extends RestService
 										if ( empty( $records ) )
 										{
 											// xml to array conversion leaves them in plural wrapper
-											$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+											$records = Option::getDeep( $data, 'records', 'record' );
 										}
 										if ( !empty( $records ) )
 										{
@@ -149,7 +149,7 @@ abstract class BaseDbSvc extends RestService
 						if ( empty( $records ) )
 						{
 							// xml to array conversion leaves them in plural wrapper
-							$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+							$records = Option::getDeep( $data, 'records', 'record' );
 						}
 						if ( empty( $records ) )
 						{
@@ -180,10 +180,10 @@ abstract class BaseDbSvc extends RestService
 						if ( empty( $this->_resourceId ) )
 						{
 							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
-							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+							$ids = FilterInput::request( 'ids' );
 							if ( empty( $ids ) )
 							{
-								$ids = Option::get( $data, 'ids', '' );
+								$ids = Option::get( $data, 'ids' );
 							}
 							if ( !empty( $ids ) )
 							{
@@ -192,7 +192,7 @@ abstract class BaseDbSvc extends RestService
 							}
 							else
 							{
-								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
+								$filter = FilterInput::request( 'filter' );
 								if ( !isset( $filter ) )
 								{
 									$filter = Option::get( $data, 'filter', null );
@@ -208,7 +208,7 @@ abstract class BaseDbSvc extends RestService
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
-										$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+										$records = Option::getDeep( $data, 'records', 'record' );
 									}
 									if ( empty( $records ) )
 									{
@@ -246,7 +246,7 @@ abstract class BaseDbSvc extends RestService
 						if ( empty( $this->_resourceId ) )
 						{
 							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
-							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+							$ids = FilterInput::request( 'ids' );
 							if ( empty( $ids ) )
 							{
 								$ids = Option::get( $data, 'ids', '' );
@@ -258,7 +258,7 @@ abstract class BaseDbSvc extends RestService
 							}
 							else
 							{
-								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
+								$filter = FilterInput::request( 'filter' );
 								if ( !isset( $filter ) )
 								{
 									$filter = Option::get( $data, 'filter', null );
@@ -274,7 +274,7 @@ abstract class BaseDbSvc extends RestService
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
-										$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+										$records = Option::getDeep( $data, 'records', 'record' );
 									}
 									if ( empty( $records ) )
 									{
@@ -311,7 +311,7 @@ abstract class BaseDbSvc extends RestService
 						if ( empty( $this->_resourceId ) )
 						{
 							$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
-							$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+							$ids = FilterInput::request( 'ids' );
 							if ( empty( $ids ) )
 							{
 								$ids = Option::get( $data, 'ids', '' );
@@ -323,10 +323,10 @@ abstract class BaseDbSvc extends RestService
 							}
 							else
 							{
-								$filter = ( isset( $_REQUEST['filter'] ) ) ? $_REQUEST['filter'] : null;
+								$filter = FilterInput::request( 'filter' );
 								if ( !isset( $filter ) )
 								{
-									$filter = Option::get( $data, 'filter', null );
+									$filter = Option::get( $data, 'filter' );
 								}
 								if ( isset( $filter ) )
 								{
@@ -339,7 +339,7 @@ abstract class BaseDbSvc extends RestService
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
-										$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+										$records = Option::getDeep( $data, 'records', 'record' );
 									}
 									if ( empty( $records ) )
 									{
@@ -399,7 +399,7 @@ abstract class BaseDbSvc extends RestService
 				if ( empty( $tables ) )
 				{
 					// xml to array conversion leaves them in plural wrapper
-					$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+					$tables = Option::getDeep( $data, 'tables', 'table' );
 				}
 				if ( empty( $tables ) )
 				{
@@ -426,7 +426,7 @@ abstract class BaseDbSvc extends RestService
 				if ( empty( $tables ) )
 				{
 					// xml to array conversion leaves them in plural wrapper
-					$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+					$tables = Option::getDeep( $data, 'tables', 'table' );
 				}
 				if ( empty( $tables ) )
 				{
@@ -448,7 +448,7 @@ abstract class BaseDbSvc extends RestService
 				$this->checkPermission( 'delete' );
 				$data = RestRequest::getPostDataAsArray();
 				$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
-				$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+				$ids = FilterInput::request( 'ids' );
 				if ( empty( $ids ) )
 				{
 					$ids = Option::get( $data, 'ids', '' );
@@ -464,7 +464,7 @@ abstract class BaseDbSvc extends RestService
 					if ( empty( $tables ) )
 					{
 						// xml to array conversion leaves them in plural wrapper
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : null;
+						$tables = Option::getDeep( $data, 'tables', 'table' );
 					}
 					if ( empty( $tables ) )
 					{
