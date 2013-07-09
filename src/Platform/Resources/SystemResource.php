@@ -19,6 +19,7 @@
  */
 namespace Platform\Resources;
 
+use DreamFactory\Platform\Services\BasePlatformRestService;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
@@ -36,7 +37,7 @@ use Platform\Yii\Utility\Pii;
  * DSP system administration manager
  *
  */
-class SystemResource extends RestResource
+class SystemResource extends BasePlatformRestResource
 {
 	//*************************************************************************
 	//	Constants

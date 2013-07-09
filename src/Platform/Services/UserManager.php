@@ -19,6 +19,11 @@
  */
 namespace Platform\Services;
 
+use DreamFactory\Platform\Enums\PlatformServiceTypes;
+use DreamFactory\Platform\Services\BasePlatformRestService;
+use DreamFactory\Platform\Services\BaseSystemRestService;
+use DreamFactory\Yii\Utility\Pii;
+use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\ForbiddenException;
@@ -29,7 +34,6 @@ use Platform\Resources\UserSession;
 use Platform\Resources\SystemConfig;
 use Platform\Utility\RestRequest;
 use Platform\Utility\Utilities;
-use Platform\Yii\Utility\Pii;
 use Swagger\Annotations as SWG;
 
 /**
@@ -44,43 +48,51 @@ use Swagger\Annotations as SWG;
  * )
  *
  * @SWG\Model(id="Profile",
- *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
- *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
- *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
- *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user."),
- *   @SWG\Property(name="phone",type="string",description="Phone number."),
- *   @SWG\Property(name="security_question",type="string",description="Question to be answered to initiate password reset."),
- *   @SWG\Property(name="default_app_id",type="int",description="Id of the application to be launched at login.")
+ * @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ * @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ * @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ * @SWG\Property(name="display_name",type="string",description="Full display name of the current user."),
+ * @SWG\Property(name="phone",type="string",description="Phone number."),
+ * @SWG\Property(name="security_question",type="string",description="Question to be answered to initiate password reset."),
+ * @SWG\Property(name="default_app_id",type="int",description="Id of the application to be launched at login.")
  * )
  * @SWG\Model(id="Register",
- *   @SWG\Property(name="email",type="string",description="Email address of the current user."),
- *   @SWG\Property(name="first_name",type="string",description="First name of the current user."),
- *   @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
- *   @SWG\Property(name="display_name",type="string",description="Full display name of the current user.")
+ * @SWG\Property(name="email",type="string",description="Email address of the current user."),
+ * @SWG\Property(name="first_name",type="string",description="First name of the current user."),
+ * @SWG\Property(name="last_name",type="string",description="Last name of the current user."),
+ * @SWG\Property(name="display_name",type="string",description="Full display name of the current user.")
  * )
  * @SWG\Model(id="Confirm",
- *   @SWG\Property(name="email",type="string"),
- *   @SWG\Property(name="new_password",type="string")
+ * @SWG\Property(name="email",type="string"),
+ * @SWG\Property(name="new_password",type="string")
  * )
  * @SWG\Model(id="Password",
- *   @SWG\Property(name="old_password",type="string"),
- *   @SWG\Property(name="new_password",type="string")
+ * @SWG\Property(name="old_password",type="string"),
+ * @SWG\Property(name="new_password",type="string")
  * )
  * @SWG\Model(id="Question",
- *   @SWG\Property(name="security_question",type="string")
+ * @SWG\Property(name="security_question",type="string")
  * )
  * @SWG\Model(id="Answer",
- *   @SWG\Property(name="email",type="string"),
- *   @SWG\Property(name="security_answer",type="string")
+ * @SWG\Property(name="email",type="string"),
+ * @SWG\Property(name="security_answer",type="string")
  * )
  *
  */
-class UserManager extends RestService
+class UserManager extends BaseSystemRestService
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
 	/**
 	 * @var string
 	 */
 	protected static $_randKey;
+
+	//*************************************************************************
+	//	Methods
+	//*************************************************************************
 
 	/**
 	 * Create a new UserManager
@@ -88,94 +100,26 @@ class UserManager extends RestService
 	 */
 	public function __construct()
 	{
-		$config = array(
-			'name'        => 'User Session Management',
-			'api_name'    => 'user',
-			'type'        => 'User',
-			'description' => 'Service for a user to manage their session, profile and password.',
-			'is_active'   => true,
+		parent::__construct(
+			array(
+				 'name'        => 'User Session Management',
+				 'apiName'     => 'user',
+				 'type'        => 'User',
+				 'type_id'     => PlatformServiceTypes::SYSTEM_SERVICE,
+				 'description' => 'Service for a user to manage their session, profile and password.',
+				 'is_active'   => true,
+			)
 		);
-		parent::__construct( $config );
 
-		//For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
-		static::$_randKey = 'M1kVi0kE9ouXxF9';
+		//	For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
+		static::$_randKey = \sha1( Pii::db()->password );
 	}
-
-	// Service interface implementation
-
-	/**
-	 * @param string $apiName
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setApiName( $apiName )
-	{
-		throw new \Exception( 'UserManager API name can not be changed.' );
-	}
-
-	/**
-	 * @param string $type
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setType( $type )
-	{
-		throw new \Exception( 'UserManager type can not be changed.' );
-	}
-
-	/**
-	 * @param string $description
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setDescription( $description )
-	{
-		throw new \Exception( 'UserManager description can not be changed.' );
-	}
-
-	/**
-	 * @param bool $isActive
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setIsActive( $isActive )
-	{
-		throw new \Exception( 'UserManager active flag can not be changed.' );
-	}
-
-	/**
-	 * @param string $name
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setName( $name )
-	{
-		throw new \Exception( 'UserManager name can not be changed.' );
-	}
-
-	/**
-	 * @param string $nativeFormat
-	 *
-	 * @return \Platform\Services\BaseService|void
-	 * @throws \Exception
-	 */
-	public function setNativeFormat( $nativeFormat )
-	{
-		throw new \Exception( 'UserManager native format can not be changed.' );
-	}
-
-	// REST interface implementation
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user", description="Operations available for user session management.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 *       path="/user", description="Operations available for user session management.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for user session management.",
 	 *       notes="See listed operations for each resource available.",
 	 *       responseClass="Resources", nickname="getResources"
@@ -219,10 +163,12 @@ class UserManager extends RestService
 						return false;
 				}
 				break;
+
 			case 'session':
 				$obj = new UserSession();
 				$result = $obj->processRequest( $this->_action );
 				break;
+
 			case 'profile':
 				switch ( $this->_action )
 				{
@@ -240,6 +186,7 @@ class UserManager extends RestService
 						return false;
 				}
 				break;
+
 			case 'password':
 				switch ( $this->_action )
 				{
@@ -258,6 +205,7 @@ class UserManager extends RestService
 						return false;
 				}
 				break;
+
 			case 'register':
 				switch ( $this->_action )
 				{
@@ -273,6 +221,7 @@ class UserManager extends RestService
 						return false;
 				}
 				break;
+
 			case 'confirm':
 				switch ( $this->_action )
 				{
@@ -310,6 +259,7 @@ class UserManager extends RestService
 						return false;
 				}
 				break;
+
 			case 'challenge':
 				switch ( $this->_action )
 				{
@@ -407,21 +357,21 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/register", description="Operations on a user's security challenge.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Register a new user in the system.",
-	 *       notes="The new user is created and sent an email for confirmation.",
-	 *       responseClass="Success", nickname="registerUser",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/user/register", description="Operations on a user's security challenge.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="POST", summary="Register a new user in the system.",
+	 *           notes="The new user is created and sent an email for confirmation.",
+	 *           responseClass="Success", nickname="registerUser",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="registration", description="Data containing name-value pairs for new user registration.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Register"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -482,21 +432,21 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/confirm", description="Operations on a user's confirmation.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Confirm a new user registration or password change request.",
-	 *       notes="The new user is confirmed and assumes the role given by system admin.",
-	 *       responseClass="Success", nickname="confirmUser",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/user/confirm", description="Operations on a user's confirmation.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="POST", summary="Confirm a new user registration or password change request.",
+	 *           notes="The new user is confirmed and assumes the role given by system admin.",
+	 *           responseClass="Success", nickname="confirmUser",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="confirmation", description="Data containing name-value pairs for new user confirmation.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Confirm"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -530,14 +480,14 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/challenge", description="Operations on a user's security challenge.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="GET", summary="Retrieve the security challenge question for the given user.",
-	 *       notes="Use this question to challenge the user..",
-	 *       responseClass="Question", nickname="getChallenge",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/user/challenge", description="Operations on a user's security challenge.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="GET", summary="Retrieve the security challenge question for the given user.",
+	 *           notes="Use this question to challenge the user..",
+	 *           responseClass="Question", nickname="getChallenge",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="email",
 	 *           description="User email used to request security question.",
 	 *           paramType="query",
@@ -547,9 +497,9 @@ class UserManager extends RestService
 	 *           allowMultiple=false
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -665,21 +615,21 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/challenge", description="Operations on a user's security challenge.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Answer the security challenge question for the given user.",
-	 *       notes="Use this to gain temporary access to change password.",
-	 *       responseClass="Session", nickname="answerChallenge",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/user/challenge", description="Operations on a user's security challenge.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="POST", summary="Answer the security challenge question for the given user.",
+	 *           notes="Use this to gain temporary access to change password.",
+	 *           responseClass="Session", nickname="answerChallenge",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="answer", description="Answer to the security question.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Answer"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -810,21 +760,21 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/password", description="Operations on a user's password.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Update the current user's password.",
-	 *       notes="A valid session is required to change the password through this API.",
-	 *       responseClass="Success", nickname="changePassword",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/user/password", description="Operations on a user's password.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="POST", summary="Update the current user's password.",
+	 *           notes="A valid session is required to change the password through this API.",
+	 *           responseClass="Success", nickname="changePassword",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="credentials", description="Data containing name-value pairs for password change.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Password"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -870,15 +820,15 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/profile", description="Operations on a user's profile.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 *       path="/user/profile", description="Operations on a user's profile.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve the current user's profile information.",
 	 *       notes="This profile, along with password, is the only things that the user can directly change.",
 	 *       responseClass="Profile", nickname="getProfile",
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -924,21 +874,21 @@ class UserManager extends RestService
 
 	/**
 	 * @SWG\Api(
-	 *   path="/user/profile", description="Operations on a user's profile.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Update the current user's profile information.",
-	 *       notes="Update the security question and answer through this api, as well as, display name, email, etc.",
-	 *       responseClass="Success", nickname="changeProfile",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/user/profile", description="Operations on a user's profile.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="POST", summary="Update the current user's profile information.",
+	 *           notes="Update the security question and answer through this api, as well as, display name, email, etc.",
+	 *           responseClass="Success", nickname="changeProfile",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="profile", description="Data containing name-value pairs for the user profile.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Profile"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )

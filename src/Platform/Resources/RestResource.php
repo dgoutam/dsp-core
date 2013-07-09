@@ -36,7 +36,6 @@ abstract class RestResource extends BaseResource implements RestResourceLike
 	 */
 	protected $_action = self::Get;
 
-
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
