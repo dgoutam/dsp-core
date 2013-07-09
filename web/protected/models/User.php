@@ -23,6 +23,8 @@ use Kisma\Core\Utility\Sql;
 use Platform\Resources\UserSession;
 use Platform\Utility\DataFormat;
 
+$_x = 1;
+
 /**
  * User.php
  * The system user model for the DSP
@@ -129,27 +131,32 @@ class User extends BaseDspSystemModel
 	}
 
 	/**
+	 * @param array $additionalLabels
+	 *
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		$_labels = array(
-			'email'             => 'Email',
-			'password'          => 'Password',
-			'first_name'        => 'First Name',
-			'last_name'         => 'Last Name',
-			'display_name'      => 'Display Name',
-			'phone'             => 'Phone',
-			'is_active'         => 'Is Active',
-			'is_sys_admin'      => 'Is System Admin',
-			'confirm_code'      => 'Confirmation Code',
-			'default_app_id'    => 'Default App',
-			'role_id'           => 'Role',
-			'security_question' => 'Security Question',
-			'security_answer'   => 'Security Answer',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'email'             => 'Email',
+					 'password'          => 'Password',
+					 'first_name'        => 'First Name',
+					 'last_name'         => 'Last Name',
+					 'display_name'      => 'Display Name',
+					 'phone'             => 'Phone',
+					 'is_active'         => 'Is Active',
+					 'is_sys_admin'      => 'Is System Admin',
+					 'confirm_code'      => 'Confirmation Code',
+					 'default_app_id'    => 'Default App',
+					 'role_id'           => 'Role',
+					 'security_question' => 'Security Question',
+					 'security_answer'   => 'Security Answer',
+				)
+			)
 		);
-
-		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/** {@InheritDoc} */

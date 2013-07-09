@@ -62,16 +62,19 @@ class ServiceAuth extends \BaseDspSystemModel
 	/**
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		$_labels = array(
-			'user_id'       => 'User ID',
-			'service_id'    => 'Service ID',
-			'auth_text'     => 'Authorization',
-			'last_use_date' => 'Last Used',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'user_id'       => 'User ID',
+					 'service_id'    => 'Service ID',
+					 'auth_text'     => 'Authorization',
+					 'last_use_date' => 'Last Used',
+				)
+			)
 		);
-
-		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/**

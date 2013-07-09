@@ -139,27 +139,32 @@ class App extends BaseDspSystemModel
 	}
 
 	/**
+	 * @param array $additionalLabels
+	 *
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		$_labels = array(
-			'name'                    => 'Name',
-			'api_name'                => 'API Name',
-			'description'             => 'Description',
-			'is_active'               => 'Is Active',
-			'url'                     => 'Url',
-			'is_url_external'         => 'Is Url External',
-			'import_url'              => 'Import Url',
-			'storage_service_id'      => 'Storage Service',
-			'storage_container'       => 'Storage Container',
-			'requires_fullscreen'     => 'Requires Fullscreen',
-			'allow_fullscreen_toggle' => 'Allow Fullscreen Toggle',
-			'toggle_location'         => 'Toggle Location',
-			'requires_plugin'         => 'Requires Plugin',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'name'                    => 'Name',
+					 'api_name'                => 'API Name',
+					 'description'             => 'Description',
+					 'is_active'               => 'Is Active',
+					 'url'                     => 'Url',
+					 'is_url_external'         => 'Is Url External',
+					 'import_url'              => 'Import Url',
+					 'storage_service_id'      => 'Storage Service',
+					 'storage_container'       => 'Storage Container',
+					 'requires_fullscreen'     => 'Requires Fullscreen',
+					 'allow_fullscreen_toggle' => 'Allow Fullscreen Toggle',
+					 'toggle_location'         => 'Toggle Location',
+					 'requires_plugin'         => 'Requires Plugin',
+				)
+			)
 		);
-
-		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/**

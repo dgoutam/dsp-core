@@ -186,25 +186,28 @@ class Service extends BaseDspSystemModel
 	/**
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		$_labels = array(
-			'name'          => 'Name',
-			'api_name'      => 'API Name',
-			'description'   => 'Description',
-			'is_active'     => 'Is Active',
-			'is_system'     => 'Is System',
-			'type'          => 'Type',
-			'storage_name'  => 'Storage Name',
-			'storage_type'  => 'Storage Type',
-			'credentials'   => 'Credentials',
-			'native_format' => 'Native Format',
-			'base_url'      => 'Base Url',
-			'parameters'    => 'Parameters',
-			'headers'       => 'Headers',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'name'          => 'Name',
+					 'api_name'      => 'API Name',
+					 'description'   => 'Description',
+					 'is_active'     => 'Is Active',
+					 'is_system'     => 'Is System',
+					 'type'          => 'Type',
+					 'storage_name'  => 'Storage Name',
+					 'storage_type'  => 'Storage Type',
+					 'credentials'   => 'Credentials',
+					 'native_format' => 'Native Format',
+					 'base_url'      => 'Base Url',
+					 'parameters'    => 'Parameters',
+					 'headers'       => 'Headers',
+				)
+			)
 		);
-
-		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/**
@@ -212,28 +215,18 @@ class Service extends BaseDspSystemModel
 	 *
 	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria();
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'name', $this->name, true );
 		$_criteria->compare( 'api_name', $this->api_name, true );
 		$_criteria->compare( 'is_active', $this->is_active );
 		$_criteria->compare( 'type', $this->type, true );
 		$_criteria->compare( 'storage_name', $this->storage_name, true );
 		$_criteria->compare( 'storage_type', $this->storage_type, true );
-		$_criteria->compare( 'created_date', $this->created_date, true );
-		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-		$_criteria->compare( 'created_by_id', $this->created_by_id );
-		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider(
-			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
-		);
+		return parent::search( $_criteria );
 	}
 
 	/**

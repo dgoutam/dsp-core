@@ -84,14 +84,18 @@ class RoleServiceAccess extends BaseDspSystemModel
 	/**
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		return array(
-			'id'         => 'Id',
-			'role_id'    => 'Role',
-			'service_id' => 'Service',
-			'component'  => 'Component',
-			'access'     => 'Access',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'role_id'    => 'Role',
+					 'service_id' => 'Service',
+					 'component'  => 'Component',
+					 'access'     => 'Access',
+				)
+			)
 		);
 	}
 
@@ -100,9 +104,9 @@ class RoleServiceAccess extends BaseDspSystemModel
 	 *
 	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria();
+		$_criteria = $criteria ? : new \CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'role_id', $this->role_id );
@@ -110,12 +114,7 @@ class RoleServiceAccess extends BaseDspSystemModel
 		$_criteria->compare( 'component', $this->component );
 		$_criteria->compare( 'access', $this->access );
 
-		return new CActiveDataProvider(
-			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
-		);
+		return parent::search( $_criteria );
 	}
 
 	/**

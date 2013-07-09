@@ -40,7 +40,7 @@ use Platform\Yii\Utility\Pii;
  * @property User    $created_by
  * @property User    $last_modified_by
  */
-abstract class BaseDspSystemModel extends BaseDspModel
+abstract class BaseDspSystemModel extends \BaseDspModel
 {
 	/**
 	 * @return string the system database table name prefix

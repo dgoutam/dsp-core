@@ -663,7 +663,14 @@ class Pii extends \Yii
 	 */
 	public static function currentError()
 	{
-		return static::app()->getErrorHandler()->getError();
+		$_handler = static::app()->getErrorHandler();
+
+		if ( !empty( $_handler ) )
+		{
+			return $_handler->getError();
+		}
+
+		return null;
 	}
 
 	/**
