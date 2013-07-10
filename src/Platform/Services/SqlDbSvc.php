@@ -241,9 +241,9 @@ class SqlDbSvc extends BaseDbSvc
 	/**
 	 * @return array
 	 */
-	protected function gatherExtrasFromRequest()
+	protected function _gatherExtrasFromRequest()
 	{
-		$_extras = parent::gatherExtrasFromRequest();
+		$_extras = parent::_gatherExtrasFromRequest();
 
 		$_relations = array();
 		$_related = FilterInput::request( 'related' );
