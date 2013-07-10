@@ -19,6 +19,7 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Utility\RestRequest;
@@ -132,11 +133,11 @@ class SchemaSvc extends RestService
 		}
 		else
 		{
-			$type = Utilities::getArrayValue( 'storage_type', $config, '' );
-			$credentials = Utilities::getArrayValue( 'credentials', $config, array() );
-			$dsn = Utilities::getArrayValue( 'dsn', $credentials, '' );
-			$user = Utilities::getArrayValue( 'user', $credentials, '' );
-			$pwd = Utilities::getArrayValue( 'pwd', $credentials, '' );
+			$type = Option::get( $config, 'storage_type' );
+			$credentials = Option::get( $config, 'credentials' );
+			$dsn = Option::get( $credentials, 'dsn' );
+			$user = Option::get( $credentials, 'user' );
+			$pwd = Option::get( $credentials, 'pwd' );
 			if ( empty( $dsn ) )
 			{
 				throw new \InvalidArgumentException( 'DB connection string (DSN) can not be empty.' );
@@ -151,7 +152,6 @@ class SchemaSvc extends RestService
 			}
 
 			// create pdo connection, activate later
-			Utilities::markTimeStart( 'DB_TIME' );
 			$this->_sqlConn = new \CDbConnection( $dsn, $user, $pwd );
 			$this->_driverType = SqlDbUtilities::getDbDriverType( $this->_sqlConn );
 			switch ( $this->_driverType )
@@ -167,10 +167,9 @@ class SchemaSvc extends RestService
 					$this->_sqlConn->setAttribute( "CharacterSet", "UTF-8" );
 					break;
 			}
-			Utilities::markTimeStop( 'DB_TIME' );
 		}
 
-		$attributes = Utilities::getArrayValue( 'parameters', $config, array() );
+		$attributes = Option::get( $config, 'parameters' );
 		if ( !empty( $attributes ) && is_array( $attributes ) )
 		{
 			foreach ( $attributes as $key => $value )
@@ -375,7 +374,7 @@ class SchemaSvc extends RestService
 					break;
 				case self::Post:
 					$data = RestRequest::getPostDataAsArray();
-					$tables = Utilities::getArrayValue( 'table', $data, '' );
+					$tables = Option::get( $data, 'table', $data, '' );
 					if ( empty( $tables ) )
 					{
 						// temporary, layer created from xml to array conversion
@@ -394,7 +393,7 @@ class SchemaSvc extends RestService
 				case self::Patch:
 				case self::Merge:
 					$data = RestRequest::getPostDataAsArray();
-					$tables = Utilities::getArrayValue( 'table', $data, '' );
+					$tables = Option::get( $data, 'table', $data, '' );
 					if ( empty( $tables ) )
 					{
 						// temporary, layer created from xml to array conversion
@@ -428,7 +427,7 @@ class SchemaSvc extends RestService
 					case self::Post:
 						$data = RestRequest::getPostDataAsArray();
 						// create fields in existing table
-						$fields = Utilities::getArrayValue( 'field', $data, '' );
+						$fields = Option::get( $data, 'field', $data, '' );
 						if ( empty( $fields ) )
 						{
 							// temporary, layer created from xml to array conversion
@@ -448,7 +447,7 @@ class SchemaSvc extends RestService
 					case self::Merge:
 						$data = RestRequest::getPostDataAsArray();
 						// create fields in existing table
-						$fields = Utilities::getArrayValue( 'field', $data, '' );
+						$fields = Option::get( $data, 'field', $data, '' );
 						if ( empty( $fields ) )
 						{
 							// temporary, layer created from xml to array conversion
@@ -658,7 +657,7 @@ class SchemaSvc extends RestService
 			{
 				foreach ( $tables as $table )
 				{
-					$name = Utilities::getArrayValue( 'name', $table, '' );
+					$name = Option::get( $table, 'name', '' );
 					if ( 0 === substr_compare( $name, $sysPrefix, 0, strlen( $sysPrefix ) ) )
 					{
 						throw new BadRequestException( "Tables can not use the prefix '$sysPrefix'. '$name' can not be created." );
@@ -667,7 +666,7 @@ class SchemaSvc extends RestService
 			}
 			else
 			{ // single table
-				$name = Utilities::getArrayValue( 'name', $tables, '' );
+				$name = Option::get( $tables, 'name', '' );
 				if ( 0 === substr_compare( $name, $sysPrefix, 0, strlen( $sysPrefix ) ) )
 				{
 					throw new BadRequestException( "Tables can not use the prefix '$sysPrefix'. '$name' can not be created." );
@@ -689,7 +688,7 @@ class SchemaSvc extends RestService
 	{
 		$result = $this->createTables( $table );
 
-		return Utilities::getArrayValue( 0, $result, array() );
+		return Option::get( $result, 0, array() );
 	}
 
 	/**
@@ -738,7 +737,7 @@ class SchemaSvc extends RestService
 	{
 		$result = $this->createFields( $table, $data );
 
-		return Utilities::getArrayValue( 0, $result, array() );
+		return Option::get( $result, 0, array() );
 	}
 
 	/**
@@ -761,7 +760,7 @@ class SchemaSvc extends RestService
 			{
 				foreach ( $tables as $table )
 				{
-					$name = Utilities::getArrayValue( 'name', $table, '' );
+					$name = Option::get( $table, 'name', '' );
 					if ( 0 === substr_compare( $name, $sysPrefix, 0, strlen( $sysPrefix ) ) )
 					{
 						throw new BadRequestException( "Tables can not use the prefix '$sysPrefix'. '$name' can not be created." );
@@ -770,7 +769,7 @@ class SchemaSvc extends RestService
 			}
 			else
 			{ // single table
-				$name = Utilities::getArrayValue( 'name', $tables, '' );
+				$name = Option::get( $tables, 'name', '' );
 				if ( 0 === substr_compare( $name, $sysPrefix, 0, strlen( $sysPrefix ) ) )
 				{
 					throw new BadRequestException( "Tables can not use the prefix '$sysPrefix'. '$name' can not be created." );
@@ -792,7 +791,7 @@ class SchemaSvc extends RestService
 	{
 		$result = $this->updateTables( $table );
 
-		return Utilities::getArrayValue( 0, $result, array() );
+		return Option::get( $result, 0, array() );
 	}
 
 	/**
@@ -846,7 +845,7 @@ class SchemaSvc extends RestService
 		}
 		$result = $this->updateFields( $table, $data );
 
-		return Utilities::getArrayValue( 0, $result, array() );
+		return Option::get( $result, 0, array() );
 	}
 
 	/**

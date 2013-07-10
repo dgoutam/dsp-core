@@ -17,12 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
-use Platform\Yii\Utility\Pii;
-
-require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/DataFormatBehavior.php';
-require_once dirname( dirname( Pii::basePath() ) ) . '/src/Platform/Yii/Behaviors/TimestampBehavior.php';
+use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Sql;
 
 /**
  * BaseDspModel.php
@@ -55,10 +52,6 @@ class BaseDspModel extends \CActiveRecord
 	 */
 	protected $_schema;
 	/**
-	 * @var array Attribute labels cache
-	 */
-	protected $_attributeLabels = array();
-	/**
 	 * @var string The name of the model class
 	 */
 	protected $_modelClass = null;
@@ -66,6 +59,10 @@ class BaseDspModel extends \CActiveRecord
 	 * @var \CDbTransaction The current transaction
 	 */
 	protected $_transaction = null;
+	/**
+	 * @var bool If true,save() and delete() will throw an exception on failure
+	 */
+	protected $_throwOnError = true;
 
 	//********************************************************************************
 	//* Methods
@@ -91,9 +88,13 @@ class BaseDspModel extends \CActiveRecord
 	}
 
 	/**
+	 * Returns an array of all attribute labels.
+	 *
+	 * @param array $additionalLabels
+	 *
 	 * @return array
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
 		static $_cache;
 
@@ -102,17 +103,19 @@ class BaseDspModel extends \CActiveRecord
 			return $_cache;
 		}
 
+		//	Merge all the labels together
 		return $_cache = array_merge(
 			parent::attributeLabels(),
+			//	Mine
 			array(
-				 'id'                  => 'ID',
-				 'create_date'         => 'Created Date',
-				 'created_date'        => 'Created Date',
-				 'last_modified_date'  => 'Last Modified Date',
-				 'lmod_date'           => 'Last Modified Date',
-				 'created_by_id'       => 'Created By',
-				 'last_modified_by_id' => 'Last Modified By',
-			)
+				 'id'                 => 'ID',
+				 'create_date'        => 'Created Date',
+				 'created_date'       => 'Created Date',
+				 'last_modified_date' => 'Last Modified Date',
+				 'lmod_date'          => 'Last Modified Date',
+			),
+			//	Subclass
+			$additionalLabels
 		);
 	}
 
@@ -185,16 +188,16 @@ class BaseDspModel extends \CActiveRecord
 			parent::behaviors(),
 			array(
 				 //	Data formatter
-				 'base_model.data_format_behavior' => array(
-					 'class' => '\\Platform\\Yii\\Behaviors\\DataFormatBehavior',
+				 'base_platform_model.data_format_behavior' => array(
+					 'class' => '\\DreamFactory\\Yii\\Behaviors\\DataFormatBehavior',
 				 ),
 				 //	Timestamper
-				 'base_model.timestamp_behavior'   => array(
-					 'class'              => '\\Platform\\Yii\\Behaviors\\TimestampBehavior',
-					 'createdColumn'      => 'created_date',
-//					 'createdByColumn'      => 'created_by_id',
-					 'lastModifiedColumn' => 'last_modified_date',
-//					 'lastModifiedByColumn' => 'last_modified_by_id',
+				 'base_platform_model.timestamp_behavior'   => array(
+					 'class'                => '\\DreamFactory\\Yii\\Behaviors\\TimestampBehavior',
+					 'createdColumn'        => array( 'create_date', 'created_date' ),
+					 'createdByColumn'      => array( 'create_user_id', 'created_by_id' ),
+					 'lastModifiedColumn'   => array( 'lmod_date', 'last_modified_date' ),
+					 'lastModifiedByColumn' => array( 'lmod_user_id', 'last_modified_by_id' ),
 				 ),
 			)
 		);
@@ -218,7 +221,7 @@ class BaseDspModel extends \CActiveRecord
 		{
 			foreach ( $_errors as $_attribute => $_error )
 			{
-				$_result .= $_i++ . '. [' . $_attribute . '] : ' . implode( '|', $_error );
+				$_result .= $_i++ . '. [' . $_attribute . '] : ' . implode( '|', $_error ) . PHP_EOL;
 			}
 		}
 
@@ -226,41 +229,25 @@ class BaseDspModel extends \CActiveRecord
 	}
 
 	/**
-	 * Forces an exception on failed save
+	 * A mo-betta CActiveRecord update method. Pass in array( column => value, ... ) to update.
 	 *
-	 * @param bool  $runValidation
-	 * @param array $attributes
+	 * Simply, this method updates each attribute with the passed value, then calls parent::update();
 	 *
-	 * @throws CDbException
-	 * @return bool
-	 */
-	public function save( $runValidation = true, $attributes = null )
-	{
-		if ( !parent::save( $runValidation, $attributes ) )
-		{
-			throw new \CDbException( $this->getErrorsForLogging() );
-		}
-
-		return true;
-	}
-
-	/**
-	 * A mo-betta CActiveRecord update method. Pass in column => value to update.
 	 * NB: validation is not performed in this method. You may call {@link validate} to perform the validation.
 	 *
-	 * @param array $attributes list of attributes and values that need to be saved. Defaults to null, meaning all attributes that are loaded from DB will be saved.
+	 * @param array $attributes list of attributes and values that need to be saved. Defaults to null, meaning do a full update.
 	 *
 	 * @return bool whether the update is successful
 	 * @throws \CException if the record is new
 	 */
 	public function update( $attributes = null )
 	{
-		$_columns = array();
-
-		if ( null === $attributes )
+		if ( empty( $attributes ) )
 		{
-			return parent::update( $attributes );
+			return parent::update();
 		}
+
+		$_columns = array();
 
 		foreach ( $attributes as $_column => $_value )
 		{
@@ -284,14 +271,43 @@ class BaseDspModel extends \CActiveRecord
 	/**
 	 * Forces an exception on failed delete
 	 *
-	 * @throws CDbException
+	 * @throws \CDbException
 	 * @return bool
 	 */
 	public function delete()
 	{
 		if ( !parent::delete() )
 		{
-			throw new \CDbException( $this->getErrorsForLogging() );
+			if ( $this->_throwOnError )
+			{
+				throw new \CDbException( $this->getErrorsForLogging() );
+			}
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Optionally force an exception on failed save
+	 *
+	 * @param bool  $runValidation
+	 * @param array $attributes
+	 *
+	 * @throws \CDbException
+	 * @return bool
+	 */
+	public function save( $runValidation = true, $attributes = null )
+	{
+		if ( !parent::save( $runValidation, $attributes ) )
+		{
+			if ( $this->_throwOnError )
+			{
+				throw new \CDbException( $this->getErrorsForLogging() );
+			}
+
+			return false;
 		}
 
 		return true;
@@ -300,11 +316,13 @@ class BaseDspModel extends \CActiveRecord
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
+	 * @param \CDbCriteria $criteria
+	 *
 	 * @return bool the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new \CDbCriteria;
+		$_criteria = $criteria ? : new \CDbCriteria;
 
 		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'created_date', $this->created_date, true );
@@ -336,6 +354,26 @@ class BaseDspModel extends \CActiveRecord
 	public function getModelClass()
 	{
 		return $this->_modelClass;
+	}
+
+	/**
+	 * @param boolean $throwOnError
+	 *
+	 * @return BaseDspModel
+	 */
+	public function setThrowOnError( $throwOnError )
+	{
+		$this->_throwOnError = $throwOnError;
+
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getThrowOnError()
+	{
+		return $this->_throwOnError;
 	}
 
 	//*******************************************************************************
@@ -554,7 +592,22 @@ class BaseDspModel extends \CActiveRecord
 	 */
 	public static function execute( $sql, $parameters = array() )
 	{
-		return static::createCommand( $sql )->execute( $parameters );
+		return Sql::execute( $sql, $parameters, static::model()->getDbConnection()->getPdoInstance() );
+	}
+
+	/**
+	 * Convenience method to execute a scalar query (static version)
+	 *
+	 * @param string $sql
+	 * @param array  $parameters
+	 *
+	 * @param int    $columnNumber
+	 *
+	 * @return int|string|null The result or null if nada
+	 */
+	public static function scalar( $sql, $parameters = array(), $columnNumber = 0 )
+	{
+		return Sql::scalar( $sql, $columnNumber, $parameters, static::model()->getDbConnection()->getPdoInstance() );
 	}
 
 	/**

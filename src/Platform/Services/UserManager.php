@@ -19,6 +19,8 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\ForbiddenException;
@@ -248,9 +250,9 @@ class UserManager extends RestService
 					case self::Patch:
 					case self::Merge:
 						$data = RestRequest::getPostDataAsArray();
-						$oldPassword = Utilities::getArrayValue( 'old_password', $data, '' );
+						$oldPassword = Option::get( $data, 'old_password', $data, '' );
 						//$oldPassword = Utilities::decryptPassword($oldPassword);
-						$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
+						$newPassword = Option::get( $data, 'new_password', $data, '' );
 						//$newPassword = Utilities::decryptPassword($newPassword);
 						$result = $this->changePassword( $oldPassword, $newPassword );
 						break;
@@ -263,10 +265,10 @@ class UserManager extends RestService
 				{
 					case self::Post:
 						$data = RestRequest::getPostDataAsArray();
-						$firstName = Utilities::getArrayValue( 'first_name', $data, '' );
-						$lastName = Utilities::getArrayValue( 'last_name', $data, '' );
-						$displayName = Utilities::getArrayValue( 'display_name', $data, '' );
-						$email = Utilities::getArrayValue( 'email', $data, '' );
+						$firstName = Option::get( $data, 'first_name', $data, '' );
+						$lastName = Option::get( $data, 'last_name', $data, '' );
+						$displayName = Option::get( $data, 'display_name', $data, '' );
+						$email = Option::get( $data, 'email', $data, '' );
 						$result = $this->userRegister( $email, $firstName, $lastName, $displayName );
 						break;
 					default:
@@ -278,21 +280,21 @@ class UserManager extends RestService
 				{
 					case self::Post:
 						$data = RestRequest::getPostDataAsArray();
-						$code = Utilities::getArrayValue( 'code', $_REQUEST, '' );
+						$code = FilterInput::request( 'code' );
 						if ( empty( $code ) )
 						{
-							$code = Utilities::getArrayValue( 'code', $data, '' );
+							$code = Option::get( $data, 'code', $data, '' );
 						}
-						$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
+						$email = FilterInput::request( 'email' );
 						if ( empty( $email ) )
 						{
-							$email = Utilities::getArrayValue( 'email', $data, '' );
+							$email = Option::get( $data, 'email', $data, '' );
 						}
 						if ( empty( $email ) && !empty( $code ) )
 						{
 							throw new BadRequestException( "Missing required email or code for invitation." );
 						}
-						$newPassword = Utilities::getArrayValue( 'new_password', $data, '' );
+						$newPassword = Option::get( $data, 'new_password', $data, '' );
 						if ( empty( $newPassword ) )
 						{
 							throw new BadRequestException( "Missing required fields 'new_password'." );
@@ -314,7 +316,7 @@ class UserManager extends RestService
 				switch ( $this->_action )
 				{
 					case self::Get:
-						$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
+						$email = FilterInput::request( 'email' );
 						$result = $this->getChallenge( $email );
 						break;
 					case self::Post:
@@ -322,12 +324,12 @@ class UserManager extends RestService
 					case self::Patch:
 					case self::Merge:
 						$data = RestRequest::getPostDataAsArray();
-						$email = Utilities::getArrayValue( 'email', $_REQUEST, '' );
+						$email = FilterInput::request( 'email' );
 						if ( empty( $email ) )
 						{
-							$email = Utilities::getArrayValue( 'email', $data, '' );
+							$email = Option::get( $data, 'email' );
 						}
-						$answer = Utilities::getArrayValue( 'security_answer', $data, '' );
+						$answer = Option::get( $data, 'security_answer', $data, '' );
 						if ( !empty( $email ) && !empty( $answer ) )
 						{
 							$result = $this->userSecurityAnswer( $email, $answer );
@@ -448,11 +450,11 @@ class UserManager extends RestService
 			throw new BadRequestException( "A User already exists with the email '$email'." );
 		}
 		$config = SystemConfig::retrieveConfig( 'allow_open_registration,open_reg_role_id' );
-		if ( !Utilities::boolval( Utilities::getArrayValue( 'allow_open_registration', $config, false ) ) )
+		if ( !Option::getBool( $config, 'allow_open_registration', false ) )
 		{
 			throw new BadRequestException( "Open registration for user accounts is not currently active for this system." );
 		}
-		$roleId = Utilities::getArrayValue( 'open_reg_role_id', $config, null );
+		$roleId = Option::get( $config, 'open_reg_role_id' );
 		$confirmCode = static::_makeConfirmationMd5( $email );
 		// fill out the user fields for creation
 		$temp = substr( $email, 0, strrpos( $email, '@' ) );

@@ -19,8 +19,9 @@
  */
 namespace Platform\Resources;
 
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
-use \Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\ForbiddenException;
@@ -28,6 +29,7 @@ use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\UnauthorizedException;
 use Platform\Interfaces\PermissionTypes;
 use Platform\Resources\RestResource;
+use Platform\Utility\DataFormat;
 use Platform\Utility\RestRequest;
 use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
@@ -134,13 +136,13 @@ class UserSession extends RestResource
 		switch ( $this->_action )
 		{
 			case self::Get:
-				$ticket = Utilities::getArrayValue( 'ticket', $_REQUEST, '' );
+				$ticket = FilterInput::request( 'ticket' );
 				$result = $this->userSession( $ticket );
 				break;
 			case self::Post:
 				$data = RestRequest::getPostDataAsArray();
-				$email = Utilities::getArrayValue( 'email', $data, '' );
-				$password = Utilities::getArrayValue( 'password', $data, '' );
+				$email = Option::get( $data, 'email' );
+				$password = Option::get( $data, 'password' );
 				//$password = Utilities::decryptPassword($password);
 				$result = $this->userLogin( $email, $password );
 				break;
@@ -203,7 +205,7 @@ class UserSession extends RestResource
 
 				if ( !empty( $theConfig ) )
 				{
-					if ( Utilities::boolval( $theConfig->allow_guest_user ) )
+					if ( DataFormat::boolval( $theConfig->allow_guest_user ) )
 					{
 						$result = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
 
@@ -545,7 +547,7 @@ class UserSession extends RestResource
 		}
 
 		// helper for non-browser-managed sessions
-		$_sessionId = Utilities::getArrayValue( 'HTTP_X_DREAMFACTORY_SESSION_TOKEN', $_SERVER, '' );
+		$_sessionId = FilterInput::server( 'HTTP_X_DREAMFACTORY_SESSION_TOKEN' );
 //		Log::debug('passed in session ' . $_sessionId);
 		if ( !empty( $_sessionId ) )
 		{
@@ -571,9 +573,9 @@ class UserSession extends RestResource
 	{
 		static::_checkCache();
 
-		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
+		$_public = Option::get( static::$_cache, 'public' );
 
-		return Utilities::boolval( Utilities::getArrayValue( 'is_sys_admin', $_public, false ) );
+		return Option::getBool( $_public, 'is_sys_admin' );
 	}
 
 	/**
@@ -588,14 +590,14 @@ class UserSession extends RestResource
 	{
 		static::_checkCache();
 
-		$_public = Utilities::getArrayValue( 'public', static::$_cache, array() );
-
-		$admin = Utilities::getArrayValue( 'is_sys_admin', $_public, false );
+		$_public = Option::get( static::$_cache, 'public' );
+		$admin = Option::getBool( $_public, 'is_sys_admin' );
 		if ( $admin )
 		{
 			return; // no need to check role
 		}
-		$roleInfo = Utilities::getArrayValue( 'role', $_public, array() );
+
+		$roleInfo = Option::get( $_public, 'role' );
 		if ( empty( $roleInfo ) )
 		{
 			// no role assigned, if not sys admin, denied service
@@ -609,7 +611,7 @@ class UserSession extends RestResource
 			throw new BadRequestException( "A valid application name is required to access services." );
 		}
 
-		$apps = Utilities::getArrayValue( 'apps', $roleInfo, null );
+		$apps = Option::get( $roleInfo, 'apps' );
 		if ( !is_array( $apps ) || empty( $apps ) )
 		{
 			throw new ForbiddenException( "Access to application '$appName' is not provisioned for this user's role." );
@@ -619,7 +621,7 @@ class UserSession extends RestResource
 
 		foreach ( $apps as $app )
 		{
-			$temp = Utilities::getArrayValue( 'api_name', $app );
+			$temp = Option::get( $app, 'api_name' );
 
 			if ( 0 == strcasecmp( $appName, $temp ) )
 			{
@@ -633,7 +635,7 @@ class UserSession extends RestResource
 			throw new ForbiddenException( "Access to application '$appName' is not provisioned for this user's role." );
 		}
 
-		$services = Utilities::getArrayValue( 'services', $roleInfo, null );
+		$services = Option::get( $roleInfo, 'services' );
 
 		if ( !is_array( $services ) || empty( $services ) )
 		{
@@ -647,12 +649,12 @@ class UserSession extends RestResource
 
 		foreach ( $services as $svcInfo )
 		{
-			$theService = Utilities::getArrayValue( 'service', $svcInfo );
-			$theAccess = Utilities::getArrayValue( 'access', $svcInfo, '' );
+			$theService = Option::get( $svcInfo, 'service', ''  );
+			$theAccess = Option::get( $svcInfo, 'access', '' );
 
 			if ( 0 == strcasecmp( $service, $theService ) )
 			{
-				$theComponent = Utilities::getArrayValue( 'component', $svcInfo );
+				$theComponent = Option::get( $svcInfo, 'component' );
 				if ( !empty( $component ) )
 				{
 					if ( 0 == strcasecmp( $component, $theComponent ) )
@@ -814,7 +816,7 @@ class UserSession extends RestResource
 
 				if ( !empty( $theConfig ) )
 				{
-					if ( Utilities::boolval( $theConfig->allow_guest_user ) )
+					if ( DataFormat::boolval( $theConfig->allow_guest_user ) )
 					{
 						static::$_cache = static::generateSessionDataFromRole( null, $theConfig->getRelated( 'guest_role' ) );
 						return;
@@ -836,8 +838,8 @@ class UserSession extends RestResource
 	 */
 	public static function addSessionExtras( $session, $is_sys_admin = false, $add_apps = false )
 	{
-		$data = Utilities::getArrayValue( 'data', $session, array() );
-		$userId = Utilities::getArrayValue( 'id', $data, '' );
+		$data = Option::get( $session, 'data' );
+		$userId = Option::get( $data, 'id', '' );
 		$timestamp = time();
 		$ticket = Utilities::encryptCreds( "$userId,$timestamp", "gorilla" );
 		$data['ticket'] = $ticket;
@@ -850,7 +852,7 @@ class UserSession extends RestResource
 			/**
 			 * @var \App[] $theApps
 			 */
-			$theApps = Utilities::getArrayValue( 'allowed_apps', $session, array() );
+			$theApps = Option::get( $session, 'allowed_apps', array() );
 			if ( $is_sys_admin )
 			{
 				$theApps = \App::model()->findAll( 'is_active = :ia', array( ':ia' => 1 ) );
@@ -861,7 +863,7 @@ class UserSession extends RestResource
 			$theGroups = \AppGroup::model()->with( 'apps' )->findAll();
 			$appGroups = array();
 			$noGroupApps = array();
-			$defaultAppId = Utilities::getArrayValue( 'default_app_id', $session, null );
+			$defaultAppId = Option::get( $session, 'default_app_id' );
 			foreach ( $theApps as $app )
 			{
 				$appId = $app->id;
@@ -878,7 +880,7 @@ class UserSession extends RestResource
 						if ( $tempGroup->id === $groupId )
 						{
 							$found = true;
-							$temp = Utilities::getArrayValue( 'apps', $groupData, array() );
+							$temp = Option::get( $groupData, 'apps', array() );
 							$temp[] = $appData;
 							$groupData['apps'] = $temp;
 						}

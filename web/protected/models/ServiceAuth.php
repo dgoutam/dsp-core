@@ -20,9 +20,6 @@
 use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
-use Platform\Exceptions\BadRequestException;
-use Platform\Resources\UserSession;
-use Platform\Yii\Utility\Pii;
 
 /**
  * ServiceAuth.php
@@ -32,29 +29,12 @@ use Platform\Yii\Utility\Pii;
  *
  * @property int                 $id
  * @property int                 $user_id
- * @property int                 $registry_id
- * @property int                 $service_type_nbr
- * @property string              $service_name_text
- * @property string              $service_tag_text
- * @property string              $service_config_text
- * @property int                 $enabled_ind
+ * @property int                 $service_id
+ * @property string              $auth_text
  * @property string              $last_use_date
  */
-class ServiceAuth extends BaseDspSystemModel
+class ServiceAuth extends \BaseDspSystemModel
 {
-	//*************************************************************************
-	//* Constants
-	//*************************************************************************
-
-	/**
-	 * @var string
-	 */
-	const CACHE_ID = 'dsp.service_auth_cache';
-	/**
-	 * @var string
-	 */
-	const CONFIG_ID = 'dsp.default_user_services';
-
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
@@ -79,4 +59,63 @@ class ServiceAuth extends BaseDspSystemModel
 		return static::tableNamePrefix() . 'service_auth';
 	}
 
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels( $additionalLabels = array() )
+	{
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'user_id'       => 'User ID',
+					 'service_id'    => 'Service ID',
+					 'auth_text'     => 'Authorization',
+					 'last_use_date' => 'Last Used',
+				)
+			)
+		);
+	}
+
+	/**
+	 * @param \CModelEvent $event
+	 *
+	 * @throws \CDbException
+	 */
+	public function onBeforeSave( $event )
+	{
+		if ( empty( $this->auth_text ) )
+		{
+			$this->auth_text = array();
+		}
+
+		//	Make sure we can serialize...
+		if ( false === ( $_config = json_encode( $this->auth_text ) ) )
+		{
+			throw new \CDbException( 'The authorization configuration for this service is invalid.' );
+		}
+
+		//	Encrypt it...
+		$this->auth_text = Hasher::encryptString( $_config, $this->getDb()->password );
+
+		parent::onBeforeSave( $event );
+	}
+
+	/**
+	 * @param \CModelEvent $event
+	 */
+	public function onAfterFind( $event )
+	{
+		if ( empty( $this->auth_text ) )
+		{
+			$this->auth_text = array();
+		}
+		else
+		{
+			//	Decrypt it...
+			$this->auth_text = json_decode( Hasher::decryptString( $this->auth_text, $this->getDb()->password ), true ) ? : array();
+		}
+
+		parent::onAfterFind( $event );
+	}
 }

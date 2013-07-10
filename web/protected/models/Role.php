@@ -17,8 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
-use Platform\Utility\Utilities;
+use Platform\Utility\DataFormat;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -99,16 +100,19 @@ class Role extends BaseDspSystemModel
 	/**
 	 * @return array customized attribute labels (name=>label)
 	 */
-	public function attributeLabels()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		$_labels = array(
-			'name'           => 'Name',
-			'description'    => 'Description',
-			'is_active'      => 'Is Active',
-			'default_app_id' => 'Default App',
+		return parent::attributeLabels(
+			array_merge(
+				$additionalLabels,
+				array(
+					 'name'           => 'Name',
+					 'description'    => 'Description',
+					 'is_active'      => 'Is Active',
+					 'default_app_id' => 'Default App',
+				)
+			)
 		);
-
-		return array_merge( parent::attributeLabels(), $_labels );
 	}
 
 	/**
@@ -116,25 +120,15 @@ class Role extends BaseDspSystemModel
 	 *
 	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria();
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
 		$_criteria->compare( 'name', $this->name, true );
 		$_criteria->compare( 'is_active', $this->is_active );
 		$_criteria->compare( 'default_app_id', $this->default_app_id );
-		$_criteria->compare( 'created_date', $this->created_date, true );
-		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
-		$_criteria->compare( 'created_by_id', $this->created_by_id );
-		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider(
-			$this,
-			array(
-				 'criteria' => $_criteria,
-			)
-		);
+		return parent::search( $_criteria );
 	}
 
 	/**
@@ -169,7 +163,7 @@ class Role extends BaseDspSystemModel
 	 */
 	public function onBeforeValidate( $event )
 	{
-		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
+		$this->is_active = intval( DataFormat::boolval( $this->is_active ) );
 
 		if ( empty( $this->default_app_id ) )
 		{
@@ -286,14 +280,14 @@ class Role extends BaseDspSystemModel
 			for ( $key1 = 0; $key1 < $count; $key1++ )
 			{
 				$access = $accesses[$key1];
-				$serviceId = Utilities::getArrayValue( 'service_id', $access, null );
-				$component = Utilities::getArrayValue( 'component', $access, '' );
+				$serviceId = Option::get( $access, 'service_id' );
+				$component = Option::get( $access, 'component', '' );
 
 				for ( $key2 = $key1 + 1; $key2 < $count; $key2++ )
 				{
 					$access2 = $accesses[$key2];
-					$serviceId2 = Utilities::getArrayValue( 'service_id', $access2, null );
-					$component2 = Utilities::getArrayValue( 'component', $access2, '' );
+					$serviceId2 = Option::get( $access2, 'service_id' );
+					$component2 = Option::get( $access2, 'component', '' );
 					if ( ( $serviceId == $serviceId2 ) && ( $component == $component2 ) )
 					{
 						throw new BadRequestException( "Duplicated service and component combination '$serviceId $component' in role service access." );
@@ -313,19 +307,19 @@ class Role extends BaseDspSystemModel
 			$toUpdate = array();
 			foreach ( $maps as $map )
 			{
-				$manyId = Utilities::getArrayValue( 'service_id', $map, null );
-				$manyComponent = Utilities::getArrayValue( 'component', $map, '' );
-				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
+				$manyId = Option::get( $map, 'service_id' );
+				$manyComponent = Option::get( $map, 'component', '' );
+				$id = Option::get( $pkMapField, $map, '' );
 				$found = false;
 				foreach ( $accesses as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( 'service_id', $item, null );
-					$assignComponent = Utilities::getArrayValue( 'component', $item, '' );
+					$assignId = Option::get( $item, 'service_id' );
+					$assignComponent = Option::get( $item, 'component', '' );
 					if ( ( $assignId == $manyId ) && ( $assignComponent == $manyComponent ) )
 					{
 						// found it, make sure nothing needs to be updated
-						$oldAccess = Utilities::getArrayValue( 'access', $map, '' );
-						$newAccess = Utilities::getArrayValue( 'access', $item, '' );
+						$oldAccess = Option::get( $map, 'access', '' );
+						$newAccess = Option::get( $item, 'access', '' );
 						if ( ( $oldAccess != $newAccess ) )
 						{
 							$map['access'] = $newAccess;
@@ -353,8 +347,7 @@ class Role extends BaseDspSystemModel
 			{
 				foreach ( $toUpdate as $item )
 				{
-					$itemId = Utilities::getArrayValue( 'id', $item, '' );
-					unset( $item['id'] );
+					$itemId = Option::get( $item, 'id', '', true );
 					// simple update request
 					$command->reset();
 					$rows = $command->update( $map_table, $item, 'id = :id', array( ':id' => $itemId ) );
@@ -371,9 +364,9 @@ class Role extends BaseDspSystemModel
 					// simple insert request
 					$record = array(
 						'role_id'    => $role_id,
-						'service_id' => Utilities::getArrayValue( 'service_id', $item, null ),
-						'component'  => Utilities::getArrayValue( 'component', $item, '' ),
-						'access'     => Utilities::getArrayValue( 'access', $item, '' )
+						'service_id' => Option::get( $item, 'service_id' ),
+						'component'  => Option::get( $item, 'component', '' ),
+						'access'     => Option::get( $item, 'access', '' )
 					);
 					$command->reset();
 					$rows = $command->insert( $map_table, $record );

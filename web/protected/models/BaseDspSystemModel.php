@@ -17,10 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Resources\UserSession;
 use Platform\Services\SystemManager;
-use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -40,7 +41,7 @@ use Platform\Yii\Utility\Pii;
  * @property User    $created_by
  * @property User    $last_modified_by
  */
-abstract class BaseDspSystemModel extends BaseDspModel
+abstract class BaseDspSystemModel extends \BaseDspModel
 {
 	/**
 	 * @return string the system database table name prefix
@@ -51,67 +52,48 @@ abstract class BaseDspSystemModel extends BaseDspModel
 	}
 
 	/**
-	 * @return array validation rules for model attributes.
-	 */
-	public function rules()
-	{
-		return array( //array( 'created_by_id, last_modified_by_id', 'numerical', 'integerOnly' => true ),
-		);
-	}
-
-	/**
 	 * @return array relational rules.
 	 */
 	public function relations()
 	{
 		return array(
-			'created_by'       => array(self::BELONGS_TO, 'User', 'created_by_id'),
-			'last_modified_by' => array(self::BELONGS_TO, 'User', 'last_modified_by_id'),
+			'created_by'       => array( self::BELONGS_TO, 'User', 'created_by_id' ),
+			'last_modified_by' => array( self::BELONGS_TO, 'User', 'last_modified_by_id' ),
 		);
 	}
 
 	/**
 	 * Retrieves a list of models based on the current search/filter conditions.
 	 *
-	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
+	 * @param \CDbCriteria $criteria
+	 *
+	 * @return \CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
 	 */
-	public function search()
+	public function search( $criteria = null )
 	{
-		$_criteria = new CDbCriteria;
+		$_criteria = $criteria ? : new \CDbCriteria;
 
-		$_criteria->compare( 'id', $this->id );
-		$_criteria->compare( 'created_date', $this->created_date, true );
-		$_criteria->compare( 'last_modified_date', $this->last_modified_date, true );
 		$_criteria->compare( 'created_by_id', $this->created_by_id );
 		$_criteria->compare( 'last_modified_by_id', $this->last_modified_by_id );
 
-		return new CActiveDataProvider(
-			$this,
-			array(
-				'criteria' => $_criteria,
-			)
-		);
+		return parent::search( $criteria );
 	}
 
 	/**
-	 * @return bool
+	 * Add in our additional labels
+	 *
+	 * @param array $additionalLabels
+	 *
+	 * @return array
 	 */
-	protected function beforeValidate()
+	public function attributeLabels( $additionalLabels = array() )
 	{
-		try
-		{
-			$this->last_modified_by_id = $_userId = UserSession::getCurrentUserId();
-
-			if ( $this->isNewRecord )
-			{
-				$this->created_by_id = $_userId;
-			}
-		}
-		catch ( Exception $_ex )
-		{
-		}
-
-		return parent::beforeValidate();
+		return parent::attributeLabels(
+			array(
+				 'created_by_id'       => 'Created By',
+				 'last_modified_by_id' => 'Last Modified By',
+			)
+		);
 	}
 
 	/**
@@ -128,18 +110,18 @@ abstract class BaseDspSystemModel extends BaseDspModel
 		if ( empty( $requested ) )
 		{
 			// primary keys only
-			return array('id');
+			return array( 'id' );
 		}
 
 		if ( static::ALL_ATTRIBUTES == $requested )
 		{
 			return array_merge(
 				array(
-					'id',
-					'created_date',
-					'created_by_id',
-					'last_modified_date',
-					'last_modified_by_id'
+					 'id',
+					 'created_date',
+					 'created_by_id',
+					 'last_modified_date',
+					 'last_modified_by_id'
 				),
 				$columns
 			);
@@ -216,15 +198,15 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$command->select( "$pkField,$many_field" );
 			$command->from( $many_table );
 			$command->where( "$many_field = :oid" );
-			$maps = $command->queryAll( true, array(':oid' => $one_id) );
+			$maps = $command->queryAll( true, array( ':oid' => $one_id ) );
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
-				$id = Utilities::getArrayValue( $pkField, $map, '' );
+				$id = Option::get( $map, $pkField, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( $pkField, $item, '' );
+					$assignId = Option::get( $item, $pkField, '' );
 					if ( $id == $assignId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
@@ -243,7 +225,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			{
 				// simple update to null request
 				$command->reset();
-				$rows = $command->update( $many_table, array($many_field => null), array('in', $pkField, $toDelete) );
+				$rows = $command->update( $many_table, array( $many_field => null ), array( 'in', $pkField, $toDelete ) );
 				if ( 0 >= $rows )
 				{
 //					throw new Exception( "Record update failed for table '$many_table'." );
@@ -254,7 +236,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 				$toAdd = array();
 				foreach ( $many_records as $item )
 				{
-					$itemId = Utilities::getArrayValue( $pkField, $item, '' );
+					$itemId = Option::get( $item, $pkField );
 					if ( !empty( $itemId ) )
 					{
 						$toAdd[] = $itemId;
@@ -264,7 +246,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 				{
 					// simple update to null request
 					$command->reset();
-					$rows = $command->update( $many_table, array($many_field => $one_id), array('in', $pkField, $toAdd) );
+					$rows = $command->update( $many_table, array( $many_field => $one_id ), array( 'in', $pkField, $toAdd ) );
 					if ( 0 >= $rows )
 					{
 //						throw new Exception( "Record update failed for table '$many_table'." );
@@ -307,16 +289,16 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			$command->select( $pkMapField . ',' . $many_field );
 			$command->from( $map_table );
 			$command->where( "$one_field = :id" );
-			$maps = $command->queryAll( true, array(':id' => $one_id) );
+			$maps = $command->queryAll( true, array( ':id' => $one_id ) );
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
-				$manyId = Utilities::getArrayValue( $many_field, $map, '' );
-				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
+				$manyId = Option::get( $map, $many_field, '' );
+				$id = Option::get( $map, $pkMapField, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( $pkManyField, $item, '' );
+					$assignId = Option::get( $item, $pkManyField, '' );
 					if ( $assignId == $manyId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
@@ -335,7 +317,7 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			{
 				// simple delete request
 				$command->reset();
-				$rows = $command->delete( $map_table, array('in', $pkMapField, $toDelete) );
+				$rows = $command->delete( $map_table, array( 'in', $pkMapField, $toDelete ) );
 				if ( 0 >= $rows )
 				{
 //					throw new Exception( "Record delete failed for table '$map_table'." );
@@ -345,8 +327,8 @@ abstract class BaseDspSystemModel extends BaseDspModel
 			{
 				foreach ( $many_records as $item )
 				{
-					$itemId = Utilities::getArrayValue( $pkManyField, $item, '' );
-					$record = array($many_field => $itemId, $one_field => $one_id);
+					$itemId = Option::get( $item, $pkManyField, '' );
+					$record = array( $many_field => $itemId, $one_field => $one_id );
 					// simple update request
 					$command->reset();
 					$rows = $command->insert( $map_table, $record );
