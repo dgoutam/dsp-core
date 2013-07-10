@@ -573,7 +573,7 @@ class UserSession extends RestResource
 	{
 		static::_checkCache();
 
-		$_public = Option::get( static::$_cache, 'public', array() );
+		$_public = Option::get( static::$_cache, 'public' );
 
 		return Option::getBool( $_public, 'is_sys_admin' );
 	}
@@ -590,7 +590,7 @@ class UserSession extends RestResource
 	{
 		static::_checkCache();
 
-		$_public = Option::get( static::$_cache, 'public', static::$_cache, array() );
+		$_public = Option::get( static::$_cache, 'public' );
 		$admin = Option::getBool( $_public, 'is_sys_admin' );
 		if ( $admin )
 		{
