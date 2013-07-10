@@ -1277,7 +1277,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 *
 	 * @return array
 	 */
-	protected static function buildFieldArray( $include = '*', $id_field = static::DEFAULT_ID_FIELD )
+	protected static function buildFieldArray( $include = '*', $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( empty( $include ) )
 		{
@@ -1572,7 +1572,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 *
 	 * @return array
 	 */
-	protected static function cleanRecord( $record, $include = '*', $id_field = static::DEFAULT_ID_FIELD )
+	protected static function cleanRecord( $record, $include = '*', $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( '*' !== $include )
 		{
@@ -1611,7 +1611,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return array
 	 */
-	protected static function cleanRecords( $records, $include = '*', $id_field = static::DEFAULT_ID_FIELD )
+	protected static function cleanRecords( $records, $include = '*', $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_out = array();
 		foreach ( $records as $_record )
@@ -1627,7 +1627,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return mixed
 	 */
-	protected static function mongoIdsToIds( $records, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function mongoIdsToIds( $records, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		foreach ( $records as $key => $_record )
 		{
@@ -1642,7 +1642,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return array|string
 	 */
-	protected static function mongoIdToId( $record, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function mongoIdToId( $record, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( !is_array( $record ) )
 		{
@@ -1672,7 +1672,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return array|bool|float|int|\MongoId|string
 	 */
-	protected static function idToMongoId( $record, $determine_value = false, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function idToMongoId( $record, $determine_value = false, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( !is_array( $record ) )
 		{
@@ -1733,7 +1733,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string       $id_field
 	 * @return array
 	 */
-	protected static function idsToMongoIds( $records, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function idsToMongoIds( $records, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_determineValue = false;
 		if ( !is_array( $records ) )
@@ -1756,7 +1756,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @return array
 	 * @throws \Platform\Exceptions\BadRequestException
 	 */
-	protected static function recordsAsIds( $records, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function recordsAsIds( $records, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_ids = array();
 		foreach ( $records as $_key => $_record )
@@ -1777,7 +1777,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return array
 	 */
-	protected static function idsAsRecords( $ids, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function idsAsRecords( $ids, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_out = array();
 		foreach ( $ids as $_id )
@@ -1793,7 +1793,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return bool
 	 */
-	protected static function requireMoreFields( $fields, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function requireMoreFields( $fields, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( empty( $fields ) )
 		{
@@ -1813,7 +1813,7 @@ class MongoDbSvc extends NoSqlDbSvc
 	 * @param string $id_field
 	 * @return mixed
 	 */
-	protected static function recordArrayMerge( $first_array, $second_array, $id_field = static::DEFAULT_ID_FIELD )
+	protected static function recordArrayMerge( $first_array, $second_array, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		foreach ( $first_array as $_key => $_first )
 		{
