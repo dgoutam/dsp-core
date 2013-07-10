@@ -457,12 +457,12 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$records = static::idsToMongoIds( $records );
 		$_out = array();
 		foreach ( $records as $_record )
 		{
 			try
 			{
+				$_record = static::idToMongoId( $_record );
 				$result = $_coll->save( $_record ); // same as update if _id
 				$_out[] = static::cleanRecord( $_record, $fields );
 			}
@@ -657,7 +657,6 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$records = static::idsToMongoIds( $records );
 		$_fieldArray = static::buildFieldArray( $fields );
 		$_out = array();
 		foreach ( $records as $_record )
@@ -670,7 +669,7 @@ class MongoDbSvc extends NoSqlDbSvc
 					throw new BadRequestException( "Identifying field '_id' can not be empty for merge record request." );
 				}
 				$result = $_coll->findAndModify(
-					array( '_id' => $_id ),
+					array( '_id' => static::idToMongoId( $_id ) ),
 					array( '$set' => $_record ),
 					$_fieldArray,
 					array( 'new' => true )
@@ -1634,23 +1633,29 @@ class MongoDbSvc extends NoSqlDbSvc
 		return $record;
 	}
 
-	protected static function idToMongoId( $record )
+	protected static function idToMongoId( $record, $determine_value = false )
 	{
 		if ( !is_array( $record ) )
 		{
 			if ( is_string( $record ) )
 			{
-				if ( ( 24 == sizeof( $record ) ) )
+				$_isMongo = false;
+				if ( ( 24 == strlen( $record ) ) )
 				{
 					// single id
 					try
 					{
 						$record = new \MongoId( $record );
+						$_isMongo = true;
 					}
 					catch ( \Exception $ex )
 					{
 						// obviously not a Mongo created Id, let it be
 					}
+				}
+				if ( !$_isMongo && $determine_value )
+				{
+					$record = static::_determineValue( $record );
 				}
 			}
 		}
@@ -1660,17 +1665,24 @@ class MongoDbSvc extends NoSqlDbSvc
 			$_id = Option::get( $record, '_id' );
 			if ( is_string( $_id ) )
 			{
-				if ( ( 24 == sizeof( $_id ) ) )
+				$_isMongo = false;
+				if ( ( 24 == strlen( $_id ) ) )
 				{
 					try
 					{
-						$record['_id'] = new \MongoId( $_id );
+						$_id = new \MongoId( $_id );
+						$_isMongo = true;
 					}
 					catch ( \Exception $ex )
 					{
 						// obviously not a Mongo created Id, let it be
 					}
 				}
+				if ( !$_isMongo && $determine_value )
+				{
+					$_id = static::_determineValue( $_id );
+				}
+				$record['_id'] = $_id;
 			}
 		}
 
@@ -1679,16 +1691,17 @@ class MongoDbSvc extends NoSqlDbSvc
 
 	protected static function idsToMongoIds( $records )
 	{
+		$_determineValue = false;
 		if ( !is_array( $records ) )
 		{
 			// comma delimited list of ids
 			$records = array_map( 'trim', explode( ',', trim( $records, ',' ) ) );
+			$_determineValue = true;
 		}
 
-		foreach ( $records as $key => $_record )
-		{
-			$records[$key] = static::idToMongoId( $_record );
-		}
+		$records = array_map( '\Platform\Services\MongoDbSvc::idToMongoId',
+							  $records,
+							  array_fill( 0, count( $records ), $_determineValue ) );
 
 		return $records;
 	}

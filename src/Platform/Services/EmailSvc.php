@@ -19,11 +19,12 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Utility\EmailUtilities;
 use Platform\Utility\RestRequest;
-use Platform\Utility\Utilities;
 use Swagger\Annotations as SWG;
 
 /**
@@ -102,16 +103,16 @@ class EmailSvc extends RestService
 		parent::__construct( $config );
 
 		$this->_isNative = $native;
-		$transportType = Utilities::getArrayValue( 'storage_type', $config, '' );
-		$credentials = Utilities::getArrayValue( 'credentials', $config, array() );
+		$transportType = Option::get( $config, 'storage_type', '' );
+		$credentials = Option::get( $config, 'credentials', array() );
 		// Create the Transport
 		$this->_transport = EmailUtilities::createTransport( $transportType, $credentials );
 
-		$parameters = Utilities::getArrayValue( 'parameters', $config, array() );
+		$parameters = Option::get( $config, 'parameters', array() );
 		foreach ( $parameters as $param )
 		{
-			$key = Utilities::getArrayValue( 'name', $param );
-			$value = Utilities::getArrayValue( 'value', $param );
+			$key = Option::get( $param, 'name' );
+			$value = Option::get( $param, 'value' );
 			switch ( $key )
 			{
 				case 'from_name':
@@ -172,8 +173,8 @@ class EmailSvc extends RestService
 						$data = RestRequest::getPostDataAsArray();
 
 						// build email from posted data
-						$template = Utilities::getArrayValue( 'template', $_REQUEST );
-						$template = Utilities::getArrayValue( 'template', $data, $template );
+						$template = FilterInput::request( 'template' );
+						$template = Option::get( $data, 'template', $template );
 						if ( !empty( $template ) )
 						{
 							$count = $this->sendEmailByTemplate( $template, $data );
@@ -185,16 +186,16 @@ class EmailSvc extends RestService
 								throw new BadRequestException( 'No POST data in request.' );
 							}
 
-							$to = Utilities::getArrayValue( 'to', $data );
-							$cc = Utilities::getArrayValue( 'cc', $data );
-							$bcc = Utilities::getArrayValue( 'bcc', $data );
-							$subject = Utilities::getArrayValue( 'subject', $data );
-							$text = Utilities::getArrayValue( 'body_text', $data );
-							$html = Utilities::getArrayValue( 'body_html', $data );
-							$fromName = Utilities::getArrayValue( 'from_name', $data );
-							$fromEmail = Utilities::getArrayValue( 'from_email', $data );
-							$replyName = Utilities::getArrayValue( 'reply_to_name', $data );
-							$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data );
+							$to = Option::get( $data, 'to' );
+							$cc = Option::get( $data, 'cc' );
+							$bcc = Option::get( $data, 'bcc' );
+							$subject = Option::get( $data, 'subject' );
+							$text = Option::get( $data, 'body_text' );
+							$html = Option::get( $data, 'body_html' );
+							$fromName = Option::get( $data, 'from_name' );
+							$fromEmail = Option::get( $data, 'from_email' );
+							$replyName = Option::get( $data, 'reply_to_name' );
+							$replyEmail = Option::get( $data, 'reply_to_email' );
 							$count = $this->sendEmail(
 								$to,
 								$cc,
@@ -247,13 +248,13 @@ class EmailSvc extends RestService
 		$defaults = $record->getAttribute( 'defaults' );
 
 		// build email from template defaults overwritten by posted data
-		$to = Utilities::getArrayValue( 'to', $data, $to );
-		$cc = Utilities::getArrayValue( 'cc', $data, $cc );
-		$bcc = Utilities::getArrayValue( 'bcc', $data, $bcc );
-		$fromName = Utilities::getArrayValue( 'from_name', $data, $fromName );
-		$fromEmail = Utilities::getArrayValue( 'from_email', $data, $fromEmail );
-		$replyName = Utilities::getArrayValue( 'reply_to_name', $data, $replyName );
-		$replyEmail = Utilities::getArrayValue( 'reply_to_email', $data, $replyEmail );
+		$to = Option::get( $data, 'to', $to );
+		$cc = Option::get( $data, 'cc', $cc );
+		$bcc = Option::get( $data, 'bcc', $bcc );
+		$fromName = Option::get( $data, 'from_name', $fromName );
+		$fromEmail = Option::get( $data, 'from_email', $fromEmail );
+		$replyName = Option::get( $data, 'reply_to_name', $replyName );
+		$replyEmail = Option::get( $data, 'reply_to_email', $replyEmail );
 		$data = array_merge( $defaults, $data );
 
 		return $this->sendEmail(
@@ -374,13 +375,13 @@ class EmailSvc extends RestService
 /*
 	public static function sendUserEmail( $template, $data )
 	{
-		$to = Utilities::getArrayValue( 'to', $data );
-		$cc = Utilities::getArrayValue( 'cc', $data );
-		$bcc = Utilities::getArrayValue( 'bcc', $data );
-		$subject = Utilities::getArrayValue( 'subject', $template );
-		$content = Utilities::getArrayValue( 'content', $template );
-		$bodyText = Utilities::getArrayValue( 'text', $content );
-		$bodyHtml = Utilities::getArrayValue( 'html', $content );
+		$to = Option::get( $data, 'to' );
+		$cc = Option::get( $data, 'cc' );
+		$bcc = Option::get( $data, 'bcc' );
+		$subject = Option::get( $template, 'subject' );
+		$content = Option::get( $template, 'content' );
+		$bodyText = Option::get( $content, 'text' );
+		$bodyHtml = Option::get( $content, 'html' );
 		try
 		{
 			$svc = ServiceHandler::getServiceObject( 'email' );

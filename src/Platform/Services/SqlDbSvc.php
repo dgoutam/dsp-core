@@ -107,28 +107,27 @@ class SqlDbSvc extends BaseDbSvc
 		}
 		else
 		{
-			$storageType = Utilities::getArrayValue( 'type', $config, '' );
-			$attributes = Utilities::getArrayValue( 'parameters', $config, array() );
-			$credentials = Utilities::getArrayValue( 'credentials', $config, array() );
-			$dsn = Utilities::getArrayValue( 'dsn', $credentials, '' );
+			$storageType = Option::get( $config, 'type' );
+			$attributes = Option::get( $config, 'parameters' );
+			$credentials = Option::get( $config, 'credentials' );
+			$dsn = Option::get( $credentials, 'dsn' );
 			// Validate other parameters
 			if ( empty( $dsn ) )
 			{
 				throw new \InvalidArgumentException( 'DB connection string (DSN) can not be empty.' );
 			}
-			$user = Utilities::getArrayValue( 'user', $credentials, '' );
+			$user = Option::get( $credentials, 'user' );
 			if ( empty( $user ) )
 			{
 				throw new \InvalidArgumentException( 'DB admin name can not be empty.' );
 			}
-			$pwd = Utilities::getArrayValue( 'pwd', $credentials, '' );
+			$pwd = Option::get( $credentials, 'pwd' );
 			if ( empty( $pwd ) )
 			{
 				throw new \InvalidArgumentException( 'DB admin password can not be empty.' );
 			}
 
 			// create pdo connection, activate later
-			Utilities::markTimeStart( 'DB_TIME' );
 			$this->_sqlConn = new \CDbConnection( $dsn, $user, $pwd );
 			$this->_driverType = SqlDbUtilities::getDbDriverType( $this->_sqlConn );
 			switch ( $this->_driverType )
@@ -144,7 +143,6 @@ class SqlDbSvc extends BaseDbSvc
 					$this->_sqlConn->setAttribute( "CharacterSet", "UTF-8" );
 					break;
 			}
-			Utilities::markTimeStop( 'DB_TIME' );
 		}
 
 		if ( !empty( $attributes ) && is_array( $attributes ) )
@@ -192,14 +190,10 @@ class SqlDbSvc extends BaseDbSvc
 		}
 		try
 		{
-			Utilities::markTimeStart( 'DB_TIME' );
-
 			if ( !$this->_sqlConn->active )
 			{
 				$this->_sqlConn->active = true;
 			}
-
-			Utilities::markTimeStop( 'DB_TIME' );
 		}
 		catch ( \PDOException $ex )
 		{
@@ -775,7 +769,7 @@ class SqlDbSvc extends BaseDbSvc
 			{
 				try
 				{
-					$id = Utilities::getArrayValue( $id_field, $record, '' );
+					$id = Option::get( $record, $id_field );
 					if ( empty( $id ) )
 					{
 						throw new BadRequestException( "Identifying field '$id_field' can not be empty for update record [$key] request." );
@@ -1182,7 +1176,7 @@ class SqlDbSvc extends BaseDbSvc
 		}
 		foreach ( $records as $key => $record )
 		{
-			$id = Utilities::getArrayValue( $id_field, $record, '' );
+			$id = Option::get( $record, $id_field );
 			if ( empty( $id ) )
 			{
 				throw new BadRequestException( "Identifying field '$id_field' can not be empty for retrieve record [$key] request." );
@@ -1407,7 +1401,7 @@ class SqlDbSvc extends BaseDbSvc
 			// parse filter
 			$availFields = $this->describeTableFields( $table );
 			$relations = $this->describeTableRelated( $table );
-			$related = Option::get( $extras, 'related', array() );
+			$related = Option::get( $extras, 'related' );
 			$result = $this->parseFieldsForSqlSelect( $fields, $availFields );
 			$bindings = $result['bindings'];
 			$fields = $result['fields'];
@@ -1470,8 +1464,8 @@ class SqlDbSvc extends BaseDbSvc
 				$data[$count++] = $temp;
 			}
 
-			$_includeCount = Option::get( $extras, 'include_count', false );
-			$_includeSchema = Option::get( $extras, 'include_schema', false );
+			$_includeCount = Option::getBool( $extras, 'include_count', false );
+			$_includeSchema = Option::getBool( $extras, 'include_schema', false );
 			if ( $_includeCount || $_includeSchema )
 			{
 				// count total records
@@ -1547,7 +1541,7 @@ class SqlDbSvc extends BaseDbSvc
 		$ids = array();
 		foreach ( $records as $key => $record )
 		{
-			$id = Utilities::getArrayValue( $id_field, $record, '' );
+			$id = Option::get( $record, $id_field );
 			if ( empty( $id ) )
 			{
 				throw new BadRequestException( "Identifying field '$id_field' can not be empty for retrieve record [$key] request." );
@@ -1602,7 +1596,7 @@ class SqlDbSvc extends BaseDbSvc
 		{
 			$availFields = $this->describeTableFields( $table );
 			$relations = $this->describeTableRelated( $table );
-			$related = Option::get( $extras, 'related', array() );
+			$related = Option::get( $extras, 'related' );
 			if ( empty( $id_field ) )
 			{
 				$id_field = SqlDbUtilities::getPrimaryKeyFieldFromDescribe( $availFields );
@@ -1708,7 +1702,7 @@ class SqlDbSvc extends BaseDbSvc
 		{
 			$availFields = $this->describeTableFields( $table );
 			$relations = $this->describeTableRelated( $table );
-			$related = Option::get( $extras, 'related', array() );
+			$related = Option::get( $extras, 'related' );
 			if ( empty( $id_field ) )
 			{
 				$id_field = SqlDbUtilities::getPrimaryKeyFieldFromDescribe( $availFields );
@@ -1813,7 +1807,7 @@ class SqlDbSvc extends BaseDbSvc
 		$relatives = array();
 		foreach ( $relations as $relation )
 		{
-			$how = Utilities::getArrayValue( 'name', $relation, '' );
+			$how = Option::get( $relation, 'name', '' );
 			$relatives[$how] = $relation;
 		}
 		$this->_relatedCache[$name] = $relatives;
@@ -1850,13 +1844,13 @@ class SqlDbSvc extends BaseDbSvc
 					$fieldVal = null;
 				}
 				// overwrite some undercover fields
-				if ( Utilities::getArrayValue( 'auto_increment', $field_info, false ) )
+				if ( Option::getBool( $field_info, 'auto_increment', false ) )
 				{
 					unset( $keys[$pos] );
 					unset( $values[$pos] );
 					continue; // should I error this?
 				}
-				if ( Utilities::isInList( Utilities::getArrayValue( 'validation', $field_info, '' ), 'api_read_only', ',' ) )
+				if ( Utilities::isInList( Option::get( $field_info, 'validation', '' ), 'api_read_only', ',' ) )
 				{
 					unset( $keys[$pos] );
 					unset( $values[$pos] );
@@ -2258,7 +2252,7 @@ class SqlDbSvc extends BaseDbSvc
 				switch ( $relationType )
 				{
 					case 'belongs_to':
-						$fieldVal = Utilities::getArrayValue( $field, $data );
+						$fieldVal = Option::get( $data, $field );
 						$relatedRecords = $this->retrieveRecordsByFilter( $relatedTable, "$relatedField = '$fieldVal'", $extraFields );
 						if ( !empty( $relatedRecords ) )
 						{
@@ -2270,11 +2264,11 @@ class SqlDbSvc extends BaseDbSvc
 						}
 						break;
 					case 'has_many':
-						$fieldVal = Utilities::getArrayValue( $field, $data );
+						$fieldVal = Option::get( $data, $field );
 						$tempData = $this->retrieveRecordsByFilter( $relatedTable, "$relatedField = '$fieldVal'", $extraFields );
 						break;
 					case 'many_many':
-						$fieldVal = Utilities::getArrayValue( $field, $data );
+						$fieldVal = Option::get( $data, $field );
 						$join = $relation['join'];
 						$joinTable = substr( $join, 0, strpos( $join, '(' ) );
 						$other = explode( ',', substr( $join, strpos( $join, '(' ) + 1, -1 ) );
@@ -2335,10 +2329,10 @@ class SqlDbSvc extends BaseDbSvc
 			$oldMany = $this->retrieveRecordsByFilter( $many_table, $many_field . " = '$one_id'", "$pkField,$many_field" );
 			foreach ( $oldMany as $oldKey => $old )
 			{
-				$oldId = Utilities::getArrayValue( $pkField, $old );
+				$oldId = Option::get( $old, $pkField );
 				foreach ( $many_records as $key => $item )
 				{
-					$id = Utilities::getArrayValue( $pkField, $item, '' );
+					$id = Option::get( $item, $pkField, '' );
 					if ( $id == $oldId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
@@ -2357,7 +2351,7 @@ class SqlDbSvc extends BaseDbSvc
 				$ids = array();
 				foreach ( $oldMany as $item )
 				{
-					$ids[] = Utilities::getArrayValue( $pkField, $item, '' );
+					$ids[] = Option::get( $item, $pkField );
 				}
 				if ( !empty( $ids ) )
 				{
@@ -2371,7 +2365,7 @@ class SqlDbSvc extends BaseDbSvc
 				$ids = array();
 				foreach ( $many_records as $item )
 				{
-					$ids[] = Utilities::getArrayValue( $pkField, $item, '' );
+					$ids[] = Option::get( $item, $pkField );
 				}
 				if ( !empty( $ids ) )
 				{
@@ -2414,12 +2408,12 @@ class SqlDbSvc extends BaseDbSvc
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
-				$manyId = Utilities::getArrayValue( $many_field, $map, '' );
-				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
+				$manyId = Option::get( $map, $many_field, '' );
+				$id = Option::get( $map, $pkMapField, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( $pkManyField, $item, '' );
+					$assignId = Option::get( $item, $pkManyField, '' );
 					if ( $assignId == $manyId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
@@ -2443,7 +2437,7 @@ class SqlDbSvc extends BaseDbSvc
 				$maps = array();
 				foreach ( $many_records as $item )
 				{
-					$itemId = Utilities::getArrayValue( $pkManyField, $item, '' );
+					$itemId = Option::get( $item, $pkManyField, '' );
 					$maps[] = array( $many_field => $itemId, $one_field => $one_id );
 				}
 				$this->createRecords( $map_table, $maps );

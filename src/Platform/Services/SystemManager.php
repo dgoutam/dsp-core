@@ -192,7 +192,7 @@ class SystemManager extends RestService
 
 			$tables = $_schema->getTableNames();
 
-			if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
+			if ( empty( $tables ) || ( 'df_sys_cache' == Option::get( $tables, 0 ) ) )
 			{
 				return PlatformStates::INIT_REQUIRED;
 			}
@@ -205,18 +205,18 @@ class SystemManager extends RestService
 				$contents = DataFormat::jsonToArray( $contents );
 
 				// check for any missing necessary tables
-				$needed = Utilities::getArrayValue( 'table', $contents, array() );
+				$needed = Option::get( $contents, 'table', array() );
 
 				foreach ( $needed as $table )
 				{
-					$name = Utilities::getArrayValue( 'name', $table, '' );
+					$name = Option::get( $table, 'name' );
 					if ( !empty( $name ) && !in_array( $name, $tables ) )
 					{
 						return PlatformStates::SCHEMA_REQUIRED;
 					}
 				}
 
-				$_version = Utilities::getArrayValue( 'version', $contents );
+				$_version = Option::get( $contents, 'version' );
 				$_oldVersion = Sql::scalar( 'select db_version from df_sys_config order by id desc' );
 
 				if ( static::doesDbVersionRequireUpgrade( $_oldVersion, $_version ) )
@@ -277,7 +277,7 @@ class SystemManager extends RestService
 			}
 
 			$contents = DataFormat::jsonToArray( $contents );
-			$version = Utilities::getArrayValue( 'version', $contents );
+			$version = Option::get( $contents, 'version' );
 
 			$command = $_db->createCommand();
 			$oldVersion = '';
@@ -288,7 +288,7 @@ class SystemManager extends RestService
 			}
 
 			// create system tables
-			$tables = Utilities::getArrayValue( 'table', $contents );
+			$tables = Option::get( $contents, 'table' );
 			if ( empty( $tables ) )
 			{
 				throw new \Exception( "No default system schema found." );
@@ -546,7 +546,7 @@ class SystemManager extends RestService
 							{
 								foreach ( $content as $package )
 								{
-									$fileUrl = Utilities::getArrayValue( 'url', $package, '' );
+									$fileUrl = Option::get( $package, 'url', '' );
 									if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
 									{
 										try

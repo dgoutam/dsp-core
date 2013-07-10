@@ -17,10 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Resources\UserSession;
 use Platform\Services\SystemManager;
-use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -201,11 +202,11 @@ abstract class BaseDspSystemModel extends \BaseDspModel
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
-				$id = Utilities::getArrayValue( $pkField, $map, '' );
+				$id = Option::get( $map, $pkField, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( $pkField, $item, '' );
+					$assignId = Option::get( $item, $pkField, '' );
 					if ( $id == $assignId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
@@ -235,7 +236,7 @@ abstract class BaseDspSystemModel extends \BaseDspModel
 				$toAdd = array();
 				foreach ( $many_records as $item )
 				{
-					$itemId = Utilities::getArrayValue( $pkField, $item, '' );
+					$itemId = Option::get( $item, $pkField );
 					if ( !empty( $itemId ) )
 					{
 						$toAdd[] = $itemId;
@@ -292,12 +293,12 @@ abstract class BaseDspSystemModel extends \BaseDspModel
 			$toDelete = array();
 			foreach ( $maps as $map )
 			{
-				$manyId = Utilities::getArrayValue( $many_field, $map, '' );
-				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
+				$manyId = Option::get( $map, $many_field, '' );
+				$id = Option::get( $map, $pkMapField, '' );
 				$found = false;
 				foreach ( $many_records as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( $pkManyField, $item, '' );
+					$assignId = Option::get( $item, $pkManyField, '' );
 					if ( $assignId == $manyId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
@@ -326,7 +327,7 @@ abstract class BaseDspSystemModel extends \BaseDspModel
 			{
 				foreach ( $many_records as $item )
 				{
-					$itemId = Utilities::getArrayValue( $pkManyField, $item, '' );
+					$itemId = Option::get( $item, $pkManyField, '' );
 					$record = array( $many_field => $itemId, $one_field => $one_id );
 					// simple update request
 					$command->reset();
