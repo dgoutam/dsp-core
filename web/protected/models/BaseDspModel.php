@@ -17,8 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Sql;
 
 /**
  * BaseDspModel.php
