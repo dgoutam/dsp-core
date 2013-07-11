@@ -934,7 +934,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		else
 		{
 			$name = ( empty( $dest_name ) ? basename( $source_file ) : $dest_name );
-			$fullPathName = $dest_path . $name;
+			$fullPathName = FileUtilities::fixFolderPath( $dest_path ) . $name;
 			$this->moveFile( $this->_container, $fullPathName, $source_file, $check_exist );
 
 			return array( 'file' => array( array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName ) ) );
@@ -979,7 +979,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		}
 		else
 		{
-			$fullPathName = $dest_path . $dest_name;
+			$fullPathName = FileUtilities::fixFolderPath( $dest_path ) . $dest_name;
 			$this->writeFile( $this->_container, $fullPathName, $content, false, $check_exist );
 
 			return array( 'file' => array( array( 'name' => $dest_name, 'path' => $this->_container.'/'.$fullPathName ) ) );
