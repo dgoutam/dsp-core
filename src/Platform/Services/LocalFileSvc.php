@@ -372,7 +372,6 @@ class LocalFileSvc extends BaseFileSvc
 		{
 			throw new BadRequestException( "Invalid empty path." );
 		}
-		$parent = FileUtilities::getParentFolder( $path );
 		$path = FileUtilities::fixFolderPath( $path );
 
 		// does this folder already exist?
@@ -384,15 +383,6 @@ class LocalFileSvc extends BaseFileSvc
 			}
 
 			return;
-		}
-		// does this folder's parent exist?
-		if ( !empty( $parent ) && ( !$this->folderExists( $container, $parent ) ) )
-		{
-			if ( $check_exist )
-			{
-				throw new NotFoundException( "Folder '$parent' does not exist." );
-			}
-			$this->createFolder( $parent, $is_public, $properties, false );
 		}
 
 		// create the folder
@@ -967,17 +957,17 @@ class LocalFileSvc extends BaseFileSvc
 				$name = str_ireplace( $drop_path, '', $name );
 			}
 			$fullPathName = $path . $name;
-			$parent = FileUtilities::getParentFolder( $fullPathName );
-			if ( !empty( $parent ) )
-			{
-				$this->createFolder( $container, $parent, true, array(), false );
-			}
 			if ( '/' === substr( $fullPathName, -1 ) )
 			{
 				$this->createFolder( $container, $fullPathName, true, array(), false );
 			}
 			else
 			{
+				$parent = FileUtilities::getParentFolder( $fullPathName );
+				if ( !empty( $parent ) )
+				{
+					$this->createFolder( $container, $parent, true, array(), false );
+				}
 				$content = $zip->getFromIndex( $i );
 				$this->writeFile( $container, $fullPathName, $content );
 			}
