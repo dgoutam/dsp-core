@@ -300,7 +300,7 @@ class LocalFileSvc extends BaseFileSvc
 		{
 			$name = basename( $path );
 			$out['name'] = $name;
-			$out['path'] = $path;
+			$out['path'] = $container .'/'. $path;
 		}
 		if ( $include_properties )
 		{
@@ -507,25 +507,24 @@ class LocalFileSvc extends BaseFileSvc
 			try
 			{
 				// path is full path, name is relative to root, take either
-				if ( isset( $folder['path'] ) )
-				{
-					$path = $folder['path'];
-				}
-				elseif ( isset( $folder['name'] ) )
-				{
-					$path = $root . $folder['name'];
-				}
-				else
-				{
-					throw new BadRequestException( 'No path or name found for folder in delete request.' );
-				}
+				$path = Option::get( $folder, 'path' );
 				if ( !empty( $path ) )
 				{
-					$this->deleteFolder( $path, $force );
+					$dirPath = static::asFullPath( $path );
+					FileUtilities::deleteTree( $dirPath, $force );
 				}
 				else
 				{
-					throw new BadRequestException( 'No path or name found for folder in delete request.' );
+					$name = Option::get( $folder, 'name' );
+					if ( !empty( $name ) )
+					{
+						$path = $root . $folder['name'];
+						$this->deleteFolder( $container, $path, $force );
+					}
+					else
+					{
+						throw new BadRequestException( 'No path or name found for folder in delete request.' );
+					}
 				}
 			}
 			catch ( \Exception $ex )
@@ -825,8 +824,7 @@ class LocalFileSvc extends BaseFileSvc
 		{
 			throw new BadRequestException( "'$key' is not a valid filename." );
 		}
-		$result = unlink( $key );
-		if ( !$result )
+		if ( !unlink( $key ) )
 		{
 			throw new \Exception( 'Failed to delete file.' );
 		}
@@ -848,25 +846,31 @@ class LocalFileSvc extends BaseFileSvc
 			try
 			{
 				// path is full path, name is relative to root, take either
-				if ( isset( $file['path'] ) )
-				{
-					$path = $file['path'];
-				}
-				elseif ( isset( $file['name'] ) )
-				{
-					$path = $root . $file['name'];
-				}
-				else
-				{
-					throw new BadRequestException( 'No path or name found for file in delete request.' );
-				}
+				$path = Option::get( $file, 'path');
 				if ( !empty( $path ) )
 				{
-					$this->deleteFile( $container, $path );
+					$key = self::asFullPath( $path );
+					if ( !is_file( $key ) )
+					{
+						throw new BadRequestException( "'$key' is not a valid file." );
+					}
+					if ( !unlink( $key ) )
+					{
+						throw new \Exception( "Failed to delete file '$key'." );
+					}
 				}
 				else
 				{
-					throw new BadRequestException( 'No path or name found for file in delete request.' );
+					$name = Option::get( $file, 'name');
+					if ( !empty( $name ) )
+					{
+						$path = $root . $name;
+						$this->deleteFile( $container, $path );
+					}
+					else
+					{
+						throw new BadRequestException( 'No path or name found for file in delete request.' );
+					}
 				}
 			}
 			catch ( \Exception $ex )

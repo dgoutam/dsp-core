@@ -123,7 +123,7 @@ class RestController extends Controller
 			$_tunnelMethod = FilterInput::server( 'HTTP_X_HTTP_METHOD', null, FILTER_SANITIZE_STRING );
 			if ( empty( $_tunnelMethod ) )
 			{
-				$_tunnelMethod = FilterInput::post( 'method', null, FILTER_SANITIZE_STRING );
+				$_tunnelMethod = FilterInput::request( 'method', null, FILTER_SANITIZE_STRING );
 			}
 
 			if ( !empty( $_tunnelMethod ) )
