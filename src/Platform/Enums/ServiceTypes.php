@@ -62,6 +62,10 @@ class ServiceTypes extends SeedEnum
 	/**
 	 * @var string
 	 */
+	const EMAIL_SERVICE = 'Email Service';
+	/**
+	 * @var string
+	 */
 	const LOCAL_EMAIL_SERVICE = 'Local Email Service';
 	/**
 	 * @var string

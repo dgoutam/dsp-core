@@ -53,6 +53,7 @@ class EmailUtilities
 				$transport = \Swift_MailTransport::newInstance();
 				break;
 			case 'smtp':
+			case 'SMTP':
 				// SMTP
 				$host = Option::get( $credentials, 'host', 'localhost' );
 				if ( empty( $host ) )

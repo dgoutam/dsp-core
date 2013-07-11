@@ -64,10 +64,6 @@ class EmailSvc extends RestService
 	//*************************************************************************
 
 	/**
-	 * @var boolean
-	 */
-	protected $_isNative = false;
-	/**
 	 * @var null|\Swift_SmtpTransport|\Swift_SendMailTransport|\Swift_MailTransport
 	 */
 	protected $_transport = null;
@@ -96,13 +92,11 @@ class EmailSvc extends RestService
 	 * Create a new EmailSvc
 	 *
 	 * @param array $config
-	 * @param bool  $native
 	 */
-	public function __construct( $config, $native = false )
+	public function __construct( $config )
 	{
 		parent::__construct( $config );
 
-		$this->_isNative = $native;
 		$transportType = Option::get( $config, 'storage_type', '' );
 		$credentials = Option::get( $config, 'credentials', array() );
 		// Create the Transport

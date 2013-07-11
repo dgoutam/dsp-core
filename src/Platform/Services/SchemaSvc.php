@@ -378,7 +378,7 @@ class SchemaSvc extends RestService
 					if ( empty( $tables ) )
 					{
 						// temporary, layer created from xml to array conversion
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
+						$tables = Option::getDeep( $data, 'tables', 'table' );
 					}
 					if ( empty( $tables ) )
 					{
@@ -397,7 +397,7 @@ class SchemaSvc extends RestService
 					if ( empty( $tables ) )
 					{
 						// temporary, layer created from xml to array conversion
-						$tables = ( isset( $data['tables']['table'] ) ) ? $data['tables']['table'] : '';
+						$tables = Option::getDeep( $data, 'tables', 'table' );
 					}
 					if ( empty( $tables ) )
 					{
@@ -431,7 +431,7 @@ class SchemaSvc extends RestService
 						if ( empty( $fields ) )
 						{
 							// temporary, layer created from xml to array conversion
-							$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
+							$fields = Option::getDeep( $data, 'fields', 'field' );
 						}
 						if ( empty( $fields ) )
 						{
@@ -451,7 +451,7 @@ class SchemaSvc extends RestService
 						if ( empty( $fields ) )
 						{
 							// temporary, layer created from xml to array conversion
-							$fields = ( isset( $data['fields']['field'] ) ) ? $data['fields']['field'] : '';
+							$fields = Option::getDeep( $data, 'fields', 'field' );
 						}
 						if ( empty( $fields ) )
 						{
@@ -512,8 +512,8 @@ class SchemaSvc extends RestService
 	 */
 	protected function _detectResourceMembers()
 	{
-		$this->_tableName = ( isset( $this->_resourceArray[0] ) ) ? $this->_resourceArray[0] : '';
-		$this->_fieldName = ( isset( $this->_resourceArray[1] ) ) ? $this->_resourceArray[1] : '';
+		$this->_tableName = Option::get( $this->_resourceArray, 0, '' );
+		$this->_fieldName = Option::get( $this->_resourceArray, 1, '' );
 	}
 
 	/**

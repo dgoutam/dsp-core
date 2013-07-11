@@ -242,11 +242,10 @@ class ServiceHandler
 			case 'Remote SQL DB Schema':
 				$service = new SchemaSvc( $record, false );
 				break;
+			case 'Email Service':
 			case 'Local Email Service':
-				$service = new EmailSvc( $record, true );
-				break;
 			case 'Remote Email Service':
-				$service = new EmailSvc( $record, false );
+				$service = new EmailSvc( $record );
 				break;
 			case 'NoSQL DB':
 				$storageType = Option::get( $record, 'storage_type', '' );

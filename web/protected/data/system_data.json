@@ -25,7 +25,7 @@
 			"api_name": "email",
 			"name": "Email Service",
 			"is_active": 1,
-			"type": "Local Email Service",
+			"type": "Email Service",
 			"description": "Default system email utility access"
 		}
     ],
