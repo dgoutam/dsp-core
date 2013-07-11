@@ -250,9 +250,9 @@ class UserManager extends RestService
 					case self::Patch:
 					case self::Merge:
 						$data = RestRequest::getPostDataAsArray();
-						$oldPassword = Option::get( $data, 'old_password', $data, '' );
+						$oldPassword = Option::get( $data, 'old_password', '' );
 						//$oldPassword = Utilities::decryptPassword($oldPassword);
-						$newPassword = Option::get( $data, 'new_password', $data, '' );
+						$newPassword = Option::get( $data, 'new_password', '' );
 						//$newPassword = Utilities::decryptPassword($newPassword);
 						$result = $this->changePassword( $oldPassword, $newPassword );
 						break;
@@ -265,10 +265,10 @@ class UserManager extends RestService
 				{
 					case self::Post:
 						$data = RestRequest::getPostDataAsArray();
-						$firstName = Option::get( $data, 'first_name', $data, '' );
-						$lastName = Option::get( $data, 'last_name', $data, '' );
-						$displayName = Option::get( $data, 'display_name', $data, '' );
-						$email = Option::get( $data, 'email', $data, '' );
+						$firstName = Option::get( $data, 'first_name', '' );
+						$lastName = Option::get( $data, 'last_name', '' );
+						$displayName = Option::get( $data, 'display_name', '' );
+						$email = Option::get( $data, 'email', '' );
 						$result = $this->userRegister( $email, $firstName, $lastName, $displayName );
 						break;
 					default:
@@ -283,18 +283,18 @@ class UserManager extends RestService
 						$code = FilterInput::request( 'code' );
 						if ( empty( $code ) )
 						{
-							$code = Option::get( $data, 'code', $data, '' );
+							$code = Option::get( $data, 'code', '' );
 						}
 						$email = FilterInput::request( 'email' );
 						if ( empty( $email ) )
 						{
-							$email = Option::get( $data, 'email', $data, '' );
+							$email = Option::get( $data, 'email', '' );
 						}
 						if ( empty( $email ) && !empty( $code ) )
 						{
 							throw new BadRequestException( "Missing required email or code for invitation." );
 						}
-						$newPassword = Option::get( $data, 'new_password', $data, '' );
+						$newPassword = Option::get( $data, 'new_password', '' );
 						if ( empty( $newPassword ) )
 						{
 							throw new BadRequestException( "Missing required fields 'new_password'." );
@@ -329,7 +329,7 @@ class UserManager extends RestService
 						{
 							$email = Option::get( $data, 'email' );
 						}
-						$answer = Option::get( $data, 'security_answer', $data, '' );
+						$answer = Option::get( $data, 'security_answer', '' );
 						if ( !empty( $email ) && !empty( $answer ) )
 						{
 							$result = $this->userSecurityAnswer( $email, $answer );

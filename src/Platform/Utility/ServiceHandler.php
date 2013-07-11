@@ -20,6 +20,7 @@
 namespace Platform\Utility;
 
 use Kisma\Core\Utility\Option;
+use Platform\Exceptions\NotFoundException;
 use Platform\Services\AwsDynamoDbSvc;
 use Platform\Services\AwsSimpleDbSvc;
 use Platform\Services\AwsS3Svc;
@@ -122,6 +123,10 @@ class ServiceHandler
 					break;
 				default:
 					$record = \Service::getRecordByName( $api_name );
+					if ( empty( $record ) )
+					{
+						throw new NotFoundException( "Service '$api_name' not found." );
+					}
 					$service = static::createService( $record );
 					break;
 			}
@@ -165,7 +170,7 @@ class ServiceHandler
 		$record = \Service::getRecordById( $id );
 		if ( empty( $record ) )
 		{
-			throw new \Exception( "Failed to launch service, no service record found." );
+			throw new \Exception( "Failed to launch service, no service record found for id '$id''." );
 		}
 
 		$_apiName = Option::get( $record, 'api_name' );
