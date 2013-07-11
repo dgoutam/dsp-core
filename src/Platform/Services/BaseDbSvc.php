@@ -193,18 +193,18 @@ abstract class BaseDbSvc extends RestService
 							else
 							{
 								$filter = FilterInput::request( 'filter' );
-								if ( !isset( $filter ) )
+								if ( empty( $filter ) )
 								{
-									$filter = Option::get( $data, 'filter', null );
+									$filter = Option::get( $data, 'filter' );
 								}
-								if ( isset( $filter ) )
+								if ( !empty( $filter ) )
 								{
 									$result = $this->updateRecordsByFilter( $this->_resource, $filter, $data, $fields, $extras );
 									$result = array( 'record' => $result );
 								}
 								else
 								{
-									$records = Option::get( $data, 'record', null );
+									$records = Option::get( $data, 'record' );
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
@@ -259,11 +259,11 @@ abstract class BaseDbSvc extends RestService
 							else
 							{
 								$filter = FilterInput::request( 'filter' );
-								if ( !isset( $filter ) )
+								if ( empty( $filter ) )
 								{
 									$filter = Option::get( $data, 'filter', null );
 								}
-								if ( isset( $filter ) )
+								if ( !empty( $filter ) )
 								{
 									$result = $this->mergeRecordsByFilter( $this->_resource, $filter, $data, $fields, $extras );
 									$result = array( 'record' => $result );
@@ -324,11 +324,11 @@ abstract class BaseDbSvc extends RestService
 							else
 							{
 								$filter = FilterInput::request( 'filter' );
-								if ( !isset( $filter ) )
+								if ( empty( $filter ) )
 								{
 									$filter = Option::get( $data, 'filter' );
 								}
-								if ( isset( $filter ) )
+								if ( !empty( $filter ) )
 								{
 									$result = $this->deleteRecordsByFilter( $this->_resource, $filter, $fields, $extras );
 									$result = array( 'record' => $result );
