@@ -309,7 +309,7 @@ class Role extends BaseDspSystemModel
 			{
 				$manyId = Option::get( $map, 'service_id' );
 				$manyComponent = Option::get( $map, 'component', '' );
-				$id = Option::get( $pkMapField, $map, '' );
+				$id = Option::get( $map, $pkMapField, '' );
 				$found = false;
 				foreach ( $accesses as $key => $item )
 				{
