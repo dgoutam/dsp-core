@@ -745,7 +745,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			$zip = new \ZipArchive();
 			if ( empty( $zipFileName ) )
 			{
-				$temp = FileUtilities::getNameFromPath( $path );
+				$temp = basename( $path );
 				if ( empty( $temp ) )
 				{
 					$temp = $container;

@@ -886,10 +886,10 @@ class LocalFileSvc extends BaseFileSvc
 	 */
 	public function getFolderAsZip( $container, $path, $zip = null, $zipFileName = '', $overwrite = false )
 	{
-		$container = self::addContainerToName( $container, '' );
-		if ( !is_dir( $container ) )
+		$root = self::addContainerToName( $container, '' );
+		if ( !is_dir( $root ) )
 		{
-			throw new BadRequestException( "Can not find directory '$container'." );
+			throw new BadRequestException( "Can not find directory '$root'." );
 		}
 		$needClose = false;
 		if ( !isset( $zip ) )
@@ -898,7 +898,7 @@ class LocalFileSvc extends BaseFileSvc
 			$zip = new \ZipArchive();
 			if ( empty( $zipFileName ) )
 			{
-				$temp = FileUtilities::getNameFromPath( $path );
+				$temp = basename( $path );
 				if ( empty( $temp ) )
 				{
 					$temp = $container;
@@ -911,7 +911,7 @@ class LocalFileSvc extends BaseFileSvc
 				throw new \Exception( "Can not create zip file for directory '$path'." );
 			}
 		}
-		FileUtilities::addTreeToZip( $zip, $container, rtrim( $path, '/' ) );
+		FileUtilities::addTreeToZip( $zip, $root, rtrim( $path, '/' ) );
 		if ( $needClose )
 		{
 			$zip->close();
