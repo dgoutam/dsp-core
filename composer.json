@@ -1,7 +1,7 @@
 {
 	"name":              "dreamfactory/dsp-core",
 	"description":       "DreamFactory Services Platform(tm) Core",
-	"version":           "1.0.4",
+	"version":           "1.0.5-dev",
 	"config":            {
 		"home":      "./",
 		"cache-dir": "./.composer/cache"
