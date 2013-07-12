@@ -401,7 +401,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				}
 				if ( !empty( $path ) )
 				{
-					$this->deleteFolder( $path, $force );
+					$this->deleteFolder( $container, $path, $force );
 				}
 				else
 				{
@@ -842,17 +842,17 @@ abstract class RemoteFileSvc extends BaseFileSvc
 					$name = str_ireplace( $drop_path, '', $name );
 				}
 				$fullPathName = $path . $name;
-				$parent = FileUtilities::getParentFolder( $fullPathName );
-				if ( !empty( $parent ) )
-				{
-					$this->createFolder( $parent, true, array(), false );
-				}
 				if ( '/' === substr( $fullPathName, -1 ) )
 				{
-					$this->createFolder( $fullPathName, true, array(), false );
+					$this->createFolder( $container, $fullPathName, true, array(), false );
 				}
 				else
 				{
+					$parent = FileUtilities::getParentFolder( $fullPathName );
+					if ( !empty( $parent ) )
+					{
+						$this->createFolder( $container, $parent, true, array(), false );
+					}
 					$content = $zip->getFromIndex( $i );
 					$this->writeFile( $container, $fullPathName, $content );
 				}
