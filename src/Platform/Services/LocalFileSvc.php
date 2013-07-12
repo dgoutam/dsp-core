@@ -321,9 +321,9 @@ class LocalFileSvc extends BaseFileSvc
 			$_results = static::listTree( $_dirPath, $container .'/'. $path, $_delimiter );
 			foreach ( $_results as $_data )
 			{
-				$fullPathName = $_data['path'];
-				$_data['name'] = rtrim( substr( $fullPathName, strlen( $_localizer ) ), '/' );
-				if ( '/' == substr( $fullPathName, -1, 1 ) )
+				$_fullPathName = $_data['path'];
+				$_data['name'] = rtrim( substr( $_fullPathName, strlen( $_localizer ) ), '/' );
+				if ( '/' == substr( $_fullPathName, -1, 1 ) )
 				{
 					// folders
 					if ( $include_folders )
@@ -1000,16 +1000,6 @@ class LocalFileSvc extends BaseFileSvc
 
 	/**
 	 * @param $container
-	 *
-	 * @return string
-	 */
-	private static function fixContainerName( $container )
-	{
-		return rtrim( $container, '/' ) . '/';
-	}
-
-	/**
-	 * @param $container
 	 * @param $name
 	 *
 	 * @return string
@@ -1018,7 +1008,7 @@ class LocalFileSvc extends BaseFileSvc
 	{
 		if ( !empty( $container ) )
 		{
-			$container = self::fixContainerName( $container );
+			$container = FileUtilities::fixFolderPath( $container );
 		}
 
 		return static::asFullPath( $container . $name );
@@ -1037,7 +1027,7 @@ class LocalFileSvc extends BaseFileSvc
 		{
 			return $name;
 		}
-		$container = self::fixContainerName( $container );
+		$container = FileUtilities::fixFolderPath( $container );
 
 		return substr( $name, strlen( $container ) + 1 );
 	}
