@@ -438,15 +438,15 @@ class SystemManager extends RestService
 
 			$_user->save();
 
+			// update session with current real user
+			Pii::user()->setId( $_user->primaryKey );
+			Pii::user()->setState( 'email', $_email );
+			Pii::user()->setState( 'df_authenticated', false ); // removes catch
+			Pii::user()->setState( 'password', $_password, $_password ); // removes password
+
 			//	Auto login this new admin user...
 			static::autoLoginAdmin( $_user );
 
-//		///// THIS IS ALL DONE BY LOGIN method above
-//			// update session with current real user
-//			Pii::user()->setId( $_user->primaryKey );
-//			Pii::user()->setState( 'email', $_email );
-//			Pii::user()->setState( 'df_authenticated', false ); // removes catch
-//			Pii::user()->setState( 'password', $_password, $_password ); // removes password
 		}
 		catch ( \Exception $_ex )
 		{
@@ -1056,6 +1056,7 @@ class SystemManager extends RestService
 				if ( $_identity->logInUser( $_user ) )
 				{
 					return Pii::user()->login( $_identity, 0 );
+
 				}
 			}
 
