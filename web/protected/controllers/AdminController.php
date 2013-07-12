@@ -31,7 +31,7 @@ use Platform\Yii\Utility\Pii;
 
 /**
  * AdminController.php
- * The administrative site controller
+ * The administrative site controller. This is the replacement for the javascript admin app. WIP
  */
 class AdminController extends BaseWebController
 {
