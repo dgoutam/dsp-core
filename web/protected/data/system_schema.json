@@ -51,7 +51,7 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -188,7 +188,7 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -248,7 +248,7 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -294,7 +294,8 @@
 				},
 				{
 					"name":       "description",
-					"type":       "text",
+					"type":       "string",
+					"length":     128,
 					"allow_null": true
 				},
 				{
@@ -310,6 +311,12 @@
 					"allow_null": false
 				},
 				{
+					"name":       "type_id",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
+				},
+				{
 					"name":       "storage_name",
 					"type":       "string",
 					"length":     80,
@@ -322,35 +329,44 @@
 					"allow_null": true
 				},
 				{
+					"name":       "storage_type_id",
+					"type":       "integer",
+					"allow_null": true
+				},
+				{
 					"name":       "credentials",
-					"type":       "text",
+					"type":       "mediumtext",
 					"allow_null": true
 				},
 				{
 					"name":       "native_format",
 					"type":       "string",
-					"length":     64,
+					"length":     32,
+					"allow_null": true
+				},
+				{
+					"name":       "native_format_id",
+					"type":       "integer",
 					"allow_null": true
 				},
 				{
 					"name":       "base_url",
-					"type":       "string",
-					"length":     255,
+					"type":       "text",
 					"allow_null": true
 				},
 				{
 					"name":       "parameters",
-					"type":       "text",
+					"type":       "mediumtext",
 					"allow_null": true
 				},
 				{
 					"name":       "headers",
-					"type":       "text",
+					"type":       "mediumtext",
 					"allow_null": true
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -396,7 +412,8 @@
 				},
 				{
 					"name":       "description",
-					"type":       "text",
+					"type":       "string",
+					"length":     128,
 					"allow_null": true
 				},
 				{
@@ -464,7 +481,7 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -506,7 +523,7 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -858,7 +875,7 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
@@ -918,86 +935,12 @@
 				},
 				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "last_modified_date",
-					"type":       "timestamp_on_update",
-					"validation": "api_read_only"
-				}
-			]
-		},
-		{
-			"name":  "df_sys_registry",
-			"field": [
-				{
-					"name": "id",
-					"type": "id"
-				},
-				{
-					"name":          "user_id",
-					"type":          "integer",
-					"ref_table":     "df_sys_user",
-					"ref_fields":    "id",
-					"ref_on_update": "CASCADE",
-					"ref_on_delete": "CASCADE",
-					"allow_null":    false
-				},
-				{
-					"name":       "service_type_nbr",
-					"type":       "integer",
-					"allow_null": false,
-					"default":    0
-				},
-				{
-					"name":       "service_name_text",
-					"type":       "string",
-					"length":     128,
-					"allow_null": false
-				},
-				{
-					"name":       "service_tag_text",
-					"type":       "string",
-					"length":     64,
-					"allow_null": false,
-					"is_unique":  true
-				},
-				{
-					"name":       "service_config_text",
-					"type":       "mediumtext",
-					"allow_null": false
-				},
-				{
-					"name":       "enabled_ind",
-					"type":       "tinyint",
-					"length":     1,
-					"allow_null": false,
-					"default":    1
-				},
-				{
-					"name":       "last_use_date",
 					"type":       "datetime",
-					"allow_null": true
-				},
-				{
-					"name":       "created_date",
-					"type":       "timestamp_on_create",
 					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
 					"type":       "timestamp_on_update",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "created_by_id",
-					"type":       "user_id_on_create",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "last_modified_by_id",
-					"type":       "user_id_on_update",
 					"validation": "api_read_only"
 				}
 			]
@@ -1019,13 +962,13 @@
 					"allow_null":    false
 				},
 				{
-					"name":          "registry_id",
+					"name":          "service_id",
 					"type":          "integer",
-					"allow_null":    false,
-					"ref_table":     "df_sys_registry",
+					"ref_table":     "df_sys_service",
 					"ref_fields":    "id",
 					"ref_on_update": "CASCADE",
-					"ref_on_delete": "CASCADE"
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
 				},
 				{
 					"name":       "auth_text",
@@ -1033,8 +976,13 @@
 					"allow_null": false
 				},
 				{
+					"name":       "last_use_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
 					"name":       "created_date",
-					"type":       "timestamp_on_create",
+					"type":       "datetime",
 					"validation": "api_read_only"
 				},
 				{
