@@ -50,6 +50,6 @@ return array(
 	'emulatePrepare'        => true,
 	'charset'               => 'utf8',
 //	'enableProfiling'    => true,
-//	'enableParamLogging'    => true,
+	'enableParamLogging'    => true,
 	'schemaCachingDuration' => 3600,
 );

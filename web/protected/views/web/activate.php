@@ -41,7 +41,7 @@ $_headline = ( isset( $activated ) && $activated ) ? 'Welcome!' : 'Activate Your
 	<a href="https://www.dreamfactory.com/user/register">http://www.dreamfactory.com</a>
    .
 </p><p>
-<div class="space200"></div>
+<div class="space50"></div>
 <p>If you've previously registered on
 	<a href="https://www.dreamfactory.com/user/register">http://www.dreamfactory.com</a>
    , you can register your DSP with those credentials. Please enter the email address and password you used to register on the <strong>DreamFactory</strong> web site.

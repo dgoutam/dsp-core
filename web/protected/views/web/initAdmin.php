@@ -83,7 +83,7 @@ Validate::register(
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_passwordRepeat' ),
 														   'Password Again'
-	) . '<div class="controls">' .
+		) . '<div class="controls">' .
 		 Bootstrap::password( array(
 								   'id'    => 'InitAdminForm_passwordRepeat',
 								   'name'  => 'InitAdminForm[passwordRepeat]',
@@ -115,7 +115,7 @@ Validate::register(
 
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'InitAdminForm_displayName' ),
 														   'Display Name'
-	) . '<div class="controls">' .
+		) . '<div class="controls">' .
 		 Bootstrap::text( array(
 							   'id'    => 'InitAdminForm_displayName',
 							   'name'  => 'InitAdminForm[displayName]',
@@ -130,3 +130,12 @@ Validate::register(
 		<button type="submit" class="btn btn-success btn-primary">Gimme My Mojo!</button>
 	</div>
 </form>
+<script type="text/javascript">
+jQuery(function($) {
+	$('#init-form').on('focus', 'input#InitAdminForm_displayName', function(e) {
+		if (!$('#InitAdminForm_displayName').val().trim().length) {
+			$('#InitAdminForm_displayName').val($('#InitAdminForm_firstName').val() + ' ' + $('#InitAdminForm_lastName').val())
+		}
+	});
+});
+</script>

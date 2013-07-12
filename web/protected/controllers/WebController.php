@@ -52,6 +52,10 @@ class WebController extends BaseWebController
 	 * @var bool
 	 */
 	protected $_activated = false;
+	/**
+	 * @var bool
+	 */
+	protected $_autoLogged = false;
 
 	//*************************************************************************
 	//* Methods
@@ -66,10 +70,10 @@ class WebController extends BaseWebController
 
 		$this->defaultAction = 'index';
 		$this->_activated = SystemManager::activated();
-
+		$_user = \Yii::app()->getUser();
 		if ( $this->_activated && Pii::guest() )
 		{
-			SystemManager::autoLoginAdmin();
+//			$this->redirect( '/web/login' );
 		}
 	}
 
@@ -141,8 +145,7 @@ class WebController extends BaseWebController
 
 		if ( !$this->_activated && 0 != FilterInput::post( 'skipped', 0, FILTER_SANITIZE_NUMBER_INT ) )
 		{
-//			Log::debug( 'Login skipped.' );
-			$this->redirect( '/' );
+			$_model->setDrupalAuth( false );
 		}
 
 		if ( isset( $_POST, $_POST['LoginForm'] ) )
@@ -271,46 +274,46 @@ class WebController extends BaseWebController
 	 */
 	public function actionLogin()
 	{
-		$this->actionActivate();
-//		$_model = new LoginForm();
-//
-//		// if it is ajax validation request
-//		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
-//		{
-//			echo CActiveForm::validate( $_model );
-//			Pii::end();
-//		}
-//
-//		// collect user input data
-//		if ( isset( $_POST['LoginForm'] ) )
-//		{
-//			$_model->attributes = $_POST['LoginForm'];
-//
-//			//	Validate user input and redirect to the previous page if valid
-//			if ( $_model->validate() && $_model->login() )
-//			{
-//				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
-//				{
-//					$_returnUrl = Pii::url( $this->id . '/index' );
-//				}
-//
-//				$this->redirect( $_returnUrl );
-//
-//				return;
-//			}
-//			else
-//			{
-//				$_model->addError( 'username', 'Invalid user name and password combination.' );
-//			}
-//		}
-//
-//		$this->render(
-//			'login',
-//			array(
-//				 'model'     => $_model,
-//				 'activated' => $this->_activated,
-//			)
-//		);
+		$_model = new LoginForm();
+		$_model->setDrupalAuth( false );
+
+		// if it is ajax validation request
+		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
+		{
+			echo CActiveForm::validate( $_model );
+			Pii::end();
+		}
+
+		// collect user input data
+		if ( isset( $_POST['LoginForm'] ) )
+		{
+			$_model->attributes = $_POST['LoginForm'];
+
+			//	Validate user input and redirect to the previous page if valid
+			if ( $_model->validate() && $_model->login() )
+			{
+				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
+				{
+					$_returnUrl = Pii::url( $this->id . '/index' );
+				}
+
+				$this->redirect( $_returnUrl );
+
+				return;
+			}
+			else
+			{
+				$_model->addError( 'username', 'Invalid user name and password combination.' );
+			}
+		}
+
+		$this->render(
+			'login',
+			array(
+				 'model'     => $_model,
+				 'activated' => $this->_activated,
+			)
+		);
 	}
 
 	/**

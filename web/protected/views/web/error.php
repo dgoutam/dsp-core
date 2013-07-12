@@ -20,14 +20,13 @@
 /* @var $this WebController */
 /* @var $error array */
 
-$this->pageTitle=Yii::app()->name . ' - Error';
-$this->breadcrumbs=array(
+$this->pageTitle = Yii::app()->name . ' - Error';
+$this->breadcrumbs = array(
 	'Error',
 );
 ?>
-
-<h2>Error <?php echo $code; ?></h2>
-
+<h2 class="headline">Houston, tenemos un problema...</h2>
+<h4>Error <?php echo $code; ?></h4>
 <div class="error">
-<?php echo CHtml::encode($message); ?>
+	<?php echo CHtml::encode( $message ); ?>
 </div>

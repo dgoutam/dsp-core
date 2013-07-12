@@ -402,7 +402,10 @@ class SystemManager extends RestService
 				$_user = new \User();
 				$_firstName = Pii::getState( 'first_name', Option::get( $_model, 'firstName' ) );
 				$_lastName = Pii::getState( 'last_name', Option::get( $_model, 'lastName' ) );
-				$_displayName = Pii::getState( 'display_name', Option::get( $_model, 'displayName', $_firstName . ( $_lastName ? : ' ' . $_lastName ) ) );
+				$_displayName = Pii::getState(
+					'display_name',
+					Option::get( $_model, 'displayName', $_firstName . ( $_lastName ? : ' ' . $_lastName ) )
+				);
 
 				$_fields = array(
 					'email'        => $_email,
@@ -429,14 +432,21 @@ class SystemManager extends RestService
 
 			// write back login datetime
 			$_user->last_login_date = date( 'c' );
+
+			//	Log out the drupal user if one before we save...
+			Pii::user()->logout();
+
 			$_user->save();
 
-			// update session with current real user
-			$_identity = Pii::user();
-			$_identity->setId( $_user->primaryKey );
-			$_identity->setState( 'email', $_email );
-			$_identity->setState( 'df_authenticated', false ); // removes catch
-			$_identity->setState( 'password', $_password, $_password ); // removes password
+			//	Auto login this new admin user...
+			static::autoLoginAdmin( $_user );
+
+//		///// THIS IS ALL DONE BY LOGIN method above
+//			// update session with current real user
+//			Pii::user()->setId( $_user->primaryKey );
+//			Pii::user()->setState( 'email', $_email );
+//			Pii::user()->setState( 'df_authenticated', false ); // removes catch
+//			Pii::user()->setState( 'password', $_password, $_password ); // removes password
 		}
 		catch ( \Exception $_ex )
 		{
@@ -1013,13 +1023,9 @@ class SystemManager extends RestService
 	{
 		try
 		{
-			return ( 0 != \User::model()->count(
-					'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-					array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-				)
-			);
+			return 0 != Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), Pii::pdo() );
 		}
-		catch ( \CDbException $_ex )
+		catch ( \Exception $_ex )
 		{
 			return false;
 		}
@@ -1028,17 +1034,20 @@ class SystemManager extends RestService
 	/**
 	 * Automatically logs in the first admin user
 	 *
+	 * @param \User $user
+	 *
 	 * @return bool
 	 */
-	public static function autoLoginAdmin()
+	public static function autoLoginAdmin( $user = null )
 	{
 		try
 		{
 			/** @var \User $_user */
-			$_user = \User::model()->find(
-				'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-				array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-			);
+			$_user = $user
+				? : \User::model()->find(
+					'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+					array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+				);
 
 			if ( !empty( $_user ) )
 			{
