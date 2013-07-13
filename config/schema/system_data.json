@@ -5,7 +5,7 @@
 			"name":        "Database",
 			"is_active":   1,
 			"type":        "Local SQL DB",
-			"type_id":     2,
+			"type_id":     4,
 			"description": "Local database access"
 		},
 		{
@@ -13,7 +13,7 @@
 			"name":        "Schema",
 			"is_active":   1,
 			"type":        "Local SQL DB Schema",
-			"type_id":     3,
+			"type_id":     8,
 			"description": "Local database schema access"
 		},
 		{
@@ -21,15 +21,15 @@
 			"name":        "Local Storage",
 			"is_active":   1,
 			"type":        "Local File Storage",
-			"type_id":     1,
+			"type_id":     2,
 			"description": "Local application file storage access"
 		},
 		{
 			"api_name":    "email",
 			"name":        "Email Service",
-			"is_active":   1,
-			"type":        "Local Email Service",
-			"type_id":     0,
+			"is_active":   1,	
+			"type":        "Email Service",
+			"type_id":     1,
 			"description": "Default system email utility access"
 		}
 	],

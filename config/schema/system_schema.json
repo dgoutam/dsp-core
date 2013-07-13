@@ -1,13 +1,5 @@
 {
 	"version": "1.0.5",
-	"script":  {
-		"install": {
-			"mysql": "dsp-install-1.0.5.sql"
-		},
-		"migrate": {
-			"mysql": "dsp-migrate-1.0.5.sql"
-		}
-	},
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -60,8 +52,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -198,8 +189,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -259,8 +249,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -306,7 +295,7 @@
 				{
 					"name":       "description",
 					"type":       "string",
-					"length":     512,
+					"length":     128,
 					"allow_null": true
 				},
 				{
@@ -324,19 +313,24 @@
 				{
 					"name":       "type_id",
 					"type":       "integer",
-					"default":    10,
-					"allow_null": false
+					"allow_null": false,
+					"default":    0
 				},
 				{
 					"name":       "storage_name",
 					"type":       "string",
-					"length":     128,
+					"length":     80,
 					"allow_null": true
 				},
 				{
 					"name":       "storage_type",
 					"type":       "string",
 					"length":     64,
+					"allow_null": true
+				},
+				{
+					"name":       "storage_type_id",
+					"type":       "integer",
 					"allow_null": true
 				},
 				{
@@ -347,14 +341,13 @@
 				{
 					"name":       "native_format",
 					"type":       "string",
-					"length":     64,
+					"length":     32,
 					"allow_null": true
 				},
 				{
 					"name":       "native_format_id",
 					"type":       "integer",
-					"default":    0,
-					"allow_null": false
+					"allow_null": true
 				},
 				{
 					"name":       "base_url",
@@ -362,26 +355,19 @@
 					"allow_null": true
 				},
 				{
-					"name":       "service_class",
-					"type":       "string",
-					"length":     1024,
-					"allow_null": true
-				},
-				{
 					"name":       "parameters",
-					"type":       "text",
+					"type":       "mediumtext",
 					"allow_null": true
 				},
 				{
 					"name":       "headers",
-					"type":       "text",
+					"type":       "mediumtext",
 					"allow_null": true
 				},
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -426,7 +412,8 @@
 				},
 				{
 					"name":       "description",
-					"type":       "text",
+					"type":       "string",
+					"length":     128,
 					"allow_null": true
 				},
 				{
@@ -495,8 +482,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -538,8 +524,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -788,7 +773,7 @@
 					"allow_null": true
 				},
 				{
-					"name":       "is_user_id",
+					"name":       "user_id",
 					"type":       "boolean",
 					"default":    null,
 					"allow_null": true
@@ -891,8 +876,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -952,8 +936,7 @@
 				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
@@ -963,25 +946,105 @@
 			]
 		},
 		{
-			"name":  "df_sys_service_auth",
+			"name":  "df_sys_account_provider",
 			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name":          "service_id",
+					"type":          "integer",
+					"ref_table":     "df_sys_service",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
+				},
+				{
+					"name":       "provider_name",
+					"type":       "integer",
+					"allow_null": true
+				},
+				{
+					"name":       "auth_endpoint",
+					"type":       "varchar",
+					"length":     1024,
+					"allow_null": true
+				},
+				{
+					"name":       "service_endpoint",
+					"type":       "varchar",
+					"length":     1024,
+					"allow_null": true
+				},
+				{
+					"name":       "provider_options",
+					"type":       "mediumtext",
+					"allow_null": true
+				},
+				{
+					"name":       "master_auth_text",
+					"type":       "mediumtext",
+					"allow_null": false
+				},
+				{
+					"name":       "last_use_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_by_id",
+					"type":       "user_id_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_date",
+					"type":       "timestamp_on_update",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_by_id",
+					"type":       "user_id_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		},
+		{
+			"name":  "df_sys_service_account",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
 				{
 					"name":          "user_id",
 					"type":          "integer",
 					"ref_table":     "df_sys_user",
 					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
 					"ref_on_delete": "CASCADE",
-					"allow_null":    false,
-					"primary_key":   true
+					"allow_null":    false
 				},
 				{
-					"name":          "service_id",
+					"name":          "provider_id",
 					"type":          "integer",
-					"allow_null":    false,
-					"ref_table":     "df_sys_service",
+					"ref_table":     "df_sys_account_provider",
 					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
 					"ref_on_delete": "CASCADE",
-					"primary_key":   true
+					"allow_null":    false
+				},
+				{
+					"name":       "account_type",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
 				},
 				{
 					"name":       "auth_text",
@@ -989,10 +1052,14 @@
 					"allow_null": false
 				},
 				{
+					"name":       "last_use_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
 					"name":       "created_date",
 					"type":       "datetime",
-					"validation": "api_read_only",
-					"allow_null": false
+					"validation": "api_read_only"
 				},
 				{
 					"name":       "last_modified_date",
