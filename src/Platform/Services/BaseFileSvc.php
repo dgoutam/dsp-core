@@ -711,6 +711,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					// create one or more containers
 					$content = RestRequest::getPostDataAsArray();
 					$result = $this->createContainers( $content );
+					$result = array( 'container' => $result );
 				}
 				else if ( empty( $this->_folderPath ) || empty( $this->_filePath ) )
 				{
@@ -855,6 +856,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					// delete multiple containers
 					$containers = Option::get( $content, 'container' );
 					$result = $this->deleteContainers( $containers, $force );
+					$result = array( 'container' => $result );
 				}
 				else if ( empty( $this->_folderPath ) )
 				{
@@ -1022,7 +1024,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$folders = Option::get( $data, 'folder' );
 		if ( empty( $folders ) )
 		{
-			$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+			$folders = Option::getDeep( $data, 'folders', 'folder' );
 		}
 		if ( !empty( $folders ) )
 		{
@@ -1083,7 +1085,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$files = Option::get( $data, 'file' );
 		if ( empty( $files ) )
 		{
-			$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
+			$files = Option::getDeep( $data, 'files', 'file' );
 		}
 		if ( !empty( $files ) )
 		{
@@ -1158,7 +1160,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$folders = Option::get( $data, 'folder' );
 		if ( empty( $folders ) )
 		{
-			$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+			$folders = Option::getDeep( $data, 'folders', 'folder' );
 		}
 		if ( !empty( $folders ) )
 		{
@@ -1172,7 +1174,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$files = Option::get( $data, 'file' );
 		if ( empty( $files ) )
 		{
-			$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
+			$files = Option::getDeep( $data, 'files', 'file' );
 		}
 		if ( !empty( $files ) )
 		{
