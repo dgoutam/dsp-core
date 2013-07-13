@@ -70,10 +70,10 @@ class WebController extends BaseWebController
 
 		$this->defaultAction = 'index';
 		$this->_activated = SystemManager::activated();
-		$_user = \Yii::app()->getUser();
-		if ( $this->_activated && Pii::guest() )
+
+		if ( true === $this->_activated && Pii::guest() )
 		{
-//			$this->redirect( '/web/login' );
+//			$this->redirect( '/web/activate' );
 		}
 	}
 
