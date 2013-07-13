@@ -71,7 +71,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $name
+	 * @param                $name
 	 *
 	 * @throws BadRequestException
 	 * @throws NotFoundException
@@ -102,7 +102,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $name
+	 * @param                $name
 	 *
 	 * @return bool
 	 * @throws BadRequestException
@@ -132,8 +132,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $include
-	 * @param string        $exclude
+	 * @param string         $include
+	 * @param string         $exclude
 	 *
 	 * @return array
 	 * @throws \Exception
@@ -178,8 +178,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $include_prefix
-	 * @param string        $exclude_prefix
+	 * @param string         $include_prefix
+	 * @param string         $exclude_prefix
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -251,8 +251,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param null          $names
-	 * @param string        $remove_prefix
+	 * @param null           $names
+	 * @param string         $remove_prefix
 	 *
 	 * @throws \Exception
 	 * @return array|string
@@ -277,8 +277,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $name
-	 * @param string        $remove_prefix
+	 * @param string         $name
+	 * @param string         $remove_prefix
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -326,7 +326,6 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				'field'       => static::describeTableFields( $db, $name, $labels ),
 				'related'     => static::describeTableRelated( $db, $name )
 			);
-
 		}
 		catch ( \Exception $ex )
 		{
@@ -336,8 +335,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $name
-	 * @param array         $labels
+	 * @param                $name
+	 * @param array          $labels
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -376,8 +375,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $field_names
+	 * @param string         $table_name
+	 * @param array          $field_names
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -421,8 +420,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $table_name
-	 * @param               $field_name
+	 * @param                $table_name
+	 * @param                $field_name
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -466,8 +465,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbColumnSchema $column
-	 * @param array           $foreign_keys
-	 * @param array           $label_info
+	 * @param array            $foreign_keys
+	 * @param array            $label_info
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -523,7 +522,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param               $parent_table
+	 * @param                $parent_table
 	 *
 	 * @return array
 	 * @throws \Exception
@@ -786,13 +785,13 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 		try
 		{
-			$sql = Option::get( $field,  'sql' );
+			$sql = Option::get( $field, 'sql' );
 			if ( !empty( $sql ) )
 			{
 				// raw sql definition, just pass it on
 				return $sql;
 			}
-			$type = Option::get( $field,  'type' );
+			$type = Option::get( $field, 'type' );
 			if ( empty( $type ) )
 			{
 				throw new BadRequestException( "Invalid schema detected - no type element." );
@@ -922,7 +921,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 					$definition = ( ( SqlDbUtilities::DRV_SQLSRV == $driver_type ) ) ? 'float' : $type;
 					if ( !isset( $length ) )
 					{
-						$length = Option::get( $field,  'precision' ); // alias
+						$length = Option::get( $field, 'precision' ); // alias
 					}
 					if ( isset( $length ) )
 					{
@@ -933,10 +932,10 @@ class SqlDbUtilities implements SqlDbDriverTypes
 						{
 							throw new BadRequestException( "Decimal precision '$length' is out of valid range." );
 						}
-						$scale = Option::get( $field,  'scale' );
+						$scale = Option::get( $field, 'scale' );
 						if ( empty( $scale ) )
 						{
-							$scale = Option::get( $field,  'decimals' ); // alias
+							$scale = Option::get( $field, 'decimals' ); // alias
 						}
 						if ( !empty( $scale ) && !( SqlDbUtilities::DRV_SQLSRV == $driver_type ) )
 						{
@@ -970,7 +969,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				case 'varchar':
 				case 'nchar':
 				case 'nvarchar':
-					$fixed = Option::getBool( $field,  'fixed_length', false );
+					$fixed = Option::getBool( $field, 'fixed_length', false );
 					$national = Option::getBool( $field, 'supports_multibyte', false );
 					if ( 0 == strcasecmp( 'string', $type ) )
 					{
@@ -1108,9 +1107,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	}
 
 	/**
-	 * @param string              $table_name
-	 * @param array               $fields
-	 * @param bool                $allow_update
+	 * @param string               $table_name
+	 * @param array                $fields
+	 * @param bool                 $allow_update
 	 * @param null|\CDbTableSchema $schema
 	 *
 	 * @throws \Exception
@@ -1384,7 +1383,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param array         $extras
+	 * @param array          $extras
 	 *
 	 * @return array
 	 */
@@ -1454,7 +1453,6 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				}
 				$unique = Option::getBool( $index, 'unique', false );
 				$rows = $command->createIndex( $name, $table, $index['column'], $unique );
-
 			}
 		}
 		$labels = Option::get( $extras, 'labels', array() );
@@ -1463,9 +1461,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $fields
-	 * @param bool          $allow_update
+	 * @param string         $table_name
+	 * @param array          $fields
+	 * @param bool           $allow_update
 	 *
 	 * @return array
 	 * @throws \Exception
@@ -1505,6 +1503,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 			static::createFieldExtras( $db, $results );
 
 			// refresh the schema that we just added
+			\Yii::app()->getCache()->flush();
 			$db->schema->refresh();
 
 			return $names;
@@ -1518,9 +1517,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $data
-	 * @param bool          $return_labels_refs
+	 * @param string         $table_name
+	 * @param array          $data
+	 * @param bool           $return_labels_refs
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -1599,9 +1598,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param array         $data
-	 * @param bool          $return_labels_refs
+	 * @param string         $table_name
+	 * @param array          $data
+	 * @param bool           $return_labels_refs
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -1690,9 +1689,9 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param array         $tables
-	 * @param bool          $allow_merge
-	 * @param bool          $rollback
+	 * @param array          $tables
+	 * @param bool           $allow_merge
+	 * @param bool           $rollback
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -1700,6 +1699,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	public static function createTables( $db, $tables, $allow_merge = false, $rollback = false )
 	{
 		// refresh the schema so we have the latest
+		\Yii::app()->getCache()->flush();
 		$db->schema->refresh();
 		$references = array();
 		$indexes = array();
@@ -1762,7 +1762,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				$count++;
 			}
 
-			// refresh the schema that we just added
+			//	Flush the cache and refresh the schema that we just added
+			\Yii::app()->getCache()->flush();
 			$db->schema->refresh();
 			$results = array( 'references' => $references, 'indexes' => $indexes, 'labels' => $labels );
 			static::createFieldExtras( $db, $results );
@@ -1801,6 +1802,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 		}
 
 		// refresh the schema that we just added
+		\Yii::app()->getCache()->flush();
 		$db->schema->refresh();
 
 		return $out;
@@ -1808,7 +1810,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
+	 * @param string         $table_name
 	 *
 	 * @throws \Exception
 	 */
@@ -1831,6 +1833,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 			static::removeLabels( $where, array( ':tn' => $table_name ) );
 
 			// refresh the schema that we just added
+			\Yii::app()->getCache()->flush();
 			$db->schema->refresh();
 		}
 		catch ( \Exception $ex )
@@ -1842,8 +1845,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 
 	/**
 	 * @param \CDbConnection $db
-	 * @param string        $table_name
-	 * @param string        $field_name
+	 * @param string         $table_name
+	 * @param string         $field_name
 	 *
 	 * @throws \Exception
 	 */
@@ -1862,13 +1865,14 @@ class SqlDbUtilities implements SqlDbDriverTypes
 		{
 			$command = $db->createCommand();
 			$command->dropColumn( $table_name, $field_name );
-			/** @var \CDbConnection $_dbLocal Local connection*/
+			/** @var \CDbConnection $_dbLocal Local connection */
 			$_dbLocal = Pii::db();
 			$where = $_dbLocal->quoteColumnName( 'table' ) . ' = :tn';
 			$where .= ' and ' . $_dbLocal->quoteColumnName( 'field' ) . ' = :fn';
 			static::removeLabels( $where, array( ':tn' => $table_name, ':fn' => $field_name ) );
 
 			// refresh the schema that we just added
+			\Yii::app()->getCache()->flush();
 			$db->schema->refresh();
 		}
 		catch ( \Exception $ex )

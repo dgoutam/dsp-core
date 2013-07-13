@@ -946,7 +946,77 @@
 			]
 		},
 		{
-			"name":  "df_sys_service_auth",
+			"name":  "df_sys_account_provider",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name":          "service_id",
+					"type":          "integer",
+					"ref_table":     "df_sys_service",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
+				},
+				{
+					"name":       "provider_name",
+					"type":       "integer",
+					"allow_null": true
+				},
+				{
+					"name":       "auth_endpoint",
+					"type":       "varchar",
+					"length":     1024,
+					"allow_null": true
+				},
+				{
+					"name":       "service_endpoint",
+					"type":       "varchar",
+					"length":     1024,
+					"allow_null": true
+				},
+				{
+					"name":       "provider_options",
+					"type":       "mediumtext",
+					"allow_null": true
+				},
+				{
+					"name":       "master_auth_text",
+					"type":       "mediumtext",
+					"allow_null": false
+				},
+				{
+					"name":       "last_use_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_by_id",
+					"type":       "user_id_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_date",
+					"type":       "timestamp_on_update",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_by_id",
+					"type":       "user_id_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		},
+		{
+			"name":  "df_sys_service_account",
 			"field": [
 				{
 					"name": "id",
@@ -962,13 +1032,19 @@
 					"allow_null":    false
 				},
 				{
-					"name":          "service_id",
+					"name":          "provider_id",
 					"type":          "integer",
-					"ref_table":     "df_sys_service",
+					"ref_table":     "df_sys_account_provider",
 					"ref_fields":    "id",
 					"ref_on_update": "CASCADE",
 					"ref_on_delete": "CASCADE",
 					"allow_null":    false
+				},
+				{
+					"name":       "account_type",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
 				},
 				{
 					"name":       "auth_text",

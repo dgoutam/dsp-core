@@ -1,77 +1,67 @@
 <?php
 /**
- * This file is part of the DreamFactory Services Platform(tm) (DSP)
+ * TimestampBehavior.php
  *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ * @copyright Copyright (c) 2012 DreamFactory Software, Inc.
+ * @link      http://www.dreamfactory.com DreamFactory Software, Inc.
+ * @author    Jerry Ablan <jerryablan@dreamfactory.com>
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * @filesource
  */
 namespace Platform\Yii\Behaviors;
 
 use Kisma\Core\Utility\Option;
 
 /**
- * TimestampBehavior.php
+ * TimestampBehavior
  * Allows you to define time stamp fields in models and have them automatically updated.
- *
- * Defines two "built-in" behaviors: DataFormat and TimeStamp
- *  - DataFormat automatically formats date/time values for the target database platform (MySQL, Oracle, etc.)
- *  - TimeStamp automatically updates create_date and lmod_date columns in tables upon save.
- *
- * @property string $createdColumn    The name of the column that holds your create date
- * @property string $createdByColumn  The name of the column that holds your creating user
- * @property string $lmodColumn       The name of the column that holds your last modified date
- * @property string $lmodByColumn     The name of the column that holds your last modifying user
- * @property string $dateTimeFunction The name of the function to use to set dates. Defaults to date('Y-m-d H:i:s').
  */
 class TimestampBehavior extends BaseDspModelBehavior
 {
+	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string The default date/time format
+	 */
+	const DEFAULT_DATE_TIME_FORMAT = 'Y-m-d H:i:s';
+
 	//********************************************************************************
 	//* Members
 	//********************************************************************************
 
 	/**
-	 * @var string The optional name of the create date column
+	 * @var string|array The optional name of the create date column
 	 */
 	protected $_createdColumn = null;
 	/**
-	 * @var string The optional name of the created by user id column
+	 * @var string|array The optional name of the created by user id column
 	 */
 	protected $_createdByColumn = null;
 	/**
-	 * @var string The optional name of the last modified date column
+	 * @var string|array The optional name of the last modified date column
 	 */
 	protected $_lastModifiedColumn = null;
 	/**
-	 * @var string The optional name of the last modified by user id column
+	 * @var string|array The optional name of the last modified by user id column
 	 */
 	protected $_lastModifiedByColumn = null;
 	/**
 	 * @var string The date/time format to use if not using $dateTimeFunction
 	 */
-	protected $_dateTimeFormat = 'Y-m-d H:i:s';
+	protected $_dateTimeFormat = self::DEFAULT_DATE_TIME_FORMAT;
 	/**
-	 * @var string The date/time with which function to stamp records
+	 * @var callback The date/time with which function to stamp records
 	 */
 	protected $_dateTimeFunction = null;
 	/**
-	 * @var int
+	 * @var int|callable
 	 */
 	protected $_currentUserId = null;
 
 	//********************************************************************************
-	//*  Handlers
+	//*  Methods
 	//********************************************************************************
 
 	/**
@@ -81,68 +71,66 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 */
 	public function beforeValidate( $event )
 	{
-		$_id = null;
 		$_model = $event->sender;
-
-		try
-		{
-			if ( !empty( $this->_currentUserId ) )
-			{
-				/** @noinspection PhpParamsInspection */
-				if ( is_callable( $this->_currentUserId ) )
-				{
-					$_id = call_user_func( $this->_currentUserId );
-				}
-				else
-				{
-					$_id = $this->_currentUserId;
-				}
-			}
-		}
-		catch ( \Exception $_ex )
-		{
-		}
-
-		//	Handle created stamp
-		if ( $_model->isNewRecord )
-		{
-			if ( $this->_createdColumn && $_model->hasAttribute( $this->_createdColumn ) )
-			{
-				$this->owner->setAttribute(
-					$this->_createdColumn,
-					( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' )
-				);
-			}
-
-			if ( $_id && $this->_createdByColumn && $_model->hasAttribute( $this->_createdByColumn ) && !$_model->getAttribute( $this->_createdByColumn ) )
-			{
-				$this->owner->setAttribute( $this->_createdByColumn, $_id );
-			}
-		}
+		$_timestamp = $this->_timestamp();
+		$_userId = $this->getCurrentUserId();
 
 		//	Handle lmod stamp
-		if ( $this->_lastModifiedColumn && $_model->hasAttribute( $this->_lastModifiedColumn ) )
-		{
-			$this->owner->setAttribute(
-				$this->_lastModifiedColumn,
-				( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' )
-			);
-		}
+		$this->_stampRow(
+			$this->_lastModifiedColumn,
+			$_timestamp,
+			$_model
+		);
 
-		//	Handle user id stamp
-		if ( $_id && $this->_lastModifiedByColumn && $_model->hasAttribute( $this->_lastModifiedByColumn ) &&
-			!$_model->getAttribute( $this->_lastModifiedByColumn )
-		)
+		$this->_stampRow(
+			$this->_lastModifiedByColumn,
+			$_userId,
+			$_model
+		);
+
+		//	Handle created stamp
+		if ( $event->sender->isNewRecord )
 		{
-			$this->owner->setAttribute( $this->_lastModifiedByColumn, $_id );
+			$this->_stampRow(
+				$this->_createdColumn,
+				$_timestamp,
+				$_model
+			);
+
+			$this->_stampRow(
+				$this->_createdByColumn,
+				$_userId,
+				$_model
+			);
 		}
 
 		parent::beforeValidate( $event );
 	}
 
-	//********************************************************************************
-	//* Public Methods
-	//********************************************************************************
+	/**
+	 * @param int|callable $currentUserId
+	 *
+	 * @return $this
+	 */
+	public function setCurrentUserId( $currentUserId )
+	{
+		$this->_currentUserId = $currentUserId;
+
+		return $this;
+	}
+
+	/**
+	 * @return int|callable
+	 */
+	public function getCurrentUserId()
+	{
+		if ( !empty( $this->_currentUserId ) )
+		{
+			return is_callable( $this->_currentUserId ) ? call_user_func( $this->_currentUserId, $this ) : $this->_currentUserId;
+		}
+
+		return null;
+	}
 
 	/**
 	 * Sets lmod date(s) and saves
@@ -151,39 +139,25 @@ class TimestampBehavior extends BaseDspModelBehavior
 	 * Only the columns that have been touched are updated. If no columns are updated, no database action is performed.
 	 *
 	 * @param mixed $additionalColumns The single column name or array of columns to touch in addition to configured lmod column
+	 * @param bool  $update            If true, the row will be updated
 	 *
 	 * @return boolean
 	 */
-	public function touch( $additionalColumns = null )
+	public function touch( $additionalColumns = null, $update = false )
 	{
-		$_updateList = array();
-		$_touchValue = ( null === $this->_dateTimeFunction ) ? date( $this->_dateTimeFormat ) : eval( 'return ' . $this->_dateTimeFunction . ';' );
+		/** @var \BaseDspModel $_model */
+		$_model = $this->getOwner();
 
 		//	Any other columns to touch?
-		if ( null !== $additionalColumns )
-		{
-			foreach ( Option::clean( $additionalColumns ) as $_attribute )
-			{
-				if ( $this->owner->hasAttribute( $_attribute ) )
-				{
-					$this->owner->setAttribute( $_attribute, $_touchValue );
-					$_updateList[] = $_attribute;
-				}
-			}
-		}
+		$_updated = $this->_stampRow( array_merge( Option::clean( $additionalColumns ), array( $this->_lastModifiedColumn ) ), $this->_timestamp(), $_model );
 
-		if ( $this->_lastModifiedColumn && $this->owner->hasAttribute( $this->_lastModifiedColumn ) )
-		{
-			$this->owner->setAttribute( $this->_lastModifiedColumn, $_touchValue );
-			$_updateList[] = $this->_lastModifiedColumn;
-		}
-
-		//	Only update if and what we've touched...
-		return count( $_updateList ) ? $this->owner->update( $_updateList ) : true;
+		//	Only update if and what we've touched or wanted...
+		return
+			false !== $update || !empty( $_updated ) ? $_model->update( $_updated ) : true;
 	}
 
 	/**
-	 * @param string $createdByColumn
+	 * @param string|array $createdByColumn
 	 *
 	 * @return TimestampBehavior
 	 */
@@ -195,7 +169,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @return string
+	 * @return string|array
 	 */
 	public function getCreatedByColumn()
 	{
@@ -203,7 +177,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @param string $createdColumn
+	 * @param string|array $createdColumn
 	 *
 	 * @return TimestampBehavior
 	 */
@@ -215,7 +189,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @return string
+	 * @return string|array
 	 */
 	public function getCreatedColumn()
 	{
@@ -223,19 +197,25 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @param string $dateTimeFunction
+	 * @param callback $dateTimeFunction
 	 *
+	 * @throws \InvalidArgumentException
 	 * @return TimestampBehavior
 	 */
 	public function setDateTimeFunction( $dateTimeFunction )
 	{
+		if ( !is_callable( $dateTimeFunction ) )
+		{
+			throw new \InvalidArgumentException( 'The "dateTimeFunction" you specified is not "callable".' );
+		}
+
 		$this->_dateTimeFunction = $dateTimeFunction;
 
 		return $this;
 	}
 
 	/**
-	 * @return string
+	 * @return callback
 	 */
 	public function getDateTimeFunction()
 	{
@@ -243,7 +223,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @param string $lastModifiedByColumn
+	 * @param string|array $lastModifiedByColumn
 	 *
 	 * @return TimestampBehavior
 	 */
@@ -255,7 +235,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @return string
+	 * @return string|array
 	 */
 	public function getLastModifiedByColumn()
 	{
@@ -263,7 +243,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @param string $lastModifiedColumn
+	 * @param string|array $lastModifiedColumn
 	 *
 	 * @return TimestampBehavior
 	 */
@@ -275,7 +255,7 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @return string
+	 * @return string|array
 	 */
 	public function getLastModifiedColumn()
 	{
@@ -303,22 +283,42 @@ class TimestampBehavior extends BaseDspModelBehavior
 	}
 
 	/**
-	 * @param int $currentUserId
+	 * Stamps a column(s) with a value
 	 *
-	 * @return $this
+	 * @param string|array   $columns The name, or an array, of possible column names
+	 * @param mixed          $value   The value to stamp
+	 * @param \CActiveRecord $model   The target model
+	 *
+	 * @return array
 	 */
-	public function setCurrentUserId( $currentUserId )
+	protected function _stampRow( $columns, $value, $model )
 	{
-		$this->_currentUserId = $currentUserId;
+		$_updated = array();
 
-		return $this;
+		if ( !empty( $columns ) )
+		{
+			foreach ( Option::clean( $columns ) as $_column )
+			{
+				if ( $model->setAttribute( $_column, $value ) )
+				{
+					$_updated[] = $_column;
+				}
+			}
+		}
+
+		return $_updated;
 	}
 
 	/**
-	 * @return int|null
+	 * @return bool|string
 	 */
-	public function getCurrentUserId()
+	protected function _timestamp()
 	{
-		return $this->_currentUserId;
+		if ( is_callable( $this->_dateTimeFunction ) )
+		{
+			return call_user_func( $this->_dateTimeFunction, $this->_dateTimeFormat );
+		}
+
+		return date( $this->_dateTimeFormat ? : static::DEFAULT_DATE_TIME_FORMAT );
 	}
 }

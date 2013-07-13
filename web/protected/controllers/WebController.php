@@ -70,11 +70,6 @@ class WebController extends BaseWebController
 
 		$this->defaultAction = 'index';
 		$this->_activated = SystemManager::activated();
-
-		if ( true === $this->_activated && Pii::guest() )
-		{
-//			$this->redirect( '/web/activate' );
-		}
 	}
 
 	/**
@@ -145,7 +140,7 @@ class WebController extends BaseWebController
 
 		if ( !$this->_activated && 0 != FilterInput::post( 'skipped', 0, FILTER_SANITIZE_NUMBER_INT ) )
 		{
-			$_model->setDrupalAuth( false );
+//			$_model->setDrupalAuth( false );
 		}
 
 		if ( isset( $_POST, $_POST['LoginForm'] ) )

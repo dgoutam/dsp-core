@@ -359,6 +359,7 @@ class SystemManager extends RestService
 			}
 
 			//	Refresh the schema that we just added
+			\Yii::app()->getCache()->flush();
 			$_db->getSchema()->refresh();
 		}
 		catch ( \Exception $ex )
@@ -1018,7 +1019,7 @@ class SystemManager extends RestService
 		{
 			$_admins = Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), Pii::pdo() );
 
-			return ( 0 != $_admins ? ($_admins>1 ? $_admins : true) : false );
+			return ( 0 != $_admins ? ( $_admins > 1 ? $_admins : true ) : false );
 		}
 		catch ( \Exception $_ex )
 		{
@@ -1051,7 +1052,6 @@ class SystemManager extends RestService
 				if ( $_identity->logInUser( $_user ) )
 				{
 					return Pii::user()->login( $_identity, 0 );
-
 				}
 			}
 

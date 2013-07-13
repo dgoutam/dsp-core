@@ -49,6 +49,7 @@ use Platform\Yii\Utility\Pii;
  * @property RoleServiceAccess[] $role_service_accesses
  * @property App[]               $apps
  * @property Role[]              $roles
+ * @property AccountProviders[]  $providers
  */
 class Service extends BaseDspSystemModel
 {
@@ -179,6 +180,7 @@ class Service extends BaseDspSystemModel
 			'role_service_accesses' => array( self::HAS_MANY, 'RoleServiceAccess', 'service_id' ),
 			'apps'                  => array( self::MANY_MANY, 'App', 'df_sys_app_to_service(app_id, service_id)' ),
 			'roles'                 => array( self::MANY_MANY, 'Role', 'df_sys_role_service_access(service_id, role_id)' ),
+			'providers'             => array( static::HAS_MANY, '\\AccountProviders', 'service_id' ),
 		);
 
 		return array_merge( parent::relations(), $_relations );
@@ -436,5 +438,4 @@ class Service extends BaseDspSystemModel
 			$hidden
 		);
 	}
-
 }
