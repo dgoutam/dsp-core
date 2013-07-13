@@ -17,12 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Option;
 use Platform\Exceptions\BadRequestException;
 use Platform\Services\SystemManager;
 use Platform\Services\BaseFileSvc;
+use Platform\Utility\DataFormat;
 use Platform\Utility\ServiceHandler;
-use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -220,11 +222,11 @@ class App extends BaseDspSystemModel
 	 */
 	protected function beforeValidate()
 	{
-		$this->is_active = intval( Utilities::boolval( $this->is_active ) );
-		$this->is_url_external = intval( Utilities::boolval( $this->is_url_external ) );
-		$this->requires_fullscreen = intval( Utilities::boolval( $this->requires_fullscreen ) );
-		$this->allow_fullscreen_toggle = intval( Utilities::boolval( $this->allow_fullscreen_toggle ) );
-		$this->requires_plugin = intval( Utilities::boolval( $this->requires_plugin ) );
+		$this->is_active = intval( DataFormat::boolval( $this->is_active ) );
+		$this->is_url_external = intval( DataFormat::boolval( $this->is_url_external ) );
+		$this->requires_fullscreen = intval( DataFormat::boolval( $this->requires_fullscreen ) );
+		$this->allow_fullscreen_toggle = intval( DataFormat::boolval( $this->allow_fullscreen_toggle ) );
+		$this->requires_plugin = intval( DataFormat::boolval( $this->requires_plugin ) );
 
 		return parent::beforeValidate();
 	}
@@ -417,11 +419,11 @@ class App extends BaseDspSystemModel
 			for ( $key1 = 0; $key1 < $count; $key1++ )
 			{
 				$access = $relations[$key1];
-				$serviceId = Utilities::getArrayValue( 'service_id', $access, null );
+				$serviceId = Option::get( $access, 'service_id' );
 				for ( $key2 = $key1 + 1; $key2 < $count; $key2++ )
 				{
 					$access2 = $relations[$key2];
-					$serviceId2 = Utilities::getArrayValue( 'service_id', $access2, null );
+					$serviceId2 = Option::get( $access2, 'service_id' );
 					if ( $serviceId == $serviceId2 )
 					{
 						throw new BadRequestException( "Duplicated service in app service relation." );
@@ -441,18 +443,18 @@ class App extends BaseDspSystemModel
 			$toUpdate = array();
 			foreach ( $maps as $map )
 			{
-				$manyId = Utilities::getArrayValue( 'service_id', $map, null );
-				$id = Utilities::getArrayValue( $pkMapField, $map, '' );
+				$manyId = Option::get( $map, 'service_id' );
+				$id = Option::get( $pkMapField, $map, '' );
 				$found = false;
 				foreach ( $relations as $key => $item )
 				{
-					$assignId = Utilities::getArrayValue( 'service_id', $item, null );
+					$assignId = Option::get( $item, 'service_id' );
 					if ( $assignId == $manyId )
 					{
 						// found it, keeping it, so remove it from the list, as this becomes adds
 						// update if need be
-						$oldComponent = Utilities::getArrayValue( 'component', $map, null );
-						$newComponent = Utilities::getArrayValue( 'component', $item, null );
+						$oldComponent = Option::get( $map, 'component' );
+						$newComponent = Option::get( $item, 'component' );
 						if ( !empty( $newComponent ) )
 						{
 							$newComponent = json_encode( $newComponent );
@@ -489,8 +491,7 @@ class App extends BaseDspSystemModel
 			{
 				foreach ( $toUpdate as $item )
 				{
-					$itemId = Utilities::getArrayValue( 'id', $item, '' );
-					unset( $item['id'] );
+					$itemId = Option::get( $item, 'id', '', true );
 					// simple update request
 					$command->reset();
 					$rows = $command->update( $map_table, $item, 'id = :id', array( ':id' => $itemId ) );
@@ -505,7 +506,7 @@ class App extends BaseDspSystemModel
 				foreach ( $relations as $item )
 				{
 					// simple insert request
-					$newComponent = Utilities::getArrayValue( 'component', $item, null );
+					$newComponent = Option::get( $item, 'component' );
 					if ( !empty( $newComponent ) )
 					{
 						$newComponent = json_encode( $newComponent );
@@ -516,7 +517,7 @@ class App extends BaseDspSystemModel
 					}
 					$record = array(
 						'app_id'     => $app_id,
-						'service_id' => Utilities::getArrayValue( 'service_id', $item, null ),
+						'service_id' => Option::get( $item, 'service_id' ),
 						'component'  => $newComponent
 					);
 					$command->reset();

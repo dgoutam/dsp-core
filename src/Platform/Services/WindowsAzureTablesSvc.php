@@ -173,9 +173,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 	}
 
-	protected function gatherExtrasFromRequest()
+	protected function _gatherExtrasFromRequest()
 	{
-		$_extras = parent::gatherExtrasFromRequest();
+		$_extras = parent::_gatherExtrasFromRequest();
 
 		return $_extras;
 	}

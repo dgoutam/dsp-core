@@ -60,7 +60,7 @@ abstract class BaseDbSvc extends RestService
 						$this->validateTableAccess( $this->_resource, 'read' );
 						// Most requests contain 'returned fields' parameter, all by default
 						$fields = FilterInput::request( 'fields', '*' );
-						$extras = $this->gatherExtrasFromRequest();
+						$extras = $this->_gatherExtrasFromRequest();
 						$id_field = FilterInput::request( 'id_field' );
 						if ( empty( $this->_resourceId ) )
 						{
@@ -87,7 +87,7 @@ abstract class BaseDbSvc extends RestService
 									}
 									else
 									{
-										$records = Option::get( $data, 'record', null );
+										$records = Option::get( $data, 'record' );
 										if ( empty( $records ) )
 										{
 											// xml to array conversion leaves them in plural wrapper
@@ -144,7 +144,7 @@ abstract class BaseDbSvc extends RestService
 						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
 						$fields = FilterInput::request( 'fields', '' );
-						$extras = $this->gatherExtrasFromRequest();
+						$extras = $this->_gatherExtrasFromRequest();
 						$records = Option::get( $data, 'record', null );
 						if ( empty( $records ) )
 						{
@@ -171,7 +171,7 @@ abstract class BaseDbSvc extends RestService
 						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
 						$fields = FilterInput::request( 'fields', '' );
-						$extras = $this->gatherExtrasFromRequest();
+						$extras = $this->_gatherExtrasFromRequest();
 						$id_field = FilterInput::request( 'id_field', '' );
 						if ( empty( $id_field ) )
 						{
@@ -193,18 +193,18 @@ abstract class BaseDbSvc extends RestService
 							else
 							{
 								$filter = FilterInput::request( 'filter' );
-								if ( !isset( $filter ) )
+								if ( empty( $filter ) )
 								{
-									$filter = Option::get( $data, 'filter', null );
+									$filter = Option::get( $data, 'filter' );
 								}
-								if ( isset( $filter ) )
+								if ( !empty( $filter ) )
 								{
 									$result = $this->updateRecordsByFilter( $this->_resource, $filter, $data, $fields, $extras );
 									$result = array( 'record' => $result );
 								}
 								else
 								{
-									$records = Option::get( $data, 'record', null );
+									$records = Option::get( $data, 'record' );
 									if ( empty( $records ) )
 									{
 										// xml to array conversion leaves them in plural wrapper
@@ -237,7 +237,7 @@ abstract class BaseDbSvc extends RestService
 						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
 						$fields = FilterInput::request( 'fields', '' );
-						$extras = $this->gatherExtrasFromRequest();
+						$extras = $this->_gatherExtrasFromRequest();
 						$id_field = FilterInput::request( 'id_field', '' );
 						if ( empty( $id_field ) )
 						{
@@ -259,11 +259,11 @@ abstract class BaseDbSvc extends RestService
 							else
 							{
 								$filter = FilterInput::request( 'filter' );
-								if ( !isset( $filter ) )
+								if ( empty( $filter ) )
 								{
 									$filter = Option::get( $data, 'filter', null );
 								}
-								if ( isset( $filter ) )
+								if ( !empty( $filter ) )
 								{
 									$result = $this->mergeRecordsByFilter( $this->_resource, $filter, $data, $fields, $extras );
 									$result = array( 'record' => $result );
@@ -302,7 +302,7 @@ abstract class BaseDbSvc extends RestService
 						$data = RestRequest::getPostDataAsArray();
 						// Most requests contain 'returned fields' parameter
 						$fields = FilterInput::request( 'fields', '' );
-						$extras = $this->gatherExtrasFromRequest();
+						$extras = $this->_gatherExtrasFromRequest();
 						$id_field = FilterInput::request( 'id_field', '' );
 						if ( empty( $id_field ) )
 						{
@@ -324,11 +324,11 @@ abstract class BaseDbSvc extends RestService
 							else
 							{
 								$filter = FilterInput::request( 'filter' );
-								if ( !isset( $filter ) )
+								if ( empty( $filter ) )
 								{
 									$filter = Option::get( $data, 'filter' );
 								}
-								if ( isset( $filter ) )
+								if ( !empty( $filter ) )
 								{
 									$result = $this->deleteRecordsByFilter( $this->_resource, $filter, $fields, $extras );
 									$result = array( 'record' => $result );
@@ -377,7 +377,7 @@ abstract class BaseDbSvc extends RestService
 		{
 			case self::Get:
 				$this->checkPermission( 'read' );
-				$_properties = FilterInput::request('include_properties', false, FILTER_VALIDATE_BOOLEAN );
+				$_properties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
 				$ids = FilterInput::request( 'ids' );
 				if ( empty( $ids ) )
 				{
@@ -499,10 +499,12 @@ abstract class BaseDbSvc extends RestService
 		$this->_resourceId = ( isset( $this->_resourceArray[1] ) ) ? $this->_resourceArray[1] : '';
 	}
 
-	protected function gatherExtrasFromRequest()
+	protected function _gatherExtrasFromRequest()
 	{
 		$_extras = array();
 
+		// means to override the default identifier field for a table
+		$_extras['id_field'] = FilterInput::request( 'id_field' );
 		// most DBs support the following filter extras
 		// accept top as well as limit
 		$_extras['limit'] = FilterInput::request( 'limit', FilterInput::request( 'top', 0 ), FILTER_VALIDATE_INT );
@@ -555,6 +557,7 @@ abstract class BaseDbSvc extends RestService
 
 	/**
 	 * Create one or more tables by array of table properties
+	 *
 	 * @param array $tables
 	 *
 	 * @throws \Exception
@@ -835,7 +838,7 @@ abstract class BaseDbSvc extends RestService
 	 * @throws \Exception
 	 * @return array
 	 */
-	abstract public function retrieveRecordsByFilter( $table, $filter, $fields = '', $extras = array()	);
+	abstract public function retrieveRecordsByFilter( $table, $filter, $fields = '', $extras = array() );
 
 	/**
 	 * @param        $table

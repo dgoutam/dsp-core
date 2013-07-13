@@ -53,17 +53,17 @@ abstract class RemoteFileSvc extends BaseFileSvc
 
 	public function createContainers( $containers = array(), $check_exist = false )
 	{
-		$result = array();
-		foreach ( $containers as $key => $folder )
+		$_out = array();
+		foreach ( $containers as $_key => $_folder )
 		{
 			try
 			{
 				// path is full path, name is relative to root, take either
-				$_name = $folder['name'];
+				$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
 				if ( !empty( $_name ) )
 				{
+					$_out[$_key] = array( 'name' => $_name, 'path' => $_name );
 					$this->createContainer( $_name, $check_exist );
-					$result[$key]['name'] = $_name;
 				}
 				else
 				{
@@ -73,11 +73,11 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			catch ( \Exception $ex )
 			{
 				// error whole batch here?
-				$result[$key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				$_out[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
 			}
 		}
 
-		return array( 'containers' => $result );
+		return $_out;
 	}
 
 	/**
@@ -91,15 +91,15 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function deleteContainers( $containers, $force = false )
 	{
-		foreach ( $containers as $key => $folder )
+		foreach ( $containers as $_key => $_folder )
 		{
 			try
 			{
 				// path is full path, name is relative to root, take either
-				$path = $folder['name'];
-				if ( !empty( $path ) )
+				$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
+				if ( !empty( $_name ) )
 				{
-					$this->deleteContainer( $path, $force );
+					$this->deleteContainer( $_name, $force );
 				}
 				else
 				{
@@ -109,9 +109,11 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			catch ( \Exception $ex )
 			{
 				// error whole batch here?
-				$folders[$key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
 			}
 		}
+
+		return $containers;
 	}
 
 	/**
@@ -148,22 +150,29 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
-		$path = FileUtilities::fixFolderPath( $path );
-		$shortName = FileUtilities::getNameFromPath( $path );
-		$out = array( 'container' => $container, 'name' => $shortName, 'path' => $path );
-		if ( $include_properties )
+		if ( !empty( $path ) )
 		{
-			// properties
-			if ( $this->blobExists( $container, $path ) )
+			$path = FileUtilities::fixFolderPath( $path );
+			$_shortName = FileUtilities::getNameFromPath( $path );
+			$_out = array( 'container' => $container, 'name' => $_shortName, 'path' => $container .'/'. $path );
+			if ( $include_properties )
 			{
-				$properties = $this->getBlobProperties( $container, $path );
-
-				$out = array_merge( $properties, $out );
+				// properties
+				if ( $this->containerExists( $container ) && $this->blobExists( $container, $path ) )
+				{
+					$properties = $this->getBlobProperties( $container, $path );
+					$_out = array_merge( $properties, $_out );
+				}
 			}
 		}
-		$delimiter = ( $full_tree ) ? '' : '/';
-		$files = array();
-		$folders = array();
+		else
+		{
+			$_out = array( 'container' => $container, 'name' => $container, 'path' => $container );
+		}
+
+		$_delimiter = ( $full_tree ) ? '' : '/';
+		$_files = array();
+		$_folders = array();
 		if ( $this->containerExists( $container ) )
 		{
 			if ( !empty( $path ) )
@@ -173,18 +182,18 @@ abstract class RemoteFileSvc extends BaseFileSvc
 					throw new NotFoundException( "Folder '$path' does not exist in storage." );
 				}
 			}
-			$results = $this->listBlobs( $container, $path, $delimiter );
-			foreach ( $results as $blob )
+			$_results = $this->listBlobs( $container, $path, $_delimiter );
+			foreach ( $_results as $_data )
 			{
-				$fullPathName = $blob['name'];
-				if ( '/' == substr( $fullPathName, strlen( $fullPathName ) - 1 ) )
+				$_fullPathName = Option::get( $_data, 'name' );
+				$_data['path'] = $container .'/'. $_fullPathName;
+				$_data['name'] = rtrim( substr( $_fullPathName, strlen( $path ) ), '/' );
+				if ( '/' == substr( $_fullPathName, -1 ) )
 				{
 					// folders
 					if ( $include_folders )
 					{
-						$blob['name'] = substr( $fullPathName, strlen( $path ), -1 );
-						$blob['path'] = $fullPathName;
-						$folders[] = $blob;
+						$_folders[] = $_data;
 					}
 				}
 				else
@@ -192,9 +201,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 					// files
 					if ( $include_files )
 					{
-						$blob['name'] = substr( $fullPathName, strlen( $path ) );
-						$blob['path'] = $fullPathName;
-						$files[] = $blob;
+						$_files[] = $_data;
 					}
 				}
 			}
@@ -208,10 +215,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			// container root doesn't really exist until first write creates it
 		}
 
-		$out['folder'] = $folders;
-		$out['file'] = $files;
+		$_out['folder'] = $_folders;
+		$_out['file'] = $_files;
 
-		return $out;
+		return $_out;
 	}
 
 	/**
@@ -232,10 +239,9 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		{
 			throw new BadRequestException( "Invalid empty path." );
 		}
-		$parent = FileUtilities::getParentFolder( $path );
-		$path = FileUtilities::fixFolderPath( $path );
 
 		// does this folder already exist?
+		$path = FileUtilities::fixFolderPath( $path );
 		if ( $this->folderExists( $container, $path ) )
 		{
 			if ( $check_exist )
@@ -246,13 +252,14 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			return;
 		}
 		// does this folder's parent exist?
-		if ( !empty( $parent ) && ( !$this->folderExists( $container, $parent ) ) )
+		$_parent = FileUtilities::getParentFolder( $path );
+		if ( !empty( $_parent ) && ( !$this->folderExists( $container, $_parent ) ) )
 		{
 			if ( $check_exist )
 			{
-				throw new NotFoundException( "Folder '$parent' does not exist." );
+				throw new NotFoundException( "Folder '$_parent' does not exist." );
 			}
-			$this->createFolder( $parent, $is_public, $properties, false );
+			$this->createFolder( $container, $_parent, $is_public, $properties, false );
 		}
 
 		// create the folder
@@ -288,27 +295,27 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			}
 		}
 		// does this file's parent folder exist?
-		$parent = FileUtilities::getParentFolder( $dest_path );
-		if ( !empty( $parent ) && ( !$this->folderExists( $container, $parent ) ) )
+		$_parent = FileUtilities::getParentFolder( $dest_path );
+		if ( !empty( $_parent ) && ( !$this->folderExists( $container, $_parent ) ) )
 		{
-			throw new NotFoundException( "Folder '$parent' does not exist." );
+			throw new NotFoundException( "Folder '$_parent' does not exist." );
 		}
 		// create the folder
 		$this->checkContainerForWrite( $container ); // need to be able to write to storage
 		$this->copyBlob( $container, $dest_path, $src_container, $src_path );
 		// now copy content of folder...
-		$blobs = $this->listBlobs( $src_container, $src_path );
-		if ( !empty( $blobs ) )
+		$_blobs = $this->listBlobs( $src_container, $src_path );
+		if ( !empty( $_blobs ) )
 		{
-			foreach ( $blobs as $blob )
+			foreach ( $_blobs as $_blob )
 			{
-				$srcName = $blob['name'];
-				if ( ( 0 !== strcasecmp( $src_path, $srcName ) ) )
+				$_srcName = Option::get( $_blob, 'name' );
+				if ( ( 0 !== strcasecmp( $src_path, $_srcName ) ) )
 				{
 					// not self properties blob
-					$name = FileUtilities::getNameFromPath( $srcName );
-					$fullPathName = $dest_path . $name;
-					$this->copyBlob( $container, $fullPathName, $src_container, $srcName );
+					$_name = FileUtilities::getNameFromPath( $_srcName );
+					$_fullPathName = $dest_path . $_name;
+					$this->copyBlob( $container, $_fullPathName, $src_container, $_srcName );
 				}
 			}
 		}
@@ -347,10 +354,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function deleteFolder( $container, $path, $force = false )
 	{
-		$blobs = $this->listBlobs( $container, $path );
-		if ( !empty( $blobs ) )
+		$_blobs = $this->listBlobs( $container, $path );
+		if ( !empty( $_blobs ) )
 		{
-			if ( ( 1 === count( $blobs ) ) && ( 0 === strcasecmp( $path, $blobs[0]['name'] ) ) )
+			if ( ( 1 === count( $_blobs ) ) && ( 0 === strcasecmp( $path, $_blobs[0]['name'] ) ) )
 			{
 				// only self properties blob
 			}
@@ -360,9 +367,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				{
 					throw new \Exception( "Folder '$path' contains other files or folders." );
 				}
-				foreach ( $blobs as $blob )
+				foreach ( $_blobs as $_blob )
 				{
-					$this->deleteBlob( $container, $blob['name'] );
+					$_name = Option::get( $_blob, 'name' );
+					$this->deleteBlob( $container, $_name );
 				}
 			}
 		}
@@ -382,26 +390,28 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	public function deleteFolders( $container, $folders, $root = '', $force = false )
 	{
 		$root = FileUtilities::fixFolderPath( $root );
-		foreach ( $folders as $key => $folder )
+		foreach ( $folders as $_key => $_folder )
 		{
 			try
 			{
 				// path is full path, name is relative to root, take either
-				if ( isset( $folder['path'] ) )
+				$_path = Option::get( $_folder, 'path' );
+				$_name = Option::get( $_folder, 'name' );
+				if ( !empty( $_path ) )
 				{
-					$path = $folder['path'];
+					$_path = static::removeContainerFromPath( $container, $_path );
 				}
-				elseif ( isset( $folder['name'] ) )
+				elseif ( !empty( $_name ) )
 				{
-					$path = $root . $folder['name'];
+					$_path = $root . $_folder['name'];
 				}
 				else
 				{
 					throw new BadRequestException( 'No path or name found for folder in delete request.' );
 				}
-				if ( !empty( $path ) )
+				if ( !empty( $_path ) )
 				{
-					$this->deleteFolder( $path, $force );
+					$this->deleteFolder( $container, $_path, $force );
 				}
 				else
 				{
@@ -411,7 +421,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			catch ( \Exception $ex )
 			{
 				// error whole batch here?
-				$folders[$key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				$folders[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
 			}
 		}
 
@@ -450,7 +460,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function getFileContent( $container, $path, $local_file = '', $content_as_base = true )
 	{
-		if ( !$this->blobExists( $container, $path ) )
+		if ( !$this->containerExists( $container ) || !$this->blobExists( $container, $path ) )
 		{
 			throw new NotFoundException( "File '$path' does not exist in storage." );
 		}
@@ -464,13 +474,13 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		else
 		{
 			// get content as raw or encoded as base64 for transport
-			$data = $this->getBlobData( $container, $path );
+			$_data = $this->getBlobData( $container, $path );
 			if ( $content_as_base )
 			{
-				$data = base64_encode( $data );
+				$_data = base64_encode( $_data );
 			}
 
-			return $data;
+			return $_data;
 		}
 	}
 
@@ -486,14 +496,14 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function getFileProperties( $container, $path, $include_content = false, $content_as_base = true )
 	{
-		if ( !$this->blobExists( $container, $path ) )
+		if ( !$this->containerExists( $container ) || !$this->blobExists( $container, $path ) )
 		{
 			throw new NotFoundException( "File '$path' does not exist in storage." );
 		}
-		$blob = $this->getBlobProperties( $container, $path );
-		$shortName = FileUtilities::getNameFromPath( $path );
-		$blob['path'] = $path;
-		$blob['name'] = $shortName;
+		$_blob = $this->getBlobProperties( $container, $path );
+		$_shortName = FileUtilities::getNameFromPath( $path );
+		$_blob['path'] = $container .'/'. $path;
+		$_blob['name'] = $_shortName;
 		if ( $include_content )
 		{
 			$data = $this->getBlobData( $container, $path );
@@ -501,10 +511,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			{
 				$data = base64_encode( $data );
 			}
-			$blob['content'] = $data;
+			$_blob['content'] = $data;
 		}
 
-		return $blob;
+		return $_blob;
 	}
 
 	/**
@@ -517,8 +527,8 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function streamFile( $container, $path, $download = false )
 	{
-		$params = ( $download ) ? array( 'disposition' => 'attachment' ) : array();
-		$this->streamBlob( $container, $path, $params );
+		$_params = ( $download ) ? array( 'disposition' => 'attachment' ) : array();
+		$this->streamBlob( $container, $path, $_params );
 	}
 
 	/**
@@ -565,10 +575,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			}
 		}
 		// does this folder's parent exist?
-		$parent = FileUtilities::getParentFolder( $path );
-		if ( !empty( $parent ) && ( !$this->folderExists( $container, $parent ) ) )
+		$_parent = FileUtilities::getParentFolder( $path );
+		if ( !empty( $_parent ) && ( !$this->folderExists( $container, $_parent ) ) )
 		{
-			throw new NotFoundException( "Folder '$parent' does not exist." );
+			throw new NotFoundException( "Folder '$_parent' does not exist." );
 		}
 
 		// create the file
@@ -577,9 +587,9 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		{
 			$content = base64_decode( $content );
 		}
-		$ext = FileUtilities::getFileExtension( $path );
-		$mime = FileUtilities::determineContentType( $ext, $content );
-		$this->putBlobData( $container, $path, $content, $mime );
+		$_ext = FileUtilities::getFileExtension( $path );
+		$_mime = FileUtilities::determineContentType( $_ext, $content );
+		$this->putBlobData( $container, $path, $content, $_mime );
 	}
 
 	/**
@@ -609,17 +619,17 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			}
 		}
 		// does this file's parent folder exist?
-		$parent = FileUtilities::getParentFolder( $path );
-		if ( !empty( $parent ) && ( !$this->folderExists( $container, $parent ) ) )
+		$_parent = FileUtilities::getParentFolder( $path );
+		if ( !empty( $_parent ) && ( !$this->folderExists( $container, $_parent ) ) )
 		{
-			throw new NotFoundException( "Folder '$parent' does not exist." );
+			throw new NotFoundException( "Folder '$_parent' does not exist." );
 		}
 
 		// create the file
 		$this->checkContainerForWrite( $container ); // need to be able to write to storage
-		$ext = FileUtilities::getFileExtension( $path );
-		$mime = FileUtilities::determineContentType( $ext, '', $local_path );
-		$this->putBlobFromFile( $container, $path, $local_path, $mime );
+		$_ext = FileUtilities::getFileExtension( $path );
+		$_mime = FileUtilities::determineContentType( $_ext, '', $local_path );
+		$this->putBlobFromFile( $container, $path, $local_path, $_mime );
 	}
 
 	/**
@@ -649,10 +659,10 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			}
 		}
 		// does this file's parent folder exist?
-		$parent = FileUtilities::getParentFolder( $dest_path );
-		if ( !empty( $parent ) && ( !$this->folderExists( $container, $parent ) ) )
+		$_parent = FileUtilities::getParentFolder( $dest_path );
+		if ( !empty( $_parent ) && ( !$this->folderExists( $container, $_parent ) ) )
 		{
-			throw new NotFoundException( "Folder '$parent' does not exist." );
+			throw new NotFoundException( "Folder '$_parent' does not exist." );
 		}
 
 		// create the file
@@ -683,26 +693,28 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	public function deleteFiles( $container, $files, $root = '' )
 	{
 		$root = FileUtilities::fixFolderPath( $root );
-		foreach ( $files as $key => $file )
+		foreach ( $files as $_key => $_file )
 		{
 			try
 			{
 				// path is full path, name is relative to root, take either
-				if ( isset( $file['path'] ) )
+				$_path = Option::get( $_file, 'path' );
+				$_name = Option::get( $_file, 'name' );
+				if ( !empty( $_path ) )
 				{
-					$path = $file['path'];
+					$_path = static::removeContainerFromPath( $container, $_path );
 				}
-				elseif ( isset( $file['name'] ) )
+				elseif ( !empty( $_name ) )
 				{
-					$path = $root . $file['name'];
+					$_path = $root . $_name;
 				}
 				else
 				{
 					throw new BadRequestException( 'No path or name found for file in delete request.' );
 				}
-				if ( !empty( $path ) )
+				if ( !empty( $_path ) )
 				{
-					$this->deleteFile( $container, $path );
+					$this->deleteFile( $container, $_path );
 				}
 				else
 				{
@@ -712,7 +724,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			catch ( \Exception $ex )
 			{
 				// error whole batch here?
-				$files[$key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				$files[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
 			}
 		}
 
@@ -733,19 +745,19 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	public function getFolderAsZip( $container, $path, $zip = null, $zipFileName = '', $overwrite = false )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		$delimiter = '';
-		if ( $this->containerExists( $container ) )
+		$_delimiter = '';
+		if ( !$this->containerExists( $container ) )
 		{
 			throw new BadRequestException( "Can not find directory '$container'." );
 		}
-		$needClose = false;
+		$_needClose = false;
 		if ( !isset( $zip ) )
 		{
-			$needClose = true;
+			$_needClose = true;
 			$zip = new \ZipArchive();
 			if ( empty( $zipFileName ) )
 			{
-				$temp = FileUtilities::getNameFromPath( $path );
+				$temp = basename( $path );
 				if ( empty( $temp ) )
 				{
 					$temp = $container;
@@ -758,35 +770,34 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				throw new \Exception( "Can not create zip file for directory '$path'." );
 			}
 		}
-		$results = $this->listBlobs( $container, $path, $delimiter );
-		foreach ( $results as $blob )
+		$_results = $this->listBlobs( $container, $path, $_delimiter );
+		foreach ( $_results as $_blob )
 		{
-			$fullPathName = $blob['name'];
-			$shortName = substr_replace( $fullPathName, '', 0, strlen( $path ) );
-			if ( empty( $shortName ) )
+			$_fullPathName = Option::get( $_blob, 'name' );
+			$_shortName = substr_replace( $_fullPathName, '', 0, strlen( $path ) );
+			if ( empty( $_shortName ) )
 			{
 				continue;
 			}
-			error_log( $shortName );
-			if ( '/' == substr( $fullPathName, strlen( $fullPathName ) - 1 ) )
+			if ( '/' == substr( $_fullPathName, strlen( $_fullPathName ) - 1 ) )
 			{
 				// folders
-				if ( !$zip->addEmptyDir( $shortName ) )
+				if ( !$zip->addEmptyDir( $_shortName ) )
 				{
-					throw new \Exception( "Can not include folder '$shortName' in zip file." );
+					throw new \Exception( "Can not include folder '$_shortName' in zip file." );
 				}
 			}
 			else
 			{
 				// files
-				$content = $this->getBlobData( $container, $fullPathName );
-				if ( !$zip->addFromString( $shortName, $content ) )
+				$_content = $this->getBlobData( $container, $_fullPathName );
+				if ( !$zip->addFromString( $_shortName, $_content ) )
 				{
-					throw new \Exception( "Can not include file '$shortName' in zip file." );
+					throw new \Exception( "Can not include file '$_shortName' in zip file." );
 				}
 			}
 		}
-		if ( $needClose )
+		if ( $_needClose )
 		{
 			$zip->close();
 		}
@@ -806,19 +817,19 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function extractZipFile( $container, $path, $zip, $clean = false, $drop_path = '' )
 	{
-		if ( ( $clean ) )
+		if ( $clean )
 		{
 			try
 			{
 				// clear out anything in this directory
-				$blobs = $this->listBlobs( $container, $path );
-				if ( !empty( $blobs ) )
+				$_blobs = $this->listBlobs( $container, $path );
+				if ( !empty( $_blobs ) )
 				{
-					foreach ( $blobs as $blob )
+					foreach ( $_blobs as $_blob )
 					{
-						if ( ( 0 !== strcasecmp( $path, $blob['name'] ) ) )
+						if ( ( 0 !== strcasecmp( $path, $_blob['name'] ) ) )
 						{ // not folder itself
-							$this->deleteBlob( $container, $blob['name'] );
+							$this->deleteBlob( $container, $_blob['name'] );
 						}
 					}
 				}
@@ -832,27 +843,27 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		{
 			try
 			{
-				$name = $zip->getNameIndex( $i );
-				if ( empty( $name ) )
+				$_name = $zip->getNameIndex( $i );
+				if ( empty( $_name ) )
 				{
 					continue;
 				}
 				if ( !empty( $drop_path ) )
 				{
-					$name = str_ireplace( $drop_path, '', $name );
+					$_name = str_ireplace( $drop_path, '', $_name );
 				}
-				$fullPathName = $path . $name;
-				$parent = FileUtilities::getParentFolder( $fullPathName );
-				if ( !empty( $parent ) )
-				{
-					$this->createFolder( $parent, true, array(), false );
-				}
+				$fullPathName = $path . $_name;
 				if ( '/' === substr( $fullPathName, -1 ) )
 				{
-					$this->createFolder( $fullPathName, true, array(), false );
+					$this->createFolder( $container, $fullPathName, true, array(), false );
 				}
 				else
 				{
+					$parent = FileUtilities::getParentFolder( $fullPathName );
+					if ( !empty( $parent ) )
+					{
+						$this->createFolder( $container, $parent, true, array(), false );
+					}
 					$content = $zip->getFromIndex( $i );
 					$this->writeFile( $container, $fullPathName, $content );
 				}
@@ -863,8 +874,26 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			}
 		}
 
-		return array( 'folder' => array( 'name' => rtrim( $path, DIRECTORY_SEPARATOR ), 'path' => $path ) );
+		return array( 'folder' => array( 'name' => rtrim( $path, DIRECTORY_SEPARATOR ), 'path' => $container .'/'. $path ) );
 	}
+
+	/**
+	 * @param $container
+	 * @param $path
+	 *
+	 * @return string
+	 */
+	private static function removeContainerFromPath( $container, $path )
+	{
+		if ( empty( $container ) )
+		{
+			return $path;
+		}
+		$container = FileUtilities::fixFolderPath( $container );
+
+		return substr( $path, strlen( $container ) );
+	}
+
 
 	// implement Blob Service
 

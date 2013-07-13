@@ -34,45 +34,53 @@ class ServiceTypes extends SeedEnum
 	/**
 	 * @var string
 	 */
-	const LOCAL_EMAIL_SERVICE = 0;
+	const REMOTE_WEB_SERVICE = 'Remote Web Service';
 	/**
 	 * @var string
 	 */
-	const LOCAL_FILE_STORAGE = 1;
+	const LOCAL_FILE_STORAGE = 'Local File Storage';
 	/**
 	 * @var string
 	 */
-	const LOCAL_SQL_DB = 2;
+	const REMOTE_FILE_STORAGE = 'Remote File Storage';
 	/**
 	 * @var string
 	 */
-	const LOCAL_SQL_DB_SCHEMA = 3;
+	const LOCAL_SQL_DB = 'Local SQL DB';
 	/**
 	 * @var string
 	 */
-	const NOSQL_DB = 4;
+	const REMOTE_SQL_DB = 'Remote SQL DB';
 	/**
 	 * @var string
 	 */
-	const REMOTE_EMAIL_SERVICE = 5;
+	const LOCAL_SQL_DB_SCHEMA = 'Local SQL DB Schema';
 	/**
 	 * @var string
 	 */
-	const REMOTE_FILE_STORAGE = 6;
+	const REMOTE_SQL_DB_SCHEMA = 'Remote SQL DB Schema';
 	/**
 	 * @var string
 	 */
-	const REMOTE_SQL_DB = 7;
+	const EMAIL_SERVICE = 'Email Service';
 	/**
 	 * @var string
 	 */
-	const REMOTE_SQL_DB_SCHEMA = 8;
+	const LOCAL_EMAIL_SERVICE = 'Local Email Service';
 	/**
 	 * @var string
 	 */
-	const REMOTE_AUTH_WEB_SERVICE = 9;
+	const REMOTE_EMAIL_SERVICE = 'Remote Email Service';
 	/**
 	 * @var string
 	 */
-	const REMOTE_WEB_SERVICE = 10;
+	const NOSQL_DB = 'NoSQL DB';
+	/**
+	 * @var string
+	 */
+	const SERVICE_REGISTRY = 'Service Registry';
+	/**
+	 * @var string
+	 */
+	const REMOTE_OAUTH_SERVICE = 'Remote OAuth Service';
 }

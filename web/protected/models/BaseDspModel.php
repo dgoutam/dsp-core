@@ -17,8 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Sql;
+use Platform\Resources\UserSession;
 
 /**
  * BaseDspModel.php
@@ -188,11 +190,15 @@ class BaseDspModel extends \CActiveRecord
 			array(
 				 //	Data formatter
 				 'base_platform_model.data_format_behavior' => array(
-					 'class' => '\\DreamFactory\\Yii\\Behaviors\\DataFormatBehavior',
+					 'class' => 'Platform\\Yii\\Behaviors\\DataFormatBehavior',
 				 ),
 				 //	Timestamper
 				 'base_platform_model.timestamp_behavior'   => array(
-					 'class'                => '\\DreamFactory\\Yii\\Behaviors\\TimestampBehavior',
+					 'class'                => 'Platform\\Yii\\Behaviors\\TimestampBehavior',
+					 'currentUserId'        => function ( $inquirer )
+					 {
+						 return UserSession::getCurrentUserId( $inquirer );
+					 },
 					 'createdColumn'        => array( 'create_date', 'created_date' ),
 					 'createdByColumn'      => array( 'create_user_id', 'created_by_id' ),
 					 'lastModifiedColumn'   => array( 'lmod_date', 'last_modified_date' ),

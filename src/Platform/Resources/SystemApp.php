@@ -405,7 +405,7 @@ class SystemApp extends SystemResource
 							throw new \Exception( "Failed to import application package $filename.\n{$ex->getMessage()}" );
 						}
 					}
-					if ( !empty( $name ) && !FileUtilities::isZipContent( $contentType ) )
+					if ( !empty( $name ) && FileUtilities::isZipContent( $contentType ) )
 					{
 						try
 						{

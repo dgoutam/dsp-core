@@ -20,6 +20,7 @@
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
+use Platform\Utility\DataFormat;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -48,6 +49,7 @@ use Platform\Yii\Utility\Pii;
  * @property RoleServiceAccess[] $role_service_accesses
  * @property App[]               $apps
  * @property Role[]              $roles
+ * @property AccountProviders[]  $providers
  */
 class Service extends BaseDspSystemModel
 {
@@ -178,6 +180,7 @@ class Service extends BaseDspSystemModel
 			'role_service_accesses' => array( self::HAS_MANY, 'RoleServiceAccess', 'service_id' ),
 			'apps'                  => array( self::MANY_MANY, 'App', 'df_sys_app_to_service(app_id, service_id)' ),
 			'roles'                 => array( self::MANY_MANY, 'Role', 'df_sys_role_service_access(service_id, role_id)' ),
+			'providers'             => array( static::HAS_MANY, '\\AccountProviders', 'service_id' ),
 		);
 
 		return array_merge( parent::relations(), $_relations );
@@ -241,11 +244,14 @@ class Service extends BaseDspSystemModel
 				throw new BadRequestException( 'Service type currently can not be modified after creation.' );
 			}
 
-			if ( ( 0 == strcasecmp( 'app', $this->api_name ) ) && isset( $values['api_name'] ) )
+			if ( isset( $values['api_name'] ) )
 			{
-				if ( 0 != strcasecmp( $this->api_name, $values['api_name'] ) )
+				if ( ( 0 == strcasecmp( 'app', $this->api_name ) ) || ( 0 == strcasecmp( 'email', $this->api_name ) ) )
 				{
-					throw new BadRequestException( 'Service API name currently can not be modified after creation.' );
+					if ( 0 != strcasecmp( $this->api_name, $values['api_name'] ) )
+					{
+						throw new BadRequestException( 'Service API name currently can not be modified after creation.' );
+					}
 				}
 			}
 		}
@@ -276,7 +282,7 @@ class Service extends BaseDspSystemModel
 	protected function beforeValidate()
 	{
 		// correct data type
-		$this->is_active = intval( \Platform\Utility\DataFormat::boolval( $this->is_active ) );
+		$this->is_active = intval( DataFormat::boolval( $this->is_active ) );
 
 		return parent::beforeValidate();
 	}
@@ -335,13 +341,8 @@ class Service extends BaseDspSystemModel
 		{
 			case 'Local SQL DB':
 			case 'Local SQL DB Schema':
-				throw new BadRequestException( 'System generated database services can not be deleted.' );
 			case 'Local File Storage':
-				switch ( $this->api_name )
-				{
-					case 'app':
-						throw new BadRequestException( 'System generated application storage service can not be deleted.' );
-				}
+				throw new BadRequestException( 'System generated services can not be deleted.' );
 				break;
 		}
 
@@ -363,14 +364,16 @@ class Service extends BaseDspSystemModel
 		{
 			case 'Local SQL DB':
 			case 'Local SQL DB Schema':
+			case 'Local File Storage':
 				$this->is_system = true;
 				break;
 
-			case 'Local File Storage':
-			case 'Remote File Storage':
+			case 'Email Service':
+			case 'Local Email Service':
+			case 'Remote Email Service':
 				switch ( $this->api_name )
 				{
-					case 'app':
+					case 'email':
 						$this->is_system = true;
 						break;
 				}
@@ -435,5 +438,4 @@ class Service extends BaseDspSystemModel
 			$hidden
 		);
 	}
-
 }

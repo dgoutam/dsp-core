@@ -19,8 +19,9 @@
  */
 namespace Platform\Resources;
 
-use DreamFactory\Platform\Services\BasePlatformRestService;
+use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
@@ -29,7 +30,6 @@ use Platform\Services\SystemManager;
 use Platform\Utility\DataFormat;
 use Platform\Utility\RestRequest;
 use Platform\Utility\SqlDbUtilities;
-use Platform\Utility\Utilities;
 use Platform\Yii\Utility\Pii;
 
 /**
@@ -37,7 +37,7 @@ use Platform\Yii\Utility\Pii;
  * DSP system administration manager
  *
  */
-class SystemResource extends BasePlatformRestResource
+class SystemResource extends RestResource
 {
 	//*************************************************************************
 	//	Constants
@@ -165,16 +165,16 @@ class SystemResource extends BasePlatformRestResource
 	protected function _handleAction()
 	{
 		// Most requests contain 'returned fields' parameter, all by default
-		$fields = Utilities::getArrayValue( 'fields', $_REQUEST, '*' );
+		$fields = FilterInput::request( 'fields', '*' );
 		$extras = array();
-		$related = Utilities::getArrayValue( 'related', $_REQUEST, '' );
+		$related = FilterInput::request( 'related' );
 		if ( !empty( $related ) )
 		{
 			$related = array_map( 'trim', explode( ',', $related ) );
 			foreach ( $related as $relative )
 			{
-				$extraFields = Utilities::getArrayValue( $relative . '_fields', $_REQUEST, '*' );
-				$extraOrder = Utilities::getArrayValue( $relative . '_order', $_REQUEST, '' );
+				$extraFields = FilterInput::request( $relative . '_fields', '*' );
+				$extraOrder = FilterInput::request( $relative . '_order', '' );
 				$extras[] = array( 'name' => $relative, 'fields' => $extraFields, 'order' => $extraOrder );
 			}
 		}
@@ -184,7 +184,7 @@ class SystemResource extends BasePlatformRestResource
 			case self::Get:
 				if ( empty( $this->_resourceId ) )
 				{
-					$ids = Utilities::getArrayValue( 'ids', $_REQUEST, '' );
+					$ids = FilterInput::request( 'ids' );
 					if ( !empty( $ids ) )
 					{
 						$result = static::retrieveRecordsByIds( $this->_apiName, $ids, $fields, $extras );
@@ -194,18 +194,18 @@ class SystemResource extends BasePlatformRestResource
 						$data = RestRequest::getPostDataAsArray();
 						if ( !empty( $data ) )
 						{ // complex filters or large numbers of ids require post
-							$ids = Utilities::getArrayValue( 'ids', $data, '' );
+							$ids = Option::get( $data, 'ids' );
 							if ( !empty( $ids ) )
 							{
 								$result = static::retrieveRecordsByIds( $this->_apiName, $ids, $fields, $extras );
 							}
 							else
 							{
-								$records = Utilities::getArrayValue( 'record', $data, null );
+								$records = Option::get( $data, 'record' );
 								if ( empty( $records ) )
 								{
 									// xml to array conversion leaves them in plural wrapper
-									$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+									$records = Option::getDeep( $data, 'records', 'record' );
 								}
 								if ( !empty( $records ) )
 								{
@@ -215,12 +215,12 @@ class SystemResource extends BasePlatformRestResource
 								}
 								else
 								{ // if not specified use filter
-									$filter = Utilities::getArrayValue( 'filter', $data, '' );
-									$limit = intval( Utilities::getArrayValue( 'limit', $data, 0 ) );
-									$order = Utilities::getArrayValue( 'order', $data, '' );
-									$offset = intval( Utilities::getArrayValue( 'offset', $data, 0 ) );
-									$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $data, false ) );
-									$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $data, false ) );
+									$filter = Option::get( $data, 'filter' );
+									$limit = intval( Option::get( $data, 'limit', 0 ) );
+									$order = Option::get( $data, 'order', '' );
+									$offset = intval( Option::get( $data, 'offset', 0 ) );
+									$include_count = Option::getBool( $data, 'include_count', false );
+									$include_schema = Option::getBool( $data, 'include_schema', false );
 									$result = static::retrieveRecordsByFilter(
 										$this->_apiName,
 										$fields,
@@ -237,12 +237,12 @@ class SystemResource extends BasePlatformRestResource
 						}
 						else
 						{
-							$filter = Utilities::getArrayValue( 'filter', $_REQUEST, '' );
-							$limit = intval( Utilities::getArrayValue( 'limit', $_REQUEST, 0 ) );
-							$order = Utilities::getArrayValue( 'order', $_REQUEST, '' );
-							$offset = intval( Utilities::getArrayValue( 'offset', $_REQUEST, 0 ) );
-							$include_count = Utilities::boolval( Utilities::getArrayValue( 'include_count', $_REQUEST, false ) );
-							$include_schema = Utilities::boolval( Utilities::getArrayValue( 'include_schema', $_REQUEST, false ) );
+							$filter = FilterInput::request( 'filter', '' );
+							$limit = FilterInput::request( 'limit', 0, FILTER_SANITIZE_NUMBER_INT );
+							$order = FilterInput::request( 'order', '' );
+							$offset = FilterInput::request( 'offset', 0, FILTER_SANITIZE_NUMBER_INT );
+							$include_count = FilterInput::request( 'include_count', false, FILTER_VALIDATE_BOOLEAN );
+							$include_schema = FilterInput::request( 'include_schema', false, FILTER_VALIDATE_BOOLEAN );
 							$result = static::retrieveRecordsByFilter(
 								$this->_apiName,
 								$fields,
@@ -265,11 +265,11 @@ class SystemResource extends BasePlatformRestResource
 				break;
 			case self::Post:
 				$data = RestRequest::getPostDataAsArray();
-				$records = Utilities::getArrayValue( 'record', $data, array() );
+				$records = Option::get( $data, 'record' );
 				if ( empty( $records ) )
 				{
 					// xml to array conversion leaves them in plural wrapper
-					$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+					$records = Option::getDeep( $data, 'records', 'record' );
 				}
 				if ( empty( $records ) )
 				{
@@ -281,11 +281,7 @@ class SystemResource extends BasePlatformRestResource
 				}
 				else
 				{
-					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-					if ( !isset( $rollback ) )
-					{
-						$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-					}
+					$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
 					$result = static::createRecords( $this->_apiName, $records, $rollback, $fields, $extras );
 				}
 				break;
@@ -295,15 +291,11 @@ class SystemResource extends BasePlatformRestResource
 				$data = RestRequest::getPostDataAsArray();
 				if ( empty( $this->_resourceId ) )
 				{
-					$rollback = ( isset( $_REQUEST['rollback'] ) ) ? Utilities::boolval( $_REQUEST['rollback'] ) : null;
-					if ( !isset( $rollback ) )
-					{
-						$rollback = Utilities::boolval( Utilities::getArrayValue( 'rollback', $data, false ) );
-					}
-					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+					$rollback = FilterInput::request( 'rollback', false, FILTER_VALIDATE_BOOLEAN );
+					$ids = FilterInput::request( 'ids' );
 					if ( empty( $ids ) )
 					{
-						$ids = Utilities::getArrayValue( 'ids', $data, '' );
+						$ids = Option::get( $data, 'ids' );
 					}
 					if ( !empty( $ids ) )
 					{
@@ -311,11 +303,11 @@ class SystemResource extends BasePlatformRestResource
 					}
 					else
 					{
-						$records = Utilities::getArrayValue( 'record', $data, null );
+						$records = Option::get( $data, 'record' );
 						if ( empty( $records ) )
 						{
 							// xml to array conversion leaves them in plural wrapper
-							$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+							$records = Option::getDeep( $data, 'records', 'record' );
 						}
 						if ( empty( $records ) )
 						{
@@ -340,10 +332,10 @@ class SystemResource extends BasePlatformRestResource
 				if ( empty( $this->_resourceId ) )
 				{
 					$data = RestRequest::getPostDataAsArray();
-					$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+					$ids = FilterInput::request( 'ids' );
 					if ( empty( $ids ) )
 					{
-						$ids = Utilities::getArrayValue( 'ids', $data, '' );
+						$ids = Option::get( $data, 'ids' );
 					}
 					if ( !empty( $ids ) )
 					{
@@ -351,11 +343,11 @@ class SystemResource extends BasePlatformRestResource
 					}
 					else
 					{
-						$records = Utilities::getArrayValue( 'record', $data, null );
+						$records = Option::get( $data, 'record' );
 						if ( empty( $records ) )
 						{
 							// xml to array conversion leaves them in plural wrapper
-							$records = ( isset( $data['records']['record'] ) ) ? $data['records']['record'] : null;
+							$records = Option::getDeep( $data, 'records', 'record' );
 						}
 						if ( empty( $records ) )
 						{
@@ -715,7 +707,7 @@ class SystemResource extends BasePlatformRestResource
 			try
 			{
 				// todo this needs to use $model->getPrimaryKey()
-				$id = Utilities::getArrayValue( 'id', $record, '' );
+				$id = Option::get( $record, 'id' );
 				$out[] = static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 			}
 			catch ( \Exception $ex )
@@ -748,7 +740,7 @@ class SystemResource extends BasePlatformRestResource
 		}
 		UserSession::checkSessionPermission( 'update', 'system', $table );
 		// todo this needs to use $model->getPrimaryKey()
-		$id = Utilities::getArrayValue( 'id', $record, '' );
+		$id = Option::get( $record, 'id' );
 
 		return static::updateRecordLow( $table, $id, $record, $return_fields, $extras );
 	}
@@ -940,7 +932,7 @@ class SystemResource extends BasePlatformRestResource
 			{
 				throw new BadRequestException( 'There are no fields in the record set.' );
 			}
-			$id = Utilities::getArrayValue( 'id', $record, '' );
+			$id = Option::get( $record, 'id' );
 			try
 			{
 				$out[] = static::deleteRecordLow( $table, $id, $return_fields, $extras );
@@ -969,7 +961,7 @@ class SystemResource extends BasePlatformRestResource
 		{
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
-		$id = Utilities::getArrayValue( 'id', $record, '' );
+		$id = Option::get( $record, 'id' );
 
 		return static::deleteRecordById( $table, $id, $return_fields, $extras );
 	}
@@ -1044,7 +1036,7 @@ class SystemResource extends BasePlatformRestResource
 			$ids = array();
 			foreach ( $records as $key => $record )
 			{
-				$id = Utilities::getArrayValue( 'id', $record, '' );
+				$id = Option::get( $record, 'id' );
 				if ( empty( $id ) )
 				{
 					throw new BadRequestException( "Identifying field 'id' can not be empty for retrieve record [$key] request." );
@@ -1058,7 +1050,7 @@ class SystemResource extends BasePlatformRestResource
 		else
 		{
 			// single record
-			$id = Utilities::getArrayValue( 'id', $records, '' );
+			$id = Option::get( $records, 'id' );
 
 			return static::retrieveRecordById( $table, $id, $return_fields, $extras );
 		}
@@ -1075,7 +1067,7 @@ class SystemResource extends BasePlatformRestResource
 	 */
 	public static function retrieveRecord( $table, $record, $return_fields = '', $extras = array() )
 	{
-		$id = Utilities::getArrayValue( 'id', $record, '' );
+		$id = Option::get( $record, 'id' );
 
 		return static::retrieveRecordById( $table, $id, $return_fields, $extras );
 	}

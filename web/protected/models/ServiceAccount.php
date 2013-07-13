@@ -17,49 +17,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
 use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
 
 /**
- * ServiceAuth.php
+ * ServiceAccount.php
  * The user service registry model for the DSP
  *
  * Columns:
  *
- * @property int                 $id
  * @property int                 $user_id
- * @property int                 $service_id
+ * @property int                 $provider_id
+ * @property int                 $account_type
  * @property string              $auth_text
  * @property string              $last_use_date
  */
-class ServiceAuth extends \BaseDspSystemModel
+class ServiceAccount extends BasePlatformSystemModel
 {
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
 
 	/**
-	 * Returns the static model of the specified AR class.
-	 *
-	 * @param string $className active record class name.
-	 *
-	 * @return ServiceAuth the static model class
-	 */
-	public static function model( $className = __CLASS__ )
-	{
-		return parent::model( $className );
-	}
-
-	/**
 	 * @return string the associated database table name
 	 */
 	public function tableName()
 	{
-		return static::tableNamePrefix() . 'service_auth';
+		return static::tableNamePrefix() . 'service_account';
 	}
 
 	/**
+	 * @return array
+	 */
+	public function relations()
+	{
+		return array_merge(
+			parent::relations(),
+			array(
+				 'provider' => array( static::BELONGS_TO, '\\AccountProvider', 'provider_id' ),
+				 'user'     => array( static::BELONGS_TO, '\\User', 'user_id' ),
+			)
+		);
+	}
+
+	/**
+	 * @param array $additionalLabels
+	 *
 	 * @return array customized attribute labels (name=>label)
 	 */
 	public function attributeLabels( $additionalLabels = array() )
@@ -68,8 +73,9 @@ class ServiceAuth extends \BaseDspSystemModel
 			array_merge(
 				$additionalLabels,
 				array(
+					 'provider_id'   => 'Provider',
 					 'user_id'       => 'User ID',
-					 'service_id'    => 'Service ID',
+					 'account_type'  => 'Account Type',
 					 'auth_text'     => 'Authorization',
 					 'last_use_date' => 'Last Used',
 				)

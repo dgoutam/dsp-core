@@ -34,7 +34,6 @@ use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Resources\UserSession;
 use Platform\Utility\RestRequest;
-use Platform\Utility\Utilities;
 
 /**
  * OAuthService
@@ -100,7 +99,7 @@ class OAuthService extends RestService
 		{
 			foreach ( $this->_parameters as $param )
 			{
-				$paramAction = Utilities::getArrayValue( 'action', $param );
+				$paramAction = Option::get( $param, 'action' );
 				if ( !empty( $paramAction ) && ( 0 !== strcasecmp( 'all', $paramAction ) ) )
 				{
 					if ( 0 !== strcasecmp( $action, $paramAction ) )
@@ -108,8 +107,8 @@ class OAuthService extends RestService
 						continue;
 					}
 				}
-				$key = Utilities::getArrayValue( 'name', $param );
-				$value = Utilities::getArrayValue( 'value', $param );
+				$key = Option::get( $param, 'name' );
+				$value = Option::get( $param, 'value' );
 				$param_str .= ( !empty( $param_str ) ) ? '&' : '';
 				$param_str .= urlencode( $key );
 				$param_str .= ( empty( $value ) ) ? '' : '=' . urlencode( $value );

@@ -135,7 +135,7 @@ class SystemManager extends BasePlatformRestService
 
 			$tables = $_schema->getTableNames();
 
-			if ( empty( $tables ) || ( 'df_sys_cache' == Utilities::getArrayValue( 0, $tables ) ) )
+			if ( empty( $tables ) || ( 'df_sys_cache' == Option::get( $tables, 0 ) ) )
 			{
 				return PlatformStates::INIT_REQUIRED;
 			}
@@ -148,18 +148,18 @@ class SystemManager extends BasePlatformRestService
 				$contents = DataFormat::jsonToArray( $contents );
 
 				// check for any missing necessary tables
-				$needed = Utilities::getArrayValue( 'table', $contents, array() );
+				$needed = Option::get( $contents, 'table', array() );
 
 				foreach ( $needed as $table )
 				{
-					$name = Utilities::getArrayValue( 'name', $table, '' );
+					$name = Option::get( $table, 'name' );
 					if ( !empty( $name ) && !in_array( $name, $tables ) )
 					{
 						return PlatformStates::SCHEMA_REQUIRED;
 					}
 				}
 
-				$_version = Utilities::getArrayValue( 'version', $contents );
+				$_version = Option::get( $contents, 'version' );
 				$_oldVersion = Sql::scalar( 'select db_version from df_sys_config order by id desc' );
 
 				if ( static::doesDbVersionRequireUpgrade( $_oldVersion, $_version ) )
@@ -220,7 +220,7 @@ class SystemManager extends BasePlatformRestService
 			}
 
 			$contents = DataFormat::jsonToArray( $contents );
-			$version = Utilities::getArrayValue( 'version', $contents );
+			$version = Option::get( $contents, 'version' );
 
 			$command = $_db->createCommand();
 			$oldVersion = '';
@@ -231,7 +231,7 @@ class SystemManager extends BasePlatformRestService
 			}
 
 			// create system tables
-			$tables = Utilities::getArrayValue( 'table', $contents );
+			$tables = Option::get( $contents, 'table' );
 			if ( empty( $tables ) )
 			{
 				throw new \Exception( "No default system schema found." );
@@ -302,6 +302,7 @@ class SystemManager extends BasePlatformRestService
 			}
 
 			//	Refresh the schema that we just added
+			\Yii::app()->getCache()->flush();
 			$_db->getSchema()->refresh();
 		}
 		catch ( \Exception $ex )
@@ -345,7 +346,10 @@ class SystemManager extends BasePlatformRestService
 				$_user = new \User();
 				$_firstName = Pii::getState( 'first_name', Option::get( $_model, 'firstName' ) );
 				$_lastName = Pii::getState( 'last_name', Option::get( $_model, 'lastName' ) );
-				$_displayName = Pii::getState( 'display_name', Option::get( $_model, 'displayName', $_firstName . ( $_lastName ? : ' ' . $_lastName ) ) );
+				$_displayName = Pii::getState(
+					'display_name',
+					Option::get( $_model, 'displayName', $_firstName . ( $_lastName ? : ' ' . $_lastName ) )
+				);
 
 				$_fields = array(
 					'email'        => $_email,
@@ -489,7 +493,7 @@ class SystemManager extends BasePlatformRestService
 							{
 								foreach ( $content as $package )
 								{
-									$fileUrl = Utilities::getArrayValue( 'url', $package, '' );
+									$fileUrl = Option::get( $package, 'url', '' );
 									if ( 0 === strcasecmp( 'dfpkg', FileUtilities::getFileExtension( $fileUrl ) ) )
 									{
 										try
@@ -959,19 +963,17 @@ class SystemManager extends BasePlatformRestService
 	/**
 	 * Returns true if this DSP has been activated
 	 *
-	 * @return bool
+	 * @return bool|int Returns 2+ if # of admins is greater than 1
 	 */
 	public static function activated()
 	{
 		try
 		{
-			return ( 0 != \User::model()->count(
-					'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-					array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-				)
-			);
+			$_admins = Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), Pii::pdo() );
+
+			return ( 0 != $_admins ? ( $_admins > 1 ? $_admins : true ) : false );
 		}
-		catch ( \CDbException $_ex )
+		catch ( \Exception $_ex )
 		{
 			return false;
 		}
@@ -980,17 +982,20 @@ class SystemManager extends BasePlatformRestService
 	/**
 	 * Automatically logs in the first admin user
 	 *
+	 * @param \User $user
+	 *
 	 * @return bool
 	 */
-	public static function autoLoginAdmin()
+	public static function autoLoginAdmin( $user = null )
 	{
 		try
 		{
 			/** @var \User $_user */
-			$_user = \User::model()->find(
-				'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
-				array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
-			);
+			$_user = $user
+				? : \User::model()->find(
+					'is_sys_admin = :is_sys_admin and is_deleted = :is_deleted',
+					array( ':is_sys_admin' => 1, ':is_deleted' => 0 )
+				);
 
 			if ( !empty( $_user ) )
 			{

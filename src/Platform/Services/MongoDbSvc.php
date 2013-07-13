@@ -34,6 +34,15 @@ use Platform\Utility\DataFormat;
 class MongoDbSvc extends NoSqlDbSvc
 {
 	//*************************************************************************
+	//	Constants
+	//*************************************************************************
+
+	/**
+	 * Default record identifier field
+	 */
+	const DEFAULT_ID_FIELD = '_id';
+
+	//*************************************************************************
 	//	Members
 	//*************************************************************************
 
@@ -137,9 +146,12 @@ class MongoDbSvc extends NoSqlDbSvc
 		parent::validateTableAccess( $table, $access );
 	}
 
-	protected function gatherExtrasFromRequest()
+	/**
+	 * @return array
+	 */
+	protected function _gatherExtrasFromRequest()
 	{
-		$_extras = parent::gatherExtrasFromRequest();
+		$_extras = parent::_gatherExtrasFromRequest();
 
 		return $_extras;
 	}
@@ -457,12 +469,12 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$records = static::idsToMongoIds( $records );
 		$_out = array();
 		foreach ( $records as $_record )
 		{
 			try
 			{
+				$_record = static::idToMongoId( $_record );
 				$result = $_coll->save( $_record ); // same as update if _id
 				$_out[] = static::cleanRecord( $_record, $fields );
 			}
@@ -529,7 +541,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
 
-		unset( $record['_id'] ); // make sure the record has no identifier
+		unset( $record[static::DEFAULT_ID_FIELD] ); // make sure the record has no identifier
 		$_coll = $this->selectTable( $table );
 		// build criteria from filter parameters
 		$_criteria = static::buildFilterArray( $filter );
@@ -576,17 +588,16 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_coll = $this->selectTable( $table );
 		$_ids = static::idsToMongoIds( $id_list );
 		// build criteria from filter parameters
-		$_criteria = array( '_id' => array( '$in' => $_ids ) );
-		$_fieldArray = static::buildFieldArray( $fields );
-		unset( $record['_id'] ); // make sure the record has no identifier
+		$_criteria = array( static::DEFAULT_ID_FIELD => array( '$in' => $_ids ) );
+		unset( $record[static::DEFAULT_ID_FIELD] ); // make sure the record has no identifier
 		try
 		{
 			$result = $_coll->update( $_criteria, $record, array( 'multiple' => true ) );
 			$_out = array();
 			foreach ( $_ids as $_id )
 			{
-				$record['_id'] = $_id;
-				$_out[] = static::cleanRecords( $record );
+				$record[static::DEFAULT_ID_FIELD] = $_id;
+				$_out[] = static::cleanRecords( $record, $fields );
 			}
 
 			return $_out;
@@ -620,7 +631,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$record['_id'] = static::idToMongoId( $id );
+		$record[static::DEFAULT_ID_FIELD] = static::idToMongoId( $id );
 		try
 		{
 			$result = $_coll->save( $record );
@@ -657,20 +668,19 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$records = static::idsToMongoIds( $records );
 		$_fieldArray = static::buildFieldArray( $fields );
 		$_out = array();
 		foreach ( $records as $_record )
 		{
 			try
 			{
-				$_id = Option::get( $_record, '_id', null, true );
+				$_id = Option::get( $_record, static::DEFAULT_ID_FIELD, null, true );
 				if ( empty( $_id ) )
 				{
 					throw new BadRequestException( "Identifying field '_id' can not be empty for merge record request." );
 				}
 				$result = $_coll->findAndModify(
-					array( '_id' => $_id ),
+					array( static::DEFAULT_ID_FIELD => static::idToMongoId( $_id ) ),
 					array( '$set' => $_record ),
 					$_fieldArray,
 					array( 'new' => true )
@@ -709,14 +719,14 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no record fields in the request.' );
 		}
 
-		$_id = Option::get( $record, '_id', null, true );
+		$_id = Option::get( $record, static::DEFAULT_ID_FIELD, null, true );
 		if ( empty( $_id ) )
 		{
 			throw new BadRequestException( "Identifying field '_id' can not be empty for merge record request." );
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_criteria = array( '_id' => static::idToMongoId( $_id ) );
+		$_criteria = array( static::DEFAULT_ID_FIELD => static::idToMongoId( $_id ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -752,7 +762,7 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
 
-		unset( $record['_id'] );
+		unset( $record[static::DEFAULT_ID_FIELD] );
 		$_coll = $this->selectTable( $table );
 		// build criteria from filter parameters
 		$_criteria = static::buildFilterArray( $filter );
@@ -797,9 +807,9 @@ class MongoDbSvc extends NoSqlDbSvc
 
 		$_coll = $this->selectTable( $table );
 		$_ids = static::idsToMongoIds( $id_list );
-		$_criteria = array( '_id' => array( '$in' => $_ids ) );
+		$_criteria = array( static::DEFAULT_ID_FIELD => array( '$in' => $_ids ) );
 		$_fieldArray = static::buildFieldArray( $fields );
-		unset( $record['_id'] ); // make sure the record has no identifier
+		unset( $record[static::DEFAULT_ID_FIELD] ); // make sure the record has no identifier
 
 		try
 		{
@@ -846,9 +856,9 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_criteria = array( '_id' => static::idToMongoId( $id ) );
+		$_criteria = array( static::DEFAULT_ID_FIELD => static::idToMongoId( $id ) );
 		$_fieldArray = static::buildFieldArray( $fields );
-		unset( $record['_id'] );
+		unset( $record[static::DEFAULT_ID_FIELD] );
 		try
 		{
 			$result = $_coll->findAndModify(
@@ -891,7 +901,7 @@ class MongoDbSvc extends NoSqlDbSvc
 
 		$_coll = $this->selectTable( $table );
 		$_ids = static::recordsAsIds( $records );
-		$_criteria = array( '_id' => array( '$in' => static::idsToMongoIds( $_ids ) ) );
+		$_criteria = array( static::DEFAULT_ID_FIELD => array( '$in' => static::idsToMongoIds( $_ids ) ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -1001,9 +1011,10 @@ class MongoDbSvc extends NoSqlDbSvc
 			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
 		}
 
+		$id_field = empty( $id_field ) ? static::DEFAULT_ID_FIELD : $id_field;
 		$_coll = $this->selectTable( $table );
 		$_ids = static::idsToMongoIds( $id_list );
-		$_criteria = array( '_id' => array( '$in' => $_ids ) );
+		$_criteria = array( static::DEFAULT_ID_FIELD => array( '$in' => $_ids ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -1046,7 +1057,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_criteria = array( '_id' => static::idToMongoId( $id ) );
+		$_criteria = array( static::DEFAULT_ID_FIELD => static::idToMongoId( $id ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
@@ -1166,7 +1177,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		$_coll = $this->selectTable( $table );
-		$_id = Option::get( $record, '_id' );
+		$_id = Option::get( $record, static::DEFAULT_ID_FIELD );
 		if ( empty( $_id ) )
 		{
 			throw new BadRequestException( "Identifying field '_id' can not be empty for retrieve record request." );
@@ -1175,7 +1186,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$result = $_coll->findOne( array( '_id' => static::idToMongoId( $_id ) ), $_fieldArray );
+			$result = $_coll->findOne( array( static::DEFAULT_ID_FIELD => static::idToMongoId( $_id ) ), $_fieldArray );
 
 			return static::mongoIdToId( $result );
 		}
@@ -1208,7 +1219,7 @@ class MongoDbSvc extends NoSqlDbSvc
 		try
 		{
 			/** @var \MongoCursor $result */
-			$result = $_coll->find( array( '_id' => array( '$in' => $_ids ) ), $_fieldArray );
+			$result = $_coll->find( array( static::DEFAULT_ID_FIELD => array( '$in' => $_ids ) ), $_fieldArray );
 			$_out = iterator_to_array( $result );
 
 			return static::cleanRecords( $_out );
@@ -1240,12 +1251,12 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_fieldArray = static::buildFieldArray( $fields );
 		try
 		{
-			$result = $_coll->findOne( array( '_id' => static::idToMongoId( $id ) ), $_fieldArray );
+			$result = $_coll->findOne( array( static::DEFAULT_ID_FIELD => static::idToMongoId( $id ) ), $_fieldArray );
 			if ( empty( $result ) && is_numeric( $id ) )
 			{
 				// defaults to string ids, could be numeric, try that
 				$id = ( $id == strval( intval( $id ) ) ) ? intval( $id ) : floatval( $id );
-				$result = $_coll->findOne( array( '_id' => $id ), $_fieldArray );
+				$result = $_coll->findOne( array( static::DEFAULT_ID_FIELD => $id ), $_fieldArray );
 			}
 		}
 		catch ( \Exception $ex )
@@ -1266,11 +1277,11 @@ class MongoDbSvc extends NoSqlDbSvc
 	 *
 	 * @return array
 	 */
-	protected static function buildFieldArray( $include = '*' )
+	protected static function buildFieldArray( $include = '*', $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( empty( $include ) )
 		{
-			return array( '_id' => true );
+			return array( $id_field => true );
 		}
 		if ( '*' == $include )
 		{
@@ -1281,10 +1292,10 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			$include = array_map( 'trim', explode( ',', trim( $include, ',' ) ) );
 		}
-		$_out = array( '_id' => true );
+		$_out = array( $id_field => true );
 		foreach ( $include as $key )
 		{
-			if ( 0 == strcasecmp( $key, '_id' ) )
+			if ( 0 == strcasecmp( $key, $id_field ) )
 			{
 				continue;
 			}
@@ -1473,6 +1484,11 @@ class MongoDbSvc extends NoSqlDbSvc
 		return $filter;
 	}
 
+	/**
+	 * @param $value
+	 *
+	 * @return bool|float|int|string
+	 */
 	private static function _determineValue( $value )
 	{
 		if ( trim( $value, "'\"" ) !== $value )
@@ -1556,16 +1572,16 @@ class MongoDbSvc extends NoSqlDbSvc
 	 *
 	 * @return array
 	 */
-	protected static function cleanRecord( $record, $include = '*' )
+	protected static function cleanRecord( $record, $include = '*', $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( '*' !== $include )
 		{
-			$_id = Option::get( $record, '_id' );
+			$_id = Option::get( $record, $id_field );
 			if ( empty( $_id ) )
 			{
-				$_id = Option::get( $record, 'id' );
+				$_id = Option::get( $record, 'id' ); // returned data drops underscore!
 			}
-			$_out = array( '_id' => static::mongoIdToId( $_id ) );
+			$_out = array( $id_field => static::mongoIdToId( $_id ) );
 
 			if ( !empty( $include ) )
 			{
@@ -1575,7 +1591,7 @@ class MongoDbSvc extends NoSqlDbSvc
 				}
 				foreach ( $include as $key )
 				{
-					if ( 0 == strcasecmp( $key, '_id' ) )
+					if ( 0 == strcasecmp( $key, $id_field ) )
 					{
 						continue;
 					}
@@ -1589,28 +1605,44 @@ class MongoDbSvc extends NoSqlDbSvc
 		return static::mongoIdToId( $record );
 	}
 
-	protected static function cleanRecords( $records, $include = '*' )
+	/**
+	 * @param        $records
+	 * @param string $include
+	 * @param string $id_field
+	 * @return array
+	 */
+	protected static function cleanRecords( $records, $include = '*', $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_out = array();
 		foreach ( $records as $_record )
 		{
-			$_out[] = static::cleanRecord( $_record, $include );
+			$_out[] = static::cleanRecord( $_record, $include, $id_field );
 		}
 
 		return $_out;
 	}
 
-	protected static function mongoIdsToIds( $records )
+	/**
+	 * @param        $records
+	 * @param string $id_field
+	 * @return mixed
+	 */
+	protected static function mongoIdsToIds( $records, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		foreach ( $records as $key => $_record )
 		{
-			$records[$key] = static::mongoIdToId( $_record );
+			$records[$key] = static::mongoIdToId( $_record, $id_field );
 		}
 
 		return $records;
 	}
 
-	protected static function mongoIdToId( $record )
+	/**
+	 * @param        $record
+	 * @param string $id_field
+	 * @return array|string
+	 */
+	protected static function mongoIdToId( $record, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( !is_array( $record ) )
 		{
@@ -1623,77 +1655,108 @@ class MongoDbSvc extends NoSqlDbSvc
 		else
 		{
 			/** @var \MongoId $_id */
-			$_id = Option::get( $record, '_id' );
+			$_id = Option::get( $record, $id_field );
 			if ( is_object( $_id ) )
 			{
 				/** $_id \MongoId */
-				$record['_id'] = (string)$_id;
+				$record[$id_field] = (string)$_id;
 			}
 		}
 
 		return $record;
 	}
 
-	protected static function idToMongoId( $record )
+	/**
+	 * @param        $record
+	 * @param bool   $determine_value
+	 * @param string $id_field
+	 * @return array|bool|float|int|\MongoId|string
+	 */
+	protected static function idToMongoId( $record, $determine_value = false, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( !is_array( $record ) )
 		{
 			if ( is_string( $record ) )
 			{
-				if ( ( 24 == sizeof( $record ) ) )
+				$_isMongo = false;
+				if ( ( 24 == strlen( $record ) ) )
 				{
 					// single id
 					try
 					{
 						$record = new \MongoId( $record );
+						$_isMongo = true;
 					}
 					catch ( \Exception $ex )
 					{
 						// obviously not a Mongo created Id, let it be
 					}
+				}
+				if ( !$_isMongo && $determine_value )
+				{
+					$record = static::_determineValue( $record );
 				}
 			}
 		}
 		else
 		{
 			// single record with fields
-			$_id = Option::get( $record, '_id' );
+			$_id = Option::get( $record, $id_field );
 			if ( is_string( $_id ) )
 			{
-				if ( ( 24 == sizeof( $_id ) ) )
+				$_isMongo = false;
+				if ( ( 24 == strlen( $_id ) ) )
 				{
 					try
 					{
-						$record['_id'] = new \MongoId( $_id );
+						$_id = new \MongoId( $_id );
+						$_isMongo = true;
 					}
 					catch ( \Exception $ex )
 					{
 						// obviously not a Mongo created Id, let it be
 					}
 				}
+				if ( !$_isMongo && $determine_value )
+				{
+					$_id = static::_determineValue( $_id );
+				}
+				$record[$id_field] = $_id;
 			}
 		}
 
 		return $record;
 	}
 
-	protected static function idsToMongoIds( $records )
+	/**
+	 * @param string|array $records
+	 * @param string       $id_field
+	 * @return array
+	 */
+	protected static function idsToMongoIds( $records, $id_field = self::DEFAULT_ID_FIELD )
 	{
+		$_determineValue = false;
 		if ( !is_array( $records ) )
 		{
 			// comma delimited list of ids
 			$records = array_map( 'trim', explode( ',', trim( $records, ',' ) ) );
+			$_determineValue = true;
 		}
 
-		foreach ( $records as $key => $_record )
-		{
-			$records[$key] = static::idToMongoId( $_record );
-		}
+		$records = array_map( '\Platform\Services\MongoDbSvc::idToMongoId',
+							  $records,
+							  array_fill( 0, count( $records ), $_determineValue ) );
 
 		return $records;
 	}
 
-	protected static function recordsAsIds( $records, $id_field = '_id' )
+	/**
+	 * @param array  $records
+	 * @param string $id_field
+	 * @return array
+	 * @throws \Platform\Exceptions\BadRequestException
+	 */
+	protected static function recordsAsIds( $records, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_ids = array();
 		foreach ( $records as $_key => $_record )
@@ -1709,7 +1772,12 @@ class MongoDbSvc extends NoSqlDbSvc
 		return $_ids;
 	}
 
-	protected static function idsAsRecords( $ids, $id_field = '_id' )
+	/**
+	 * @param        $ids
+	 * @param string $id_field
+	 * @return array
+	 */
+	protected static function idsAsRecords( $ids, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		$_out = array();
 		foreach ( $ids as $_id )
@@ -1720,13 +1788,18 @@ class MongoDbSvc extends NoSqlDbSvc
 		return $_out;
 	}
 
-	protected static function requireMoreFields( $fields = null )
+	/**
+	 * @param        $fields
+	 * @param string $id_field
+	 * @return bool
+	 */
+	protected static function requireMoreFields( $fields, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		if ( empty( $fields ) )
 		{
 			return false;
 		}
-		if ( 0 === strcasecmp( '_id', $fields ) )
+		if ( 0 === strcasecmp( $id_field, $fields ) )
 		{
 			return false;
 		}
@@ -1734,14 +1807,20 @@ class MongoDbSvc extends NoSqlDbSvc
 		return true;
 	}
 
-	protected static function recordArrayMerge( $first_array, $second_array )
+	/**
+	 * @param        $first_array
+	 * @param        $second_array
+	 * @param string $id_field
+	 * @return mixed
+	 */
+	protected static function recordArrayMerge( $first_array, $second_array, $id_field = self::DEFAULT_ID_FIELD )
 	{
 		foreach ( $first_array as $_key => $_first )
 		{
-			$_firstId = Option::get( $_first, '_id' );
+			$_firstId = Option::get( $_first, $id_field );
 			foreach ( $second_array as $_second )
 			{
-				$_secondId = Option::get( $_second, '_id' );
+				$_secondId = Option::get( $_second, $id_field );
 				if ( $_firstId == $_secondId )
 				{
 					$first_array[$_key] = array_merge( $_first, $_second );

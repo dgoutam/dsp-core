@@ -711,6 +711,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					// create one or more containers
 					$content = RestRequest::getPostDataAsArray();
 					$result = $this->createContainers( $content );
+					$result = array( 'container' => $result );
 				}
 				else if ( empty( $this->_folderPath ) || empty( $this->_filePath ) )
 				{
@@ -736,7 +737,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$fullPathName = $this->_folderPath . $folderNameHeader;
 						$content = RestRequest::getPostDataAsArray();
 						$this->createFolder( $this->_container, $fullPathName, true, $content, true );
-						$result = array( 'folder' => array( array( 'name' => $folderNameHeader, 'path' => $fullPathName ) ) );
+						$result = array( 'folder' => array( array( 'name' => $folderNameHeader, 'path' => $this->_container.'/'.$fullPathName ) ) );
 					}
 					elseif ( !empty( $fileUrl ) )
 					{
@@ -759,7 +760,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						{
 							// create folder from resource path
 							$this->createFolder( $this->_container, $this->_folderPath );
-							$result = array( 'folder' => array( array( 'path' => $this->_folderPath ) ) );
+							$result = array( 'folder' => array( array( 'path' => $this->_container.'/'.$this->_folderPath ) ) );
 						}
 						else
 						{
@@ -835,7 +836,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					$content = RestRequest::getPostDataAsArray();
 					$this->updateFolderProperties( $this->_container, $this->_folderPath, $content );
 					$result = array( 'folder' => array( 'name' => basename( $this->_folderPath ),
-														'path' => $this->_folderPath ) );
+														'path' => $this->_container.'/'.$this->_folderPath ) );
 				}
 				else
 				{
@@ -843,7 +844,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					$content = RestRequest::getPostDataAsArray();
 					$this->updateFileProperties( $this->_container, $this->_filePath, $content );
 					$result = array( 'file' => array( 'name' => basename( $this->_filePath ),
-														'path' => $this->_filePath ) );
+													  'path' => $this->_container.'/'. $this->_filePath ) );
 				}
 				break;
 			case self::Delete:
@@ -855,6 +856,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					// delete multiple containers
 					$containers = Option::get( $content, 'container' );
 					$result = $this->deleteContainers( $containers, $force );
+					$result = array( 'container' => $result );
 				}
 				else if ( empty( $this->_folderPath ) )
 				{
@@ -877,7 +879,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					if ( empty( $content ) )
 					{
 						$this->deleteFolder( $this->_container, $this->_folderPath, $force );
-						$result = array( 'folder' => array( array( 'path' => $this->_folderPath ) ) );
+						$result = array( 'folder' => array( array( 'path' => $this->_container.'/'.$this->_folderPath ) ) );
 					}
 					else
 					{
@@ -888,7 +890,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				{
 					// delete file from permanent storage
 					$this->deleteFile( $this->_container, $this->_filePath );
-					$result = array( 'file' => array( array( 'path' => $this->_filePath ) ) );
+					$result = array( 'file' => array( array( 'path' => $this->_container.'/'.$this->_filePath ) ) );
 				}
 				break;
 			default:
@@ -934,10 +936,10 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		else
 		{
 			$name = ( empty( $dest_name ) ? basename( $source_file ) : $dest_name );
-			$fullPathName = $dest_path . $name;
+			$fullPathName = FileUtilities::fixFolderPath( $dest_path ) . $name;
 			$this->moveFile( $this->_container, $fullPathName, $source_file, $check_exist );
 
-			return array( 'file' => array( array( 'name' => $name, 'path' => $fullPathName ) ) );
+			return array( 'file' => array( array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName ) ) );
 		}
 	}
 
@@ -979,10 +981,10 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		}
 		else
 		{
-			$fullPathName = $dest_path . $dest_name;
+			$fullPathName = FileUtilities::fixFolderPath( $dest_path ) . $dest_name;
 			$this->writeFile( $this->_container, $fullPathName, $content, false, $check_exist );
 
-			return array( 'file' => array( array( 'name' => $dest_name, 'path' => $fullPathName ) ) );
+			return array( 'file' => array( array( 'name' => $dest_name, 'path' => $this->_container.'/'.$fullPathName ) ) );
 		}
 	}
 
@@ -1022,7 +1024,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$folders = Option::get( $data, 'folder' );
 		if ( empty( $folders ) )
 		{
-			$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+			$folders = Option::getDeep( $data, 'folders', 'folder' );
 		}
 		if ( !empty( $folders ) )
 		{
@@ -1044,7 +1046,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$name = FileUtilities::getNameFromPath( $srcPath );
 					}
 					$fullPathName = $this->_folderPath . $name . '/';
-					$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+					$out['folder'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
 					try
 					{
 						$this->copyFolder( $this->_container, $fullPathName, $srcContainer, $srcPath, true );
@@ -1068,7 +1070,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					{
 						$content = base64_decode( $content );
 					}
-					$out['folder'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+					$out['folder'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
 					try
 					{
 						$this->createFolder( $this->_container, $fullPathName, true, $content );
@@ -1083,7 +1085,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$files = Option::get( $data, 'file' );
 		if ( empty( $files ) )
 		{
-			$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
+			$files = Option::getDeep( $data, 'files', 'file' );
 		}
 		if ( !empty( $files ) )
 		{
@@ -1105,7 +1107,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$name = FileUtilities::getNameFromPath( $srcPath );
 					}
 					$fullPathName = $this->_folderPath . $name;
-					$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+					$out['file'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
 					try
 					{
 						$this->copyFile( $this->_container, $fullPathName, $srcContainer, $srcPath, true );
@@ -1123,7 +1125,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				elseif ( isset( $file['content'] ) )
 				{
 					$fullPathName = $this->_folderPath . $name;
-					$out['file'][$key] = array( 'name' => $name, 'path' => $fullPathName );
+					$out['file'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
 					$content = Option::get( $file, 'content', '' );
 					$isBase64 = DataFormat::boolval( Option::get( $file, 'is_base64', false ) );
 					if ( $isBase64 )
@@ -1158,7 +1160,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$folders = Option::get( $data, 'folder' );
 		if ( empty( $folders ) )
 		{
-			$folders = ( isset( $data['folders']['folder'] ) ? $data['folders']['folder'] : null );
+			$folders = Option::getDeep( $data, 'folders', 'folder' );
 		}
 		if ( !empty( $folders ) )
 		{
@@ -1172,7 +1174,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		$files = Option::get( $data, 'file' );
 		if ( empty( $files ) )
 		{
-			$files = ( isset( $data['files']['file'] ) ? $data['files']['file'] : null );
+			$files = Option::getDeep( $data, 'files', 'file' );
 		}
 		if ( !empty( $files ) )
 		{

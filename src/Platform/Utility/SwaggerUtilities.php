@@ -120,6 +120,7 @@ class SwaggerUtilities
 					$serviceName = '{sql_schema}';
 					$replacePath = true;
 					break;
+				case 'Email Service':
 				case 'Local Email Service':
 				case 'Remote Email Service':
 					$serviceName = '{email}';

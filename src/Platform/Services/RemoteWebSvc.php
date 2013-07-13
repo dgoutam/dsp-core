@@ -19,8 +19,8 @@
  */
 namespace Platform\Services;
 
+use Kisma\Core\Utility\Option;
 use Platform\Utility\Curl;
-use Platform\Utility\Utilities;
 
 /**
  * RemoteWebSvc
@@ -66,14 +66,14 @@ class RemoteWebSvc extends RestService
 
 		// Validate url setup
 
-		$this->_baseUrl = Utilities::getArrayValue( 'base_url', $config, '' );
+		$this->_baseUrl = Option::get( $config, 'base_url' );
 		if ( empty( $this->_baseUrl ) )
 		{
 			throw new \InvalidArgumentException( 'Remote Web Service base url can not be empty.' );
 		}
-		$this->_credentials = Utilities::getArrayValue( 'credentials', $config, null );
-		$this->_headers = Utilities::getArrayValue( 'headers', $config, null );
-		$this->_parameters = Utilities::getArrayValue( 'parameters', $config, null );
+		$this->_credentials = Option::get( $config, 'credentials' );
+		$this->_headers = Option::get( $config, 'headers' );
+		$this->_parameters = Option::get( $config, 'parameters' );
 	}
 
 	/**
@@ -104,7 +104,7 @@ class RemoteWebSvc extends RestService
 		{
 			foreach ( $this->_parameters as $param )
 			{
-				$paramAction = Utilities::getArrayValue( 'action', $param );
+				$paramAction = Option::get( $param, 'action' );
 				if ( !empty( $paramAction ) && ( 0 !== strcasecmp( 'all', $paramAction ) ) )
 				{
 					if ( 0 !== strcasecmp( $action, $paramAction ) )
@@ -112,8 +112,8 @@ class RemoteWebSvc extends RestService
 						continue;
 					}
 				}
-				$key = Utilities::getArrayValue( 'name', $param );
-				$value = Utilities::getArrayValue( 'value', $param );
+				$key = Option::get( $param, 'name' );
+				$value = Option::get( $param, 'value' );
 				$param_str .= ( !empty( $param_str ) ) ? '&' : '';
 				$param_str .= urlencode( $key );
 				$param_str .= ( empty( $value ) ) ? '' : '=' . urlencode( $value );
@@ -135,7 +135,7 @@ class RemoteWebSvc extends RestService
 		{
 			foreach ( $this->_headers as $header )
 			{
-				$headerAction = Utilities::getArrayValue( 'action', $header );
+				$headerAction = Option::get( $header, 'action' );
 				if ( !empty( $headerAction ) && ( 0 !== strcasecmp( 'all', $headerAction ) ) )
 				{
 					if ( 0 !== strcasecmp( $action, $headerAction ) )
@@ -143,8 +143,8 @@ class RemoteWebSvc extends RestService
 						continue;
 					}
 				}
-				$key = Utilities::getArrayValue( 'name', $header );
-				$value = Utilities::getArrayValue( 'value', $header );
+				$key = Option::get( $header, 'name' );
+				$value = Option::get( $header, 'value' );
 				if ( !isset( $options[CURLOPT_HTTPHEADER] ) )
 				{
 					$options[CURLOPT_HTTPHEADER] = array( $key . ': ' . $value );
@@ -204,8 +204,8 @@ class RemoteWebSvc extends RestService
 		if ( false === $results )
 		{
 			$err = Curl::getError();
-			throw new \Exception( Utilities::getArrayValue( 'message', $err ),
-								 Utilities::getArrayValue( 'code', $err, 500 ) );
+			throw new \Exception( Option::get( $err, 'message' ),
+								  Option::get( $err, 'code', 500 ) );
 		}
 
 		// future support should be in post processing
