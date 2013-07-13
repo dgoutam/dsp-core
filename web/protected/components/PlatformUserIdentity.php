@@ -126,7 +126,7 @@ class PlatformUserIdentity extends \CUserIdentity
 			return false;
 		}
 
-		$this->_initializeSession( $_user );
+		return $this->_initializeSession( $_user );
 	}
 
 	/**

@@ -432,21 +432,14 @@ class SystemManager extends RestService
 
 			// write back login datetime
 			$_user->last_login_date = date( 'c' );
-
-			//	Log out the drupal user if one before we save...
-			Pii::user()->logout();
-
 			$_user->save();
 
 			// update session with current real user
-			Pii::user()->setId( $_user->primaryKey );
-			Pii::user()->setState( 'email', $_email );
-			Pii::user()->setState( 'df_authenticated', false ); // removes catch
-			Pii::user()->setState( 'password', $_password, $_password ); // removes password
-
-			//	Auto login this new admin user...
-			static::autoLoginAdmin( $_user );
-
+			$_identity = Pii::user();
+			$_identity->setId( $_user->primaryKey );
+			$_identity->setState( 'email', $_email );
+			$_identity->setState( 'df_authenticated', false ); // removes catch
+			$_identity->setState( 'password', $_password, $_password ); // removes password
 		}
 		catch ( \Exception $_ex )
 		{
@@ -1017,13 +1010,15 @@ class SystemManager extends RestService
 	/**
 	 * Returns true if this DSP has been activated
 	 *
-	 * @return bool
+	 * @return bool|int Returns 2+ if # of admins is greater than 1
 	 */
 	public static function activated()
 	{
 		try
 		{
-			return 0 != Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), Pii::pdo() );
+			$_admins = Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), Pii::pdo() );
+
+			return ( 0 != $_admins ? ($_admins>1 ? $_admins : true) : false );
 		}
 		catch ( \Exception $_ex )
 		{
