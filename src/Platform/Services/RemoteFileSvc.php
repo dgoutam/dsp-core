@@ -746,7 +746,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	{
 		$path = FileUtilities::fixFolderPath( $path );
 		$_delimiter = '';
-		if ( $this->containerExists( $container ) )
+		if ( !$this->containerExists( $container ) )
 		{
 			throw new BadRequestException( "Can not find directory '$container'." );
 		}
@@ -891,7 +891,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 		$container = FileUtilities::fixFolderPath( $container );
 
-		return substr( $path, strlen( $container ) + 1 );
+		return substr( $path, strlen( $container ) );
 	}
 
 

@@ -57,43 +57,31 @@ class AwsS3Svc extends RemoteFileSvc
 	}
 
 	/**
-	 * @param $accessKey
-	 * @param $secretKey
+	 * @param array $config
 	 *
-	 * @throws BlobServiceException
 	 * @throws \InvalidArgumentException
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 */
 	public function __construct( $config )
 	{
 		parent::__construct( $config );
 
 		$_credentials = Option::get( $config, 'credentials' );
-		$accessKey = Option::get( $_credentials, 'access_key' );
-		$secretKey = Option::get( $_credentials, 'secret_key' );
-		if ( empty( $accessKey ) )
+		$_accessKey = Option::get( $_credentials, 'access_key' );
+		$_secretKey = Option::get( $_credentials, 'secret_key' );
+		if ( !empty( $_accessKey ) && !empty( $_secretKey ) )
 		{
-			throw new \InvalidArgumentException( 'Amazon S3 access key can not be empty.' );
-		}
-
-		if ( empty( $secretKey ) )
-		{
-			throw new \InvalidArgumentException( 'Amazon S3 secret key can not be empty.' );
+			// old way
+			$_credentials = array( 'key' => $_accessKey, 'secret' => $_secretKey );
 		}
 
 		try
 		{
-			$s3 = S3Client::factory(
-				array(
-					 'key'    => $accessKey,
-					 'secret' => $secretKey
-				)
-			);
-
-			$this->_blobConn = $s3;
+			$this->_blobConn = S3Client::factory( $_credentials );
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Unexpected Amazon S3 Service \Exception: ' . $ex->getMessage() );
+			throw new BlobServiceException( 'Unexpected Amazon S3 Service Exception: ' . $ex->getMessage() );
 		}
 	}
 
@@ -117,15 +105,15 @@ class AwsS3Svc extends RemoteFileSvc
 	{
 		$this->checkConnection();
 
-		$buckets = $this->_blobConn->listBuckets()->get( 'Buckets' );
+		$_buckets = $this->_blobConn->listBuckets()->get( 'Buckets' );
 
-		$out = array();
-		foreach ( $buckets as $bucket )
+		$_out = array();
+		foreach ( $_buckets as $_bucket )
 		{
-			$out[] = array( 'name' => rtrim( $bucket['Name'] ) );
+			$_out[] = array( 'name' => rtrim( $_bucket['Name'] ) );
 		}
 
-		return $out;
+		return $_out;
 	}
 
 	/**
@@ -199,7 +187,7 @@ class AwsS3Svc extends RemoteFileSvc
 	 * @param string $container
 	 * @param array  $properties
 	 *
-	 * @throws \Platform\Exceptions\NotFoundException
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @return void
 	 */
 	public function updateContainerProperties( $container, $properties = array() )
@@ -278,7 +266,7 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			$options = array(
+			$_options = array(
 				'Bucket' => $container,
 				'Key'    => $name,
 				'Body'   => $blob
@@ -286,10 +274,10 @@ class AwsS3Svc extends RemoteFileSvc
 
 			if ( !empty( $type ) )
 			{
-				$options['ContentType'] = $type;
+				$_options['ContentType'] = $type;
 			}
 
-			$result = $this->_blobConn->putObject( $options );
+			$_result = $this->_blobConn->putObject( $_options );
 		}
 		catch ( \Exception $ex )
 		{
@@ -311,7 +299,7 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			$options = array(
+			$_options = array(
 				'Bucket'     => $container,
 				'Key'        => $name,
 				'SourceFile' => $localFileName
@@ -319,10 +307,10 @@ class AwsS3Svc extends RemoteFileSvc
 
 			if ( !empty( $type ) )
 			{
-				$options['ContentType'] = $type;
+				$_options['ContentType'] = $type;
 			}
 
-			$result = $this->_blobConn->putObject( $options );
+			$_result = $this->_blobConn->putObject( $_options );
 		}
 		catch ( \Exception $ex )
 		{
@@ -335,8 +323,9 @@ class AwsS3Svc extends RemoteFileSvc
 	 * @param string $name
 	 * @param string $src_container
 	 * @param string $src_name
+	 * @param array  $properties
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
 	 */
 	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '', $properties = array() )
 	{
@@ -344,13 +333,13 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			$options = array(
+			$_options = array(
 				'Bucket'     => $container,
 				'Key'        => $name,
 				'CopySource' => urlencode( $src_container . '/' . $src_name )
 			);
 
-			$result = $this->_blobConn->copyObject( $options );
+			$result = $this->_blobConn->copyObject( $_options );
 		}
 		catch ( \Exception $ex )
 		{
@@ -373,13 +362,13 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			$options = array(
+			$_options = array(
 				'Bucket' => $container,
 				'Key'    => $name,
 				'SaveAs' => $localFileName
 			);
 
-			$result = $this->_blobConn->getObject( $options );
+			$_result = $this->_blobConn->getObject( $_options );
 		}
 		catch ( \Exception $ex )
 		{
@@ -400,14 +389,14 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			$options = array(
+			$_options = array(
 				'Bucket' => $container,
 				'Key'    => $name
 			);
 
-			$result = $this->_blobConn->getObject( $options );
+			$_result = $this->_blobConn->getObject( $_options );
 
-			return $result['Body'];
+			return $_result['Body'];
 		}
 		catch ( \Exception $ex )
 		{
@@ -451,78 +440,77 @@ class AwsS3Svc extends RemoteFileSvc
 	 */
 	public function listBlobs( $container = '', $prefix = '', $delimiter = '' )
 	{
-		$options = array(
+		$_options = array(
 			'Bucket' => $container,
 			'Prefix' => $prefix
 		);
 
 		if ( !empty( $delimiter ) )
 		{
-			$options['Delimiter'] = $delimiter;
+			$_options['Delimiter'] = $delimiter;
 		}
 
 		//	No max-keys specified. Get everything.
-		$keys = array();
+		$_keys = array();
 
 		do
 		{
-			/** @var \Aws\S3\Iterator\ListObjectsIterator $list */
-			$list = $this->_blobConn->listObjects( $options );
+			/** @var \Aws\S3\Iterator\ListObjectsIterator $_list */
+			$_list = $this->_blobConn->listObjects( $_options );
 
-			$objects = $list->get( 'Contents' );
+			$_objects = $_list->get( 'Contents' );
 
-			if ( !empty( $objects ) )
+			if ( !empty( $_objects ) )
 			{
-				foreach ( $objects as $object )
+				foreach ( $_objects as $_object )
 				{
-					if ( 0 != strcasecmp( $prefix, $object['Key'] ) )
+					if ( 0 != strcasecmp( $prefix, $_object['Key'] ) )
 					{
-						$keys[] = $object['Key'];
+						$_keys[] = $_object['Key'];
 					}
 				}
 			}
 
-			$objects = $list->get( 'CommonPrefixes' );
+			$_objects = $_list->get( 'CommonPrefixes' );
 
-			if ( !empty( $objects ) )
+			if ( !empty( $_objects ) )
 			{
-				foreach ( $objects as $object )
+				foreach ( $_objects as $_object )
 				{
-					if ( 0 != strcasecmp( $prefix, $object['Prefix'] ) )
+					if ( 0 != strcasecmp( $prefix, $_object['Prefix'] ) )
 					{
-						$keys[] = $object['Prefix'];
+						$_keys[] = $_object['Prefix'];
 					}
 				}
 			}
 
-			$options['Marker'] = $list->get( 'Marker' );
+			$_options['Marker'] = $_list->get( 'Marker' );
 		}
-		while ( $list->get( 'IsTruncated' ) );
+		while ( $_list->get( 'IsTruncated' ) );
 
-		$out = array();
-		$options = array(
+		$_options = array(
 			'Bucket' => $container,
 			'Key'    => ''
 		);
 
-		$keys = array_unique( $keys );
-
-		foreach ( $keys as $key )
+		$_keys = array_unique( $_keys );
+		$_out = array();
+		foreach ( $_keys as $_key )
 		{
-			$options['Key'] = $key;
+			$_options['Key'] = $_key;
 
-			/** @var \Aws\S3\Iterator\ListObjectsIterator $meta */
-			$meta = $this->_blobConn->headObject( $options );
+			/** @var \Aws\S3\Iterator\ListObjectsIterator $_meta */
+			$_meta = $this->_blobConn->headObject( $_options );
 
-			$out[] = array(
-				'name'           => $key,
-				'content_type'   => $meta->get( 'ContentType' ),
-				'content_length' => intval( $meta->get( 'ContentLength' ) ),
-				'last_modified'  => $meta->get( 'LastModified' )
+			$_out[] = array(
+				'name'           => $_key,
+				'content_type'   => $_meta->get( 'ContentType' ),
+				'content_length' => intval( $_meta->get( 'ContentLength' ) ),
+				'last_modified'  => $_meta->get( 'LastModified' )
 			);
 		}
 
-		return $out;
+		return $_out;
 	}
 
 	/**
@@ -540,22 +528,22 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			/** @var \Aws\S3\Iterator\ListObjectsIterator $result */
-			$result = $this->_blobConn->headObject(
+			/** @var \Aws\S3\Iterator\ListObjectsIterator $_result */
+			$_result = $this->_blobConn->headObject(
 				array(
 					 'Bucket' => $container,
 					 'Key'    => $name
 				)
 			);
 
-			$file = array(
+			$_out = array(
 				'name'           => $name,
-				'content_type'   => $result->get( 'ContentType' ),
-				'content_length' => intval( $result->get( 'ContentLength' ) ),
-				'last_modified'  => $result->get( 'LastModified' )
+				'content_type'   => $_result->get( 'ContentType' ),
+				'content_length' => intval( $_result->get( 'ContentLength' ) ),
+				'last_modified'  => $_result->get( 'LastModified' )
 			);
 
-			return $file;
+			return $_out;
 		}
 		catch ( \Exception $ex )
 		{
@@ -576,22 +564,22 @@ class AwsS3Svc extends RemoteFileSvc
 		{
 			$this->checkConnection();
 
-			/** @var \Aws\S3\Iterator\ListObjectsIterator $result */
-			$result = $this->_blobConn->getObject(
+			/** @var \Aws\S3\Iterator\ListObjectsIterator $_result */
+			$_result = $this->_blobConn->getObject(
 				array(
 					 'Bucket' => $container,
 					 'Key'    => $name
 				)
 			);
 
-			header( 'Last-Modified: ' . $result->get( 'LastModified' ) );
-			header( 'Content-Type: ' . $result->get( 'ContentType' ) );
-			header( 'Content-Length:' . intval( $result->get( 'ContentLength' ) ) );
+			header( 'Last-Modified: ' . $_result->get( 'LastModified' ) );
+			header( 'Content-Type: ' . $_result->get( 'ContentType' ) );
+			header( 'Content-Length:' . intval( $_result->get( 'ContentLength' ) ) );
 
-			$disposition = ( isset( $params['disposition'] ) && !empty( $params['disposition'] ) ) ? $params['disposition'] : 'inline';
+			$_disposition = ( isset( $params['disposition'] ) && !empty( $params['disposition'] ) ) ? $params['disposition'] : 'inline';
 
-			header( 'Content-Disposition: ' . $disposition . '; filename="' . $name . '";' );
-			echo $result->get( 'Body' );
+			header( 'Content-Disposition: ' . $_disposition . '; filename="' . $name . '";' );
+			echo $_result->get( 'Body' );
 		}
 		catch ( \Exception $ex )
 		{
