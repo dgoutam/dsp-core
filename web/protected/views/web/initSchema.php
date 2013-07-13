@@ -40,7 +40,7 @@ $this->breadcrumbs = array(
 	<p>A database update is available for this DreamFactory Services Platform&trade;. Click the 'Update' button below to start the update.</p>
 
 	<div class="space200"></div>
-	<div class="space200"></div>
+	<div class="space50"></div>
 	<form id="init-schema-form" method="POST">
 		<input type="hidden" name="InitSchemaForm[dummy]" id="InitSchemaForm_dummy" value="1">
 

@@ -28,13 +28,13 @@ h2.headline {
 .main-content {
 	height:     640px;
 	font-size:  18px !important;
-	background: url(../images/bg-initial.png) 50% 0 no-repeat;
+	background: url(../images/bg-initial-light.png) 50% 0 no-repeat;
 }
 
 .main-content.step2 {
 	height:     640px;
 	font-size:  18px !important;
-	background: url(../images/bg-initial.png) 100% 50% no-repeat;
+	background: url(../images/bg-initial-light.png) 100% 50% no-repeat;
 }
 
 .main-content p {
@@ -85,5 +85,11 @@ label.error {
 .space200 {
 	width:   1px;
 	height:  200px;
+	display: block;
+}
+
+.space50 {
+	width:   1px;
+	height:  50px;
 	display: block;
 }
