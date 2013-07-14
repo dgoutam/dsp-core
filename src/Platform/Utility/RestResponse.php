@@ -60,10 +60,16 @@ class RestResponse extends HttpResponse
 	public static function sendErrors( $ex, $desired_format = 'json' )
 	{
 		$_status = static::InternalServerError;
-		if ( $ex instanceof RestException )
+
+		if ( $ex instanceof RestException || $ex instanceOf \CHttpException )
 		{
 			$_status = $ex->statusCode;
 		}
+		else if ( $ex instanceof \DreamFactory\Platform\Exceptions\RestException )
+		{
+			$_status = $ex->getStatusCode();
+		}
+
 		$result = array(
 			"error" => array(
 				array(
@@ -261,5 +267,4 @@ class RestResponse extends HttpResponse
 		return preg_match( $identifier_syntax, $subject )
 			   && !in_array( mb_strtolower( $subject, 'UTF-8' ), $reserved_words );
 	}
-
 }

@@ -105,7 +105,7 @@ return array(
 					'maxFileSize' => '102400',
 					'logFile'     => $_logFileName,
 					'logPath'     => $_logFilePath,
-//					'levels'      => 'error, warning, trace, info, debug, notice',
+					'levels'      => 'error, warning, trace, info, debug, notice',
 				),
 			),
 		),

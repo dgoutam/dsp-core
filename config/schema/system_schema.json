@@ -963,7 +963,8 @@
 				},
 				{
 					"name":       "provider_name",
-					"type":       "integer",
+					"type":       "string",
+					"length":     64,
 					"allow_null": true
 				},
 				{

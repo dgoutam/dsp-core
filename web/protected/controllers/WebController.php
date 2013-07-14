@@ -27,6 +27,7 @@ use Platform\Interfaces\PlatformStates;
 use Platform\Services\SystemManager;
 use Platform\Resources\UserSession;
 use Platform\Services\UserManager;
+use Platform\Yii\Utility\JsonSchema;
 use Platform\Yii\Utility\Pii;
 
 /**

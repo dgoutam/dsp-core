@@ -20,8 +20,10 @@
 namespace Platform\Services;
 
 use DreamFactory\Platform\Enums\PlatformServiceTypes;
+use DreamFactory\Platform\Resources\BasePlatformRestResource;
 use DreamFactory\Platform\Services\BasePlatformRestService;
 use DreamFactory\Platform\Services\BasePlatformService;
+use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -771,6 +773,15 @@ class SystemManager extends BasePlatformRestService
 				return $_resource->processRequest( $this->_action );
 				break;
 			default:
+				$_class = 'DreamFactory\\Platform\\Resources\\System\\' . ucfirst( Inflector::deneutralize( $this->_resource ) );
+
+				if ( \Kisma::get( 'app.autoloader' )->loadClass( $_class ) )
+				{
+					/** @var BasePlatformRestResource $_resource */
+					$_resource = new $_class( $this, array( 'resource_array' => $this->_resourceArray ) );
+
+					return $_resource->processRequest( $this->_resource, $this->_action );
+				}
 				break;
 		}
 

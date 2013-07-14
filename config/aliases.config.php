@@ -28,11 +28,20 @@ $_vendorPath = $_basePath . '/vendor';
 
 Pii::setPathOfAlias( 'vendor', $_vendorPath );
 
+//	Local
 Pii::alias( 'Platform', $_basePath . '/src/Platform' );
 Pii::alias( 'Platform.Yii.Behaviors', $_basePath . '/src/Platform/Yii/Behaviors' );
-Pii::alias( 'DreamFactory.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Behaviors' );
 Pii::alias( 'Platform.Yii.Components', $_basePath . '/src/Platform/Yii/Components' );
-Pii::alias( 'DreamFactory.Yii.Components', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Components' );
 Pii::alias( 'Platform.Yii.Utility', $_basePath . '/src/Platform/Yii/Utility' );
+
+//	lib-php-common-yii
+Pii::alias( 'DreamFactory.Yii.Components', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Components' );
+Pii::alias( 'DreamFactory.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Behaviors' );
 Pii::alias( 'DreamFactory.Yii.Utility', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Utility' );
+
+//	lib-php-common-platform
+Pii::alias( 'DreamFactory.Platform.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Yii/Behaviors' );
+Pii::alias( 'DreamFactory.Platform.Yii.Models', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Yii/Models' );
+
+//	Vendors
 Pii::alias( 'Swift', $_vendorPath . '/swiftmailer/swiftmailer/lib/classes' );

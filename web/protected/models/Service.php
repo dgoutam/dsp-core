@@ -195,19 +195,22 @@ class Service extends BaseDspSystemModel
 			array_merge(
 				$additionalLabels,
 				array(
-					 'name'          => 'Name',
-					 'api_name'      => 'API Name',
-					 'description'   => 'Description',
-					 'is_active'     => 'Is Active',
-					 'is_system'     => 'Is System',
-					 'type'          => 'Type',
-					 'storage_name'  => 'Storage Name',
-					 'storage_type'  => 'Storage Type',
-					 'credentials'   => 'Credentials',
-					 'native_format' => 'Native Format',
-					 'base_url'      => 'Base Url',
-					 'parameters'    => 'Parameters',
-					 'headers'       => 'Headers',
+					 'name'             => 'Name',
+					 'api_name'         => 'API Name',
+					 'description'      => 'Description',
+					 'is_active'        => 'Is Active',
+					 'is_system'        => 'Is System',
+					 'type'             => 'Type',
+					 'type_id'          => 'Type ID',
+					 'storage_name'     => 'Storage Name',
+					 'storage_type'     => 'Storage Type',
+					 'storage_type_id'  => 'Storage Type ID',
+					 'credentials'      => 'Credentials',
+					 'native_format'    => 'Native Format',
+					 'native_format_id' => 'Native Format ID',
+					 'base_url'         => 'Base Url',
+					 'parameters'       => 'Parameters',
+					 'headers'          => 'Headers',
 				)
 			)
 		);
@@ -355,7 +358,7 @@ class Service extends BaseDspSystemModel
 	public function afterFind()
 	{
 		//	Correct data type
-		$this->is_active = intval( $this->is_active );
+		$this->is_active = ( 0 != $this->is_active );
 
 		//	Add fake field for client
 		$this->is_system = false;
@@ -424,11 +427,14 @@ class Service extends BaseDspSystemModel
 					 'description',
 					 'is_active',
 					 'type',
+					 'type_id',
 					 'is_system',
 					 'storage_name',
 					 'storage_type',
+					 'storage_type_id',
 					 'credentials',
 					 'native_format',
+					 'native_format_id',
 					 'base_url',
 					 'parameters',
 					 'headers',

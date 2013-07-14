@@ -24,6 +24,7 @@ use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Interfaces\RestServiceLike;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
+use Platform\Resources\UserSession;
 use Swagger\Annotations as SWG;
 
 /**
@@ -212,5 +213,23 @@ abstract class RestService extends BasePlatformService implements RestServiceLik
 		}
 
 		return $_criteria;
+	}
+
+	/**
+	 * @param string $request
+	 * @param string $component
+	 */
+	protected function checkPermission( $request, $component = null )
+	{
+		return $this->_checkPermission( $request, $this->_apiName, $component );
+	}
+
+	/**
+	 * @param string $request
+	 * @param string $component
+	 */
+	protected function _checkPermission( $request, $component = null )
+	{
+		UserSession::checkSessionPermission( $request, $this->_apiName, $component );
 	}
 }

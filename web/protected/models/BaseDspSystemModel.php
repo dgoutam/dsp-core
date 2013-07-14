@@ -116,14 +116,14 @@ abstract class BaseDspSystemModel extends \BaseDspModel
 		if ( static::ALL_ATTRIBUTES == $requested )
 		{
 			return array_merge(
+				array( 'id' ),
+				$columns,
 				array(
-					 'id',
 					 'created_date',
 					 'created_by_id',
 					 'last_modified_date',
 					 'last_modified_by_id'
-				),
-				$columns
+				)
 			);
 		}
 
