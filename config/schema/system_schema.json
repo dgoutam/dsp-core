@@ -986,7 +986,7 @@
 				{
 					"name":       "master_auth_text",
 					"type":       "mediumtext",
-					"allow_null": false
+					"allow_null": true
 				},
 				{
 					"name":       "last_use_date",

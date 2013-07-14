@@ -19,9 +19,11 @@
  */
 namespace Platform\Utility;
 
+use DreamFactory\Platform\Enums\PlatformServiceTypes;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use Platform\Enums\ServiceTypes;
 use Platform\Services\EmailSvc;
 use Platform\Services\LocalFileSvc;
 use Platform\Services\RemoteWebSvc;
@@ -177,11 +179,15 @@ class ServiceHandler
 	 */
 	protected static function _createService( $record )
 	{
-		$_serviceType = trim( strtolower( Option::get( $record, 'type' ) ) );
-
-		if ( null === ( $_config = Option::get( static::$_serviceConfig, $_serviceType ) ) )
+		if ( null === ( $_typeId = Option::get( $record, 'type_id' ) ) )
 		{
-			throw new \InvalidArgumentException( 'Service type "' . $_serviceType . '" is invalid.' );
+			throw new \InvalidArgumentException( 'Service type_id not set in database.' );
+		}
+
+		//	Get config mapping...
+		if ( null === ( $_config = Option::get( static::$_serviceConfig, $_typeId ) ) )
+		{
+			throw new \InvalidArgumentException( 'Service type id# "' . $_typeId . '" is not configured.' );
 		}
 
 		if ( null !== ( $_serviceClass = Option::get( $_config, 'class' ) ) )
