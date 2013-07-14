@@ -24,14 +24,45 @@ use DreamFactory\Platform\Utility\Fabric;
  */
 
 //*************************************************************************
-//* Global Configuration Settings
+//* Constants
 //*************************************************************************
 
 /**
  * @var string
  */
 const DSP_VERSION = '1.0.5';
+/**
+ * @var string
+ */
 const API_VERSION = '1.0';
+/**
+ * @var string
+ */
+const BLOB_CONFIG_PATH = '/blob.config.php';
+/**
+ * @var string
+ */
+const ALIASES_CONFIG_PATH = '/aliases.config.php';
+/**
+ * @var string
+ */
+const SERVICES_CONFIG_PATH = '/services.config.php';
+/**
+ * @var string
+ */
+const DEFAULT_CLOUD_API_ENDPOINT = 'http://api.cloud.dreamfactory.com';
+/**
+ * @var string
+ */
+const DEFAULT_INSTANCE_AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials';
+/**
+ * @var string
+ */
+const DEFAULT_SUPPORT_EMAIL = 'support@dreamfactory.com';
+
+//*************************************************************************
+//* Global Configuration Settings
+//*************************************************************************
 
 //	The base path of the project, where it's checked out basically
 $_basePath = dirname( __DIR__ );
@@ -44,7 +75,7 @@ $_dbCacheEnabled = true;
 //	The name of the default controller. "site" just sucks
 $_defaultController = 'web';
 //	Load the BLOB storage configuration settings
-$_blobConfig = ( file_exists( __DIR__ . '/blob.config.php' ) ? require_once( __DIR__ . '/blob.config.php' ) : array() );
+$_blobConfig = ( file_exists( __DIR__ . BLOB_CONFIG_PATH ) ? require_once( __DIR__ . BLOB_CONFIG_PATH ) : array() );
 //	Where the log files go and the name...
 $_logFilePath = $_basePath . '/log';
 $_logFileName = basename( \Kisma::get( 'app.log_file' ) );
@@ -52,9 +83,9 @@ $_logFileName = basename( \Kisma::get( 'app.log_file' ) );
 /**
  * Aliases
  */
-if ( file_exists( __DIR__ . '/aliases.config.php' ) )
+if ( file_exists( __DIR__ . ALIASES_CONFIG_PATH ) )
 {
-	require __DIR__ . '/aliases.config.php';
+	require __DIR__ . ALIASES_CONFIG_PATH;
 }
 
 /**
@@ -115,15 +146,15 @@ return array_merge(
 		 /** DSP Information */
 		 'dsp.version'          => DSP_VERSION,
 		 'dsp.name'             => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'    => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
-		 'cloud.endpoint'       => 'http://api.cloud.dreamfactory.com',
+		 'dsp.auth_endpoint'    => DEFAULT_INSTANCE_AUTH_ENDPOINT,
+		 'cloud.endpoint'       => DEFAULT_CLOUD_API_ENDPOINT,
 		 /**
 		  * User data
 		  */
 		 'blobStorageConfig'    => $_blobConfig,
-		 'adminEmail'           => 'support@dreamfactory.com',
+		 'adminEmail'           => DEFAULT_SUPPORT_EMAIL,
 		 /** The default service configuration */
-		 'dsp.service_config'   => require( __DIR__ . '/services.config.php' ),
+		 'dsp.service_config'   => require( __DIR__ . SERVICES_CONFIG_PATH ),
 		 /** Default services provided by all DSPs */
 		 'dsp.default_services' => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
