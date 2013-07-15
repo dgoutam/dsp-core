@@ -47,7 +47,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	{
 		if ( !$this->containerExists( $container ) )
 		{
-			$this->createContainer( $container );
+			$this->createContainer( array( 'name' => $container ) );
 		}
 	}
 
@@ -59,16 +59,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 			try
 			{
 				// path is full path, name is relative to root, take either
-				$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
-				if ( !empty( $_name ) )
-				{
-					$_out[$_key] = array( 'name' => $_name, 'path' => $_name );
-					$this->createContainer( $_name, $check_exist );
-				}
-				else
-				{
-					throw new BadRequestException( 'No name found for container in create request.' );
-				}
+				$_out[$_key] = $this->createContainer( $_folder, $check_exist );
 			}
 			catch ( \Exception $ex )
 			{

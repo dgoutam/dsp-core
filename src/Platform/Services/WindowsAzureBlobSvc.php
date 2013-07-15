@@ -225,20 +225,28 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	}
 
 	/**
-	 * @param string $container
-	 * @param array  $metadata
+	 * @param array $properties
+	 * @param array $metadata
 	 *
-	 * @return void
+	 * @throws \Platform\Exceptions\BadRequestException
+	 * @return array
 	 */
-	public function createContainer( $container = '', $metadata = array() )
+	public function createContainer( $properties, $metadata = array() )
 	{
 		$this->checkConnection();
 
+		$_name = Option::get( $properties, 'name', Option::get( $properties, 'path' ) );
+		if ( empty( $_name ) )
+		{
+			throw new BadRequestException( 'No name found for container in create request.' );
+		}
 		$options = new CreateContainerOptions();
 		$options->setMetadata( $metadata );
 //		$options->setPublicAccess('blob');
 
-		$this->_blobConn->createContainer( $container, $options );
+		$this->_blobConn->createContainer( $_name, $options );
+
+		return array( 'name' => $_name, 'path' => $_name );
 	}
 
 	/**

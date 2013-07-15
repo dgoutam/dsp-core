@@ -262,29 +262,37 @@ class OpenStackObjectStoreSvc extends RemoteFileSvc
 	}
 
 	/**
-	 * @param string $container
-	 * @param array  $metadata
+	 * @param array $properties
+	 * @param array $metadata
 	 *
+	 * @return array|void
 	 * @throws \Platform\Exceptions\BlobServiceException
 	 * @throws \Exception
 	 */
-	public function createContainer( $container = '', $metadata = array() )
+	public function createContainer( $properties, $metadata = array() )
 	{
 		$this->checkConnection();
 
+		$_name = Option::get( $properties, 'name', Option::get( $properties, 'path' ) );
+		if ( empty( $_name ) )
+		{
+			throw new BadRequestException( 'No name found for container in create request.' );
+		}
 		try
 		{
 			/** @var Container $_container */
 			$_container = $this->_blobConn->Container();
-			$_params = array( 'name' => $container );
+			$_params = array( 'name' => $_name );
 			if ( !$_container->Create( $_params ) )
 			{
 				throw new \Exception( '' );
 			}
+
+			return array( 'name' => $_name, 'path' => $_name );
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( "Failed to create container '$container': " . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to create container '$_name': " . $ex->getMessage() );
 		}
 	}
 
