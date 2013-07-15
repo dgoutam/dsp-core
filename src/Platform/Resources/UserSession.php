@@ -779,11 +779,11 @@ class UserSession extends RestResource
 	}
 
 	/**
-	 * @param mixed $inquirer
+	 * @param mixed $inquirer For future use
 	 *
 	 * @return int|null
 	 */
-	public static function getCurrentUserId( $inquirer )
+	public static function getCurrentUserId( $inquirer = null )
 	{
 		if ( !empty( static::$_userId ) )
 		{

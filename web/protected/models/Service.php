@@ -156,13 +156,13 @@ class Service extends BaseDspSystemModel
 		$_rules = array(
 			array( 'name, api_name, type', 'required' ),
 			array( 'name, api_name', 'unique', 'allowEmpty' => false, 'caseSensitive' => false ),
-			array( 'is_active', 'numerical', 'integerOnly' => true ),
+			array( 'is_active, type_id, storage_type_id, native_format_id', 'numerical', 'integerOnly' => true ),
 			array( 'name, api_name, type, storage_type, native_format', 'length', 'max' => 64 ),
 			array( 'storage_name', 'length', 'max' => 80 ),
 			array( 'base_url', 'length', 'max' => 255 ),
 			array( 'description, credentials, parameters, headers', 'safe' ),
 			array(
-				'id, name, api_name, is_active, type, storage_name, storage_type',
+				'id, name, api_name, is_active, type, type_id, storage_name, storage_type, storage_type_id',
 				'safe',
 				'on' => 'search'
 			),
@@ -229,8 +229,10 @@ class Service extends BaseDspSystemModel
 		$_criteria->compare( 'api_name', $this->api_name, true );
 		$_criteria->compare( 'is_active', $this->is_active );
 		$_criteria->compare( 'type', $this->type, true );
+		$_criteria->compare( 'type_id', $this->type_id, true );
 		$_criteria->compare( 'storage_name', $this->storage_name, true );
 		$_criteria->compare( 'storage_type', $this->storage_type, true );
+		$_criteria->compare( 'storage_type_id', $this->type_id, true );
 
 		return parent::search( $_criteria );
 	}

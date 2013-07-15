@@ -21,8 +21,12 @@ namespace Platform\Services;
 
 use DreamFactory\Platform\Enums\PlatformServiceTypes;
 use DreamFactory\Platform\Resources\BasePlatformRestResource;
+use DreamFactory\Platform\Resources\System\Config;
 use DreamFactory\Platform\Services\BasePlatformRestService;
 use DreamFactory\Platform\Services\BasePlatformService;
+use DreamFactory\Platform\Utility\Packager;
+use DreamFactory\Platform\Utility\ResourceStore;
+use DreamFactory\Platform\Yii\Models\App;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
@@ -31,9 +35,7 @@ use Kisma\Core\Interfaces\HttpResponse;
 use Platform\Exceptions\BadRequestException;
 use Platform\Exceptions\InternalServerErrorException;
 use Platform\Interfaces\PlatformStates;
-use Platform\Resources\SystemApp;
 use Platform\Resources\SystemAppGroup;
-use Platform\Resources\SystemConfig;
 use Platform\Resources\SystemEmailTemplate;
 use Platform\Resources\SystemRole;
 use Platform\Resources\SystemService;
@@ -502,7 +504,7 @@ class SystemManager extends BasePlatformRestService
 										{
 											// need to download and extract zip file and move contents to storage
 											$filename = FileUtilities::importUrlFileToTemp( $fileUrl );
-											SystemApp::importAppFromPackage( $filename, $fileUrl );
+											Packager::importAppFromPackage( $filename, $fileUrl );
 										}
 										catch ( \Exception $ex )
 										{
@@ -757,9 +759,9 @@ class SystemManager extends BasePlatformRestService
 				}
 				break;
 			case 'config':
-				$obj = new SystemConfig();
+				$obj = new Config( $this );
 
-				return $obj->processRequest( $this->_action );
+				return $obj->processRequest( $this->_resource, $this->_action );
 				break;
 			case 'app':
 			case 'app_group':
@@ -796,70 +798,35 @@ class SystemManager extends BasePlatformRestService
 	 */
 	public static function getResourceModel( $resource )
 	{
-		switch ( strtolower( $resource ) )
-		{
-			case 'app':
-				$model = \App::model();
-				break;
-			case 'app_group':
-			case 'appgroup':
-				$model = \AppGroup::model();
-				break;
-			case 'role':
-				$model = \Role::model();
-				break;
-			case 'service':
-				$model = \Service::model();
-				break;
-			case 'user':
-				$model = \User::model();
-				break;
-			case 'email_template':
-				$model = \EmailTemplate::model();
-				break;
-			default:
-				throw new BadRequestException( "Invalid system resource '$resource' requested." );
-				break;
-		}
-
-		return $model;
-	}
-
-	/**
-	 * @param $resource
-	 *
-	 * @return SystemApp|SystemAppGroup|SystemRole|SystemService|SystemUser|SystemEmailTemplate
-	 * @throws InternalServerErrorException
-	 */
-	public static function getNewResource( $resource )
-	{
-		switch ( strtolower( $resource ) )
-		{
-			case 'app':
-				$obj = new SystemApp;
-				break;
-			case 'app_group':
-			case 'appgroup':
-				$obj = new SystemAppGroup;
-				break;
-			case 'role':
-				$obj = new SystemRole;
-				break;
-			case 'service':
-				$obj = new SystemService;
-				break;
-			case 'user':
-				$obj = new SystemUser;
-				break;
-			case 'email_template':
-				$obj = new SystemEmailTemplate();
-				break;
-			default:
-				throw new InternalServerErrorException( "Attempting to create an invalid system resource '$resource'." );
-				break;
-		}
-
-		return $obj;
+		return ResourceStore::model( $resource );
+//		switch ( strtolower( $resource ) )
+//		{
+//			case 'app':
+//				$model = \App::model();
+//				break;
+//			case 'app_group':
+//			case 'appgroup':
+//				$model = \AppGroup::model();
+//				break;
+//			case 'role':
+//				$model = \Role::model();
+//				break;
+//			case 'service':
+//				$model = \Service::model();
+//				break;
+//			case 'user':
+//				$model = \User::model();
+//				break;
+//			case 'email_template':
+//				$model = \EmailTemplate::model();
+//				break;
+//			default:
+//				//	Let the resource store have a go...
+//				$model = ResourceStore::model( $resource );
+//				break;
+//		}
+//
+//		return $model;
 	}
 
 	/**

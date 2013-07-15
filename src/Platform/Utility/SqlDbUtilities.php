@@ -104,10 +104,8 @@ class SqlDbUtilities implements SqlDbDriverTypes
 			throw new BadRequestException( 'Table name can not be empty.' );
 		}
 
-		$_tables = $db->schema->getTableNames();
-
 		//	make search case insensitive
-		foreach ( $_tables as $_table )
+		foreach ( $db->schema->getTableNames() as $_table )
 		{
 			if ( 0 == strcasecmp( $_table, $name ) )
 			{
@@ -115,7 +113,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 			}
 		}
 
-		Log::error( 'Unknown table "' . $name . '" requested.' );
+		Log::debug( 'Unknown table "' . $name . '" requested.' );
 
 		return false;
 	}

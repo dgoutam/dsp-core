@@ -22,6 +22,7 @@ namespace Platform\Services;
 use DreamFactory\Platform\Enums\PlatformServiceTypes;
 use DreamFactory\Platform\Services\BasePlatformRestService;
 use DreamFactory\Platform\Services\BaseSystemRestService;
+use DreamFactory\Platform\Yii\Models\Config;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Sql;
@@ -31,7 +32,6 @@ use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Exceptions\UnauthorizedException;
 use Platform\Resources\UserSession;
-use Platform\Resources\SystemConfig;
 use Platform\Utility\RestRequest;
 use Platform\Utility\Utilities;
 use Swagger\Annotations as SWG;
@@ -392,17 +392,26 @@ class UserManager extends BaseSystemRestService
 		{
 			throw new BadRequestException( "The email field for User can not be empty." );
 		}
+
 		$theUser = \User::model()->find( 'email=:email', array( ':email' => $email ) );
+
 		if ( null !== $theUser )
 		{
 			throw new BadRequestException( "A User already exists with the email '$email'." );
 		}
-		$config = SystemConfig::retrieveConfig( 'allow_open_registration,open_reg_role_id' );
-		if ( !Utilities::boolval( Utilities::getArrayValue( 'allow_open_registration', $config, false ) ) )
+
+		/** @var $config Config */
+		if ( null === ( $config = Config::model()->find( array( 'select' => 'allow_open_registration, open_reg_role_id' ) ) ) )
+		{
+			throw new \DreamFactory\Platform\Exceptions\InternalServerErrorException( 'Unable to load configuration.' );
+		}
+
+		if ( $config->allow_open_registration )
 		{
 			throw new BadRequestException( "Open registration for user accounts is not currently active for this system." );
 		}
-		$roleId = Utilities::getArrayValue( 'open_reg_role_id', $config, null );
+
+		$roleId = $config->open_reg_role_id;
 		$confirmCode = static::_makeConfirmationMd5( $email );
 		// fill out the user fields for creation
 		$temp = substr( $email, 0, strrpos( $email, '@' ) );
