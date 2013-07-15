@@ -244,25 +244,33 @@ class LocalFileSvc extends BaseFileSvc
 	 */
 	public function deleteContainers( $containers, $force = false )
 	{
-		foreach ( $containers as $_key => $_folder )
+		if ( !empty( $containers ) )
 		{
-			try
+			if ( !isset( $containers[0] ) )
 			{
-				// path is full path, name is relative to root, take either
-				$_name = Option::get( $_folder, 'name', Option::get( $folder, 'path' ) );
-				if ( !empty( $_name ) )
-				{
-					$this->deleteContainer( $_name, $force );
-				}
-				else
-				{
-					throw new BadRequestException( 'No name found for container in delete request.' );
-				}
+				// single folder, make into array
+				$containers = array( $containers );
 			}
-			catch ( \Exception $ex )
+			foreach ( $containers as $_key => $_folder )
 			{
-				// error whole batch here?
-				$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				try
+				{
+					// path is full path, name is relative to root, take either
+					$_name = Option::get( $_folder, 'name', Option::get( $folder, 'path' ) );
+					if ( !empty( $_name ) )
+					{
+						$this->deleteContainer( $_name, $force );
+					}
+					else
+					{
+						throw new BadRequestException( 'No name found for container in delete request.' );
+					}
+				}
+				catch ( \Exception $ex )
+				{
+					// error whole batch here?
+					$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				}
 			}
 		}
 

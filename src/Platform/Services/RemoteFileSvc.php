@@ -51,20 +51,28 @@ abstract class RemoteFileSvc extends BaseFileSvc
 		}
 	}
 
-	public function createContainers( $containers = array(), $check_exist = false )
+	public function createContainers( $containers, $check_exist = false )
 	{
 		$_out = array();
-		foreach ( $containers as $_key => $_folder )
+		if ( !empty( $containers ) )
 		{
-			try
+			if ( !isset( $containers[0] ) )
 			{
-				// path is full path, name is relative to root, take either
-				$_out[$_key] = $this->createContainer( $_folder, $check_exist );
+				// single folder, make into array
+				$containers = array( $containers );
 			}
-			catch ( \Exception $ex )
+			foreach ( $containers as $_key => $_folder )
 			{
-				// error whole batch here?
-				$_out[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				try
+				{
+					// path is full path, name is relative to root, take either
+					$_out[$_key] = $this->createContainer( $_folder, $check_exist );
+				}
+				catch ( \Exception $ex )
+				{
+					// error whole batch here?
+					$_out[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				}
 			}
 		}
 
@@ -82,25 +90,33 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 */
 	public function deleteContainers( $containers, $force = false )
 	{
-		foreach ( $containers as $_key => $_folder )
+		if ( !empty( $containers ) )
 		{
-			try
+			if ( !isset( $containers[0] ) )
 			{
-				// path is full path, name is relative to root, take either
-				$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
-				if ( !empty( $_name ) )
-				{
-					$this->deleteContainer( $_name, $force );
-				}
-				else
-				{
-					throw new BadRequestException( 'No name found for container in delete request.' );
-				}
+				// single folder, make into array
+				$containers = array( $containers );
 			}
-			catch ( \Exception $ex )
+			foreach ( $containers as $_key => $_folder )
 			{
-				// error whole batch here?
-				$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				try
+				{
+					// path is full path, name is relative to root, take either
+					$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
+					if ( !empty( $_name ) )
+					{
+						$this->deleteContainer( $_name, $force );
+					}
+					else
+					{
+						throw new BadRequestException( 'No name found for container in delete request.' );
+					}
+				}
+				catch ( \Exception $ex )
+				{
+					// error whole batch here?
+					$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				}
 			}
 		}
 
@@ -907,7 +923,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 *
 	 * @throws \Exception
 	 */
-	abstract public function putBlobData( $container, $name = '', $data = null, $properties = array() );
+	abstract public function putBlobData( $container, $name, $data = null, $properties = array() );
 
 	/**
 	 * @param string $container
@@ -917,7 +933,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 *
 	 * @throws \Exception
 	 */
-	abstract public function putBlobFromFile( $container, $name = '', $localFileName = null, $properties = array() );
+	abstract public function putBlobFromFile( $container, $name, $localFileName = null, $properties = array() );
 
 	/**
 	 * @param string $container
@@ -928,7 +944,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 	 *
 	 * @throws \Exception
 	 */
-	abstract public function copyBlob( $container, $name = '', $src_container = '', $src_name = '', $properties = array() );
+	abstract public function copyBlob( $container, $name, $src_container, $src_name, $properties = array() );
 
 	/**
 	 * List blobs, all or limited by prefix or delimiter

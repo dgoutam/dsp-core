@@ -21,6 +21,7 @@ namespace Platform\Services;
 
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\FilterInput;
+use Platform\Exceptions\BadRequestException;
 use Platform\Interfaces\FileServiceLike;
 use Platform\Utility\DataFormat;
 use Platform\Utility\FileUtilities;
@@ -867,10 +868,30 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				$content = RestRequest::getPostDataAsArray();
 				if ( empty( $this->_container ) )
 				{
-					// delete multiple containers
 					$containers = Option::get( $content, 'container' );
-					$result = $this->deleteContainers( $containers, $force );
-					$result = array( 'container' => $result );
+					if ( empty( $containers ) )
+					{
+						$containers = Option::getDeep( $content, 'containers', 'container' );
+					}
+					if ( !empty( $containers ) )
+					{
+						// delete multiple containers
+						$result = $this->deleteContainers( $containers, $force );
+						$result = array( 'container' => $result );
+					}
+					else
+					{
+						$_name = Option::get( $content, 'name', Option::get( $content, 'path' ) );
+						if ( !empty( $_name ) )
+						{
+							$this->deleteContainer( $_name, $force );
+						}
+						else
+						{
+							throw new BadRequestException( 'No name found for container in delete request.' );
+						}
+						$result = array( 'name' => $_name, 'path' => $_name );
+					}
 				}
 				else if ( empty( $this->_folderPath ) )
 				{
@@ -879,7 +900,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					if ( empty( $content ) )
 					{
 						$this->deleteContainer( $this->_container, $force );
-						$result = array( 'container' => array( array( 'name' => $this->_container ) ) );
+						$result = array( 'name' => $this->_container );
 					}
 					else
 					{
