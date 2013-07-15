@@ -102,7 +102,7 @@ abstract class RemoteFileSvc extends BaseFileSvc
 				try
 				{
 					// path is full path, name is relative to root, take either
-					$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
+					$_name = Option::get( $_folder, 'name', trim( Option::get( $_folder, 'path' ), '/' ) );
 					if ( !empty( $_name ) )
 					{
 						$this->deleteContainer( $_name, $force );

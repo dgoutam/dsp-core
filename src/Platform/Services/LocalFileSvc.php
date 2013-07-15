@@ -256,7 +256,7 @@ class LocalFileSvc extends BaseFileSvc
 				try
 				{
 					// path is full path, name is relative to root, take either
-					$_name = Option::get( $_folder, 'name', Option::get( $folder, 'path' ) );
+					$_name = Option::get( $_folder, 'name', trim( Option::get( $folder, 'path' ), '/' ) );
 					if ( !empty( $_name ) )
 					{
 						$this->deleteContainer( $_name, $force );
