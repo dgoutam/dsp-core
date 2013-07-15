@@ -627,6 +627,12 @@ class SqlDbUtilities implements SqlDbDriverTypes
 					return 'boolean';
 				}
 				break;
+			case 'double':
+				if ( 0 == substr_compare( $column->dbType, 'float', 0, 5, true ) )
+				{
+					return 'float';
+				}
+				break;
 		}
 		if ( ( 0 == strcasecmp( $column->dbType, 'datetimeoffset' ) ) ||
 			 ( 0 == strcasecmp( $column->dbType, 'timestamp' ) )
