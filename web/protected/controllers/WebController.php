@@ -23,12 +23,11 @@ use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use Platform\Interfaces\PlatformStates;
-use Platform\Services\SystemManager;
-use Platform\Resources\UserSession;
-use Platform\Services\UserManager;
-use Platform\Yii\Utility\JsonSchema;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Platform\Interfaces\PlatformStates;
+use DreamFactory\Platform\Services\SystemManager;
+use DreamFactory\Platform\Resources\System\UserSession;
+use DreamFactory\Platform\Services\UserManager;
+use DreamFactory\Yii\Utility\Pii;
 
 /**
  * WebController.php

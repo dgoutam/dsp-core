@@ -19,6 +19,8 @@
  */
 namespace Platform\Utility;
 
+use Kisma\Core\Utility\Scalar;
+
 /**
  * Data Format Utilities
  */
@@ -125,9 +127,10 @@ class DataFormat
 
 		//Get the XML parser of PHP - PHP must have this module for the parser to work
 		$parser = xml_parser_create( '' );
-		xml_parser_set_option( $parser,
-							   XML_OPTION_TARGET_ENCODING,
-							   "UTF-8"
+		xml_parser_set_option(
+			$parser,
+			XML_OPTION_TARGET_ENCODING,
+			"UTF-8"
 		); # http://minutillo.com/steve/weblog/2004/6/17/php-xml-and-character-encodings-a-tale-of-sadness-rage-and-data-loss
 		xml_parser_set_option( $parser, XML_OPTION_CASE_FOLDING, 0 );
 		xml_parser_set_option( $parser, XML_OPTION_SKIP_WHITE, 1 );
@@ -299,7 +302,7 @@ class DataFormat
 		foreach ( $array as $key => $value )
 		{
 			$value = trim( $value, " " );
-			if ( empty( $value ) and (bool) $suppress_empty )
+			if ( empty( $value ) and (bool)$suppress_empty )
 			{
 				continue;
 			}
@@ -590,8 +593,8 @@ class DataFormat
 	}
 
 	/**
-	 * @param mixed     $data Could be object, array, or simple type
-	 * @param bool $prettyPrint
+	 * @param mixed $data Could be object, array, or simple type
+	 * @param bool  $prettyPrint
 	 *
 	 * @return null|string
 	 */
@@ -952,13 +955,13 @@ class DataFormat
 		return implode( $delim, array_values( $fieldarr ) );
 	}
 
+	/**
+	 * @param $var
+	 *
+	 * @return bool
+	 */
 	public static function boolval( $var )
 	{
-		if (is_bool($var)) {
-			return $var;
-		}
-
-		return filter_var( mb_strtolower( strval( $var ) ), FILTER_VALIDATE_BOOLEAN );
+		return Scalar::boolval( $var );
 	}
-
 }

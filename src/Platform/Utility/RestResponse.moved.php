@@ -20,6 +20,7 @@
 namespace Platform\Utility;
 
 use Kisma\Core\Enums\HttpResponse;
+use Kisma\Core\Utility\Log;
 use Platform\Exceptions\RestException;
 
 /**
@@ -78,6 +79,19 @@ class RestResponse extends HttpResponse
 				)
 			)
 		);
+
+		if ( static::Ok != $_status )
+		{
+			if ( $_status == static::InternalServerError || $_status == static::BadRequest )
+			{
+				Log::error( 'Error ' . $_status . ': ' . $ex->getMessage() );
+			}
+			else
+			{
+				Log::info( 'Non-Error ' . $_status . ': ' . $ex->getMessage() );
+			}
+		}
+
 		static::sendResults( $result, $_status, null, $desired_format );
 	}
 

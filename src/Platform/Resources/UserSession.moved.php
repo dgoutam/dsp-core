@@ -19,20 +19,21 @@
  */
 namespace Platform\Resources;
 
+use DreamFactory\Platform\Resources\BaseSystemRestResource;
+use DreamFactory\Platform\Utility\ResourceStore;
+use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
-use Platform\Exceptions\BadRequestException;
-use Platform\Exceptions\ForbiddenException;
-use Platform\Exceptions\InternalServerErrorException;
-use Platform\Exceptions\UnauthorizedException;
-use Platform\Interfaces\PermissionTypes;
-use Platform\Resources\RestResource;
-use Platform\Utility\DataFormat;
-use Platform\Utility\RestRequest;
-use Platform\Utility\Utilities;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Exceptions\ForbiddenException;
+use DreamFactory\Platform\Exceptions\InternalServerErrorException;
+use DreamFactory\Platform\Exceptions\UnauthorizedException;
+use DreamFactory\Platform\Interfaces\PermissionTypes;
+use DreamFactory\Common\Utility\DataFormat;
+use DreamFactory\Platform\Utility\RestData;
+use DreamFactory\Platform\Utility\Utilities;
 use Swagger\Annotations as SWG;
 
 /**
@@ -64,97 +65,80 @@ use Swagger\Annotations as SWG;
  * @SWG\Property(name="email",type="string"),
  * @SWG\Property(name="password",type="string")
  * )
- *
  */
-class UserSession extends RestResource
+class UserSession extends BaseSystemRestResource
 {
+	//*************************************************************************
+	//* Members
+	//*************************************************************************
+
 	/**
 	 * @var string
 	 */
 	protected static $_randKey;
-
 	/**
-	 * @var null
+	 * @var int
 	 */
 	protected static $_userId = null;
-
 	/**
 	 * @var array
 	 */
 	protected static $_cache = null;
 
 	/**
-	 * Create a new UserSession
-	 *
+	 * @param \DreamFactory\Platform\Services\BasePlatformService $consumer
+	 * @param array                                               $resources
 	 */
-	public function __construct()
+	public function __construct( $consumer, $resources = array() )
 	{
 		$config = array(
-			'service_name' => 'user',
-			'name'         => 'User Session',
-			'api_name'     => 'session',
-			'description'  => 'Resource for a user to manage their session.',
-			'is_active'    => true,
+			'service_name'   => 'user',
+			'name'           => 'User Session',
+			'api_name'       => 'session',
+			'description'    => 'Resource for a user to manage their session.',
+			'is_active'      => true,
+			'resource_array' => $resources,
 		);
-		parent::__construct( $config );
+		parent::__construct( $consumer, $config );
 
-		//For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
-		static::$_randKey = 'M1kVi0kE9ouXxF9';
-	}
-
-	// Service interface implementation
-
-	public function setApiName( $apiName )
-	{
-		throw new \Exception( 'UserSession API name can not be changed.' );
-	}
-
-	public function setType( $type )
-	{
-		throw new \Exception( 'UserSession type can not be changed.' );
-	}
-
-	public function setDescription( $description )
-	{
-		throw new \Exception( 'UserSession description can not be changed.' );
-	}
-
-	public function setIsActive( $isActive )
-	{
-		throw new \Exception( 'UserSession active flag can not be changed.' );
-	}
-
-	public function setName( $name )
-	{
-		throw new \Exception( 'UserSession name can not be changed.' );
+		//	For better security. Get a random string from this link: http://tinyurl.com/randstr and put it here
+		static::$_randKey = static::$_randKey ? : Pii::db()->password;
 	}
 
 	// REST interface implementation
 
-	protected function _handleAction()
+	/**
+	 * @return bool
+	 */
+	protected function _handleGet()
 	{
-		switch ( $this->_action )
-		{
-			case self::Get:
-				$ticket = FilterInput::request( 'ticket' );
-				$result = $this->userSession( $ticket );
-				break;
-			case self::Post:
-				$data = RestRequest::getPostDataAsArray();
-				$email = Option::get( $data, 'email' );
-				$password = Option::get( $data, 'password' );
-				//$password = Utilities::decryptPassword($password);
-				$result = $this->userLogin( $email, $password );
-				break;
-			case self::Delete:
-				$this->userLogout();
-				$result = array( 'success' => true );
-				break;
-			default:
-				return false;
-		}
+		$_ticket = FilterInput::request( 'ticket' );
 
-		return $result;
+		return $this->userSession( $_ticket );
+	}
+
+	/**
+	 * @return array|bool|void
+	 */
+	protected function _handlePost()
+	{
+		$data = RestData::getPostDataAsArray();
+		$email = Option::get( $data, 'email' );
+		$password = Option::get( $data, 'password' );
+
+		//$password = Utilities::decryptPassword($password);
+
+		return $this->userLogin( $email, $password );
+	}
+
+	/**
+	 * @return array|bool|void
+	 */
+	protected function _handleDelete()
+	{
+		$this->userLogout();
+
+		return array( 'success' => true );
 	}
 
 	//-------- User Operations ------------------------------------------------

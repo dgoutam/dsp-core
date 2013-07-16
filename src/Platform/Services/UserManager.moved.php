@@ -31,7 +31,7 @@ use Platform\Exceptions\ForbiddenException;
 use Platform\Exceptions\InternalServerErrorException;
 use Platform\Exceptions\NotFoundException;
 use Platform\Exceptions\UnauthorizedException;
-use Platform\Resources\UserSession;
+use DreamFactory\Platform\Resources\System\UserSession;
 use Platform\Utility\RestRequest;
 use Platform\Utility\Utilities;
 use Swagger\Annotations as SWG;
@@ -165,7 +165,7 @@ class UserManager extends BaseSystemRestService
 				break;
 
 			case 'session':
-				$obj = new UserSession();
+				$obj = new UserSession( $this );
 				$result = $obj->processRequest( $this->_action );
 				break;
 

@@ -21,9 +21,9 @@ use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use Platform\Exceptions\BadRequestException;
-use Platform\Utility\RestResponse;
-use Platform\Utility\ServiceHandler;
+use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Utility\RestResponse;
+use DreamFactory\Platform\Utility\ServiceHandler;
 use Platform\Utility\SwaggerUtilities;
 
 /**
