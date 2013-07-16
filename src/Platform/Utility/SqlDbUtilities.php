@@ -496,6 +496,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				'name'               => $column->name,
 				'label'              => $label,
 				'type'               => static::determineDfType( $column, $label_info ),
+				'data_type'          => $column->type,
 				'db_type'            => $column->dbType,
 				'length'             => intval( $column->size ),
 				'precision'          => intval( $column->precision ),
@@ -601,8 +602,21 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	 */
 	protected static function determineDfType( $column, $label_info = null )
 	{
-		switch ( $column->type )
+		$_simpleType = strstr( $column->dbType, '(', true );
+		$_simpleType = ( $_simpleType ) ? strtolower( $_simpleType ) : $column->dbType;
+		switch ( $_simpleType )
 		{
+			case 'bool':
+				return 'boolean';
+
+			case 'double':
+				return 'float';
+
+			case 'tinyint':
+			case 'smallint':
+			case 'mediumint':
+			case 'int':
+			case 'bigint':
 			case 'integer':
 				if ( $column->isPrimaryKey && $column->autoIncrement )
 				{
@@ -626,26 +640,38 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				{
 					return 'boolean';
 				}
+
+				return 'integer';
 				break;
-			case 'double':
-				if ( 0 == substr_compare( $column->dbType, 'float', 0, 5, true ) )
+
+			case 'binary':
+			case 'varbinary':
+				return 'binary';
+				break;
+
+			// string types
+			case 'string':
+			case 'char':
+			case 'varchar':
+			case 'nchar':
+			case 'nvarchar':
+				return 'string';
+				break;
+
+			case 'datetime2':
+				return 'datetime';
+
+			case 'datetimeoffset':
+			case 'timestamp':
+				$timestampOnUpdate = Option::get( $label_info, 'timestamp_on_update' );
+				if ( isset( $timestampOnUpdate ) )
 				{
-					return 'float';
+					return ( DataFormat::boolval( $timestampOnUpdate ) ) ? 'timestamp_on_update' : 'timestamp_on_create';
 				}
 				break;
 		}
-		if ( ( 0 == strcasecmp( $column->dbType, 'datetimeoffset' ) ) ||
-			 ( 0 == strcasecmp( $column->dbType, 'timestamp' ) )
-		)
-		{
-			$timestampOnUpdate = Option::get( $label_info, 'timestamp_on_update' );
-			if ( isset( $timestampOnUpdate ) )
-			{
-				return ( DataFormat::boolval( $timestampOnUpdate ) ) ? 'timestamp_on_update' : 'timestamp_on_create';
-			}
-		}
 
-		return $column->type;
+		return $_simpleType;
 	}
 
 	/**
