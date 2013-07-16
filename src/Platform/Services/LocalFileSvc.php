@@ -305,21 +305,36 @@ class LocalFileSvc extends BaseFileSvc
 	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		$_out = array( 'container' => $container );
+		$_dirPath = self::addContainerToName( $container, $path );
+		if ( !is_dir( $_dirPath ) )
+		{
+			if ( empty( $path ) )
+			{
+				throw new NotFoundException( "Container '$container' does not exist in storage." );
+			}
+			else
+			{
+				throw new NotFoundException( "Folder '$path' does not exist in storage." );
+			}
+		}
 		if ( empty( $path ) )
 		{
-			$_out['name'] = $container;
-			$_out['path'] = $container;
+			$_out = array(
+				'container' => $container,
+			    'name' => $container,
+			    'path' => $container
+			);
 		}
 		else
 		{
-			$_name = basename( $path );
-			$_out['name'] = $_name;
-			$_out['path'] = $container .'/'. $path;
+			$_out = array(
+				'container' => $container,
+				'name' => basename( $path ),
+				'path' => $container .'/'. $path
+			);
 		}
 		if ( $include_properties )
 		{
-			$_dirPath = self::addContainerToName( $container, $path );
 			$_temp = stat( $_dirPath );
 			$_out['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', Option::get( $_temp, 'mtime', 0 ) );
 		}

@@ -882,14 +882,11 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					else
 					{
 						$_name = Option::get( $content, 'name', trim( Option::get( $content, 'path' ), '/' ) );
-						if ( !empty( $_name ) )
-						{
-							$this->deleteContainer( $_name, $force );
-						}
-						else
+						if ( empty( $_name ) )
 						{
 							throw new BadRequestException( 'No name found for container in delete request.' );
 						}
+						$this->deleteContainer( $_name, $force );
 						$result = array( 'name' => $_name, 'path' => $_name );
 					}
 				}
