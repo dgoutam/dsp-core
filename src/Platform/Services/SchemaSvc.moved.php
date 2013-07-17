@@ -524,6 +524,7 @@ class SchemaSvc extends RestService
 	{
 		$this->checkPermission( 'read' );
 		$exclude = '';
+
 		if ( $this->_isNative )
 		{
 			// check for system tables

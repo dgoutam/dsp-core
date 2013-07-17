@@ -948,7 +948,8 @@ class SystemManager extends BasePlatformRestService
 	{
 		try
 		{
-			$_admins = Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), Pii::pdo() );
+			$_pdo = Pii::pdo();
+			$_admins = Sql::scalar( 'SELECT count(id) from df_sys_user where is_sys_admin = 1 and is_deleted = 0', 0, array(), $_pdo );
 
 			return ( 0 != $_admins ? ( $_admins > 1 ? $_admins : true ) : false );
 		}

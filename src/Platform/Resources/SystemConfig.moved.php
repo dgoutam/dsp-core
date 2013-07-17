@@ -42,19 +42,19 @@ use Swagger\Annotations as SWG;
  * )
  *
  * @SWG\Model(id="Config",
- *   @SWG\Property(name="dsp_version",type="string",description="Version of the DSP software."),
- *   @SWG\Property(name="db_version",type="string",description="Version of the database schema."),
- *   @SWG\Property(name="allow_open_registration",type="boolean",description="Allow guests to register for a user account."),
- *   @SWG\Property(name="open_reg_role_id",type="int",description="Default Role Id assigned to newly registered users."),
- *   @SWG\Property(name="allow_guest_user",type="boolean",description="Allow app access for non-authenticated users."),
- *   @SWG\Property(name="guest_role_id",type="int",description="Role Id assigned for all guest sessions."),
- *   @SWG\Property(name="editable_profile_fields",type="string",description="Comma-delimited list of fields the user is allowed to edit."),
- *   @SWG\Property(name="allowed_hosts",type="Array",items="$ref:HostInfo",description="CORS whitelist of allowed remote hosts.")
+ * @SWG\Property(name="dsp_version",type="string",description="Version of the DSP software."),
+ * @SWG\Property(name="db_version",type="string",description="Version of the database schema."),
+ * @SWG\Property(name="allow_open_registration",type="boolean",description="Allow guests to register for a user account."),
+ * @SWG\Property(name="open_reg_role_id",type="int",description="Default Role Id assigned to newly registered users."),
+ * @SWG\Property(name="allow_guest_user",type="boolean",description="Allow app access for non-authenticated users."),
+ * @SWG\Property(name="guest_role_id",type="int",description="Role Id assigned for all guest sessions."),
+ * @SWG\Property(name="editable_profile_fields",type="string",description="Comma-delimited list of fields the user is allowed to edit."),
+ * @SWG\Property(name="allowed_hosts",type="Array",items="$ref:HostInfo",description="CORS whitelist of allowed remote hosts.")
  * )
  * @SWG\Model(id="HostInfo",
- *   @SWG\Property(name="host",type="string",description="URL, server name, or * to define the CORS host."),
- *   @SWG\Property(name="is_enabled",type="boolean",description="Allow this host's configuration to be used by CORS."),
- *   @SWG\Property(name="verbs",type="Array",items="$ref:string",description="Allowed HTTP verbs for this host.")
+ * @SWG\Property(name="host",type="string",description="URL, server name, or * to define the CORS host."),
+ * @SWG\Property(name="is_enabled",type="boolean",description="Allow this host's configuration to be used by CORS."),
+ * @SWG\Property(name="verbs",type="Array",items="$ref:string",description="Allowed HTTP verbs for this host.")
  * )
  *
  */
@@ -145,9 +145,9 @@ class SystemConfig extends RestResource
 
 	/**
 	 * @SWG\Api(
-	 *   path="/system/config", description="Operations for system configuration options.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 *       path="/system/config", description="Operations for system configuration options.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="Retrieve system configuration options.",
 	 *       notes="The retrieved properties control how the system behaves.",
 	 *       responseClass="Config", nickname="getConfig"
@@ -257,22 +257,22 @@ class SystemConfig extends RestResource
 
 	/**
 	 * @SWG\Api(
-	 *   path="/system/config", description="Operations for system configuration options.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
-	 *       httpMethod="POST", summary="Update one or more system configuration properties.",
-	 *       notes="Post data should be an array of properties.",
-	 *       responseClass="Success", nickname="setConfig",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 *           path="/system/config", description="Operations for system configuration options.",
+	 * @SWG\Operations(
+	 * @SWG\Operation(
+	 *           httpMethod="POST", summary="Update one or more system configuration properties.",
+	 *           notes="Post data should be an array of properties.",
+	 *           responseClass="Success", nickname="setConfig",
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="config", description="Data containing name-value pairs of properties to set.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Config"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -316,11 +316,12 @@ class SystemConfig extends RestResource
 
 		try
 		{
+			$obj->refresh();
 			$id = $obj->primaryKey;
+
 			if ( empty( $id ) )
 			{
-				Log::error( 'Failed to get primary key from created user: ' . print_r( $obj, true ) );
-				throw new InternalServerErrorException( "Failed to get primary key from created user." );
+				throw new InternalServerErrorException( "Failed to get primary key from created configuration: " . var_export( $record, true ) );
 			}
 
 			// after record create

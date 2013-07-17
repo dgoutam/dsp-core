@@ -597,7 +597,9 @@ class BaseDspModel extends \CActiveRecord
 	 */
 	public static function execute( $sql, $parameters = array() )
 	{
-		return Sql::execute( $sql, $parameters, static::model()->getDbConnection()->getPdoInstance() );
+		$_pdo = static::model()->getDbConnection()->getPdoInstance();
+
+		return Sql::execute( $sql, $parameters, $_pdo );
 	}
 
 	/**
@@ -612,7 +614,9 @@ class BaseDspModel extends \CActiveRecord
 	 */
 	public static function scalar( $sql, $parameters = array(), $columnNumber = 0 )
 	{
-		return Sql::scalar( $sql, $columnNumber, $parameters, static::model()->getDbConnection()->getPdoInstance() );
+		$_pdo = static::model()->getDbConnection()->getPdoInstance();
+
+		return Sql::scalar( $sql, $columnNumber, $parameters, $_pdo );
 	}
 
 	/**

@@ -208,7 +208,9 @@ GROUP BY
 	table_schema
 SQL;
 
-		if ( false !== ( $_row = Sql::find( $_sql, array( ':table_schema' => $dbName ), Pii::pdo() ) ) )
+		$_pdo = Pii::pdo();
+
+		if ( false !== ( $_row = Sql::find( $_sql, array( ':table_schema' => $dbName ), $_pdo ) ) )
 		{
 			$_details['disk_space_used'] = $_row['mb_used_nbr'];
 			$_details['disk_space_free'] = $_row['mb_free_nbr'];

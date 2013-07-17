@@ -28,13 +28,13 @@ h2.headline {
 .main-content {
 	height:     640px;
 	font-size:  18px !important;
-	background: url(../images/bg-initial-light.png) 50% 0 no-repeat;
+	background: url(../images/bg-initial.png) 50% 0 no-repeat;
 }
 
 .main-content.step2 {
 	height:     640px;
 	font-size:  18px !important;
-	background: url(../images/bg-initial-light.png) 100% 50% no-repeat;
+	background: url(../images/bg-initial.png) 100% 50% no-repeat;
 }
 
 .main-content p {
@@ -61,7 +61,7 @@ h2.headline {
 }
 
 .light {
-	background: url(../images/bg-initial-light.png) 50% 0 no-repeat;
+	background: url(../images/bg-initial.png) 50% 0 no-repeat;
 	height:     640px;
 }
 
@@ -74,7 +74,7 @@ label.error {
 }
 
 .admin-content {
-	background: url(../images/bg-initial-light.png) 50% 0 no-repeat;
+	background: url(../images/bg-initial.png) 50% 0 no-repeat;
 }
 
 .tabbable .nav li a i {

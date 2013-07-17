@@ -17,11 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
-use Platform\Exceptions\BadRequestException;
-use Platform\Utility\DataFormat;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Common\Utility\DataFormat;
+use DreamFactory\Yii\Utility\Pii;
 
 /**
  * Service.php
@@ -51,7 +52,7 @@ use Platform\Yii\Utility\Pii;
  * @property Role[]              $roles
  * @property AccountProviders[]  $providers
  */
-class Service extends BaseDspSystemModel
+class Service extends BasePlatformSystemModel
 {
 	//*************************************************************************
 	//* Members
@@ -101,10 +102,11 @@ class Service extends BaseDspSystemModel
 			Log::debug( 'Reloading available service cache' );
 			$_serviceCache = Pii::getParam( 'dsp.default_services', array() );
 
-			// list all available services from db
+			//	List all available services from db
 			$_command = Pii::db()->createCommand();
 			$_tableName = static::model()->tableName();
 			$_services = $_command->select( 'api_name,name' )->from( $_tableName )->queryAll();
+
 			$_serviceCache = array_merge(
 				$_serviceCache,
 				$_services
