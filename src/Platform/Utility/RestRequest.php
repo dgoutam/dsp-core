@@ -74,7 +74,6 @@ class RestRequest
 			}
 			if ( !empty( $_data ) && is_array( $_data ) )
 			{
-				$_data = DataFormat::arrayKeyLower( $_data );
 				$_data = ( isset( $_data['dfapi'] ) ) ? $_data['dfapi'] : $_data;
 			}
 		}
