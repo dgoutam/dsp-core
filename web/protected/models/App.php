@@ -252,6 +252,8 @@ class App extends BaseDspSystemModel
 		// make sure we have an app in the folder
 		if ( !$this->is_url_external )
 		{
+			$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
+			$this->launch_url = $_protocol . '://' . FilterInput::server( 'HTTP_HOST' ) . '/';
 			/** @var $_service BaseFileSvc */
 			if ( empty( $this->storage_service_id ) )
 			{
@@ -300,6 +302,29 @@ class App extends BaseDspSystemModel
 					}
 				}
 			}
+
+			if ( !empty( $this->storage_service_id ) )
+			{
+				/** @var $service Service */
+				$service = $this->getRelated( 'storage_service' );
+				if ( !empty( $service ) )
+				{
+					$this->launch_url .= $service->api_name . '/';
+				}
+				if ( !empty( $this->storage_container ) )
+				{
+					$this->launch_url .= $this->storage_container . '/';
+				}
+			}
+			else
+			{
+				$this->launch_url .= 'app/applications/';
+			}
+			$this->launch_url .= $this->api_name . $this->url;
+		}
+		else
+		{
+			$this->launch_url = $this->url;
 		}
 
 		parent::afterSave();
