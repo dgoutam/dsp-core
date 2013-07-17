@@ -19,6 +19,7 @@
  */
 namespace Platform\Resources;
 
+use DreamFactory\Platform\Resources\System\UserSession;
 use Kisma\Core\Utility\Option;
 use Platform\Utility\DataFormat;
 

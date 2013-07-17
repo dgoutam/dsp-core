@@ -27,7 +27,7 @@ use DreamFactory\Platform\Enums\PlatformStorageTypes;
 return
 	array(
 		PlatformServiceTypes::LOCAL_FILE_STORAGE   => array(
-			'class' => 'Platform\\Services\\LocalFileSvc',
+			'class' => 'DreamFactory\\Platform\\Services\\LocalFileSvc',
 		),
 		PlatformServiceTypes::REMOTE_FILE_STORAGE  => array(
 			'class' => array(
@@ -46,19 +46,19 @@ return
 			),
 		),
 		PlatformServiceTypes::LOCAL_SQL_DB         => array(
-			'class' => 'Platform\\Services\\SqlDbSvc',
+			'class' => 'DreamFactory\\Platform\\Services\\SqlDbSvc',
 			'local' => true,
 		),
 		PlatformServiceTypes::REMOTE_SQL_DB        => array(
-			'class' => 'Platform\\Services\\SqlDbSvc',
+			'class' => 'DreamFactory\\Platform\\Services\\SqlDbSvc',
 			'local' => false,
 		),
 		PlatformServiceTypes::LOCAL_SQL_DB_SCHEMA  => array(
-			'class' => 'Platform\\Services\\SchemaSvc',
+			'class' => 'DreamFactory\\Platform\\Services\\SchemaSvc',
 			'local' => true,
 		),
 		PlatformServiceTypes::REMOTE_SQL_DB_SCHEMA => array(
-			'class' => 'Platform\\Services\\SchemaSvc',
+			'class' => 'DreamFactory\\Platform\\Services\\SchemaSvc',
 			'local' => false,
 		),
 		PlatformServiceTypes::LOCAL_EMAIL_SERVICE  => array(

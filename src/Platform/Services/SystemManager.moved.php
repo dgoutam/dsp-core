@@ -92,6 +92,7 @@ class SystemManager extends BasePlatformRestService
 	public function __construct()
 	{
 		static::$_configPath = \Kisma::get( 'app.config_path' );
+
 		$this->_name = 'System Configuration Management';
 		$this->_apiName = 'system';
 		$this->_typeId = PlatformServiceTypes::SYSTEM_SERVICE;
@@ -751,7 +752,7 @@ class SystemManager extends BasePlatformRestService
 			case '':
 				switch ( $this->_action )
 				{
-					case self::Get:
+					case static::Get:
 						return $this->_listResources();
 						break;
 					default:
@@ -1072,7 +1073,7 @@ class SystemManager extends BasePlatformRestService
 	 */
 	public static function getConfigPath()
 	{
-		return self::$_configPath;
+		return static::$_configPath;
 	}
 
 	/**
@@ -1080,7 +1081,7 @@ class SystemManager extends BasePlatformRestService
 	 */
 	public static function setConfigPath( $configPath )
 	{
-		self::$_configPath = $configPath;
+		static::$_configPath = $configPath;
 	}
 }
 

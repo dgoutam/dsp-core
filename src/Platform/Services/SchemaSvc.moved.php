@@ -37,51 +37,51 @@ use Swagger\Annotations as SWG;
  * )
  *
  * @SWG\Model(id="Tables",
- *   @SWG\Property(name="table",type="Array",items="$ref:TableSchema",description="An array of table definitions.")
+ * @SWG\Property(name="table",type="Array",items="$ref:TableSchema",description="An array of table definitions.")
  * )
  * @SWG\Model(id="TableSchema",
- *   @SWG\Property(name="name",type="string",description="Identifier/Name for the table."),
- *   @SWG\Property(name="label",type="Array",items="$ref:EmailAddress",description="Displayable singular name for the table."),
- *   @SWG\Property(name="plural",type="Array",items="$ref:EmailAddress",description="Displayable plural name for the table."),
- *   @SWG\Property(name="primary_key",type="string",description="Field(s), if any, that represent the primary key of each record."),
- *   @SWG\Property(name="name_field",type="string",description="Field(s), if any, that represent the name of each record."),
- *   @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of available fields in each record."),
- *   @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of available relationships to other tables.")
+ * @SWG\Property(name="name",type="string",description="Identifier/Name for the table."),
+ * @SWG\Property(name="label",type="Array",items="$ref:EmailAddress",description="Displayable singular name for the table."),
+ * @SWG\Property(name="plural",type="Array",items="$ref:EmailAddress",description="Displayable plural name for the table."),
+ * @SWG\Property(name="primary_key",type="string",description="Field(s), if any, that represent the primary key of each record."),
+ * @SWG\Property(name="name_field",type="string",description="Field(s), if any, that represent the name of each record."),
+ * @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of available fields in each record."),
+ * @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of available relationships to other tables.")
  * )
  * @SWG\Model(id="Fields",
- *   @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of field definitions.")
+ * @SWG\Property(name="field",type="Array",items="$ref:FieldSchema",description="An array of field definitions.")
  * )
  * @SWG\Model(id="FieldSchema",
- *   @SWG\Property(name="name",type="string",description="The API name of the field."),
- *   @SWG\Property(name="label",type="string",description="The displayable label for the field."),
- *   @SWG\Property(name="type",type="string",description="The DSP abstract data type for this field."),
- *   @SWG\Property(name="db_type",type="string",description="The native database type used for this field."),
- *   @SWG\Property(name="length",type="int",description="The maximum length allowed (in characters for string, displayed for numbers)."),
- *   @SWG\Property(name="precision",type="int",description="Total number of places for numbers."),
- *   @SWG\Property(name="scale",type="int",description="Number of decimal places allowed for numbers."),
- *   @SWG\Property(name="default",type="string",description="Default value for this field."),
- *   @SWG\Property(name="required",type="boolean",description="Is a value required for record creation."),
- *   @SWG\Property(name="allow_null",type="boolean",description="Is null allowed as a value."),
- *   @SWG\Property(name="fixed_length",type="boolean",description="Is the length fixed (not variable)."),
- *   @SWG\Property(name="supports_multibyte",type="boolean",description="Does the data type support multibyte characters."),
- *   @SWG\Property(name="auto_increment",type="boolean",description="Does the integer field value increment upon new record creation."),
- *   @SWG\Property(name="is_primary_key",type="boolean",description="Is this field used as/part of the primary key."),
- *   @SWG\Property(name="is_foreign_key",type="boolean",description="Is this field used as a foreign key."),
- *   @SWG\Property(name="ref_table",type="string",description="For foreign keys, the referenced table name."),
- *   @SWG\Property(name="ref_fields",type="string",description="For foreign keys, the referenced table field name."),
- *   @SWG\Property(name="validation",type="Array",items="$ref:string",description="validations to be performed on this field."),
- *   @SWG\Property(name="values",type="Array",items="$ref:string",description="Selectable string values for picklist validation.")
+ * @SWG\Property(name="name",type="string",description="The API name of the field."),
+ * @SWG\Property(name="label",type="string",description="The displayable label for the field."),
+ * @SWG\Property(name="type",type="string",description="The DSP abstract data type for this field."),
+ * @SWG\Property(name="db_type",type="string",description="The native database type used for this field."),
+ * @SWG\Property(name="length",type="int",description="The maximum length allowed (in characters for string, displayed for numbers)."),
+ * @SWG\Property(name="precision",type="int",description="Total number of places for numbers."),
+ * @SWG\Property(name="scale",type="int",description="Number of decimal places allowed for numbers."),
+ * @SWG\Property(name="default",type="string",description="Default value for this field."),
+ * @SWG\Property(name="required",type="boolean",description="Is a value required for record creation."),
+ * @SWG\Property(name="allow_null",type="boolean",description="Is null allowed as a value."),
+ * @SWG\Property(name="fixed_length",type="boolean",description="Is the length fixed (not variable)."),
+ * @SWG\Property(name="supports_multibyte",type="boolean",description="Does the data type support multibyte characters."),
+ * @SWG\Property(name="auto_increment",type="boolean",description="Does the integer field value increment upon new record creation."),
+ * @SWG\Property(name="is_primary_key",type="boolean",description="Is this field used as/part of the primary key."),
+ * @SWG\Property(name="is_foreign_key",type="boolean",description="Is this field used as a foreign key."),
+ * @SWG\Property(name="ref_table",type="string",description="For foreign keys, the referenced table name."),
+ * @SWG\Property(name="ref_fields",type="string",description="For foreign keys, the referenced table field name."),
+ * @SWG\Property(name="validation",type="Array",items="$ref:string",description="validations to be performed on this field."),
+ * @SWG\Property(name="values",type="Array",items="$ref:string",description="Selectable string values for picklist validation.")
  * )
  * @SWG\Model(id="Relateds",
- *   @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of relationship definitions.")
+ * @SWG\Property(name="related",type="Array",items="$ref:RelatedSchema",description="An array of relationship definitions.")
  * )
  * @SWG\Model(id="RelatedSchema",
- *   @SWG\Property(name="name",type="string",description="Name of the relationship."),
- *   @SWG\Property(name="type",type="string",description="Relationship type - belongs_to, has_many, many_many."),
- *   @SWG\Property(name="ref_table",type="string",description="The table name that is referenced by the relationship."),
- *   @SWG\Property(name="ref_field",type="string",description="The field name that is referenced by the relationship."),
- *   @SWG\Property(name="join",type="string",description="The intermediate joining table used for many_many relationships."),
- *   @SWG\Property(name="field",type="string",description="The current table field that is used in the relationship.")
+ * @SWG\Property(name="name",type="string",description="Name of the relationship."),
+ * @SWG\Property(name="type",type="string",description="Relationship type - belongs_to, has_many, many_many."),
+ * @SWG\Property(name="ref_table",type="string",description="The table name that is referenced by the relationship."),
+ * @SWG\Property(name="ref_field",type="string",description="The field name that is referenced by the relationship."),
+ * @SWG\Property(name="join",type="string",description="The intermediate joining table used for many_many relationships."),
+ * @SWG\Property(name="field",type="string",description="The current table field that is used in the relationship.")
  * )
  *
  *
@@ -193,167 +193,167 @@ class SchemaSvc extends RestService
 	/**
 	 * @SWG\Api(
 	 *   path="/{sql_schema}", description="Operations available for SQL DB Schemas.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List resources available for database schema.",
 	 *       notes="See listed operations for each resource available.",
 	 *       responseClass="Resources", nickname="getResources"
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="POST", summary="Create one or more tables.",
 	 *       notes="Post data should be a single table definition or an array of table definitions.",
 	 *       responseClass="Resources", nickname="createTables"
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="PUT", summary="Update one or more tables.",
 	 *       notes="Post data should be a single table definition or an array of table definitions.",
 	 *       responseClass="Resources", nickname="updateTables"
 	 *     )
 	 *   )
 	 * )
-	 *   @SWG\Api(
+	 * @SWG\Api(
 	 *     path="/{sql_schema}/{table_name}", description="Operations for per table administration.",
-	 *     @SWG\Operations(
-	 *       @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *         httpMethod="GET", summary="Retrieve table definition for the given table.",
 	 *         notes="This describes the table, its fields and relations to other tables.",
 	 *         responseClass="TableSchema", nickname="describeTable",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       ),
-	 *       @SWG\Operation(
+	 * @SWG\Operation(
 	 *         httpMethod="POST", summary="Create one or more fields in the given table.",
 	 *         notes="Post data should be an array of field properties for a single record or an array of fields.",
 	 *         responseClass="Success", nickname="createFields",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
-	 *           @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *             name="fields", description="Array of field definitions.",
 	 *             paramType="body", required="true", allowMultiple=false, dataType="Fields"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       ),
-	 *       @SWG\Operation(
+	 * @SWG\Operation(
 	 *         httpMethod="PUT", summary="Update one or more fields in the given table.",
 	 *         notes="Post data should be an array of field properties for a single record or an array of fields.",
 	 *         responseClass="Success", nickname="updateFields",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
-	 *           @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *             name="fields", description="Array of field definitions.",
 	 *             paramType="body", required="true", allowMultiple=false, dataType="Fields"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       ),
-	 *       @SWG\Operation(
+	 * @SWG\Operation(
 	 *         httpMethod="DELETE", summary="Delete (aka drop) the given table.",
 	 *         notes="Careful, this drops the database table and all of its contents.",
 	 *         responseClass="Success", nickname="deleteTable",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       )
 	 *     )
 	 *   )
 	 *
-	 *   @SWG\Api(
+	 * @SWG\Api(
 	 *     path="/{sql_schema}/{table_name}/{field_name}", description="Operations for single field administration.",
-	 *     @SWG\Operations(
-	 *       @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *         httpMethod="GET", summary="Retrieve the definition of the given field for the given table.",
 	 *         notes="This describes the field and its properties.",
 	 *         responseClass="FieldSchema", nickname="describeField",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
-	 *           @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *             name="field_name", description="Name of the field to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       ),
-	 *       @SWG\Operation(
+	 * @SWG\Operation(
 	 *         httpMethod="PUT", summary="Update one record by identifier.",
 	 *         notes="Post data should be an array of field properties for the given field.",
 	 *         responseClass="Success", nickname="updateField",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
-	 *           @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *             name="field_name", description="Name of the field to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
-	 *           @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *             name="field_props", description="Array of field properties.",
 	 *             paramType="body", required="true", allowMultiple=false, dataType="FieldSchema"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       ),
-	 *       @SWG\Operation(
+	 * @SWG\Operation(
 	 *         httpMethod="DELETE", summary="DELETE (aka DROP) the given field FROM the given TABLE.",
 	 *         notes="Careful, this drops the database table field/column and all of its contents.",
 	 *         responseClass="Success", nickname="deleteField",
-	 *         @SWG\Parameters(
-	 *           @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *             name="table_name", description="Name of the table to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           ),
-	 *           @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *             name="field_name", description="Name of the field to perform operations on.",
 	 *             paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *           )
 	 *         ),
-	 *         @SWG\ErrorResponses(
-	 *            @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *            @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *            @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *         )
 	 *       )
 	 *     )
@@ -370,6 +370,7 @@ class SchemaSvc extends RestService
 			{
 				case self::Get:
 					$result = $this->describeDatabase();
+
 					return array( 'resource' => $result );
 					break;
 				case self::Post:
@@ -505,7 +506,6 @@ class SchemaSvc extends RestService
 			}
 		}
 	}
-
 
 	/**
 	 *
@@ -896,5 +896,4 @@ class SchemaSvc extends RestService
 		$this->checkPermission( 'delete', $table );
 		SqlDbUtilities::dropField( $this->_sqlConn, $table, $field );
 	}
-
 }
