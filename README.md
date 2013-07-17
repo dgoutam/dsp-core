@@ -1,3 +1,3 @@
-# DreamFactory Services Platform(tm) v1.0.5
+# DreamFactory Services Platform&trade; v1.0.5
 
-Please see our (http://dreamfactorysoftware.github.io)[site] for full documentation.
+Please see our [site](http://dreamfactorysoftware.github.io) for full documentation.
