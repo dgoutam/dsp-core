@@ -227,10 +227,7 @@ class LocalFileSvc extends BaseFileSvc
 	public function deleteContainer( $container, $force = false )
 	{
 		$_dir = static::addContainerToName( $container, '' );
-		if ( !rmdir( $_dir ) )
-		{
-			throw new \Exception( 'Failed to delete container.' );
-		}
+		FileUtilities::deleteTree( $_dir, $force );
 	}
 
 	/**
