@@ -158,7 +158,8 @@ class Fabric extends SeedUtility
 
 			if ( HttpResponse::NotFound == Curl::getLastHttpCode() )
 			{
-				Log::error( 'DB Credential pull failure. Redirecting to df.com' );
+				Log::setDefaultLog( \Kisma::get( 'app.log_path' ) . '/error.log' );
+				Log::error( 'DB Credential pull failure. Redirecting to df.com', array( 'host' => $_host ) );
 				header( 'Location: https://www.dreamfactory.com/dsp-not-found?dn=' . urlencode( $_dspName ) );
 				exit();
 			}
@@ -171,7 +172,9 @@ class Fabric extends SeedUtility
 
 			if ( !$_response || !is_object( $_response ) || false == $_response->success )
 			{
+				Log::setDefaultLog( \Kisma::get( 'app.log_path' ) . '/error.log' );
 				error_log( 'Error connecting to Cerberus Authentication System: ' . print_r( $_response, true ) );
+				@Log::error( 'Error connecting to Cerberus Authentication System', array( 'response' => (array)$_response ) );
 				throw new \CHttpException( HttpResponse::InternalServerError, 'Cannot connect to authentication service' );
 			}
 
