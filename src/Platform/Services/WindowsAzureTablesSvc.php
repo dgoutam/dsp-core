@@ -22,7 +22,9 @@ namespace Platform\Services;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\FilterInput;
 use Platform\Exceptions\BadRequestException;
+use Platform\Exceptions\InternalServerErrorException;
 use Platform\Utility\DataFormat;
+use WindowsAzure\Table\Models\BatchError;
 use WindowsAzure\Table\TableRestProxy;
 use WindowsAzure\Common\ServicesBuilder;
 use WindowsAzure\Common\ServiceException;
@@ -96,7 +98,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 		// set up a default partition key
 		$_parameters = Option::get( $config, 'parameters' );
-		$_partitionKey = Option::get( $_parameters, 'partition_key' );
+		$_partitionKey = Option::get( $_parameters, 'partition_key', Option::get( $_parameters, 'PartitionKey' ) );
 		if ( empty( $_partitionKey ) )
 		{
 			// use API name as the default partition key,
@@ -170,12 +172,12 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	protected function validateTableAccess( $table, $access = 'read' )
 	{
 		parent::validateTableAccess( $table, $access );
-
 	}
 
 	protected function _gatherExtrasFromRequest()
 	{
 		$_extras = parent::_gatherExtrasFromRequest();
+		$_extras['PartitionKey'] = FilterInput::request( 'PartitionKey' );
 
 		return $_extras;
 	}
@@ -261,10 +263,10 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			$_out = array();
-			foreach ($tables as $table)
+			foreach ( $tables as $table )
 			{
-				$_name = Option::get($table, 'name');
-				if (empty($_name))
+				$_name = Option::get( $table, 'name' );
+				if ( empty( $_name ) )
 				{
 					throw new \Exception( "No 'name' field in data." );
 				}
@@ -292,6 +294,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			$this->_dbConn->createTable( $table );
+
 			return array( 'name' => $table );
 		}
 		catch ( ServiceException $ex )
@@ -311,10 +314,10 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			$_out = array();
-			foreach ($tables as $table)
+			foreach ( $tables as $table )
 			{
-				$_name = Option::get($table, 'name');
-				if (empty($_name))
+				$_name = Option::get( $table, 'name' );
+				if ( empty( $_name ) )
 				{
 					throw new \Exception( "No 'name' field in data." );
 				}
@@ -357,10 +360,10 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			$_out = array();
-			foreach ($tables as $table)
+			foreach ( $tables as $table )
 			{
-				$_name = Option::get($table, 'name');
-				if (empty($_name))
+				$_name = Option::get( $table, 'name' );
+				if ( empty( $_name ) )
 				{
 					throw new \Exception( "No 'name' field in data." );
 				}
@@ -390,6 +393,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		try
 		{
 			$this->_dbConn->deleteTable( $table );
+
 			return array( 'name' => $table );
 		}
 		catch ( ServiceException $ex )
@@ -423,27 +427,26 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$records = array( $records );
 		}
 
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
 			// Create list of batch operation.
 			$operations = new BatchOperations();
 
-			$_out = array();
 			foreach ( $records as $record )
 			{
 				$entity = static::parseRecordToEntity( $record );
 				$_id = $entity->getRowKey();
-				if (empty($_id))
+				if ( empty( $_id ) )
 				{
 					$_id = static::createItemId( $table );
 					$entity->setRowKey( $_id );
 				}
-				if (!$entity->getPartitionKey())
+				if ( !$entity->getPartitionKey() )
 				{
-					$entity->setPartitionKey( $this->_defaultPartitionKey );
+					$entity->setPartitionKey( $_partitionKey );
 				}
-				$_out[] = array( 'RowKey' => $_id );
 
 				// Add operation to list of batch operations.
 				$operations->addInsertEntity( $table, $entity );
@@ -452,16 +455,9 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			/** @var BatchResult $results */
 			$results = $this->_dbConn->batch( $operations );
 
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return $_out;
-			}
-
 			/** @var InsertEntityResult $result */
-			foreach ($results->getEntries() as $key => $result)
-			{
-				$_out[$key] = static::parseEntityToRecord($result->getEntity(), array(), $fields);
-			}
+			$_entities = $results->getEntries();
+			$_out = static::parseEntitiesToRecords( $_entities, $fields );
 
 			return $_out;
 		}
@@ -490,30 +486,27 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no record fields in the request.' );
 		}
 
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
 			// simple insert request
 			$entity = static::parseRecordToEntity( $record );
 			$_id = $entity->getRowKey();
-			if (empty($_id))
+			if ( empty( $_id ) )
 			{
 				$_id = static::createItemId( $table );
 				$entity->setRowKey( $_id );
 			}
-			if (!$entity->getPartitionKey())
+			if ( !$entity->getPartitionKey() )
 			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
+				$entity->setPartitionKey( $_partitionKey );
 			}
 
 			/** @var InsertEntityResult $result */
 			$result = $this->_dbConn->insertEntity( $table, $entity );
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return array( 'RowKey' => $_id );
-			}
 
-			return static::parseEntityToRecord( $result->getEntity(), array(), $fields );
+			return static::parseEntityToRecord( $result->getEntity(), $fields );
 		}
 		catch ( ServiceException $ex )
 		{
@@ -524,12 +517,13 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	/**
 	 * @param        $table
 	 * @param        $records
-	 * @param        $id_field
+	 * @param string $id_field
 	 * @param bool   $rollback
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Platform\Exceptions\InternalServerErrorException
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
 	public function updateRecords( $table, $records, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -544,26 +538,27 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$records = array( $records );
 		}
 
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
 			// Create list of batch operation.
 			$operations = new BatchOperations();
 
-			$_out = array();
+			$_entities = array();
 			foreach ( $records as $key => $record )
 			{
-				$_id = Option::get($record, 'rowkey');
-				if (empty($_id))
+				$_id = Option::get( $record, 'RowKey' );
+				if ( empty( $_id ) )
 				{
-					throw new BadRequestException("No identifier 'RowKey' exist in record index '$key'.");
+					throw new BadRequestException( "No identifier 'RowKey' exist in record index '$key'." );
 				}
-				$entity = static::parseRecordToEntity($record);
-				if (!$entity->getPartitionKey())
+				$entity = static::parseRecordToEntity( $record );
+				if ( !$entity->getPartitionKey() )
 				{
-					$entity->setPartitionKey( $this->_defaultPartitionKey );
+					$entity->setPartitionKey( $_partitionKey );
 				}
-				$_out[] = array( 'RowKey' => $_id );
+				$_entities[] = $entity;
 
 				// Add operation to list of batch operations.
 				$operations->addUpdateEntity( $table, $entity );
@@ -572,25 +567,20 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			/** @var BatchResult $results */
 			$results = $this->_dbConn->batch( $operations );
 
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return $_out;
-			}
-
 			/** @var UpdateEntityResult $result */
-			foreach ($results->getEntries() as $result)
+			foreach ( $results->getEntries() as $result )
 			{
 				// not much good in here
 			}
 
-			return $this->retrieveRecords($table, $records, $id_field = '', $fields = '', $extras);
+			return static::parseEntitiesToRecords( $_entities, $fields );
 		}
 		catch ( ServiceException $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to update items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to update items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -601,7 +591,8 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Platform\Exceptions\InternalServerErrorException
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
 	public function updateRecord( $table, $record, $id_field = '', $fields = '', $extras = array() )
@@ -611,33 +602,30 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
 
-		$_id = Option::get($record, 'rowkey');
-		if (empty($_id))
+		$_id = Option::get( $record, 'RowKey' );
+		if ( empty( $_id ) )
 		{
-			throw new BadRequestException('No identifier exist in record.');
+			throw new BadRequestException( 'No identifier exist in record.' );
 		}
+
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
+		$table = $this->correctTableName( $table );
 		try
 		{
-			$entity = static::parseRecordToEntity($record);
-			if (!$entity->getPartitionKey())
+			$entity = static::parseRecordToEntity( $record );
+			if ( !$entity->getPartitionKey() )
 			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
+				$entity->setPartitionKey( $_partitionKey );
 			}
 
 			/** @var UpdateEntityResult $result */
 			$result = $this->_dbConn->updateEntity( $table, $entity );
 
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return array( 'RowKey' => $entity->getRowKey() );
-			}
-
-			// get a new copy with properties
-			return $this->retrieveRecordById($table, $_id, '', $fields, $extras);
+			return static::parseEntityToRecord( $entity, $fields );
 		}
 		catch ( ServiceException $ex )
 		{
-			throw new \Exception( "Failed to update item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to update item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -657,19 +645,23 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
+
 		$table = $this->correctTableName( $table );
 		try
 		{
 			// parse filter
-//			$rows = $this->_dbConn->updateItem( $table, $record, $filter );
-
-			$results = array();
-			if ( !empty( $fields ) )
+			$filter = static::parseFilter( $filter );
+			/** @var Entity[] $_entities */
+			$_entities = $this->queryEntities( $table, $filter, $fields, $extras );
+			foreach( $_entities as $_entity )
 			{
-				$results = $this->retrieveRecordsByFilter( $table, $filter, $fields, $extras );
+				$_entity = static::parseRecordToEntity( $record, $_entity );
+				$this->_dbConn->updateEntity( $table, $_entity );
 			}
 
-			return $results;
+			$_out = static::parseEntitiesToRecords( $_entities, $fields );
+
+			return $_out;
 		}
 		catch ( \Exception $ex )
 		{
@@ -686,7 +678,8 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Platform\Exceptions\InternalServerErrorException
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
 	public function updateRecordsByIds( $table, $record, $id_list, $id_field = '', $rollback = false, $fields = '', $extras = array() )
@@ -695,13 +688,14 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( "No record fields were passed in the request." );
 		}
-		$table = $this->correctTableName( $table );
 
 		if ( empty( $id_list ) )
 		{
 			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
 		}
 
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
+		$table = $this->correctTableName( $table );
 		$ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
 
 		try
@@ -709,48 +703,43 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			// Create list of batch operation.
 			$operations = new BatchOperations();
 
-			$entity = static::parseRecordToEntity($record);
-			if (!$entity->getPartitionKey())
-			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
-			}
-			$_out = array();
+			$_entities = array();
 			foreach ( $ids as $key => $_id )
 			{
-				if (empty($id))
+				if ( empty( $id ) )
 				{
-					throw new BadRequestException("No identifier exist in identifier index $key.");
+					throw new BadRequestException( "No identifier exist in identifier index $key." );
 				}
 
-				$entity->setRowKey($id);
+				$entity = static::parseRecordToEntity( $record );
+				if ( !$entity->getPartitionKey() )
+				{
+					$entity->setPartitionKey( $_partitionKey );
+				}
+				$entity->setRowKey( $id );
+				$_entities[] = $entity;
 
 				// Add operation to list of batch operations.
 				$operations->addUpdateEntity( $table, $entity );
-				$_out[] = array( 'RowKey' => $_id );
 			}
 
 			/** @var BatchResult $results */
 			$results = $this->_dbConn->batch( $operations );
 
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return $_out;
-			}
-
 			/** @var UpdateEntityResult $result */
-			foreach ($results->getEntries() as $result)
+			foreach ( $results->getEntries() as $result )
 			{
 				// not much good in here
 			}
 
-			return $this->retrieveRecordsByIds($table, $id_list, $id_field = '', $fields = '', $extras);
+			return static::parseEntitiesToRecords( $_entities, $fields );
 		}
 		catch ( ServiceException $ex )
 		{
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to update items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to update items in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -762,7 +751,8 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Platform\Exceptions\InternalServerErrorException
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
 	public function updateRecordById( $table, $record, $id, $id_field = '', $fields = '', $extras = array() )
@@ -771,33 +761,30 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
-		if (empty($id))
+		if ( empty( $id ) )
 		{
-			throw new BadRequestException("No identifier exist in record.");
+			throw new BadRequestException( "No identifier exist in request." );
 		}
+
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
+		$table = $this->correctTableName( $table );
 		try
 		{
-			$entity = static::parseRecordToEntity($record);
+			$entity = static::parseRecordToEntity( $record );
 			$entity->setRowKey( $id );
-			if (!$entity->getPartitionKey())
+			if ( !$entity->getPartitionKey() )
 			{
-				$entity->setPartitionKey( $this->_defaultPartitionKey );
+				$entity->setPartitionKey( $_partitionKey );
 			}
 
 			/** @var UpdateEntityResult $result */
 			$result = $this->_dbConn->updateEntity( $table, $entity );
 
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
-			{
-				return array( 'RowKey' => $entity->getRowKey() );
-			}
-
-			// get a new copy with properties
-			return $this->retrieveRecordById($table, $id, '', $fields, $extras);
+			return static::parseEntityToRecord( $entity, $fields );
 		}
 		catch ( ServiceException $ex )
 		{
-			throw new \Exception( "Failed to update item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to update item in '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -894,7 +881,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param array  $extras
 	 *
 	 * @throws BadRequestException
-	 * @return array|string
+	 * @return array
 	 */
 	public function deleteRecords( $table, $records, $id_field = '', $rollback = false, $fields = '', $extras = array() )
 	{
@@ -908,6 +895,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$records = array( $records );
 		}
 
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
@@ -915,33 +903,29 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$operations = new BatchOperations();
 
 			$_outMore = array();
-			if ( !( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) ))
+			if ( !empty( $fields ) )
 			{
-				$_outMore = $this->retrieveRecords($table, $records, $id_field = '', $fields = '', $extras);
+				$_outMore = $this->retrieveRecords( $table, $records, $id_field, $fields, $extras );
 			}
 			$_out = array();
 			foreach ( $records as $key => $record )
 			{
-				$_id = Option::get($record, 'rowkey');
-				if (empty($_id))
+				$_id = Option::get( $record, 'RowKey' );
+				if ( empty( $_id ) )
 				{
-					throw new BadRequestException("No identifier 'RowKey' exist in record index '$key'.");
+					throw new BadRequestException( "No identifier 'RowKey' exist in record index '$key'." );
 				}
-				$_partKey = Option::get($record, 'partitionkey');
-				if (empty($_partKey))
-				{
-					$_partKey = $this->_defaultPartitionKey;
-				}
-				$_out[] = array( 'RowKey' => $_id );
+				$_partitionKey = Option::get( $record, 'PartitionKey', $_partitionKey );
+				$_out[] = array( 'PartitionKey' => $_partitionKey, 'RowKey' => $_id );
 
 				// Add operation to list of batch operations.
-				$operations->addDeleteEntity( $table, $_partKey, $_id );
+				$operations->addDeleteEntity( $table, $_partitionKey, $_id );
 			}
 
 			/** @var BatchResult $results */
 			$results = $this->_dbConn->batch( $operations );
 
-			foreach ($results->getEntries() as $result)
+			foreach ( $results->getEntries() as $result )
 			{
 				// not much good in here
 			}
@@ -979,21 +963,26 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
 
-		$_id = Option::get($record, 'rowkey');
-		if (empty($_id))
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
+		$_partitionKey = Option::get( $record, 'PartitionKey', $_partitionKey );
+		$table = $this->correctTableName( $table );
+		$_id = Option::get( $record, 'RowKey' );
+		if ( empty( $_id ) )
 		{
-			throw new BadRequestException('No identifier exist in record.');
+			throw new BadRequestException( 'No identifier exist in record.' );
 		}
 
-		$result = array( 'RowKey' => $_id );
-		if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
+		$_out = array( 'PartitionKey' => $_partitionKey, 'RowKey' => $_id );
+		if ( !empty( $fields ) )
 		{
-			$result = $this->retrieveRecordById($table, $_id, $id_field, $fields, $extras);
+			$_result = $this->_dbConn->getEntity( $table, $_partitionKey, $_id );
+			$_entity = $_result->getEntity();
+			$_out = static::parseEntityToRecord( $_entity, $fields );
 		}
 
-		$this->_dbConn->deleteEntity( $table, $this->_defaultPartitionKey, $_id );
+		$this->_dbConn->deleteEntity( $table, $_partitionKey, $_id );
 
-		return $result;
+		return $_out;
 	}
 
 	/**
@@ -1002,7 +991,8 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
 	public function deleteRecordsByFilter( $table, $filter, $fields = '', $extras = array() )
@@ -1011,20 +1001,23 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		{
 			throw new BadRequestException( "Filter for delete request can not be empty." );
 		}
+
 		$table = $this->correctTableName( $table );
 		try
 		{
-			$results = array();
-			// get the returnable fields first, then issue delete
-			if ( !empty( $fields ) )
+			$filter = static::parseFilter( $filter );
+			/** @var Entity[] $_entities */
+			$_entities = $this->queryEntities( $table, $filter, $fields, $extras );
+			foreach( $_entities as $_entity )
 			{
-				$results = $this->retrieveRecordsByFilter( $table, $filter, $fields, $extras );
+				$_partitionKey = $_entity->getPartitionKey();
+				$_rowKey = $_entity->getRowKey();
+				$this->_dbConn->deleteEntity( $table, $_partitionKey, $_rowKey );
 			}
 
-			// parse filter
-//			$id = $this->_dbConn->deleteItem( $table, $filter );
+			$_out = static::parseEntitiesToRecords( $_entities, $fields );
 
-			return $results;
+			return $_out;
 		}
 		catch ( \Exception $ex )
 		{
@@ -1035,30 +1028,31 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	/**
 	 * @param        $table
 	 * @param        $id_list
-	 * @param        $id_field
+	 * @param string $id_field
 	 * @param bool   $rollback
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Platform\Exceptions\InternalServerErrorException
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
 	public function deleteRecordsByIds( $table, $id_list, $id_field = '', $rollback = false, $fields = '', $extras = array() )
 	{
-		$table = $this->correctTableName( $table );
-
 		if ( empty( $id_list ) )
 		{
 			throw new BadRequestException( "Identifying values for '$id_field' can not be empty for update request." );
 		}
 
-		$ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
+		$_ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
+		$table = $this->correctTableName( $table );
 
 		// get the returnable fields first, then issue delete
 		$_outMore = array();
-		if ( !( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) ))
+		if ( !empty( $fields ))
 		{
-			$_outMore = $this->retrieveRecordsByIds($table, $id_list, $id_field = '', $fields = '', $extras);
+			$_outMore = $this->retrieveRecordsByIds( $table, $id_list, $id_field = '', $fields = '', $extras );
 		}
 
 		try
@@ -1067,22 +1061,22 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$operations = new BatchOperations();
 
 			$_out = array();
-			foreach ( $ids as $key => $id )
+			foreach ( $_ids as $key => $_id )
 			{
-				if (empty($id))
+				if ( empty( $_id ) )
 				{
-					throw new BadRequestException("No identifier exist in identifier number $key.");
+					throw new BadRequestException( "No identifier exist in identifier number $key." );
 				}
-				$_out[] = array('RowKey' => $id);
+				$_out[] = array( 'PartitionKey' => $_partitionKey, 'RowKey' => $_id );
 
 				// Add operation to list of batch operations.
-				$operations->addDeleteEntity( $table, $this->_defaultPartitionKey, $id );
+				$operations->addDeleteEntity( $table, $_partitionKey, $_id );
 			}
 
 			/** @var BatchResult $results */
 			$results = $this->_dbConn->batch( $operations );
 
-			foreach ($results->getEntries() as $result)
+			foreach ( $results->getEntries() as $result )
 			{
 				// not much good in here
 			}
@@ -1099,7 +1093,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			if ( $rollback )
 			{
 			}
-			throw new \Exception( "Failed to delete items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to delete items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1115,32 +1109,32 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 */
 	public function deleteRecordById( $table, $id, $id_field = '', $fields = '', $extras = array() )
 	{
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
+		$table = $this->correctTableName( $table );
 		try
 		{
-			$result = array( 'RowKey' => $id );
-			if ( empty( $fields ) || ( 0 === strcasecmp( 'RowKey', $fields ) ) )
+			$_out = array( 'PartitionKey' => $_partitionKey, 'RowKey' => $id );
+			if ( !empty( $fields ) )
 			{
-				$result = $this->retrieveRecordById($table, $id, $id_field, $fields, $extras);
+				$_result = $this->_dbConn->getEntity( $table, $_partitionKey, $id );
+				$_entity = $_result->getEntity();
+				$_out = static::parseEntityToRecord( $_entity, $fields );
 			}
-			$this->_dbConn->deleteEntity( $table, $this->_defaultPartitionKey, $id );
 
-			return $result;
+			$this->_dbConn->deleteEntity( $table, $_partitionKey, $id );
+
+			return $_out;
 		}
 		catch ( ServiceException $ex )
 		{
-			throw new \Exception( "Failed to delete item from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to delete item from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
 	/**
 	 * @param        $table
-	 * @param string $fields
 	 * @param string $filter
-	 * @param int    $limit
-	 * @param string $order
-	 * @param int    $offset
-	 * @param bool   $include_count
-	 * @param bool   $include_schema
+	 * @param string $fields
 	 * @param array  $extras
 	 *
 	 * @throws \Exception
@@ -1153,46 +1147,22 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		$this->checkConnection();
 
 		$_options = new QueryEntitiesOptions();
-		$_options->setSelectFields(array());
+		$_options->setSelectFields( array() );
 		if ( !empty( $fields ) && ( '*' != $fields ) )
 		{
 			$fields = array_map( 'trim', explode( ',', trim( $fields, ',' ) ) );
-			$_options->setSelectFields($fields);
+			$_options->setSelectFields( $fields );
 		}
-		$limit = intval( Option::get($extras, 'limit', 0 ) );
-		if ($limit > 0)
+		$limit = intval( Option::get( $extras, 'limit', 0 ) );
+		if ( $limit > 0 )
 		{
-			$_options->setTop($limit);
+			$_options->setTop( $limit );
 		}
 
-//		$filter = "PartitionKey eq '$_partKey'";
-//		$filter = "Location eq 'Office' and DueDate lt '2012-11-5'";
-		if (!empty($filter))
-		{
-			$_query = new QueryStringFilter($filter);
-			$_options->setFilter($_query);
-		}
+		$filter = static::parseFilter( $filter );
+		$_out = $this->queryEntities( $table, $filter, $fields, $extras, true );
 
-		try
-		{
-			/** @var QueryEntitiesResult $result */
-			$result = $this->_dbConn->queryEntities( $table, $_options );
-
-			/** @var Entity[] $entities */
-			$entities = $result->getEntities();
-
-			$_out = array();
-			foreach ( $entities as $entity )
-			{
-				$_out[] = static::parseEntityToRecord($entity);
-			}
-
-			return $_out;
-		}
-		catch ( ServiceException $ex )
-		{
-			throw new \Exception( "Failed to filter items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
-		}
+		return $_out;
 	}
 
 	/**
@@ -1205,7 +1175,7 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @throws \Exception
 	 * @return array
 	 */
-	public function retrieveRecords( $table, $records, $id_field = 'id', $fields = '', $extras = array() )
+	public function retrieveRecords( $table, $records, $id_field = '', $fields = '', $extras = array() )
 	{
 		if ( empty( $records ) || !is_array( $records ) )
 		{
@@ -1217,28 +1187,27 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			$records = array( $records );
 		}
 
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
 			$_out = array();
 			foreach ( $records as $key => $record )
 			{
-				$_id = Option::get($record, 'rowkey');
+				$_id = Option::get( $record, 'RowKey' );
 				if ( empty( $_id ) )
 				{
 					throw new BadRequestException( "Identifying field 'RowKey' can not be empty for retrieve record index '$key' request." );
 				}
-				$ids[] = $_id;
-				$_partKey = Option::get($record, 'partitionkey');
-				if (empty($_partKey))
+				$_partKey = Option::get( $record, 'PartitionKey' );
+				if ( empty( $_partKey ) )
 				{
-					$_partKey = $this->_defaultPartitionKey;
+					$_partKey = $_partitionKey;
 				}
 				/** @var GetEntityResult $result */
 				$result = $this->_dbConn->getEntity( $table, $_partKey, $_id );
 				$entity = $result->getEntity();
-
-				$_out[] = static::parseEntityToRecord($entity, array(), $fields);
+				$_out[] = static::parseEntityToRecord( $entity, $fields );
 			}
 
 			return $_out;
@@ -1256,37 +1225,42 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @param string $fields
 	 * @param array  $extras
 	 *
-	 * @throws BadRequestException
+	 * @throws \Exception
+	 * @throws \Platform\Exceptions\BadRequestException
 	 * @return array
 	 */
-	public function retrieveRecord( $table, $record, $id_field = 'id', $fields = '', $extras = array() )
+	public function retrieveRecord( $table, $record, $id_field = '', $fields = '', $extras = array() )
 	{
 		if ( !isset( $record ) || empty( $record ) )
 		{
 			throw new BadRequestException( 'There are no fields in the record.' );
 		}
+
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
-		$_id = Option::get($record, 'rowkey');
-		if (empty($_id))
+		$_id = Option::get( $record, 'RowKey' );
+		if ( empty( $_id ) )
 		{
 			throw new BadRequestException( "Identifying field 'RowKey' can not be empty for retrieve record request." );
 		}
-		$_partKey = Option::get($record, 'partitionkey');
-		if (empty($_partKey))
+
+		$_partKey = Option::get( $record, 'PartitionKey' );
+		if ( empty( $_partKey ) )
 		{
-			$_partKey = $this->_defaultPartitionKey;
+			$_partKey = $_partitionKey;
 		}
 		try
 		{
-			/** @var GetEntityResult $result */
-			$result = $this->_dbConn->getEntity( $table, $_partKey, $_id );
-			$entity = $result->getEntity();
+			/** @var GetEntityResult $_result */
+			$_result = $this->_dbConn->getEntity( $table, $_partKey, $_id );
+			$_entity = $_result->getEntity();
+			$_out = static::parseEntityToRecord( $_entity, $fields );
 
-			return static::parseEntityToRecord($entity, array(), $fields);
+			return $_out;
 		}
 		catch ( ServiceException $ex )
 		{
-			throw new \Exception( "Failed to get item '$table/$_id' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to get item '$table/$_id' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1300,13 +1274,15 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 * @throws \Exception
 	 * @return array
 	 */
-	public function retrieveRecordsByIds( $table, $id_list, $id_field = 'id', $fields = '', $extras = array() )
+	public function retrieveRecordsByIds( $table, $id_list, $id_field = '', $fields = '', $extras = array() )
 	{
 		if ( empty( $id_list ) )
 		{
 			return array();
 		}
-		$ids = array_map( 'trim', explode( ',', trim($id_list, ',') ) );
+
+		$ids = array_map( 'trim', explode( ',', trim( $id_list, ',' ) ) );
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
@@ -1314,17 +1290,17 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			foreach ( $ids as $id )
 			{
 				/** @var GetEntityResult $result */
-				$result = $this->_dbConn->getEntity( $table, $this->_defaultPartitionKey, $id );
+				$result = $this->_dbConn->getEntity( $table, $_partitionKey, $id );
 				$entity = $result->getEntity();
 
-				$_out[] = static::parseEntityToRecord($entity, array(), $fields);
+				$_out[] = static::parseEntityToRecord( $entity, array(), $fields );
 			}
 
 			return $_out;
 		}
 		catch ( ServiceException $ex )
 		{
-			throw new \Exception( "Failed to get items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to get items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1344,18 +1320,79 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		{
 			return array();
 		}
+
+		$_partitionKey = Option::get( $extras, 'PartitionKey', $this->_defaultPartitionKey );
 		$table = $this->correctTableName( $table );
 		try
 		{
 			/** @var GetEntityResult $result */
-			$result = $this->_dbConn->getEntity( $table, $this->_defaultPartitionKey, $id );
-			$entity = $result->getEntity();
+			$_result = $this->_dbConn->getEntity( $table, $_partitionKey, $id );
+			$_entity = $_result->getEntity();
+			$_out = static::parseEntityToRecord( $_entity, $fields );
 
-			return static::parseEntityToRecord($entity, array(), $fields);
+			return $_out;
 		}
 		catch ( ServiceException $ex )
 		{
-			throw new \Exception( "Failed to get item '$table/$id' on Windows Azure Tables service.\n" . $ex->getMessage() );
+			throw new InternalServerErrorException( "Failed to get item '$table/$id' on Windows Azure Tables service.\n" . $ex->getMessage() );
+		}
+	}
+
+	/**
+	 * @param        $table
+	 * @param string $parsed_filter
+	 * @param string $fields
+	 * @param array  $extras
+	 * @param bool   $parse_results
+	 *
+	 * @throws \Exception
+	 * @return array
+	 */
+	protected function queryEntities( $table, $parsed_filter = '', $fields = '', $extras = array(), $parse_results = false )
+	{
+		$table = $this->correctTableName( $table );
+
+		$this->checkConnection();
+
+		$_options = new QueryEntitiesOptions();
+		$_options->setSelectFields( array() );
+
+		if ( !empty( $fields ) && ( '*' != $fields ) )
+		{
+			$fields = array_map( 'trim', explode( ',', trim( $fields, ',' ) ) );
+			$_options->setSelectFields( $fields );
+		}
+
+		$limit = intval( Option::get( $extras, 'limit', 0 ) );
+		if ( $limit > 0 )
+		{
+			$_options->setTop( $limit );
+		}
+
+		if ( !empty( $parsed_filter ) )
+		{
+			$_query = new QueryStringFilter( $parsed_filter );
+			$_options->setFilter( $_query );
+		}
+
+		try
+		{
+			/** @var QueryEntitiesResult $result */
+			$_result = $this->_dbConn->queryEntities( $table, $_options );
+
+			/** @var Entity[] $entities */
+			$_entities = $_result->getEntities();
+
+			if ( $parse_results )
+			{
+				return static::parseEntitiesToRecords( $_entities );
+			}
+
+			return $_entities;
+		}
+		catch ( ServiceException $ex )
+		{
+			throw new InternalServerErrorException( "Failed to filter items from '$table' on Windows Azure Tables service.\n" . $ex->getMessage() );
 		}
 	}
 
@@ -1372,18 +1409,38 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		{
 			$entity = new Entity();
 		}
-		foreach ( $record as $key => $value )
+		foreach ( $record as $_key => $_value )
 		{
-			if (false === array_search( $key, $exclude ) )
+			if ( false === array_search( $_key, $exclude ) )
 			{
-//				$entity->addProperty( $key, EdmType::STRING, $value );
-				if ($entity->getProperty($key))
+				// valid types
+//				const DATETIME = 'Edm.DateTime';
+//				const BINARY   = 'Edm.Binary';
+//				const GUID     = 'Edm.Guid';
+				$_edmType = EdmType::STRING;
+				switch ( gettype( $_value ) )
 				{
-					$entity->setPropertyValue( $key, $value );
+					case 'boolean':
+						$_edmType = EdmType::BOOLEAN;
+						break;
+					case 'double':
+					case 'float':
+						$_edmType = EdmType::DOUBLE;
+						break;
+					case 'integer':
+						$_edmType = ( $_value > 2147483647 ) ? EdmType::INT64 : EdmType::INT32;
+						break;
+				}
+				if ( $entity->getProperty( $_key ) )
+				{
+					$_prop = new Property();
+					$_prop->setEdmType( $_edmType );
+					$_prop->setValue( $_value );
+					$entity->setProperty( $_key, $_prop );
 				}
 				else
 				{
-					$entity->addProperty( $key, null, $value );
+					$entity->addProperty( $_key, $_edmType, $_value );
 				}
 			}
 		}
@@ -1393,17 +1450,18 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 
 	/**
 	 * @param null|Entity  $entity
-	 * @param array        $record
 	 * @param string|array $include List of keys to include in the output record
+	 * @param array        $record
 	 *
 	 * @return array
 	 */
-	protected static function parseEntityToRecord( $entity = null, $record = array(), $include = '*' )
+	protected static function parseEntityToRecord( $entity, $include = '*', $record = array() )
 	{
 		if ( !empty( $entity ) )
 		{
 			if ( empty( $include ) )
 			{
+				$record['PartitionKey'] = $entity->getPartitionKey();
 				$record['RowKey'] = $entity->getRowKey();
 			}
 			elseif ( '*' == $include )
@@ -1430,5 +1488,109 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 		}
 
 		return $record;
+	}
+
+	protected static function parseEntitiesToRecords( $entities, $include = '*', $records = array() )
+	{
+		$records = array();
+		foreach ( $entities as $_entity )
+		{
+			if ( $_entity instanceof BatchError )
+			{
+				/** @var ServiceException $_error */
+				$_error = $_entity->getError();
+				throw $_error;
+			}
+			if ( $_entity instanceof InsertEntityResult )
+			{
+				/** @var InsertEntityResult $_entity */
+				$_entity = $_entity->getEntity();
+				$records[] = static::parseEntityToRecord( $_entity, $include );
+			}
+			else
+			{
+				$records[] = static::parseEntityToRecord( $_entity, $include );
+			}
+		}
+
+		return $records;
+	}
+
+	/**
+	 * @param string|array $filter Filter for querying records by
+	 *
+	 * @return array
+	 */
+	protected static function parseFilter( $filter )
+	{
+		if ( empty( $filter ) )
+		{
+			return '';
+		}
+
+		if ( is_array( $filter ) )
+		{
+			return ''; // todo need to build from array of parts
+		}
+
+		// handle logical operators first
+		// supported logical operators are or, and, not
+		$_search = array( ' || ', ' && ', ' OR ', ' AND ', ' NOR ', ' NOT ' );
+		$_replace = array( ' or ', ' and ', ' or ', ' and ', ' nor ', ' not ' );
+		$filter = trim( str_ireplace( $_search, $_replace, ' ' . $filter ) ); // space added for 'not' case
+
+		// the rest should be comparison operators
+		// supported comparison operators are eq, ne, gt, ge, lt, le
+		$_search = array( '=', '!=', '>=', '<=', '>', '<', ' EQ ', ' NE ', ' LT ', ' LTE ', ' LE ', ' GT ', ' GTE', ' GE ' );
+		$_replace = array( ' eq ', ' ne ', ' ge ', ' le ', ' gt ', ' lt ', ' eq ', ' ne ', ' lt ', ' le ', ' le ', ' gt ', ' ge ', ' ge ' );
+		$filter = trim( str_ireplace( $_search, $_replace, $filter ) );
+
+//			WHERE name LIKE "%Joe%"	not supported
+//			WHERE name LIKE "%Joe"	not supported
+//			WHERE name LIKE "Joe%"	name ge 'Joe' and name lt 'Jof';
+//			if ( ( '%' == $_val[ strlen( $_val ) - 1 ] ) &&
+//				 ( '%' != $_val[0] ) )
+//			{
+//			}
+
+		return $filter;
+	}
+
+	protected static function buildIdsFilter( $ids, $partition_key )
+	{
+		if ( empty( $ids ) )
+		{
+			return null;
+		}
+
+		if ( !is_array( $ids ) )
+		{
+			$ids = array_map( 'trim', explode( ',', trim( $ids, ',' ) ) );
+		}
+
+		$_filters = array();
+		$_filter = '';
+		$_count = 0;
+		foreach ( $ids as $_id )
+		{
+			if ( !empty( $_filter ) )
+			{
+				$_filter .= ' and ';
+			}
+			$_filter .= "RowKey eq '" . trim( $_id, "'" ) . "'";
+			$_count++;
+			if ( $_count >= 14 ) // max comparisons is 15, leave one for partition key
+			{
+				$_filters[] = $_filter;
+				$_count = 0;
+			}
+		}
+
+		if ( !empty( $_filter ) )
+		{
+			$_filters[] = $_filter;
+		}
+
+		return $_filters;
 	}
 }

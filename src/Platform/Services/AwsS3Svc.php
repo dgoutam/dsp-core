@@ -159,25 +159,34 @@ class AwsS3Svc extends RemoteFileSvc
 	}
 
 	/**
-	 * @param string $container
-	 * @param array  $metadata
+	 * @param array $properties
+	 * @param array $metadata
 	 *
-	 * @throws BlobServiceException
+	 * @throws \Platform\Exceptions\BlobServiceException
+	 * @throws \Platform\Exceptions\BadRequestException
+	 * @return array
 	 */
-	public function createContainer( $container = '', $metadata = array() )
+	public function createContainer( $properties, $metadata = array() )
 	{
+		$_name = Option::get( $properties, 'name', Option::get( $properties, 'path' ) );
+		if ( empty( $_name ) )
+		{
+			throw new BadRequestException( 'No name found for container in create request.' );
+		}
 		try
 		{
 			$this->checkConnection();
 			$this->_blobConn->createBucket(
 				array(
-					 'Bucket' => $container
+					 'Bucket' => $_name
 				)
 			);
+
+			return array( 'name' => $_name, 'path' => $_name );
 		}
 		catch ( \Exception $ex )
 		{
-			throw new BlobServiceException( 'Failed to create container "' . $container . '": ' . $ex->getMessage() );
+			throw new BlobServiceException( "Failed to create container '$_name': " . $ex->getMessage() );
 		}
 	}
 

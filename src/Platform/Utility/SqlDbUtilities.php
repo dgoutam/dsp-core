@@ -485,6 +485,7 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				'name'               => $column->name,
 				'label'              => $label,
 				'type'               => static::determineDfType( $column, $label_info ),
+				'data_type'          => $column->type,
 				'db_type'            => $column->dbType,
 				'length'             => intval( $column->size ),
 				'precision'          => intval( $column->precision ),
@@ -590,19 +591,32 @@ class SqlDbUtilities implements SqlDbDriverTypes
 	 */
 	protected static function determineDfType( $column, $label_info = null )
 	{
-		switch ( $column->type )
+		$_simpleType = strstr( $column->dbType, '(', true );
+		$_simpleType = ( $_simpleType ) ? strtolower( $_simpleType ) : $column->dbType;
+		switch ( $_simpleType )
 		{
+			case 'bool':
+				return 'boolean';
+
+			case 'double':
+				return 'float';
+
+			case 'tinyint':
+			case 'smallint':
+			case 'mediumint':
+			case 'int':
+			case 'bigint':
 			case 'integer':
 				if ( $column->isPrimaryKey && $column->autoIncrement )
 				{
 					return 'id';
 				}
-				$userIdOnUpdate = Utilities::getArrayValue( 'user_id_on_update', $label_info, null );
+				$userIdOnUpdate = Option::get( $label_info, 'user_id_on_update' );
 				if ( isset( $userIdOnUpdate ) )
 				{
-					return ( Utilities::boolval( $userIdOnUpdate ) ) ? 'user_id_on_update' : 'user_id_on_create';
+					return ( DataFormat::boolval( $userIdOnUpdate ) ) ? 'user_id_on_update' : 'user_id_on_create';
 				}
-				$userId = Utilities::getArrayValue( 'user_id', $label_info, null );
+				$userId = Option::get( $label_info, 'user_id' );
 				if ( isset( $userId ) )
 				{
 					return 'user_id';
@@ -615,20 +629,38 @@ class SqlDbUtilities implements SqlDbDriverTypes
 				{
 					return 'boolean';
 				}
+
+				return 'integer';
+				break;
+
+			case 'binary':
+			case 'varbinary':
+				return 'binary';
+				break;
+
+			// string types
+			case 'string':
+			case 'char':
+			case 'varchar':
+			case 'nchar':
+			case 'nvarchar':
+				return 'string';
+				break;
+
+			case 'datetime2':
+				return 'datetime';
+
+			case 'datetimeoffset':
+			case 'timestamp':
+				$timestampOnUpdate = Option::get( $label_info, 'timestamp_on_update' );
+				if ( isset( $timestampOnUpdate ) )
+				{
+					return ( DataFormat::boolval( $timestampOnUpdate ) ) ? 'timestamp_on_update' : 'timestamp_on_create';
+				}
 				break;
 		}
-		if ( ( 0 == strcasecmp( $column->dbType, 'datetimeoffset' ) ) ||
-			 ( 0 == strcasecmp( $column->dbType, 'timestamp' ) )
-		)
-		{
-			$timestampOnUpdate = Utilities::getArrayValue( 'timestamp_on_update', $label_info, null );
-			if ( isset( $timestampOnUpdate ) )
-			{
-				return ( Utilities::boolval( $timestampOnUpdate ) ) ? 'timestamp_on_update' : 'timestamp_on_create';
-			}
-		}
 
-		return $column->type;
+		return $_simpleType;
 	}
 
 	/**

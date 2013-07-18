@@ -19,8 +19,8 @@
  */
 namespace Platform\Yii\Utility;
 
+use DreamFactory\Common\Enums\PageLocation;
 use Kisma\Core\Utility\Option;
-use Platform\Interfaces\PageLocation;
 
 /**
  * Validate.php
