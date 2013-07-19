@@ -1,5 +1,5 @@
 {
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -1024,6 +1024,12 @@
 					"type": "id"
 				},
 				{
+					"name":       "account_type",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
+				},
+				{
 					"name":          "user_id",
 					"type":          "integer",
 					"ref_table":     "df_sys_user",
@@ -1040,12 +1046,6 @@
 					"ref_on_update": "CASCADE",
 					"ref_on_delete": "CASCADE",
 					"allow_null":    false
-				},
-				{
-					"name":       "account_type",
-					"type":       "integer",
-					"allow_null": false,
-					"default":    0
 				},
 				{
 					"name":       "auth_text",
