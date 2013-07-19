@@ -69,9 +69,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	/**
 	 * Connects to a Azure Blob Storage
 	 *
-	 * @param boolean $useDev Utilize the local emulator storage
-	 * @param string  $name   Storage account name
-	 * @param string  $key    Storage account primary key
+	 * @param array $config Authentication configuration
 	 *
 	 * @throws \InvalidArgumentException
 	 * @throws \Exception
@@ -204,7 +202,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * @return boolean
 	 * @throws \Exception
 	 */
-	public function containerExists( $container = '' )
+	public function containerExists( $container )
 	{
 		$this->checkConnection();
 		try
@@ -225,20 +223,28 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	}
 
 	/**
-	 * @param string $container
-	 * @param array  $metadata
+	 * @param array $properties
+	 * @param array $metadata
 	 *
-	 * @return void
+	 * @throws \Platform\Exceptions\BadRequestException
+	 * @return array
 	 */
-	public function createContainer( $container = '', $metadata = array() )
+	public function createContainer( $properties, $metadata = array() )
 	{
 		$this->checkConnection();
 
+		$_name = Option::get( $properties, 'name', Option::get( $properties, 'path' ) );
+		if ( empty( $_name ) )
+		{
+			throw new BadRequestException( 'No name found for container in create request.' );
+		}
 		$options = new CreateContainerOptions();
 		$options->setMetadata( $metadata );
 //		$options->setPublicAccess('blob');
 
-		$this->_blobConn->createContainer( $container, $options );
+		$this->_blobConn->createContainer( $_name, $options );
+
+		return array( 'name' => $_name, 'path' => $_name );
 	}
 
 	/**
@@ -263,11 +269,12 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 
 	/**
 	 * @param string $container
+	 * @param bool   $force
 	 *
-	 * @return void
 	 * @throws \Exception
+	 * @return void
 	 */
-	public function deleteContainer( $container = '', $force = false )
+	public function deleteContainer( $container, $force = false )
 	{
 		try
 		{
@@ -292,7 +299,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * @return boolean
 	 * @throws \Exception
 	 */
-	public function blobExists( $container = '', $name = '' )
+	public function blobExists( $container, $name )
 	{
 		try
 		{
@@ -321,7 +328,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 *
 	 * @return void
 	 */
-	public function putBlobData( $container = '', $name = '', $blob = '', $type = '' )
+	public function putBlobData( $container, $name, $blob = '', $type = '' )
 	{
 		$this->checkConnection();
 
@@ -343,7 +350,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 *
 	 * @return void
 	 */
-	public function putBlobFromFile( $container = '', $name = '', $localFileName = '', $type = '' )
+	public function putBlobFromFile( $container, $name, $localFileName = '', $type = '' )
 	{
 		$this->checkConnection();
 		$options = new CreateBlobOptions();
@@ -364,7 +371,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 *
 	 * @return void
 	 */
-	public function copyBlob( $container = '', $name = '', $src_container = '', $src_name = '', $properties = array() )
+	public function copyBlob( $container, $name, $src_container, $src_name, $properties = array() )
 	{
 		$this->checkConnection();
 		$this->_blobConn->copyBlob( $container, $this->fixBlobName( $name ), $src_container, $this->fixBlobName( $src_name ) );
@@ -379,7 +386,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 *
 	 * @return void
 	 */
-	public function getBlobAsFile( $container = '', $name = '', $localFileName = '' )
+	public function getBlobAsFile( $container, $name, $localFileName = '' )
 	{
 		$this->checkConnection();
 		/** @var GetBlobResult $results  */
@@ -394,7 +401,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * @return mixed|string
 	 * @return string
 	 */
-	public function getBlobData( $container = '', $name = '' )
+	public function getBlobData( $container, $name )
 	{
 		$this->checkConnection();
 		/** @var GetBlobResult $results  */
@@ -410,7 +417,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * @return void
 	 * @throws \Exception
 	 */
-	public function deleteBlob( $container = '', $name = '' )
+	public function deleteBlob( $container, $name )
 	{
 		try
 		{
@@ -436,7 +443,7 @@ class WindowsAzureBlobSvc extends RemoteFileSvc
 	 * @return array
 	 * @throws \Exception
 	 */
-	public function listBlobs( $container = '', $prefix = '', $delimiter = '' )
+	public function listBlobs( $container, $prefix = '', $delimiter = '' )
 	{
 		$this->checkConnection();
 		$options = new ListBlobsOptions();

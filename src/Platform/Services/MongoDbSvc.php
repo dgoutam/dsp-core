@@ -72,21 +72,52 @@ class MongoDbSvc extends NoSqlDbSvc
 		parent::__construct( $config );
 
 		$_credentials = Option::get( $config, 'credentials' );
-		$_dsn = Option::get( $_credentials, 'dsn' );
+		$_dsn = Option::get( $_credentials, 'dsn', '' );
 		$_db = Option::get( $_credentials, 'db' );
-		if ( empty( $_db ) )
-		{
-			throw new \Exception( "No MongoDb database selected in configuration." );
-		}
-
 		if ( empty( $_dsn ) )
 		{
 			$_dsn = 'mongodb://localhost:27017';
+			if ( empty( $_db ) )
+			{
+				throw new \Exception( "No MongoDb database selected in configuration." );
+			}
+		}
+		else
+		{
+			if ( 0 != substr_compare( $_dsn, 'mongodb://', 0, 10, true ) )
+			{
+				$_dsn = 'mongodb://' . $_dsn;
+			}
+		}
+
+		$_options = array();
+		if ( !empty( $_db ) )
+		{
+			$_options['db'] = $_db;
+		}
+		else
+		{
+			$_db = trim( strstr( substr( $_dsn, strlen( 'mongodb://' ) ), '/' ), '/' );
+			if ( empty( $_db ) )
+			{
+				throw new \Exception( "No MongoDb database selected in configuration." );
+			}
+		}
+
+		$_username = Option::get( $_credentials, 'user' );
+		if ( !empty( $_username ) )
+		{
+			$_options['username'] = $_username;
+			$_password = Option::get( $_credentials, 'pwd' );
+			if ( !empty( $_password ) )
+			{
+				$_options['password'] = $_password;
+			}
 		}
 
 		try
 		{
-			$_client = new \MongoClient( $_dsn );
+			$_client = new \MongoClient( $_dsn, $_options );
 			$this->_dbConn = $_client->selectDB( $_db );
 		}
 		catch ( \Exception $ex )

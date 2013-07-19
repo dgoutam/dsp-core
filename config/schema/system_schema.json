@@ -969,13 +969,13 @@
 				},
 				{
 					"name":       "auth_endpoint",
-					"type":       "varchar",
+					"type":       "string",
 					"length":     1024,
 					"allow_null": true
 				},
 				{
 					"name":       "service_endpoint",
-					"type":       "varchar",
+					"type":       "string",
 					"length":     1024,
 					"allow_null": true
 				},

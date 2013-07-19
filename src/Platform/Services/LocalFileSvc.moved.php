@@ -127,58 +127,63 @@ class LocalFileSvc extends BaseFileSvc
 	 *
 	 * @throws \Exception
 	 * @throws \Platform\Exceptions\BadRequestException
-	 * @return void
+	 * @return array
 	 */
-	public function createContainer( $properties = array(), $check_exist = false )
+	public function createContainer( $properties, $check_exist = false )
 	{
-		$_container = Option::get( $properties, 'name', Option::get( $properties, 'path' ) );
+		$_name = Option::get( $properties, 'name', Option::get( $properties, 'path' ) );
+		if ( empty( $_name ) )
+		{
+			throw new BadRequestException( 'No name found for container in create request.' );
+		}
 		// does this folder already exist?
-		if ( $this->folderExists( $_container, '' ) )
+		$_dir = self::addContainerToName( $_name, '' );
+		if ( is_dir( $_dir ) )
 		{
 			if ( $check_exist )
 			{
-				throw new BadRequestException( "Container '$_container' already exists." );
+				throw new BadRequestException( "Container '$_name' already exists." );
 			}
-
-			return;
 		}
-
-		// create the container
-		$_dir = self::addContainerToName( $_container, '' );
-		if ( !mkdir( $_dir, 0777, true ) )
+		else
 		{
-			throw new \Exception( 'Failed to create container.' );
+			// create the container
+			if ( !mkdir( $_dir, 0777, true ) )
+			{
+				throw new \Exception( "Failed to create container at '$_name'." );
+			}
 		}
 //            $properties = (empty($properties)) ? '' : json_encode($properties);
 //            $result = file_put_contents($key, $properties);
 //            if (false === $result) {
 //                throw new \Exception('Failed to create container properties.');
 //            }
+
+		return array( 'name' => $_name, 'path' => $_name );
 	}
 
-	public function createContainers( $containers = array(), $check_exist = false )
+	public function createContainers( $containers, $check_exist = false )
 	{
 		$_out = array();
-		foreach ( $containers as $_key => $_folder )
+		if ( !empty( $containers ) )
 		{
-			try
+			if ( !isset( $containers[0] ) )
 			{
-				// path is full path, name is relative to root, take either
-				$_name = Option::get( $_folder, 'name', Option::get( $_folder, 'path' ) );
-				if ( !empty( $_name ) )
-				{
-					$_out[$_key] = array( 'name' => $_name, 'path' => $_name );
-					$this->createContainer( $_name, $check_exist );
-				}
-				else
-				{
-					throw new BadRequestException( 'No name found for container in create request.' );
-				}
+				// single folder, make into array
+				$containers = array( $containers );
 			}
-			catch ( \Exception $ex )
+			foreach ( $containers as $_key => $_folder )
 			{
-				// error whole batch here?
-				$_out[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				try
+				{
+					// path is full path, name is relative to root, take either
+					$_out[$_key] = $this->createContainer( $_folder, $check_exist );
+				}
+				catch ( \Exception $ex )
+				{
+					// error whole batch here?
+					$_out[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				}
 			}
 		}
 
@@ -222,10 +227,7 @@ class LocalFileSvc extends BaseFileSvc
 	public function deleteContainer( $container, $force = false )
 	{
 		$_dir = static::addContainerToName( $container, '' );
-		if ( !rmdir( $_dir ) )
-		{
-			throw new \Exception( 'Failed to delete container.' );
-		}
+		FileUtilities::deleteTree( $_dir, $force );
 	}
 
 	/**
@@ -239,25 +241,33 @@ class LocalFileSvc extends BaseFileSvc
 	 */
 	public function deleteContainers( $containers, $force = false )
 	{
-		foreach ( $containers as $_key => $_folder )
+		if ( !empty( $containers ) )
 		{
-			try
+			if ( !isset( $containers[0] ) )
 			{
-				// path is full path, name is relative to root, take either
-				$_name = Option::get( $_folder, 'name', Option::get( $folder, 'path' ) );
-				if ( !empty( $_name ) )
-				{
-					$this->deleteContainer( $_name, $force );
-				}
-				else
-				{
-					throw new BadRequestException( 'No name found for container in delete request.' );
-				}
+				// single folder, make into array
+				$containers = array( $containers );
 			}
-			catch ( \Exception $ex )
+			foreach ( $containers as $_key => $_folder )
 			{
-				// error whole batch here?
-				$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				try
+				{
+					// path is full path, name is relative to root, take either
+					$_name = Option::get( $_folder, 'name', trim( Option::get( $_folder, 'path' ), '/' ) );
+					if ( !empty( $_name ) )
+					{
+						$this->deleteContainer( $_name, $force );
+					}
+					else
+					{
+						throw new BadRequestException( 'No name found for container in delete request.' );
+					}
+				}
+				catch ( \Exception $ex )
+				{
+					// error whole batch here?
+					$containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+				}
 			}
 		}
 
@@ -292,21 +302,36 @@ class LocalFileSvc extends BaseFileSvc
 	public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false )
 	{
 		$path = FileUtilities::fixFolderPath( $path );
-		$_out = array( 'container' => $container );
+		$_dirPath = self::addContainerToName( $container, $path );
+		if ( !is_dir( $_dirPath ) )
+		{
+			if ( empty( $path ) )
+			{
+				throw new NotFoundException( "Container '$container' does not exist in storage." );
+			}
+			else
+			{
+				throw new NotFoundException( "Folder '$path' does not exist in storage." );
+			}
+		}
 		if ( empty( $path ) )
 		{
-			$_out['name'] = $container;
-			$_out['path'] = $container;
+			$_out = array(
+				'container' => $container,
+			    'name' => $container,
+			    'path' => $container
+			);
 		}
 		else
 		{
-			$_name = basename( $path );
-			$_out['name'] = $_name;
-			$_out['path'] = $container .'/'. $path;
+			$_out = array(
+				'container' => $container,
+				'name' => basename( $path ),
+				'path' => $container .'/'. $path
+			);
 		}
 		if ( $include_properties )
 		{
-			$_dirPath = self::addContainerToName( $container, $path );
 			$_temp = stat( $_dirPath );
 			$_out['last_modified'] = gmdate( 'D, d M Y H:i:s \G\M\T', Option::get( $_temp, 'mtime', 0 ) );
 		}
