@@ -95,6 +95,14 @@ class MongoDbSvc extends NoSqlDbSvc
 		{
 			$_options['db'] = $_db;
 		}
+		else
+		{
+			$_db = trim( strstr( substr( $_dsn, strlen( 'mongodb://' ) ), '/' ), '/' );
+			if ( empty( $_db ) )
+			{
+				throw new \Exception( "No MongoDb database selected in configuration." );
+			}
+		}
 
 		$_username = Option::get( $_credentials, 'user' );
 		if ( !empty( $_username ) )
