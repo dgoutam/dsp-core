@@ -17,15 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace Platform\Services;
+namespace DreamFactory\Platform\Services;
 
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\FilterInput;
-use Platform\Exceptions\BadRequestException;
-use Platform\Interfaces\FileServiceLike;
-use Platform\Utility\DataFormat;
-use Platform\Utility\FileUtilities;
-use Platform\Utility\RestRequest;
+use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Interfaces\FileServiceLike;
+use DreamFactory\Common\Utility\DataFormat;
+use DreamFactory\Platform\Utility\FileUtilities;
+use DreamFactory\Platform\Utility\RestData;
 use Swagger\Annotations as SWG;
 
 /**
@@ -37,44 +37,44 @@ use Swagger\Annotations as SWG;
  * )
  *
  * @SWG\Model(id="Containers",
- *   @SWG\Property(name="container",type="Array",items="$ref:Container",description="An array of containers.")
+ * @SWG\Property(name="container",type="Array",items="$ref:Container",description="An array of containers.")
  * )
  * @SWG\Model(id="Container",
- *   @SWG\Property(name="name",type="string",description="Identifier/Name for the container."),
- *   @SWG\Property(name="path",type="string",description="Same as name for the container."),
- *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the container was last modified."),
- *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
- *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
+ * @SWG\Property(name="name",type="string",description="Identifier/Name for the container."),
+ * @SWG\Property(name="path",type="string",description="Same as name for the container."),
+ * @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the container was last modified."),
+ * @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
+ * @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
  * )
  * @SWG\Model(id="FoldersAndFiles",
- *   @SWG\Property(name="name",type="string",description="Identifier/Name for the current folder, localized to requested folder resource."),
- *   @SWG\Property(name="path",type="string",description="Full path of the folder, from the service including container."),
- *   @SWG\Property(name="container",type="string",description="Container for the current folder."),
- *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
- *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
- *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs."),
- *   @SWG\Property(name="folder",type="Array",items="$ref:Folder",description="An array of contained folders."),
- *   @SWG\Property(name="file",type="Array",items="$ref:File",description="An array of contained files.")
+ * @SWG\Property(name="name",type="string",description="Identifier/Name for the current folder, localized to requested folder resource."),
+ * @SWG\Property(name="path",type="string",description="Full path of the folder, from the service including container."),
+ * @SWG\Property(name="container",type="string",description="Container for the current folder."),
+ * @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
+ * @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
+ * @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs."),
+ * @SWG\Property(name="folder",type="Array",items="$ref:Folder",description="An array of contained folders."),
+ * @SWG\Property(name="file",type="Array",items="$ref:File",description="An array of contained files.")
  * )
  * @SWG\Model(id="Folder",
- *   @SWG\Property(name="name",type="string",description="Identifier/Name for the folder, localized to requested folder resource."),
- *   @SWG\Property(name="path",type="string",description="Full path of the folder, from the service including container."),
- *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
- *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
- *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
+ * @SWG\Property(name="name",type="string",description="Identifier/Name for the folder, localized to requested folder resource."),
+ * @SWG\Property(name="path",type="string",description="Full path of the folder, from the service including container."),
+ * @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the folder was last modified."),
+ * @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
+ * @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
  * )
  * @SWG\Model(id="File",
- *   @SWG\Property(name="name",type="string",description="Identifier/Name for the file, localized to requested folder resource."),
- *   @SWG\Property(name="path",type="string",description="Full path of the file, from the service including container."),
- *   @SWG\Property(name="content_type",type="string",description="The media type of the content of the file."),
- *   @SWG\Property(name="content_length",type="string",description="Size of the file in bytes."),
- *   @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the file was last modified."),
- *   @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
- *   @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
+ * @SWG\Property(name="name",type="string",description="Identifier/Name for the file, localized to requested folder resource."),
+ * @SWG\Property(name="path",type="string",description="Full path of the file, from the service including container."),
+ * @SWG\Property(name="content_type",type="string",description="The media type of the content of the file."),
+ * @SWG\Property(name="content_length",type="string",description="Size of the file in bytes."),
+ * @SWG\Property(name="last_modified",type="string",description="A GMT date timestamp of when the file was last modified."),
+ * @SWG\Property(name="_property_",type="string",description="Storage type specific properties."),
+ * @SWG\Property(name="metadata",type="Array",items="$ref:string",description="An array of name-value pairs.")
  * )
  *
  */
-abstract class BaseFileSvc extends RestService implements FileServiceLike
+abstract class BaseFileSvc extends BasePlatformRestService implements FileServiceLike
 {
 	//*************************************************************************
 	//* Members
@@ -126,7 +126,6 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					$this->_filePath = $_temp;
 				}
 			}
-
 		}
 	}
 
@@ -140,57 +139,57 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	/**
 	 * @SWG\Api(
 	 *   path="/{file}", description="Operations available for File Storage Service.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List all containers.",
 	 *       notes="List the names of the available containers in this storage. Use 'include_properties' to include any properties of the containers.",
 	 *       responseClass="Containers", nickname="getContainers",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="include_properties", description="Return all properties of the container, if any.",
 	 *           paramType="query", required=false, allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="POST", summary="Create one or more containers.",
 	 *       notes="Post data should be a single container definition or an array of container definitions.",
 	 *       responseClass="Containers", nickname="createContainers",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="data", description="Array of containers to create.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Containers"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the container to create already exists.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Delete one or more containers.",
 	 *       notes="Post data should be a single container definition or an array of container definitions.",
 	 *       responseClass="Containers", nickname="deleteContainers",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="data", description="Array of containers to delete.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Containers"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -198,121 +197,121 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *
 	 * @SWG\Api(
 	 *   path="/{file}/{container}/", description="Operations on containers.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List the container's properties, including folders and files.",
 	 *       notes="Use 'include_properties' to get properties of the container. Use the 'include_folders' and/or 'include_files' to return a listing.",
 	 *       responseClass="FoldersAndFiles", nickname="getContainer",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container you want to retrieve the contents.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_properties", description="Return all properties of the container, if any.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_folders", description="Include folders in the returned listing.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_files", description="Include files in the returned listing.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="full_tree", description="List the contents of all sub-folders as well.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="zip", description="Return the zipped content of the folder.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="POST", summary="Add folders and/or files to the container.",
 	 *       notes="Post data as an array of folders and/or files.",
 	 *       responseClass="FoldersAndFiles", nickname="createContainer",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container you want to put the contents.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="url", description="The full URL of the file to upload.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="extract", description="Extract an uploaded zip file into the container.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="clean", description="Option when 'extract' is true, clean the current folder before extracting files and folders.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the file or folder to create already exists.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="data", description="Array of folders and/or files.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="FoldersAndFiles"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="PATCH", summary="Update properties of the container.",
 	 *       notes="Post data as an array of container properties.",
 	 *       responseClass="Container", nickname="updateContainerProperties",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container you want to put the contents.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="data", description="An array of container properties.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="Container"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Delete the container or folders and/or files from the container.",
 	 *       notes="Careful, this deletes the requested container and all of its contents, unless there are posted specific folders and/or files.",
 	 *       responseClass="FoldersAndFiles", nickname="deleteContainer",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container you want to delete from.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="data", description="An array of folders and/or files to delete from the container.",
 	 *           paramType="body", required="true", allowMultiple=false, dataType="FoldersAndFiles"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -320,137 +319,137 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *
 	 * @SWG\Api(
 	 *   path="/{file}/{container}/{folder_path}/", description="Operations on folders.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="List the folder's properties, or sub-folders and files.",
 	 *       notes="Use with no parameters to get properties of the folder or use the 'include_folders' and/or 'include_files' to return a listing.",
 	 *       responseClass="FoldersAndFiles", nickname="getFolder",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container from which you want to retrieve contents.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="folder_path", description="The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a '/'",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_properties", description="Return all properties of the folder, if any.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_folders", description="Include folders in the returned listing.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_files", description="Include files in the returned listing.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=true
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="full_tree", description="List the contents of all sub-folders as well.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="zip", description="Return the zipped content of the folder.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container or folder does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container or folder does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="POST", summary="Create one or more sub-folders and/or files.",
 	 *       notes="Post data as an array of folders and/or files. Folders are created if they do not exist",
 	 *       responseClass="FoldersAndFiles", nickname="createFolder",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container where you want to put the contents.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="folder_path", description="The path of the folder where you want to put the contents. This can be a sub-folder, with each level separated by a '/'",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="url", description="The full URL of the file to upload.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="extract", description="Extract an uploaded zip file into the folder.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="clean", description="Option when 'extract' is true, clean the current folder before extracting files and folders.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the file or folder to create already exists.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="data", description="Array of folders and/or files.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="FoldersAndFiles"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="PATCH", summary="Update folder properties.",
 	 *       notes="Post data as an array of folder properties.",
 	 *       responseClass="Folder", nickname="updateFolderProperties",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container where you want to put the contents.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="folder_path", description="The path of the folder you want to update. This can be a sub-folder, with each level separated by a '/'",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="data", description="Array of folder properties.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="FoldersAndFiles"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container or folder does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container or folder does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Delete one or more sub-folders and/or files.",
 	 *       notes="Careful, this deletes the requested folder and all of its contents, unless there are posted specific sub-folders and/or files.",
 	 *       responseClass="FoldersAndFiles", nickname="deleteFolder",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="The name of the container where the folder exists.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="folder_path", description="The path of the folder where you want to delete contents. This can be a sub-folder, with each level separated by a '/'",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="data", description="Array of folder and files to delete.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="FoldersAndFiles"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -458,143 +457,143 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 *
 	 * @SWG\Api(
 	 *   path="/{file}/{container}/{file_path}", description="Operations on individual files.",
-	 *   @SWG\Operations(
-	 *     @SWG\Operation(
+	 * @SWG\Operations(
+	 * @SWG\Operation(
 	 *       httpMethod="GET", summary="Download the file contents and/or its properties.",
 	 *       notes="By default, the file is streamed to the browser. Use the 'download' parameter to prompt for download.
 	 *              Use the 'include_properties' parameter (optionally add 'content' to include base64 content) to list properties of the file.",
 	 *       responseClass="File", nickname="getFile",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="Name of the container where the file exists.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="file_path", description="Path and name of the file to retrieve.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="include_properties", description="Return properties of the file.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="content", description="Return the content as base64 of the file, only applies when 'include_properties' is true.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="download", description="Prompt the user to download the file from the browser.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean", defaultValue=false
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *          @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *          @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *          @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
-	 *          @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="POST", summary="Create a new file.",
 	 *       notes="Post data should be the contents of the file or an object with file properties.",
 	 *       responseClass="File", nickname="createFile",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="Name of the container where the file exists.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="file_path", description="Path and name of the file to create.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="check_exist", description="If true, the request fails when the file to create already exists.",
 	 *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="properties", description="Properties of the file.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="File"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="content", description="The content of the file.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="string"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container or folder does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container or folder does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="PUT", summary="Update content of the file.",
 	 *       notes="Post data should be the contents of the file.",
 	 *       responseClass="File", nickname="updateFile",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="Name of the container where the file exists.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="file_path", description="Path and name of the file to update.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="content", description="The content of the file.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="string"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="PATCH", summary="Update properties of the file.",
 	 *       notes="Post data should be the file properties.",
 	 *       responseClass="File", nickname="updateFileProperties",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="Name of the container where the file exists.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="file_path", description="Path and name of the file to update.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="properties", description="Properties of the file.",
 	 *           paramType="body", required="false", allowMultiple=false, dataType="File"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     ),
-	 *     @SWG\Operation(
+	 * @SWG\Operation(
 	 *       httpMethod="DELETE", summary="Delete the file.",
 	 *       notes="Careful, this removes the given file from the storage.",
 	 *       responseClass="File", nickname="deleteFile",
-	 *       @SWG\Parameters(
-	 *         @SWG\Parameter(
+	 * @SWG\Parameters(
+	 * @SWG\Parameter(
 	 *           name="container", description="Name of the container where the file exists.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         ),
-	 *         @SWG\Parameter(
+	 * @SWG\Parameter(
 	 *           name="file_path", description="Path and name of the file to delete.",
 	 *           paramType="path", required="true", allowMultiple=false, dataType="string"
 	 *         )
 	 *       ),
-	 *       @SWG\ErrorResponses(
-	 *         @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
-	 *         @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
-	 *         @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
-	 *         @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
+	 * @SWG\ErrorResponses(
+	 * @SWG\ErrorResponse(code="400", reason="Bad Request - Request does not have a valid format, all required parameters, etc."),
+	 * @SWG\ErrorResponse(code="401", reason="Unauthorized Access - No currently valid session available."),
+	 * @SWG\ErrorResponse(code="404", reason="Not Found - Requested container, folder, or file does not exist."),
+	 * @SWG\ErrorResponse(code="500", reason="System Error - Specific reason is included in the error message.")
 	 *       )
 	 *     )
 	 *   )
@@ -605,7 +604,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 */
 	protected function _handleResource()
 	{
-		switch ($this->_action)
+		switch ( $this->_action )
 		{
 			case self::Get:
 				$this->checkPermission( 'read', $this->_container );
@@ -635,7 +634,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						if ( $fd )
 						{
 							header( 'Content-type: application/zip' );
-							header( 'Content-Disposition: filename=" '. basename( $zipFileName ) . '"' );
+							header( 'Content-Disposition: filename=" ' . basename( $zipFileName ) . '"' );
 							header( 'Content-length: ' . filesize( $zipFileName ) );
 							header( 'Cache-control: private' ); //use this to open files directly
 							while ( !feof( $fd ) )
@@ -668,7 +667,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						if ( $fd )
 						{
 							header( 'Content-type: application/zip' );
-							header( 'Content-Disposition: filename=" '. basename( $zipFileName ) . '"' );
+							header( 'Content-Disposition: filename=" ' . basename( $zipFileName ) . '"' );
 							header( 'Content-length: ' . filesize( $zipFileName ) );
 							header( 'Cache-control: private' ); //use this to open files directly
 							while ( !feof( $fd ) )
@@ -701,7 +700,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$download = FilterInput::request( 'download', false, FILTER_VALIDATE_BOOLEAN );
 						// stream the file, exits processing
 						$this->streamFile( $this->_container, $this->_filePath, $download );
-						$result = null;	// output handled by file handler
+						$result = null; // output handled by file handler
 					}
 				}
 				break;
@@ -712,7 +711,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				{
 					// create one or more containers
 					$checkExist = FilterInput::request( 'check_exist', false, FILTER_VALIDATE_BOOLEAN );
-					$data = RestRequest::getPostDataAsArray();
+					$data = RestData::getPostDataAsArray();
 					$containers = Option::get( $data, 'container' );
 					if ( empty( $containers ) )
 					{
@@ -741,25 +740,39 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					if ( !empty( $fileNameHeader ) )
 					{
 						// html5 single posting for file create
-						$content = RestRequest::getPostData();
+						$content = RestData::getPostData();
 						$contentType = FilterInput::server( 'CONTENT_TYPE', '' );
-						$result = $this->_handleFileContent( $this->_folderPath, $fileNameHeader, $content, $contentType,
-															 $extract, $clean, $checkExist );
+						$result = $this->_handleFileContent(
+							$this->_folderPath,
+							$fileNameHeader,
+							$content,
+							$contentType,
+							$extract,
+							$clean,
+							$checkExist
+						);
 					}
 					elseif ( !empty( $folderNameHeader ) )
 					{
 						// html5 single posting for folder create
 						$fullPathName = $this->_folderPath . $folderNameHeader;
-						$content = RestRequest::getPostDataAsArray();
+						$content = RestData::getPostDataAsArray();
 						$this->createFolder( $this->_container, $fullPathName, $content );
-						$result = array( 'folder' => array( array( 'name' => $folderNameHeader, 'path' => $this->_container.'/'.$fullPathName ) ) );
+						$result = array( 'folder' => array( array( 'name' => $folderNameHeader, 'path' => $this->_container . '/' . $fullPathName ) ) );
 					}
 					elseif ( !empty( $fileUrl ) )
 					{
 						// upload a file from a url, could be expandable zip
 						$tmpName = FileUtilities::importUrlFileToTemp( $fileUrl );
-						$result = $this->_handleFile( $this->_folderPath, '', $tmpName, '',
-													  $extract, $clean, $checkExist );
+						$result = $this->_handleFile(
+							$this->_folderPath,
+							'',
+							$tmpName,
+							'',
+							$extract,
+							$clean,
+							$checkExist
+						);
 					}
 					elseif ( isset( $_FILES['files'] ) && !empty( $_FILES['files'] ) )
 					{
@@ -770,12 +783,12 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					else
 					{
 						// possibly xml or json post either of files or folders to create, copy or move
-						$data = RestRequest::getPostDataAsArray();
+						$data = RestData::getPostDataAsArray();
 						if ( empty( $data ) )
 						{
 							// create folder from resource path
 							$this->createFolder( $this->_container, $this->_folderPath );
-							$result = array( 'folder' => array( array( 'path' => $this->_container.'/'.$this->_folderPath ) ) );
+							$result = array( 'folder' => array( array( 'path' => $this->_container . '/' . $this->_folderPath ) ) );
 						}
 						else
 						{
@@ -798,9 +811,16 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$contentType = Option::get( $_SERVER, 'CONTENT_TYPE', '' );
 						// direct load from posted data as content
 						// or possibly xml or json post of file properties create, copy or move
-						$content = RestRequest::getPostData();
-						$result = $this->_handleFileContent( $path, $name, $content, $contentType,
-															 $extract, $clean, $checkExist );
+						$content = RestData::getPostData();
+						$result = $this->_handleFileContent(
+							$path,
+							$name,
+							$content,
+							$contentType,
+							$extract,
+							$clean,
+							$checkExist
+						);
 					}
 					else
 					{
@@ -820,8 +840,15 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						{
 							$tmpName = $file["tmp_name"];
 							$contentType = $file['type'];
-							$result = $this->_handleFile( $path, $name, $tmpName, $contentType,
-														  $extract, $clean, $checkExist );
+							$result = $this->_handleFile(
+								$path,
+								$name,
+								$tmpName,
+								$contentType,
+								$extract,
+								$clean,
+								$checkExist
+							);
 						}
 						else
 						{
@@ -832,7 +859,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				break;
 			case self::Patch:
 			case self::Merge:
-				$this->checkPermission( 'update' );
+				static::checkPermission( 'update', $this->_container );
 				if ( empty( $this->_container ) )
 				{
 					// nothing?
@@ -841,31 +868,39 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				else if ( empty( $this->_folderPath ) )
 				{
 					// update container properties
-					$content = RestRequest::getPostDataAsArray();
+					$content = RestData::getPostDataAsArray();
 					$this->updateContainerProperties( $this->_container, $content );
 					$result = array( 'container' => array( 'name' => $this->_container ) );
 				}
 				else if ( empty( $this->_filePath ) )
 				{
 					// update folder properties
-					$content = RestRequest::getPostDataAsArray();
+					$content = RestData::getPostDataAsArray();
 					$this->updateFolderProperties( $this->_container, $this->_folderPath, $content );
-					$result = array( 'folder' => array( 'name' => basename( $this->_folderPath ),
-														'path' => $this->_container.'/'.$this->_folderPath ) );
+					$result = array(
+						'folder' => array(
+							'name' => basename( $this->_folderPath ),
+							'path' => $this->_container . '/' . $this->_folderPath
+						)
+					);
 				}
 				else
 				{
 					// update file properties?
-					$content = RestRequest::getPostDataAsArray();
+					$content = RestData::getPostDataAsArray();
 					$this->updateFileProperties( $this->_container, $this->_filePath, $content );
-					$result = array( 'file' => array( 'name' => basename( $this->_filePath ),
-													  'path' => $this->_container.'/'. $this->_filePath ) );
+					$result = array(
+						'file' => array(
+							'name' => basename( $this->_filePath ),
+							'path' => $this->_container . '/' . $this->_filePath
+						)
+					);
 				}
 				break;
 			case self::Delete:
-				$this->checkPermission( 'delete' );
+				static::checkPermission( 'delete', $this->_container );
 				$force = FilterInput::request( 'force', false, FILTER_VALIDATE_BOOLEAN );
-				$content = RestRequest::getPostDataAsArray();
+				$content = RestData::getPostDataAsArray();
 				if ( empty( $this->_container ) )
 				{
 					$containers = Option::get( $content, 'container' );
@@ -911,7 +946,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					if ( empty( $content ) )
 					{
 						$this->deleteFolder( $this->_container, $this->_folderPath, $force );
-						$result = array( 'folder' => array( array( 'path' => $this->_container.'/'.$this->_folderPath ) ) );
+						$result = array( 'folder' => array( array( 'path' => $this->_container . '/' . $this->_folderPath ) ) );
 					}
 					else
 					{
@@ -922,7 +957,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				{
 					// delete file from permanent storage
 					$this->deleteFile( $this->_container, $this->_filePath );
-					$result = array( 'file' => array( array( 'path' => $this->_container.'/'.$this->_filePath ) ) );
+					$result = array( 'file' => array( array( 'path' => $this->_container . '/' . $this->_filePath ) ) );
 				}
 				break;
 			default:
@@ -945,7 +980,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 * @return array
 	 */
 	protected function _handleFile( $dest_path, $dest_name, $source_file, $contentType = '',
-								    $extract = false, $clean = false, $check_exist = false )
+									$extract = false, $clean = false, $check_exist = false )
 	{
 		$ext = FileUtilities::getFileExtension( $source_file );
 		if ( empty( $contentType ) )
@@ -971,7 +1006,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 			$fullPathName = FileUtilities::fixFolderPath( $dest_path ) . $name;
 			$this->moveFile( $this->_container, $fullPathName, $source_file, $check_exist );
 
-			return array( 'file' => array( array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName ) ) );
+			return array( 'file' => array( array( 'name' => $name, 'path' => $this->_container . '/' . $fullPathName ) ) );
 		}
 	}
 
@@ -1016,10 +1051,19 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 			$fullPathName = FileUtilities::fixFolderPath( $dest_path ) . $dest_name;
 			$this->writeFile( $this->_container, $fullPathName, $content, false, $check_exist );
 
-			return array( 'file' => array( array( 'name' => $dest_name, 'path' => $this->_container.'/'.$fullPathName ) ) );
+			return array( 'file' => array( array( 'name' => $dest_name, 'path' => $this->_container . '/' . $fullPathName ) ) );
 		}
 	}
 
+	/**
+	 * @param      $files
+	 * @param bool $extract
+	 * @param bool $clean
+	 * @param bool $checkExist
+	 *
+	 * @return array
+	 * @throws \Exception
+	 */
 	protected function _handleFolderContentFromFiles( $files, $extract = false, $clean = false, $checkExist = false )
 	{
 		$out = array();
@@ -1032,8 +1076,15 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 			{
 				$tmpName = $file['tmp_name'];
 				$contentType = $file['type'];
-				$tmp = $this->_handleFile( $this->_folderPath, $name, $tmpName, $contentType,
-										   $extract, $clean, $checkExist );
+				$tmp = $this->_handleFile(
+					$this->_folderPath,
+					$name,
+					$tmpName,
+					$contentType,
+					$extract,
+					$clean,
+					$checkExist
+				);
 				$out[$key] = ( isset( $tmp['file'] ) ? $tmp['file'] : array() );
 			}
 			else
@@ -1078,7 +1129,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$name = FileUtilities::getNameFromPath( $srcPath );
 					}
 					$fullPathName = $this->_folderPath . $name . '/';
-					$out['folder'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
+					$out['folder'][$key] = array( 'name' => $name, 'path' => $this->_container . '/' . $fullPathName );
 					try
 					{
 						$this->copyFolder( $this->_container, $fullPathName, $srcContainer, $srcPath, true );
@@ -1102,7 +1153,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 					{
 						$content = base64_decode( $content );
 					}
-					$out['folder'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
+					$out['folder'][$key] = array( 'name' => $name, 'path' => $this->_container . '/' . $fullPathName );
 					try
 					{
 						$this->createFolder( $this->_container, $fullPathName, true, $content );
@@ -1139,7 +1190,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 						$name = FileUtilities::getNameFromPath( $srcPath );
 					}
 					$fullPathName = $this->_folderPath . $name;
-					$out['file'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
+					$out['file'][$key] = array( 'name' => $name, 'path' => $this->_container . '/' . $fullPathName );
 					try
 					{
 						$this->copyFile( $this->_container, $fullPathName, $srcContainer, $srcPath, true );
@@ -1157,7 +1208,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 				elseif ( isset( $file['content'] ) )
 				{
 					$fullPathName = $this->_folderPath . $name;
-					$out['file'][$key] = array( 'name' => $name, 'path' => $this->_container.'/'.$fullPathName );
+					$out['file'][$key] = array( 'name' => $name, 'path' => $this->_container . '/' . $fullPathName );
 					$content = Option::get( $file, 'content', '' );
 					$isBase64 = DataFormat::boolval( Option::get( $file, 'is_base64', false ) );
 					if ( $isBase64 )
@@ -1180,7 +1231,7 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	}
 
 	/**
-	 * @param array  $data Array of sub-folder and file paths that are relative to the root folder
+	 * @param array  $data    Array of sub-folder and file paths that are relative to the root folder
 	 * @param string $root    root folder from which to delete
 	 * @param  bool  $force
 	 *
@@ -1221,153 +1272,6 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 		return $out;
 	}
 
-	/* Implement File Service */
-
-	/**
-	 * List all containers, just names if noted
-	 *
-	 * @param bool $include_properties If true, additional properties are retrieved
-	 *
-	 * @return array
-	 */
-	abstract public function listContainers( $include_properties = false );
-
-	/**
-	 * Check if a container exists
-	 *
-	 * @param  string $container Container name
-	 *
-	 * @return boolean
-	 * @throws \Exception
-	 */
-	abstract public function containerExists( $container );
-
-	/**
-	 * Gets all properties of a particular container
-	 *
-	 * @param string $container Container name
-	 * @param bool   $include_files
-	 * @param bool   $include_folders
-	 * @param bool   $full_tree
-	 * @param bool   $include_properties
-	 *
-	 * @return array
-	 */
-	abstract public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
-
-	/**
-	 * Create a container using properties, where at least name is required
-	 *
-	 * @param array $properties
-	 * @param bool  $check_exist If true, throws error if the container already exists
-	 *
-	 * @return array
-	 * @throws \Exception
-	 */
-	abstract public function createContainer( $properties, $check_exist = false );
-
-	/**
-	 * Create multiple containers using array of properties, where at least name is required
-	 *
-	 * @param array $containers
-	 * @param bool  $check_exist If true, throws error if the container already exists
-	 *
-	 * @return array
-	 * @throws \Exception
-	 */
-	abstract public function createContainers( $containers, $check_exist = false );
-
-	/**
-	 * Delete a container and all of its content
-	 *
-	 * @param string $container
-	 * @param array  $properties
-	 *
-	 * @throws \Exception
-	 * @return void
-	 */
-	abstract public function updateContainerProperties( $container, $properties = array() );
-
-	/**
-	 * Delete a container and all of its content
-	 *
-	 * @param string $container
-	 * @param bool   $force
-	 *
-	 * @throws \Exception
-	 */
-	abstract public function deleteContainer( $container, $force = false );
-
-	/**
-	 * Delete multiple containers and all of their content
-	 *
-	 * @param array $containers
-	 * @param bool  $force Force a delete if it is not empty
-	 *
-	 * @return array
-	 */
-	abstract public function deleteContainers( $containers, $force = false );
-
-	/**
-	 * @param $container
-	 * @param $path
-	 *
-	 * @return bool
-	 * @throw \Exception
-	 */
-	abstract public function folderExists( $container, $path );
-
-	/**
-	 * @param string $container
-	 * @param string $path
-	 * @param bool   $include_files
-	 * @param bool   $include_folders
-	 * @param bool   $full_tree
-	 * @param bool   $include_properties
-	 *
-	 * @return bool
-	 * @throw \Exception
-	 */
-	abstract public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
-
-	/**
-	 * @param        $container
-	 * @param string $path
-	 * @param array  $properties
-	 *
-	 * @return void
-	 */
-	abstract public function createFolder( $container, $path, $properties = array() );
-
-	/**
-	 * @param              $container
-	 * @param string       $path
-	 * @param array|string $properties
-	 *
-	 * @return void
-	 */
-	abstract public function updateFolderProperties( $container, $path, $properties = array() );
-
-	/**
-	 * @param        $container
-	 * @param string $dest_path
-	 * @param        $src_container
-	 * @param string $src_path
-	 * @param bool   $check_exist
-	 *
-	 * @return void
-	 */
-	abstract public function copyFolder( $container, $dest_path,  $src_container, $src_path, $check_exist = false );
-
-	/**
-	 * @param        $container
-	 * @param string $path Folder path relative to the service root directory
-	 * @param  bool  $force
-	 *
-	 * @return void
-	 */
-	abstract public function deleteFolder( $container, $path, $force = false );
-
 	/**
 	 * @param        $container
 	 * @param array  $folders Array of folder paths that are relative to the root directory
@@ -1377,122 +1281,4 @@ abstract class BaseFileSvc extends RestService implements FileServiceLike
 	 * @return array
 	 */
 	abstract public function deleteFolders( $container, $folders, $root = '', $force = false );
-
-	/**
-	 * @param $container
-	 * @param $path
-	 *
-	 * @return bool
-	 */
-	abstract public function fileExists( $container, $path );
-
-	/**
-	 * @param         $container
-	 * @param         $path
-	 * @param  string $local_file
-	 * @param  bool   $content_as_base
-	 *
-	 * @return string
-	 */
-	abstract public function getFileContent( $container, $path, $local_file = '', $content_as_base = true );
-
-	/**
-	 * @param       $container
-	 * @param       $path
-	 * @param  bool $include_content
-	 * @param  bool $content_as_base
-	 *
-	 * @return array
-	 */
-	abstract public function getFileProperties( $container, $path, $include_content = false, $content_as_base = true );
-
-	/**
-	 * @param string $container
-	 * @param string $path
-	 * @param bool   $download
-	 *
-	 * @return void
-	 */
-	abstract public function streamFile( $container, $path, $download = false );
-
-	/**
-	 * @param string $container
-	 * @param string $path
-	 * @param array  $properties
-	 *
-	 * @return void
-	 */
-	abstract public function updateFileProperties( $container, $path, $properties = array() );
-
-	/**
-	 * @param         $container
-	 * @param string  $path
-	 * @param string  $content
-	 * @param boolean $content_is_base
-	 * @param bool    $check_exist
-	 *
-	 * @return void
-	 */
-	abstract public function writeFile( $container, $path, $content, $content_is_base = true, $check_exist = false );
-
-	/**
-	 * @param        $container
-	 * @param string $path
-	 * @param string $local_path
-	 * @param bool   $check_exist
-	 *
-	 * @return void
-	 */
-	abstract public function moveFile( $container, $path, $local_path, $check_exist = false );
-
-	/**
-	 * @param        $container
-	 * @param string $dest_path
-	 * @param        $sc_container
-	 * @param string $src_path
-	 * @param bool   $check_exist
-	 *
-	 * @return void
-	 */
-	abstract public function copyFile( $container, $dest_path, $sc_container, $src_path, $check_exist = false );
-
-	/**
-	 * @param        $container
-	 * @param string $path File path relative to the service root directory
-	 *
-	 * @return void
-	 */
-	abstract public function deleteFile( $container, $path );
-
-	/**
-	 * @param        $container
-	 * @param array  $files Array of file paths relative to root
-	 * @param string $root
-	 *
-	 * @return array
-	 */
-	abstract public function deleteFiles( $container, $files, $root = '' );
-
-	/**
-	 * @param             $container
-	 * @param             $path
-	 * @param \ZipArchive $zip
-	 * @param bool        $clean
-	 * @param string      $drop_path
-	 *
-	 * @return array
-	 */
-	abstract public function extractZipFile( $container, $path, $zip, $clean = false, $drop_path = '' );
-
-	/**
-	 * @param                  $container
-	 * @param string           $path
-	 * @param null|\ZipArchive $zip
-	 * @param string           $zipFileName
-	 * @param bool             $overwrite
-	 *
-	 * @return string Zip File Name created/updated
-	 */
-	abstract public function getFolderAsZip( $container, $path, $zip = null, $zipFileName = '', $overwrite = false );
-
 }
