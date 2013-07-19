@@ -16,3 +16,5 @@ web/shared
 id_deploy
 test.php
 test.sh
+src/Platform/*.moved
+*.moved.php
