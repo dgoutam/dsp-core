@@ -24,7 +24,7 @@ use Kisma\Core\Utility\Option;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;
-use Platform\Utility\SwaggerUtilities;
+use DreamFactory\Platform\Utility\SwaggerUtilities;
 
 /**
  * RestController
@@ -100,7 +100,7 @@ class RestController extends Controller
 			}
 			else
 			{
-				$result = ServiceHandler::getServiceObject( $this->service )->processRequest( $this->resource, HttpMethod::Get );
+				$result = ServiceHandler::getService( $this->service )->processRequest( $this->resource, HttpMethod::Get );
 			}
 
 			RestResponse::sendResults( $result, RestResponse::Ok, $_resultFormat, $this->format );
@@ -156,7 +156,7 @@ class RestController extends Controller
 				}
 			}
 
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
+			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Post );
 			$code = RestResponse::Created;
 
@@ -175,7 +175,7 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
+			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Merge );
 
 			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
@@ -193,7 +193,7 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
+			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Put );
 
 			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
@@ -211,7 +211,7 @@ class RestController extends Controller
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getServiceObject( $this->service );
+			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Delete );
 			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
 		}

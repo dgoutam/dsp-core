@@ -22,7 +22,7 @@
  * @var $model InitAdminForm
  */
 use Kisma\Core\Utility\Bootstrap;
-use Platform\Yii\Utility\Validate;
+use DreamFactory\Yii\Utility\Validate;
 
 Validate::register(
 	'form#init-form',

@@ -22,7 +22,7 @@ use Kisma\Core\Seed;
 use Kisma\Core\SeedUtility;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Scalar;
-use Platform\Utility\DataFormat;
+use DreamFactory\Common\Utility\DataFormat;
 
 /**
  * JsonSchema

@@ -22,10 +22,9 @@ use Kisma\Core\Enums\DateTime;
 use Kisma\Core\Enums\HttpResponse;
 use Kisma\Core\SeedUtility;
 
-//use Kisma\Core\Utility\Curl;
+use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
-use Platform\Utility\Curl;
 use DreamFactory\Yii\Utility\Pii;
 
 /**

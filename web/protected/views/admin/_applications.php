@@ -22,7 +22,7 @@
  */
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Bootstrap;
-use Platform\Yii\Utility\Validate;
+use DreamFactory\Yii\Utility\Validate;
 
 ?>
 <h4>Installed Applications</h4>
