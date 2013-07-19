@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Yii\Models\Service;
 use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
@@ -73,7 +74,7 @@ class RestController extends Controller
 			}
 			else
 			{
-				$_result = array( 'service' => \Service::available() );
+				$_result = array( 'service' => Service::available() );
 			}
 
 			RestResponse::sendResults( $_result, RestResponse::Ok, $_resultFormat, $this->format );

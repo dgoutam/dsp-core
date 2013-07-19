@@ -41,7 +41,7 @@ class LoginForm extends CFormModel
 	 */
 	public $rememberMe;
 	/**
-	 * @var  PlatformUserIdentity
+	 * @var PlatformUserIdentity
 	 */
 	protected $_identity;
 	/**
@@ -170,7 +170,7 @@ class LoginForm extends CFormModel
 	}
 
 	/**
-	 * @param \DrupalUserIdentity $drupalIdentity
+	 * @param DrupalUserIdentity $drupalIdentity
 	 *
 	 * @return LoginForm
 	 */
@@ -182,7 +182,7 @@ class LoginForm extends CFormModel
 	}
 
 	/**
-	 * @return \DrupalUserIdentity
+	 * @return DrupalUserIdentity
 	 */
 	public function getDrupalIdentity()
 	{
@@ -190,7 +190,7 @@ class LoginForm extends CFormModel
 	}
 
 	/**
-	 * @param \PlatformUserIdentity $identity
+	 * @param PlatformUserIdentity $identity
 	 *
 	 * @return LoginForm
 	 */
@@ -202,7 +202,7 @@ class LoginForm extends CFormModel
 	}
 
 	/**
-	 * @return \PlatformUserIdentity
+	 * @return PlatformUserIdentity
 	 */
 	public function getIdentity()
 	{
