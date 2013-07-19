@@ -19,7 +19,7 @@
  */
 use DreamFactory\Platform\Yii\Components\DrupalUserIdentity;
 use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Yii\Utility\Pii;
 
 /**
  * LoginForm class.

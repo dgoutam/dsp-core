@@ -35,5 +35,5 @@ defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 DreamFactory\Yii\Utility\Pii::run(
 	__DIR__,
 	$_autoloader,
-	'Platform\\Yii\\Components\\PlatformWebApplication'
+	'DreamFactory\\Platform\\Yii\\Components\\PlatformWebApplication'
 );

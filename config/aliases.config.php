@@ -21,7 +21,7 @@
  * aliases.config.php
  * A single location for all your aliasing needs!
  */
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Yii\Utility\Pii;
 
 $_basePath = dirname( __DIR__ );
 $_vendorPath = $_basePath . '/vendor';

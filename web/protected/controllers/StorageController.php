@@ -19,7 +19,7 @@
  */
 use Kisma\Core\Utility\FilterInput;
 use Platform\Utility\ServiceHandler;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Yii\Utility\Pii;
 
 /**
  *  Generic controller for streaming content from storage services

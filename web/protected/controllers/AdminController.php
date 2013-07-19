@@ -27,7 +27,7 @@ use Kisma\Core\Utility\Sql;
 use Platform\Interfaces\PlatformStates;
 use Platform\Services\SystemManager;
 use Platform\Resources\UserSession;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Yii\Utility\Pii;
 
 /**
  * AdminController.php

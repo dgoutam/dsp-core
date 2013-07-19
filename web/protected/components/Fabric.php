@@ -26,7 +26,7 @@ use Kisma\Core\SeedUtility;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Platform\Utility\Curl;
-use Platform\Yii\Utility\Pii;
+use DreamFactory\Yii\Utility\Pii;
 
 /**
  * Fabric.php
