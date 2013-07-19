@@ -21,8 +21,8 @@
  * @var $this  WebController
  * @var $model InitAdminForm
  */
-use Kisma\Core\Utility\Bootstrap;
 use DreamFactory\Yii\Utility\Validate;
+use Kisma\Core\Utility\Bootstrap;
 
 Validate::register(
 	'form#init-form',

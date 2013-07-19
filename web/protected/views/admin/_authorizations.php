@@ -22,7 +22,6 @@
  */
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Bootstrap;
-use DreamFactory\Yii\Utility\Validate;
 
 ?>
 <h4>Stored Authorizations</h4>
