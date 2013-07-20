@@ -17,17 +17,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Interfaces\PlatformStates;
+use DreamFactory\Platform\Resources\System\UserSession;
+use DreamFactory\Platform\Services\SystemManager;
+use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Yii\Controllers\BaseWebController;
+use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use DreamFactory\Platform\Interfaces\PlatformStates;
-use DreamFactory\Platform\Services\SystemManager;
-use DreamFactory\Platform\Resources\System\UserSession;
-use DreamFactory\Platform\Services\UserManager;
-use DreamFactory\Yii\Utility\Pii;
 
 /**
  * WebController.php
@@ -97,10 +97,7 @@ class WebController extends BaseWebController
 					'activate',
 					'initSystem',
 					'initSchema',
-					'upgradeSchema',
 					'initData',
-					'upgrade',
-					'initAdmin',
 				),
 				'users'   => array( '*' ),
 			),
@@ -108,6 +105,9 @@ class WebController extends BaseWebController
 			array(
 				'allow',
 				'actions' => array(
+					'upgrade',
+					'upgradeSchema',
+					'initAdmin',
 					'environment',
 					'metrics',
 					'fileTree',
@@ -138,9 +138,15 @@ class WebController extends BaseWebController
 	{
 		$_model = new LoginForm();
 
-		if ( !$this->_activated && 0 != FilterInput::post( 'skipped', 0, FILTER_SANITIZE_NUMBER_INT ) )
+		//	Did we come because we need to log in?
+		if ( !Pii::postRequest() )
 		{
-//			$_model->setDrupalAuth( false );
+			if ( !$this->_activated || ( null !== ( $_returnUrl = Pii::user()->getReturnUrl() ) && 200 == Option::server( 'REDIRECT_STATUS' ) ) )
+			{
+				$this->actionLogin( true );
+
+				return;
+			}
 		}
 
 		if ( isset( $_POST, $_POST['LoginForm'] ) )
@@ -149,6 +155,12 @@ class WebController extends BaseWebController
 
 			if ( !empty( $_model->username ) && !empty( $_model->password ) )
 			{
+				//	Came from login form? Don't do drupal auth, do dsp auth
+				if ( isset( $_POST['login-only'] ) && 0 != $_POST['login-only'] )
+				{
+					$_model->setDrupalAuth( false );
+				}
+
 				//	Validate user input and redirect to the previous page if valid
 				if ( $_model->validate() && $_model->login() )
 				{
@@ -267,10 +279,10 @@ class WebController extends BaseWebController
 	/**
 	 * Displays the login page
 	 */
-	public function actionLogin()
+	public function actionLogin( $redirected = false )
 	{
 		$_model = new LoginForm();
-		$_model->setDrupalAuth( false );
+		$_model->setDrupalAuth( !$redirected );
 
 		// if it is ajax validation request
 		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
@@ -305,8 +317,9 @@ class WebController extends BaseWebController
 		$this->render(
 			'login',
 			array(
-				 'model'     => $_model,
-				 'activated' => $this->_activated,
+				 'model'      => $_model,
+				 'activated'  => $this->_activated,
+				 'redirected' => $redirected,
 			)
 		);
 	}

@@ -63,7 +63,7 @@ class LoginForm extends CFormModel
 		return array(
 			array( 'username, password', 'required' ),
 			array( 'rememberMe', 'boolean' ),
-			array( 'password', 'authenticate' . ( $this->_drupalAuth ? 'Drupal' : null ) ),
+			array( 'password', 'authenticate' ),
 		);
 	}
 
@@ -84,6 +84,11 @@ class LoginForm extends CFormModel
 	 */
 	public function authenticate( $attribute, $params )
 	{
+		if ( false !== $this->_drupalAuth )
+		{
+			return $this->authenticateDrupal( $attribute, $params );
+		}
+
 		if ( !$this->hasErrors() )
 		{
 			$this->_identity = new PlatformUserIdentity( $this->username, $this->password );
@@ -158,7 +163,7 @@ class LoginForm extends CFormModel
 			else
 			{
 				$this->_identity = $_identity;
-				$_identity->setDrupalIdentity( $this->_drupalIdentity );
+				$_identity->setDrupalIdentity( $this->_drupalIdentity ?: $_identity );
 			}
 
 			$_duration = $this->rememberMe ? 3600 * 24 * 30 : 0;
