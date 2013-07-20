@@ -17,27 +17,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Yii\Utility\Pii;
+
 /**
  * aliases.config.php
  * A single location for all your aliasing needs!
  */
-use DreamFactory\Yii\Utility\Pii;
 
 $_basePath = dirname( __DIR__ );
 $_vendorPath = $_basePath . '/vendor';
 
 Pii::setPathOfAlias( 'vendor', $_vendorPath );
 
-//	Local
-Pii::alias( 'Platform', $_basePath . '/src/Platform' );
-Pii::alias( 'Platform.Yii.Behaviors', $_basePath . '/src/Platform/Yii/Behaviors' );
-Pii::alias( 'Platform.Yii.Components', $_basePath . '/src/Platform/Yii/Components' );
-Pii::alias( 'Platform.Yii.Utility', $_basePath . '/src/Platform/Yii/Utility' );
-
 //	lib-php-common-yii
+Pii::alias( 'DreamFactory.Yii.*', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii' );
 Pii::alias( 'DreamFactory.Yii.Components', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Components' );
 Pii::alias( 'DreamFactory.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Behaviors' );
 Pii::alias( 'DreamFactory.Yii.Utility', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Utility' );
+Pii::alias( 'DreamFactory.Yii.Logging', $_vendorPath . '/dreamfactory/lib-php-common-yii/DreamFactory/Yii/Logging' );
 
 //	lib-php-common-platform
 Pii::alias( 'DreamFactory.Platform.Services', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Services' );

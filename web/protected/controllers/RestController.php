@@ -17,21 +17,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Platform\Yii\Models\Service;
-use Kisma\Core\Enums\HttpMethod;
-use Kisma\Core\Utility\FilterInput;
-use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\Option;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;
 use DreamFactory\Platform\Utility\SwaggerUtilities;
+use DreamFactory\Platform\Yii\Models\Service;
+use DreamFactory\Yii\Controllers\BaseFactoryController;
+use Kisma\Core\Enums\HttpMethod;
+use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 
 /**
  * RestController
  * REST API router and controller
  */
-class RestController extends Controller
+class RestController extends BaseFactoryController
 {
 	//*************************************************************************
 	//	Members
@@ -57,6 +58,16 @@ class RestController extends Controller
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
+
+	/**
+	 * All authorization handled by services
+	 *
+	 * @return array
+	 */
+	public function accessRules()
+	{
+		return array();
+	}
 
 	/**
 	 * /rest/index

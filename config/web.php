@@ -101,7 +101,7 @@ return array(
 			'class'  => 'CLogRouter',
 			'routes' => array(
 				array(
-					'class'       => 'LiveLogRoute',
+					'class'       => 'DreamFactory\\Yii\\Logging\\LiveLogRoute',
 					'maxFileSize' => '102400',
 					'logFile'     => $_logFileName,
 					'logPath'     => $_logFilePath,
