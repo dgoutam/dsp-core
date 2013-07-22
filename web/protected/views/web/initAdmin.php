@@ -58,7 +58,7 @@ Validate::register(
 	regular users can be easily added using the DSP's built-in 'Admin' application.</p>
 <div class="spacer"></div>
 
-<form id="init-form" method="POST">
+<form id="init-form" method="POST" action="/web/initAdmin">
 	<?php
 	echo '<legend>Login Credentials</legend>';
 

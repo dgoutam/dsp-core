@@ -98,6 +98,7 @@ class WebController extends BaseWebController
 					'initSystem',
 					'initSchema',
 					'initData',
+					'initAdmin',
 				),
 				'users'   => array( '*' ),
 			),
@@ -138,12 +139,24 @@ class WebController extends BaseWebController
 	{
 		$_model = new LoginForm();
 
+		//	Came from login form? Don't do drupal auth, do dsp auth
+		$_fromLogin = ( 0 != Option::get( $_POST, 'login-only', 0 ) );
+
 		//	Did we come because we need to log in?
-		if ( !Pii::postRequest() )
+		if ( !Pii::postRequest() && $this->_activated )
 		{
-			if ( !$this->_activated || ( null !== ( $_returnUrl = Pii::user()->getReturnUrl() ) && 200 == Option::server( 'REDIRECT_STATUS' ) ) )
+			if ( null !== ( $_returnUrl = Pii::user()->getReturnUrl() ) && 200 == Option::server( 'REDIRECT_STATUS' ) )
 			{
 				$this->actionLogin( true );
+
+				return;
+			}
+		}
+		else
+		{
+			if ( 1 == Option::get( $_POST, 'skipped', 0 ) )
+			{
+				$this->actionInitAdmin();
 
 				return;
 			}
@@ -155,11 +168,7 @@ class WebController extends BaseWebController
 
 			if ( !empty( $_model->username ) && !empty( $_model->password ) )
 			{
-				//	Came from login form? Don't do drupal auth, do dsp auth
-				if ( isset( $_POST['login-only'] ) && 0 != $_POST['login-only'] )
-				{
-					$_model->setDrupalAuth( false );
-				}
+				$_model->setDrupalAuth( !$_fromLogin );
 
 				//	Validate user input and redirect to the previous page if valid
 				if ( $_model->validate() && $_model->login() )
@@ -181,6 +190,14 @@ class WebController extends BaseWebController
 				else
 				{
 					$_model->addError( 'username', 'Invalid user name and password combination.' );
+
+					//	Came from login form? Don't do drupal auth, do dsp auth
+					if ( $_fromLogin )
+					{
+						$this->actionLogin( true );
+
+						return;
+					}
 				}
 			}
 			else
