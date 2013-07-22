@@ -17,18 +17,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Interfaces\PlatformStates;
+use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
+use DreamFactory\Platform\Services\SystemManager;
+use DreamFactory\Platform\Services\UserManager;
+use DreamFactory\Platform\Utility\Fabric;
 use DreamFactory\Yii\Controllers\BaseWebController;
+use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use DreamFactory\Platform\Interfaces\PlatformStates;
-use DreamFactory\Platform\Services\SystemManager;
-use DreamFactory\Platform\Resources\System\UserSession;
-use DreamFactory\Platform\Services\UserManager;
-use DreamFactory\Yii\Utility\Pii;
 
 /**
  * WebController.php
@@ -423,7 +424,7 @@ class WebController extends BaseWebController
 	 */
 	public function actionUpgrade()
 	{
-		if ( \Fabric::fabricHosted() )
+		if ( Fabric::fabricHosted() )
 		{
 			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
 		}
@@ -435,7 +436,7 @@ class WebController extends BaseWebController
 		{
 			try
 			{
-				UserSession::checkSessionPermission( 'admin', 'system' );
+				Session::checkSessionPermission( 'admin', 'system' );
 			}
 			catch ( \Exception $ex )
 			{
