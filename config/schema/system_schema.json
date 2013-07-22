@@ -968,6 +968,12 @@
 					"allow_null": true
 				},
 				{
+					"name":       "handler_class",
+					"type":       "string",
+					"length":     1024,
+					"allow_null": false
+				},
+				{
 					"name":       "auth_endpoint",
 					"type":       "string",
 					"length":     1024,

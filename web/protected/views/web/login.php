@@ -17,12 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * @var $this  WebController
- * @var $model LoginForm
- */
 use DreamFactory\Yii\Utility\Validate;
 use Kisma\Core\Utility\Bootstrap;
+
+/**
+ * @var WebController $this
+ * @var LoginForm     $model
+ * @var bool          $redirected
+ */
 
 Validate::register(
 	'form#login-form',
@@ -33,26 +35,22 @@ Validate::register(
 	)
 );
 
-$_headline = ( isset( $activated ) && $activated ) ? 'Welcome!' : 'Activate Your New DSP!';
+$_headline = 'System Notices Available!';
 ?>
-<h2 class="headline"><?php echo $_headline; ?></h2>
-<p>In order to activate this DSP, you must enter your <strong>DreamFactory.com</strong> site credentials.</p><p>Please enter the email address and
-	password you used to register on the <strong>DreamFactory.com</strong> web site. If you have not yet registered, you may <a
-		href="https://www.dreamfactory.com/user/register"
-		target="_blank">click here</a> to do so
-	now.</p>
+<h2 class="headline"><?php echo $_headline; ?></h2><p>Please log into a DSP system administrator account to view these notices. </p>
 <div class="spacer"></div>
 <form id="login-form" method="POST">
 	<?php
-	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'Email Address' );
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'DSP Admin Email Address' );
 	echo '<div class="controls">' . Bootstrap::text( array( 'id' => 'LoginForm_username', 'name' => 'LoginForm[username]', 'class' => 'email required' ) ) .
 		 '</div></div>';
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_password' ), 'Password' );
 	echo '<div class="controls">' .
 		 Bootstrap::password( array( 'id' => 'LoginForm_password', 'name' => 'LoginForm[password]', 'class' => 'password required' ) ) . '</div></div>';
 	?>
+	<input type="hidden" name="login-only" value="<?php echo $redirected ? 1 : 0; ?>">
 
 	<div class="form-actions">
-		<button type="submit" class="btn btn-success btn-primary">Activate!</button>
+		<button type="submit" class="btn btn-success btn-primary">Login</button>
 	</div>
 </form>

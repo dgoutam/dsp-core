@@ -25,7 +25,7 @@ use Kisma\Core\Utility\Log;
  * database.config.php
  * The database configuration file for the DSP
  */
-require_once __DIR__ . '/../web/protected/components/Fabric.php';
+//require_once __DIR__ . '/../web/protected/components/Fabric.php';
 
 if ( Fabric::fabricHosted() )
 {
