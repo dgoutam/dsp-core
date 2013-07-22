@@ -38,6 +38,7 @@ Pii::alias( 'DreamFactory.Yii.Logging', $_vendorPath . '/dreamfactory/lib-php-co
 
 //	lib-php-common-platform
 Pii::alias( 'DreamFactory.Platform.Services', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Services' );
+Pii::alias( 'DreamFactory.Platform.Services.Portal', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Services/Portal' );
 Pii::alias( 'DreamFactory.Platform.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Yii/Behaviors' );
 Pii::alias( 'DreamFactory.Platform.Yii.Models', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Yii/Models' );
 
