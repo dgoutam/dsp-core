@@ -20,7 +20,6 @@
 /**
  * @var $this  AdminController
  */
-use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Bootstrap;
 
 ?>
