@@ -72,7 +72,7 @@ jQuery(function($) {
 				"sWidth": "50px"
 			},
 			{
-				"sName": "name"
+				"sName": "Name"
 			},
 			{
 				"sName": "tag"
@@ -92,6 +92,25 @@ jQuery(function($) {
 					break;
 
 				case '#authorizations-table':
+					_columns = [
+								{
+									"sName":  "id",
+									"sWidth": "50px"
+								},
+								{
+									"sName": "name"
+								},
+								{
+									"sName": "tag"
+								},
+								{
+									"sName": "enabled"
+								},
+								{
+									"sName": "last_used"
+								}
+							];
+
 					_resource = 'account_provider';
 					break;
 			}

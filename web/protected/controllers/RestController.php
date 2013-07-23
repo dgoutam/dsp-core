@@ -132,6 +132,7 @@ class RestController extends BaseFactoryController
 		{
 			//	Check for verb tunneling
 			$_tunnelMethod = FilterInput::server( 'HTTP_X_HTTP_METHOD', null, FILTER_SANITIZE_STRING );
+
 			if ( empty( $_tunnelMethod ) )
 			{
 				$_tunnelMethod = FilterInput::request( 'method', null, FILTER_SANITIZE_STRING );
