@@ -41,8 +41,8 @@ else
 	$_dbName = 'dreamfactory';
 }
 
-$_dbUser = 'root';
-$_dbPassword = 'Dream123';
+$_dbUser = 'dsp_user';
+$_dbPassword = 'dsp_user';
 
 return array(
 	'connectionString'      => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
