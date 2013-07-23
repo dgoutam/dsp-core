@@ -44,6 +44,7 @@ $_headline = 'Platform Administration';
 				<span class="icon-bar"></span>
 			</a>
 			<img id="logo-img" src="/public/images/logo-48x48.png">
+
 			<a class="brand" href="#"><?php echo $_headline; ?></a>
 
 			<div class="nav-collapse collapse">
@@ -52,7 +53,8 @@ $_headline = 'Platform Administration';
 		</div>
 	</div>
 </div>
-<div class="container admin-content <?php echo $_step; ?>"><?php echo $content; ?>
+<div class="container admin-content <?php echo $_step; ?>">
+	<?php echo $content; ?>
 	<footer>
 		<p class="pull-right">&copy; DreamFactory Software, Inc. <?php echo date( 'Y' ); ?>. All Rights Reserved.</p>
 	</footer>

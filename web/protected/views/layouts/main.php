@@ -48,7 +48,7 @@ else
 	<link rel="stylesheet" type="text/css" href="/public/css/main.css" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->    <!--[if lt IE 9]>
 	<script type="text/javascript" src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>    <![endif]-->
-	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
 	<link href='//fonts.googleapis.com/css?family=Open+Sans:400,700,800' rel='stylesheet' type='text/css'>
 </head>
 <body>
@@ -72,14 +72,12 @@ else
 	</div>
 </div>
 <div class="container main-content <?php echo $_step; ?>">
-	<?php
-	echo $content;
-	?>
+	<?php echo $content; ?>
 	<footer>
 		<p>&copy; DreamFactory Software, Inc. <?php echo date( 'Y' ); ?>. All Rights Reserved.</p>
 	</footer>
 </div>
 <!-- /container -->
-<script src="/public/vendor/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
 </body>
 </html>

@@ -35,23 +35,23 @@
 				<a href="#tab-config" data-toggle="tab"><i class="icon-cogs"></i>System Config</a>
 			</li>
 			<li>
-				<a href="#tab-auths" data-toggle="tab"><i class="icon-key"></i>Authorizations</a>
+				<a href="#tab-authorizations" data-toggle="tab"><i class="icon-key"></i>Authorizations</a>
 			</li>
 		</ul>
 
 		<div class="tab-content">
 			<div class="tab-pane active" id="tab-apps"><?php require_once __DIR__ . '/_applications.php'; ?></div>
-			<div class="tab-pane" id="tab-app-groups"></div>
-			<div class="tab-pane" id="tab-users"></div>
-			<div class="tab-pane" id="tab-roles"></div>
-			<div class="tab-pane" id="tab-data"></div>
+			<div class="tab-pane" id="tab-app-groups">Coming</div>
+			<div class="tab-pane" id="tab-users">Coming</div>
+			<div class="tab-pane" id="tab-roles">Coming</div>
+			<div class="tab-pane" id="tab-data">Coming</div>
 			<div class="tab-pane" id="tab-services"><?php require_once __DIR__ . '/_services.php'; ?></div>
-			<div class="tab-pane" id="tab-files"></div>
-			<div class="tab-pane" id="tab-schema"></div>
-			<div class="tab-pane" id="tab-doc"></div>
-			<div class="tab-pane" id="tab-packager"></div>
-			<div class="tab-pane" id="tab-config"></div>
-			<div class="tab-pane" id="tab-auths"><?php require_once __DIR__ . '/_authorizations.php'; ?></div>
+			<div class="tab-pane" id="tab-files">Coming</div>
+			<div class="tab-pane" id="tab-schema">Coming</div>
+			<div class="tab-pane" id="tab-doc">Coming</div>
+			<div class="tab-pane" id="tab-packager">Coming</div>
+			<div class="tab-pane" id="tab-config">Coming</div>
+			<div class="tab-pane" id="tab-authorizations"><?php require_once __DIR__ . '/_authorizations.php'; ?></div>
 		</div>
 	</div>
 </div>
@@ -61,12 +61,11 @@
 </ul>
 
 <script type="text/javascript">
-jQuery(document).ready(function() {
-	var _initialized = false;
+jQuery(function($) {
+	var _initialized = [];
 
 	$('a[data-toggle="tab"]').on('shown', function(e) {
-		var _id = $(e.target).attr('href').replace('tab-', '') + '-table';
-
+		var _id = $(e.target).attr('href').replace('tab-', '') + '-table', _resource;
 		var _columns = [
 			{
 				"sName":  "id",
@@ -86,28 +85,34 @@ jQuery(document).ready(function() {
 			}
 		];
 
-		if (!_initialized) {
+		if (!$(_id).data('dt-init')) {
 			switch (_id) {
 				case '#services-table':
 				case '#applications-table':
-				case '#authorizations-table':
-					$(_id).dataTable({
-//						"sDom":            "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
-						"bProcessing":     true,
-						"bServerSide":     true,
-						"sAjaxSource":     "/rest/" + _id + "?app_name=admin",
-						"sPaginationType": "bootstrap",
-						'aoColumns':       _columns,
-						"oLanguage":       {
-							"sSearch":     "Filter:",
-							"sLengthMenu": "_MENU_ records per page"
-						},
-						"fnServerParams":  function(aoData) {
-							aoData.push({ "dt": 1, "app_name": "launchpad" });
-						}
-					});
-					_initialized = true;
 					break;
+
+				case '#authorizations-table':
+					_resource = 'account_provider';
+					break;
+			}
+
+			if (_resource) {
+				$(_id).dataTable({
+//						"sDom":            "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
+					"bProcessing":     true,
+					"bServerSide":     true,
+					"sAjaxSource":     "/rest/system/" + _resource + "?app_name=admin",
+					"sPaginationType": "bootstrap",
+					'aoColumns':       _columns,
+					"oLanguage":       {
+						"sSearch":     "Filter:",
+						"sLengthMenu": "_MENU_ records per page"
+					},
+					"fnServerParams":  function(aoData) {
+						aoData.push({ "dt": 1, "app_name": "admin" });
+					}
+				});
+				$(_id).data('dt-init', true);
 			}
 		}
 	});
