@@ -44,11 +44,10 @@ $_headline = ( isset( $activated ) && $activated ) ? 'Welcome!' : 'Activate Your
 <div class="space50"></div>
 <p>If you've previously registered on
 	<a href="https://www.dreamfactory.com/user/register">http://www.dreamfactory.com</a>
-	, you can register your DSP with those credentials. Please enter the email address and password you used to register on the
-	<strong>DreamFactory</strong> web site.
+   , you can register your DSP with those credentials. Please enter the email address and password you used to register on the <strong>DreamFactory</strong> web site.
 </p>
 <div class="spacer"></div>
-<form id="login-form" method="POST" action="/web/activate">
+<form id="login-form" method="POST">
 	<input type="hidden" name="skipped" id="skipped" value="0">
 	<?php
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'Email Address' );
