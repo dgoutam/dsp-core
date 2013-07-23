@@ -39,7 +39,7 @@ $_headline = 'System Notices Available!';
 ?>
 <h2 class="headline"><?php echo $_headline; ?></h2><p>Please log into a DSP system administrator account to view these notices. </p>
 <div class="spacer"></div>
-<form id="login-form" method="POST">
+<form id="login-form" method="POST" action="/web/login">
 	<?php
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'DSP Admin Email Address' );
 	echo '<div class="controls">' . Bootstrap::text( array( 'id' => 'LoginForm_username', 'name' => 'LoginForm[username]', 'class' => 'email required' ) ) .

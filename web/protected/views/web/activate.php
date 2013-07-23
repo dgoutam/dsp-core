@@ -39,15 +39,16 @@ $_headline = ( isset( $activated ) && $activated ) ? 'Welcome!' : 'Activate Your
 <p>Thank you for installing the DreamFactory Services Platform&trade;. You may
 	<strong>optionally</strong> register your DSP to receive free technical support and automatic software updates. Registration is quick and easy at
 	<a href="https://www.dreamfactory.com/user/register">http://www.dreamfactory.com</a>
-   .
+	.
 </p><p>
 <div class="space50"></div>
 <p>If you've previously registered on
 	<a href="https://www.dreamfactory.com/user/register">http://www.dreamfactory.com</a>
-   , you can register your DSP with those credentials. Please enter the email address and password you used to register on the <strong>DreamFactory</strong> web site.
+	, you can register your DSP with those credentials. Please enter the email address and password you used to register on the
+	<strong>DreamFactory</strong> web site.
 </p>
 <div class="spacer"></div>
-<form id="login-form" method="POST">
+<form id="login-form" method="POST" action="/web/activate">
 	<input type="hidden" name="skipped" id="skipped" value="0">
 	<?php
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'Email Address' );

@@ -99,9 +99,7 @@ class WebController extends BaseWebController
 					'activate',
 					'initSystem',
 					'initSchema',
-					'upgradeSchema',
 					'initData',
-					'upgrade',
 					'initAdmin',
 				),
 				'users'   => array( '*' ),
@@ -110,6 +108,9 @@ class WebController extends BaseWebController
 			array(
 				'allow',
 				'actions' => array(
+					'upgrade',
+					'upgradeSchema',
+					'initAdmin',
 					'environment',
 					'metrics',
 					'fileTree',
@@ -140,9 +141,27 @@ class WebController extends BaseWebController
 	{
 		$_model = new LoginForm();
 
-		if ( !$this->_activated && 0 != FilterInput::post( 'skipped', 0, FILTER_SANITIZE_NUMBER_INT ) )
+		//	Came from login form? Don't do drupal auth, do dsp auth
+		$_fromLogin = ( 0 != Option::get( $_POST, 'login-only', 0 ) );
+
+		//	Did we come because we need to log in?
+		if ( !Pii::postRequest() && $this->_activated )
 		{
-//			$_model->setDrupalAuth( false );
+			if ( null !== ( $_returnUrl = Pii::user()->getReturnUrl() ) && 200 == Option::server( 'REDIRECT_STATUS' ) )
+			{
+				$this->actionLogin( true );
+
+				return;
+			}
+		}
+		else
+		{
+			if ( 1 == Option::get( $_POST, 'skipped', 0 ) )
+			{
+				$this->actionInitAdmin();
+
+				return;
+			}
 		}
 
 		if ( isset( $_POST, $_POST['LoginForm'] ) )
@@ -151,6 +170,8 @@ class WebController extends BaseWebController
 
 			if ( !empty( $_model->username ) && !empty( $_model->password ) )
 			{
+				$_model->setDrupalAuth( !$_fromLogin );
+
 				//	Validate user input and redirect to the previous page if valid
 				if ( $_model->validate() && $_model->login() )
 				{
@@ -171,6 +192,14 @@ class WebController extends BaseWebController
 				else
 				{
 					$_model->addError( 'username', 'Invalid user name and password combination.' );
+
+					//	Came from login form? Don't do drupal auth, do dsp auth
+					if ( $_fromLogin )
+					{
+						$this->actionLogin( true );
+
+						return;
+					}
 				}
 			}
 			else
@@ -269,10 +298,10 @@ class WebController extends BaseWebController
 	/**
 	 * Displays the login page
 	 */
-	public function actionLogin()
+	public function actionLogin( $redirected = false )
 	{
 		$_model = new LoginForm();
-		$_model->setDrupalAuth( false );
+		$_model->setDrupalAuth( !$redirected );
 
 		// if it is ajax validation request
 		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
@@ -307,8 +336,9 @@ class WebController extends BaseWebController
 		$this->render(
 			'login',
 			array(
-				 'model'     => $_model,
-				 'activated' => $this->_activated,
+				 'model'      => $_model,
+				 'activated'  => $this->_activated,
+				 'redirected' => $redirected,
 			)
 		);
 	}

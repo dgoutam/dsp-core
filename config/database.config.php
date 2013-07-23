@@ -41,8 +41,8 @@ else
 	$_dbName = 'dreamfactory';
 }
 
-$_dbUser = 'dsp_user';
-$_dbPassword = 'dsp_user';
+$_dbUser = 'root';
+$_dbPassword = 'Dream123';
 
 return array(
 	'connectionString'      => 'mysql:host=localhost;port=3306;dbname=' . $_dbName,
@@ -50,7 +50,7 @@ return array(
 	'password'              => $_dbPassword,
 	'emulatePrepare'        => true,
 	'charset'               => 'utf8',
-//	'enableProfiling'    => true,
+	'enableProfiling'       => YII_DEBUG,
 	'enableParamLogging'    => true,
 	'schemaCachingDuration' => 3600,
 );

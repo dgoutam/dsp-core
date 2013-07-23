@@ -52,9 +52,6 @@ return array(
 		'application.models.*',
 		'application.models.forms.*',
 		'application.components.*',
-//		'Platform.Yii.*'           => $_basePath . '/src/Platform/Yii',
-//		'Platform.Yii.Behaviors.*' => $_basePath . '/src/Platform/Yii/Behaviors',
-//		'Platform.Yii.Utility.*'   => $_basePath . '/src/Platform/Yii/Utility',
 	),
 	/**    Components */
 	'components'        => array(
@@ -106,6 +103,11 @@ return array(
 					'logFile'     => $_logFileName,
 					'logPath'     => $_logFilePath,
 					'levels'      => 'error, warning, trace, info, debug, notice',
+				),
+				array(
+					'class'         => 'CWebLogRoute',
+					'categories'    => 'system.db.CDbCommand',
+					'showInFireBug' => true,
 				),
 			),
 		),
