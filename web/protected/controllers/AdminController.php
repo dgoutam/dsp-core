@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Utility\ResourceStore;
+use DreamFactory\Yii\Controllers\BaseFactoryController;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
@@ -45,6 +47,22 @@ class AdminController extends BaseWebController
 
 		$this->setUserActions( array() );
 		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'authorizations' ) );
+	}
+
+	/**
+	 * @param string $actionId
+	 */
+	public function missingAction( $actionId = null )
+	{
+		$_model = ResourceStore::model( $actionId );
+
+		$_models = $_model->findAll();
+
+		if ( Pii::postRequest() )
+		{
+		}
+
+		$this->render( 'resources', array( 'resourceName' => $actionId, 'model' => $_models ) );
 	}
 
 	/**
@@ -94,5 +112,4 @@ class AdminController extends BaseWebController
 
 		$this->render( 'authorizations' );
 	}
-
 }

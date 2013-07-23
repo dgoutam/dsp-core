@@ -36,25 +36,44 @@ $_commonConfig = require( __DIR__ . '/common.config.php' );
 return array(
 
 	/**    Basics */
-	'basePath'          => $_docRoot . '/protected',
-	'name'              => $_appName,
-	'runtimePath'       => $_logFilePath,
-	'defaultController' => $_defaultController,
+	'basePath'           => $_docRoot . '/protected',
+	'name'               => $_appName,
+	'runtimePath'        => $_logFilePath,
+	'defaultController'  => $_defaultController,
+	/**
+	 * Service Handling: The default system resource namespaces
+	 *
+	 * @todo have ResourceStore::resource() scan sub-directories based on $_REQUEST['path']  -- GHA
+	 */
+	'resourceNamespaces' => array(
+		'DreamFactory\\Platform\\Resources',
+		'DreamFactory\\Platform\\Resources\\System',
+		'DreamFactory\\Platform\\Resources\\Portal',
+		'DreamFactory\\Platform\\Resources\\User',
+	),
+	/**
+	 * Service Handling: The default system model namespaces
+	 *
+	 * @todo have ResourceStore::model() scan sub-directories based on $_REQUEST['path'] -- GHA
+	 */
+	'modelNamespaces'    => array(
+		'DreamFactory\\Platform\\Yii\\Models',
+	),
 	/** CORS Configuration */
-	'corsWhitelist'     => array( '*' ),
-	'autoAddHeaders'    => true,
-	'extendedHeaders'   => true,
+	'corsWhitelist'      => array( '*' ),
+	'autoAddHeaders'     => true,
+	'extendedHeaders'    => true,
 	/**    Preloads */
-	'preload'           => array( 'log' ),
+	'preload'            => array( 'log' ),
 	/**    Imports */
-	'import'            => array(
+	'import'             => array(
 		'system.utils.*',
 		'application.models.*',
 		'application.models.forms.*',
 		'application.components.*',
 	),
 	/**    Components */
-	'components'        => array(
+	'components'         => array(
 		//	Asset management
 		'assetManager' => array(
 			'class'      => 'CAssetManager',
@@ -118,5 +137,5 @@ return array(
 	//. Global application parameters
 	//.........................................................................
 
-	'params'            => $_commonConfig,
+	'params'             => $_commonConfig,
 );
