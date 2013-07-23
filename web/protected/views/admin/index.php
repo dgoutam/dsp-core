@@ -63,6 +63,7 @@
 <script type="text/javascript">
 jQuery(function($) {
 	var _initialized = [];
+	var _columns, _fields;
 
 	$('a[data-toggle="tab"]').on('shown', function(e) {
 		var _id = $(e.target).attr('href').replace('tab-', '') + '-table', _resource;
@@ -93,25 +94,23 @@ jQuery(function($) {
 
 				case '#authorizations-table':
 					_columns = [
-								{
-									"sName":  "id",
-									"sWidth": "50px"
-								},
-								{
-									"sName": "name"
-								},
-								{
-									"sName": "tag"
-								},
-								{
-									"sName": "enabled"
-								},
-								{
-									"sName": "last_used"
-								}
-							];
+						{
+							"sName":  "id",
+							"sWidth": "50px"
+						},
+						{
+							"sName": "provider_name"
+						},
+						{
+							"sName": "service_endpoint"
+						},
+						{
+							"sName": "last_use_date"
+						}
+					];
 
 					_resource = 'account_provider';
+					_fields = 'id,provider_name,service_endpoint,last_use_date';
 					break;
 			}
 
@@ -120,7 +119,7 @@ jQuery(function($) {
 //						"sDom":            "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
 					"bProcessing":     true,
 					"bServerSide":     true,
-					"sAjaxSource":     "/rest/system/" + _resource + "?app_name=admin",
+					"sAjaxSource":     "/rest/system/" + _resource + "?app_name=admin&format=100&fields=" + _fields,
 					"sPaginationType": "bootstrap",
 					'aoColumns':       _columns,
 					"oLanguage":       {
