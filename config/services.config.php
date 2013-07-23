@@ -69,7 +69,7 @@ return
 			'class' => 'DreamFactory\\Platform\\Services\\EmailSvc',
 			'local' => false,
 		),
-		PlatformServiceTypes::REMOTE_NOSQL_DB       => array(
+		PlatformServiceTypes::NOSQL_DB       => array(
 			'class' => array(
 				PlatformStorageTypes::AZURE_TABLES => array(
 					'class' => 'DreamFactory\\Platform\\Services\\WindowsAzureTablesSvc',
