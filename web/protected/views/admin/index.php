@@ -158,22 +158,22 @@ jQuery(function($) {
 			}
 
 			if (_resource) {
-				$(_id).data(
-					'datatable',
-					$(_id).dataTable({
-						"bProcessing":     true,
-						"bServerSide":     true,
-						"sAjaxSource":     "/rest/system/" + _resource,
-						"sPaginationType": "bootstrap",
-						'aoColumns':       _columns,
-						"oLanguage":       {
-							"sSearch":     "Filter:",
-							"sLengthMenu": "_MENU_ records per page"
-						},
-						"fnServerParams":  function(aoData) {
-							aoData.push({ "name": "format", "value": 100 }, { "name": "app_name", "value": "admin" }, { "name": "fields", "value": _fields });
-						}
-					}));
+				$(_id).data('datatable', $(_id).dataTable({
+					"bProcessing":     true,
+					"bServerSide":     true,
+					"bStateSave":      true,
+					"bScrollInfinite": true,
+					"sAjaxSource":     "/rest/system/" + _resource,
+					"sPaginationType": "bootstrap",
+					'aoColumns':       _columns,
+					"oLanguage":       {
+						"sSearch":     "Filter:",
+						"sLengthMenu": "_MENU_ records per page"
+					},
+					"fnServerParams":  function(aoData) {
+						aoData.push({ "name": "format", "value": 100 }, { "name": "app_name", "value": "admin" }, { "name": "fields", "value": _fields });
+					}
+				}));
 			}
 		}
 	});
