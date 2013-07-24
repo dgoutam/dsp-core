@@ -35,7 +35,10 @@
 				<a href="#tab-config" data-toggle="tab"><i class="icon-cogs"></i>System Config</a>
 			</li>
 			<li>
-				<a href="#tab-authorizations" data-toggle="tab"><i class="icon-key"></i>Authorizations</a>
+				<a href="#tab-providers" data-toggle="tab"><i class="icon-key"></i>Portal Providers</a>
+			</li>
+			<li>
+				<a href="#tab-accounts" data-toggle="tab"><i class="icon-key"></i>Provider Accounts</a>
 			</li>
 		</ul>
 
@@ -51,7 +54,8 @@
 			<div class="tab-pane" id="tab-doc">Coming</div>
 			<div class="tab-pane" id="tab-packager">Coming</div>
 			<div class="tab-pane" id="tab-config">Coming</div>
-			<div class="tab-pane" id="tab-authorizations"><?php require_once __DIR__ . '/_authorizations.php'; ?></div>
+			<div class="tab-pane" id="tab-providers"><?php require_once __DIR__ . '/_providers.php'; ?></div>
+			<div class="tab-pane" id="tab-accounts"><?php require_once __DIR__ . '/_accounts.php'; ?></div>
 		</div>
 	</div>
 </div>
@@ -62,37 +66,59 @@
 
 <script type="text/javascript">
 jQuery(function($) {
-	var _initialized = [];
 	var _columns, _fields;
 
 	$('a[data-toggle="tab"]').on('shown', function(e) {
 		var _id = $(e.target).attr('href').replace('tab-', '') + '-table', _resource;
-		var _columns = [
-			{
-				"sName":  "id",
-				"sWidth": "50px"
-			},
-			{
-				"sName": "Name"
-			},
-			{
-				"sName": "tag"
-			},
-			{
-				"sName": "enabled"
-			},
-			{
-				"sName": "last_used"
-			}
-		];
 
-		if (!$(_id).data('dt-init')) {
+		if (!$(_id).data('datatable')) {
 			switch (_id) {
 				case '#services-table':
-				case '#applications-table':
+					_columns = [
+						{
+							"sName":  "id",
+							"sWidth": "50px"
+						},
+						{
+							"sName": "api_name"
+						},
+						{
+							"sName": "type_id"
+						},
+						{
+							"sName": "storage_type_id"
+						},
+						{
+							"sName": "is_active"
+						}
+					];
+
+					_resource = 'service';
+					_fields = 'id,api_name,type_id,storage_type_id,is_active';
 					break;
 
-				case '#authorizations-table':
+				case '#apps-table':
+					_columns = [
+						{
+							"sName":  "id",
+							"sWidth": "50px"
+						},
+						{
+							"sName": "api_name"
+						},
+						{
+							"sName": "url"
+						},
+						{
+							"sName": "is_active"
+						}
+					];
+
+					_resource = 'app';
+					_fields = 'id,api_name,url,is_active';
+					break;
+
+				case '#providers-table':
 					_columns = [
 						{
 							"sName":  "id",
@@ -112,28 +138,52 @@ jQuery(function($) {
 					_resource = 'account_provider';
 					_fields = 'id,provider_name,service_endpoint,last_use_date';
 					break;
+
+				case '#accounts-table':
+					_columns = [
+						{
+							"sName":  "id",
+							"sWidth": "50px"
+						},
+						{
+							"sName": "user_id"
+						},
+						{
+							"sName": "provider_id"
+						},
+						{
+							"sName": "last_use_date"
+						}
+					];
+
+					_resource = 'service_account';
+					_fields = 'id,user_id,provider_id,last_use_date';
+					break;
 			}
 
 			if (_resource) {
-				$(_id).dataTable({
-//						"sDom":            "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
-					"bProcessing":     true,
-					"bServerSide":     true,
-					"sAjaxSource":     "/rest/system/" + _resource + "?app_name=admin&format=100&fields=" + _fields,
-					"sPaginationType": "bootstrap",
-					'aoColumns':       _columns,
-					"oLanguage":       {
-						"sSearch":     "Filter:",
-						"sLengthMenu": "_MENU_ records per page"
-					},
-					"fnServerParams":  function(aoData) {
-						aoData.push({ "dt": 1, "app_name": "admin" });
-					}
-				});
-				$(_id).data('dt-init', true);
+				$(_id).data(
+					'datatable',
+					$(_id).dataTable({
+						"bProcessing":     true,
+						"bServerSide":     true,
+						"sAjaxSource":     "/rest/system/" + _resource,
+						"sPaginationType": "bootstrap",
+						'aoColumns':       _columns,
+						"oLanguage":       {
+							"sSearch":     "Filter:",
+							"sLengthMenu": "_MENU_ records per page"
+						},
+						"fnServerParams":  function(aoData) {
+							aoData.push({ "name": "format", "value": 100 }, { "name": "app_name", "value": "admin" }, { "name": "fields", "value": _fields });
+						}
+					}));
 			}
 		}
 	});
+
+	//	Make the first tab load
+	$('li.active a').trigger('shown');
 
 //		/* Add events */
 //		$("#platforms-table").find("tbody tr").on('click', function () {
@@ -142,7 +192,6 @@ jQuery(function($) {
 //			window.location.href = '/services/update/id/' + _id;
 //			return false;
 //		});
-
 });
 
 </script>

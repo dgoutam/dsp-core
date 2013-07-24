@@ -23,20 +23,20 @@
 use Kisma\Core\Utility\Bootstrap;
 
 ?>
-<h4>Stored Authorizations</h4>
+<h4>Portal Provider Accounts</h4>
 
-<table class="table table-striped table-hover table-condensed" id="authorizations-table">
+<table class="table table-striped table-hover table-condensed" id="accounts-table">
 	<thead>
 	<tr>
 		<th>Id</th>
-		<th>Name</th>
-		<th>Service Endpoint</th>
+		<th>User</th>
+		<th>Provider</th>
 		<th>Last Used</th>
 	</tr>
 	</thead>
 	<tbody>
 	<tr>
-		<td colspan="5" class="dataTables_empty">Loading data from server</td>
+		<td colspan="4" class="dataTables_empty">Momentito...</td>
 	</tr>
 	</tbody>
 </table>

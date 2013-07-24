@@ -20,26 +20,23 @@
 /**
  * @var $this  AdminController
  */
-use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Bootstrap;
-use DreamFactory\Yii\Utility\Validate;
 
 ?>
-<h4>Registered Services</h4>
+<h4>Portal Service Providers</h4>
 
-<table class="table table-striped table-hover table-bordered" id="services-table">
+<table class="table table-striped table-hover table-condensed" id="providers-table">
 	<thead>
 	<tr>
-		<th>ID</th>
+		<th>Id</th>
 		<th>Name</th>
-		<th>Type</th>
-		<th>Storage Type</th>
-		<th>Active</th>
+		<th>Service Endpoint</th>
+		<th>Last Used</th>
 	</tr>
 	</thead>
 	<tbody>
 	<tr>
-		<td colspan="5" class="dataTables_empty">Momentito...</td>
+		<td colspan="4" class="dataTables_empty">Momentito...</td>
 	</tr>
 	</tbody>
 </table>
