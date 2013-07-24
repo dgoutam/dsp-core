@@ -49,7 +49,6 @@
 		"dreamfactory/yii":                     "dev-master",
 		"dreamfactory/lib-php-common":          "dev-master",
 		"dreamfactory/lib-php-common-yii":      "dev-master",
-		"dreamfactory/lib-php-common-platform": "dev-master",
 		"dreamfactory/app-admin":               ">=1.0.5",
 		"dreamfactory/app-launchpad":           ">=1.0.5",
 		"dreamfactory/web-core":                ">=1.0.5",

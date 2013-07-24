@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Common\Enums\OutputFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;
@@ -309,5 +310,25 @@ class RestController extends BaseFactoryController
 		}
 
 		return $GLOBALS['app_name'] = $_appName;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getFormat()
+	{
+		return $this->format;
+	}
+
+	/**
+	 * @param string $format
+	 *
+	 * @return RestController
+	 */
+	public function setFormat( $format )
+	{
+		$this->format = $format;
+
+		return $this;
 	}
 }

@@ -25,21 +25,21 @@ use Kisma\Core\Utility\Bootstrap;
 use DreamFactory\Yii\Utility\Validate;
 
 ?>
-<h4>Registered Authenticated Services</h4>
+<h3>Registered Services</h3>
 
 <table class="table table-striped table-hover table-bordered" id="services-table">
 	<thead>
 	<tr>
 		<th>ID</th>
 		<th>Name</th>
-		<th>Path</th>
-		<th>Enabled</th>
-		<th>Last Used</th>
+		<th>Type</th>
+		<th>Storage Type</th>
+		<th>Active</th>
 	</tr>
 	</thead>
 	<tbody>
 	<tr>
-		<td colspan="5" class="dataTables_empty">Loading data from server</td>
+		<td colspan="5" class="dataTables_empty">Momentito...</td>
 	</tr>
 	</tbody>
 </table>
