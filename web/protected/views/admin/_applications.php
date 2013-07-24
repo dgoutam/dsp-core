@@ -25,7 +25,7 @@ use Kisma\Core\Utility\Bootstrap;
 use DreamFactory\Yii\Utility\Validate;
 
 ?>
-<h4>Installed Applications</h4>
+<h3>Installed Applications</h3>
 
 <table class="table table-striped table-hover table-condensed" id="apps-table">
 	<thead>

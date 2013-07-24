@@ -25,7 +25,7 @@ use Kisma\Core\Utility\Bootstrap;
 use DreamFactory\Yii\Utility\Validate;
 
 ?>
-<h4>Registered Services</h4>
+<h3>Registered Services</h3>
 
 <table class="table table-striped table-hover table-bordered" id="services-table">
 	<thead>

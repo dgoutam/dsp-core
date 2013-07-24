@@ -27,8 +27,8 @@ $_headline = 'Platform Administration';
 	<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome-ie7.css" rel="stylesheet">    <![endif]-->
 	<link rel="stylesheet" type="text/css" href="//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css" />
 	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.4.4/bootstrap-editable/css/bootstrap-editable.css" rel="stylesheet">
-	<link rel="stylesheet" type="text/css" href="/public/css/df.datatables.css" />
 	<link rel="stylesheet" type="text/css" href="/public/css/main.css" />
+	<link rel="stylesheet" type="text/css" href="/public/css/df.datatables.css" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->    <!--[if lt IE 9]>
 	<script type="text/javascript" src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>    <![endif]-->
 	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>

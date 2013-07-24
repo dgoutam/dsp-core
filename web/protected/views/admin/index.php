@@ -76,8 +76,7 @@ jQuery(function($) {
 				case '#services-table':
 					_columns = [
 						{
-							"sName":  "id",
-							"sWidth": "50px"
+							"sName": "id",
 						},
 						{
 							"sName": "api_name"
@@ -100,8 +99,7 @@ jQuery(function($) {
 				case '#apps-table':
 					_columns = [
 						{
-							"sName":  "id",
-							"sWidth": "50px"
+							"sName": "id",
 						},
 						{
 							"sName": "api_name"
@@ -121,8 +119,7 @@ jQuery(function($) {
 				case '#providers-table':
 					_columns = [
 						{
-							"sName":  "id",
-							"sWidth": "50px"
+							"sName": "id",
 						},
 						{
 							"sName": "provider_name"
@@ -142,8 +139,7 @@ jQuery(function($) {
 				case '#accounts-table':
 					_columns = [
 						{
-							"sName":  "id",
-							"sWidth": "50px"
+							"sName": "id",
 						},
 						{
 							"sName": "user_id"

@@ -23,7 +23,7 @@
 use Kisma\Core\Utility\Bootstrap;
 
 ?>
-<h4>Portal Provider Accounts</h4>
+<h3>Portal Provider Accounts</h3>
 
 <table class="table table-striped table-hover table-condensed" id="accounts-table">
 	<thead>
