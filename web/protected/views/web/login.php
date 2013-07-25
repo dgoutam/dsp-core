@@ -35,13 +35,13 @@ Validate::register(
 	)
 );
 
-$_headline = 'System Notices Available!';
+$_headline = 'Login Required!';
 ?>
-<h2 class="headline"><?php echo $_headline; ?></h2><p>Please log into a DSP system administrator account to view these notices. </p>
+<h2 class="headline"><?php echo $_headline; ?></h2><p>In order to proceed to the requested resource, you must be logged in.</p>
 <div class="spacer"></div>
 <form id="login-form" method="POST" action="/web/login">
 	<?php
-	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'DSP Admin Email Address' );
+	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_username' ), 'DSP User Email Address' );
 	echo '<div class="controls">' . Bootstrap::text( array( 'id' => 'LoginForm_username', 'name' => 'LoginForm[username]', 'class' => 'email required' ) ) .
 		 '</div></div>';
 	echo '<div class="control-group">' . Bootstrap::label( array( 'for' => 'LoginForm_password' ), 'Password' );

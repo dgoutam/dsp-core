@@ -1,3 +1,8 @@
+table.dataTable thead th {
+	font-size:   16px;
+	font-weight: bold;
+}
+
 div.dataTables_length label {
 	width:      460px;
 	float:      left;
@@ -9,7 +14,8 @@ div.dataTables_length select {
 }
 
 div.dataTables_filter label {
-	float: right;
+	float:     right;
+	font-size: 14px;
 	/*width: 460px;*/
 }
 
@@ -135,4 +141,25 @@ table.table {
 legend span a {
 	font-size: 11px;
 	float:     right;
+}
+
+/*
+ * Processing indicator
+ */
+.dataTables_processing {
+	border:           1px solid #eaeaea;
+	background-color: #fafafa;
+	color:            #777;
+	font-size:        20px;
+	font-weight:      200;
+	border-radius:    4px;
+	text-shadow:      0 1px 0 #FFFFFF;
+}
+
+table.dataTable thead th {
+	border-bottom-color: #ccc;
+}
+
+table.dataTable tfoot th {
+	border-bottom-color: #ccc;
 }

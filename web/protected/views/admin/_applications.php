@@ -27,19 +27,19 @@ use DreamFactory\Yii\Utility\Validate;
 ?>
 <h3>Installed Applications</h3>
 
-<table class="table table-striped table-hover table-condensed" id="apps-table">
+<table class="table table-striped table-hover table-bordered" id="apps-table">
 	<thead>
-	<tr>
-		<th>Id</th>
-		<th>Name</th>
-		<th>Path</th>
-		<th>Enabled</th>
-	</tr>
+		<tr>
+			<th>Id</th>
+			<th>Name</th>
+			<th>Path</th>
+			<th>Enabled</th>
+		</tr>
 	</thead>
 
 	<tbody>
-	<tr>
-		<td colspan="4" class="dataTables_empty">Momentito...</td>
-	</tr>
+		<tr>
+			<td colspan="4" class="dataTables_empty">Momentito...</td>
+		</tr>
 	</tbody>
 </table>

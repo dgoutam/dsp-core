@@ -68,25 +68,96 @@ class AdminController extends BaseWebController
 	/**
 	 *
 	 */
-	public function actionServices()
-	{
-		if ( Pii::postRequest() )
-		{
-		}
-
-		$this->render( 'services' );
-	}
-
-	/**
-	 *
-	 */
 	public function actionIndex()
 	{
-		if ( Pii::postRequest() )
+		static $_resourceColumns
+		= array(
+			'apps'       => array(
+				'header'   => 'Installed Applications',
+				'resource' => 'app',
+				'fields'   => array( 'id', 'api_name', 'url', 'is_active' ),
+				'labels'   => array( 'ID', 'Name', 'Starting Path', 'Active' )
+			),
+			'app_groups' => array(
+				'header'   => 'Application Groups',
+				'resource' => 'app_group',
+				'fields'   => array( 'id', 'name', 'description' ),
+				'labels'   => array( 'ID', 'Name', 'Description' )
+			),
+			'users'      => array(
+				'header'   => 'Users',
+				'resource' => 'user',
+				'fields'   => array( 'id', 'email', 'first_name', 'last_name', 'created_date' ),
+				'labels'   => array( 'ID', 'Email', 'First Name', 'Last Name', 'Created' )
+			),
+			'roles'      => array(
+				'header'   => 'Roles',
+				'resource' => 'role',
+				'fields'   => array( 'id', 'name', 'description', 'is_active' ),
+				'labels'   => array( 'ID', 'Name', 'Description', 'Active' )
+			),
+			'data'       => array(
+				'header'   => 'Data',
+				'resource' => 'db',
+				'fields'   => array(),
+				'labels'   => array(),
+			),
+			'services'   => array(
+				'header'   => 'Services',
+				'resource' => 'service',
+				'fields'   => array( 'id', 'api_name', 'type_id', 'storage_type_id', 'is_active' ),
+				'labels'   => array( 'ID', 'Type', 'Storage Type', 'Active' )
+			),
+			'schema'     => array(
+				'header'   => 'Schema Manager',
+				'resource' => 'schema',
+				'fields'   => array(),
+				'labels'   => array(),
+			),
+			'packager'   => array(
+				'header' => 'Packager',
+				'fields' => array(),
+				'labels' => array()
+			),
+			'config'     => array(
+				'header'   => 'System Configuration',
+				'resource' => 'config',
+				'fields'   => array(),
+				'labels'   => array(),
+			),
+			'providers'  => array(
+				'header'   => 'Portal Providers',
+				'resource' => 'account_provider',
+				'fields'   => array( 'id', 'provider_name', 'service_endpoint', 'last_use_date' ),
+				'labels'   => array( 'ID', 'Name', 'Endpoint', 'Last Used' ),
+			),
+			'accounts'   => array(
+				'header'   => 'Portal Provider Accounts',
+				'resource' => 'service_account',
+				'fields'   => array( 'id', 'user_id', 'provider_id', 'last_use_date' ),
+				'labels'   => array( 'ID', 'User', 'Provider', 'Last Used' ),
+			),
+		);
+
+		foreach ( $_resourceColumns as $_resource => &$_config )
 		{
+			if ( !isset( $_config['columns'] ) )
+			{
+				if ( isset( $_config['fields'] ) )
+				{
+					$_config['columns'] = array();
+
+					foreach ( $_config['fields'] as $_field )
+					{
+						$_config['columns'][] = array( 'sName' => $_field );
+					}
+
+					$_config['fields'] = implode( ',', $_config['fields'] );
+				}
+			}
 		}
 
-		$this->render( 'index' );
+		$this->render( 'index', array( 'resourceColumns' => $_resourceColumns ) );
 	}
 
 	/**

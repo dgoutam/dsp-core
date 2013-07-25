@@ -86,7 +86,9 @@ class RestController extends BaseFactoryController
 			}
 			else
 			{
-				$_result = array( 'service' => Service::available() );
+				$_result = array( 'service' => Service::available( false, array( 'id', 'api_name' ) ) );
+
+				unset( $_services );
 			}
 
 			RestResponse::sendResults( $_result, RestResponse::Ok, $_resultFormat, $this->format );
