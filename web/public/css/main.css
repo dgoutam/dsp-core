@@ -111,3 +111,7 @@ label.error {
 .dataTables_wrapper {
 	overflow: hidden;
 }
+
+table.jtable tr td {
+	cursor: not-allowed;
+}

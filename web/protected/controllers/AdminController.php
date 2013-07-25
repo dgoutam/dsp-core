@@ -75,8 +75,14 @@ class AdminController extends BaseWebController
 			'apps'       => array(
 				'header'   => 'Installed Applications',
 				'resource' => 'app',
-				'fields'   => array( 'id', 'api_name', 'url', 'is_active' ),
-				'labels'   => array( 'ID', 'Name', 'Starting Path', 'Active' )
+				'fields'   => array(
+					'id'        => array( 'title' => 'ID', 'key' => true, 'list' => false, 'create' => false, 'edit' => false ),
+					'name'      => array( 'title' => 'Name' ),
+					'api_name'  => array( 'title' => 'Endpoint', 'edit' => false ),
+					'url'       => array( 'title' => 'Base URL' ),
+					'is_active' => array( 'title' => 'Active' ),
+				),
+				'labels'   => array( 'ID', 'Name', 'Starting Path', 'Active' ),
 			),
 			'app_groups' => array(
 				'header'   => 'Application Groups',
@@ -139,23 +145,23 @@ class AdminController extends BaseWebController
 			),
 		);
 
-		foreach ( $_resourceColumns as $_resource => &$_config )
-		{
-			if ( !isset( $_config['columns'] ) )
-			{
-				if ( isset( $_config['fields'] ) )
-				{
-					$_config['columns'] = array();
-
-					foreach ( $_config['fields'] as $_field )
-					{
-						$_config['columns'][] = array( 'sName' => $_field );
-					}
-
-					$_config['fields'] = implode( ',', $_config['fields'] );
-				}
-			}
-		}
+//		foreach ( $_resourceColumns as $_resource => &$_config )
+//		{
+//			if ( !isset( $_config['columns'] ) )
+//			{
+//				if ( isset( $_config['fields'] ) )
+//				{
+//					$_config['columns'] = array();
+//
+//					foreach ( $_config['fields'] as $_field )
+//					{
+//						$_config['columns'][] = array( 'sName' => $_field );
+//					}
+//
+//					$_config['fields'] = implode( ',', $_config['fields'] );
+//				}
+//			}
+//		}
 
 		$this->render( 'index', array( 'resourceColumns' => $_resourceColumns ) );
 	}

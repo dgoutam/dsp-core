@@ -24,6 +24,7 @@ $_headline = 'Platform Administration';
 	</style>
 	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
 	<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+	<link href="/public/css/jquery-ui.css" rel="stylesheet">
 	<link href="/public/js/jtable/themes/metro/darkorange/jtable.min.css" rel="stylesheet">
 	<!--[if IE 7]>
 	<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome-ie7.css" rel="stylesheet">    <![endif]-->
@@ -60,6 +61,7 @@ $_headline = 'Platform Administration';
 </div>
 <!-- /container -->
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
 <script src="/public/js/jtable/jquery.jtable.js" type="text/javascript"></script>
 </body>
 </html>
