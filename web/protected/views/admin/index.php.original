@@ -2,6 +2,7 @@
 /**
  * @var array $resourceColumns
  */
+
 $_dtConfig = json_encode( $resourceColumns );
 $_content = null;
 
@@ -96,8 +97,52 @@ HTML;
 
 <script type="text/javascript">
 jQuery(function($) {
+	var _dtColumns = <?php echo $_dtConfig; ?>, _fields;
+
+	$('a[data-toggle="tab"]').on('shown', function(e) {
+		var _type = $(e.target).attr('href').replace('#tab-', '');
+		var _id = '#' + _type + '-table';
+
+		var _table = $(_id).data('datatable');
+
+		if (!_table) {
+			if (_dtColumns[_type]) {
+				var _fields = _dtColumns[_type].fields;
+				var _resource = _dtColumns[_type].resource;
+				var _columns = _dtColumns[_type].columns;
+
+				$(_id).data('datatable', $(_id).dataTable({
+					"bProcessing":     true,
+					"bServerSide":     true,
+					"bStateSave":      true,
+					"sAjaxSource":     "/rest/system/" + _resource,
+					"sPaginationType": "bootstrap",
+					'aoColumns':       _columns,
+					"oLanguage":       {
+						"sSearch": "Filter:"
+					},
+					"fnServerParams":  function(aoData) {
+						aoData.push({ "name": "format", "value": 100 }, { "name": "app_name", "value": "php-admin" }, { "name": "fields", "value": _fields });
+					}
+				}));
+			}
+		} else {
+			if (_table && _table.oApi) {
+				_table.oApi.fnReloadAjax();
+			}
+		}
+	});
+
 	//	Make the first tab load
 	$('li.active a').trigger('shown');
+
+//		/* Add events */
+//		$("#platforms-table").find("tbody tr").on('click', function () {
+//			var _row = $('td', this);
+//			var _id = $(_row[0]).text();
+//			window.location.href = '/services/update/id/' + _id;
+//			return false;
+//		});
 });
 
 </script>
