@@ -3,7 +3,7 @@
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
  */
 namespace Platform\Yii\Utility;
 
+use DreamFactory\Common\Interfaces\PageLocation;
 use Kisma\Core\Utility\Option;
-use Platform\Interfaces\PageLocation;
 
 /**
  * Validate.php
@@ -33,9 +33,17 @@ class Validate implements PageLocation
 	//*************************************************************************
 
 	/**
+	 * @var string
+	 */
+	const DEFAULT_VERSION = '1.11.1';
+	/**
+	 * @var string
+	 */
+	const VERSION_TAG = '{version}';
+	/**
 	 * @var string The CDN root
 	 */
-	const Cdn = '//ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/';
+	const CDN_ROOT = '//ajax.aspnetcdn.com/ajax/jquery.validate/{version}/';
 
 	//********************************************************************************
 	//* Methods
@@ -104,13 +112,15 @@ jQuery.validator.addMethod(
 var	_validator = $("{$selector}").validate({$_scriptOptions});
 JS;
 
+		$_cdnRoot = str_replace( static::VERSION_TAG, Pii::getParam( 'version.jquery-validate', static::DEFAULT_VERSION ), static::CDN_ROOT );
+
 		//	Register the jquery plugin
 		Pii::scriptFile(
 			array(
-				 self::Cdn . 'jquery.validate.min.js',
-				 self::Cdn . 'additional-methods.min.js',
+				 $_cdnRoot . 'jquery.validate.min.js',
+				 $_cdnRoot . 'additional-methods.min.js',
 			),
-			self::End
+			static::End
 		);
 
 		//	Add to the page load

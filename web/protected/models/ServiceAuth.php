@@ -3,7 +3,7 @@
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2013 DreamFactory Software, Inc. <support@dreamfactory.com>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,41 +17,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use Kisma\Core\Utility\Hasher;
+use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Sql;
+use Platform\Exceptions\BadRequestException;
+use Platform\Resources\UserSession;
 use Platform\Yii\Utility\Pii;
 
 /**
- * Stats.php
- * DSP usage stats
+ * ServiceAuth.php
+ * The user service registry model for the DSP
  *
- * Columns
+ * Columns:
  *
- * @property integer $id
- * @property int     $type
- * @property string  $stat_date
- * @property string  $stat_data
+ * @property int                 $id
+ * @property int                 $user_id
+ * @property int                 $registry_id
+ * @property int                 $service_type_nbr
+ * @property string              $service_name_text
+ * @property string              $service_tag_text
+ * @property string              $service_config_text
+ * @property int                 $enabled_ind
+ * @property string              $last_use_date
  */
-class Stat extends BaseDspSystemModel
+class ServiceAuth extends BaseDspSystemModel
 {
 	//*************************************************************************
 	//* Constants
 	//*************************************************************************
 
 	/**
-	 * @var int
+	 * @var string
 	 */
-	const TYPE_LOCAL_AUTH = 0;
+	const CACHE_ID = 'dsp.service_auth_cache';
 	/**
-	 * @var int
+	 * @var string
 	 */
-	const TYPE_DRUPAL_AUTH = 1;
-	/**
-	 * @var int
-	 */
-	const TYPE_ASGARD = 2;
+	const CONFIG_ID = 'dsp.default_user_services';
 
 	//*************************************************************************
-	//	Methods
+	//* Methods
 	//*************************************************************************
 
 	/**
@@ -59,7 +64,7 @@ class Stat extends BaseDspSystemModel
 	 *
 	 * @param string $className active record class name.
 	 *
-	 * @return Config the static model class
+	 * @return ServiceAuth the static model class
 	 */
 	public static function model( $className = __CLASS__ )
 	{
@@ -71,61 +76,7 @@ class Stat extends BaseDspSystemModel
 	 */
 	public function tableName()
 	{
-		return static::tableNamePrefix() . 'stat';
+		return static::tableNamePrefix() . 'service_auth';
 	}
 
-	/**
-	 * @param int    $type
-	 * @param int    $userId
-	 * @param string $statData
-	 * @param string $date
-	 *
-	 * @return int
-	 */
-	public static function create( $type, $userId, $statData, $date = null )
-	{
-		$_sql
-			= <<<SQL
-INSERT INTO df_sys_stat
-(
-	type,
-	user_id,
-	stat_date,
-	stat_data,
-	created_date,
-	last_modified_date
-)
-VALUES
-(
-	:type,
-	:user_id,
-	:stat_date,
-	:stat_data,
-	:created_date,
-	:last_modified_date
-)
-SQL;
-
-		//	Make sure we have a json string in the db...
-		if ( !is_string( $statData ) )
-		{
-			if ( false === ( $_data = json_encode( $statData ) ) )
-			{
-				return false;
-			}
-
-			$statData = $_data;
-		}
-
-		$_params = array(
-			':type'               => $type,
-			':user_id'            => $userId,
-			':stat_date'          => $date ? : date( 'c' ),
-			':stat_data'          => $statData,
-			':created_date'       => date( 'c' ),
-			':last_modified_date' => date( 'c' ),
-		);
-
-		return Sql::execute( $_sql, $_params, Pii::pdo() );
-	}
 }

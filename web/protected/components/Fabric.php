@@ -3,7 +3,7 @@
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,14 @@ class Fabric extends SeedUtility
 	 */
 	public static function getHostName()
 	{
-		return FilterInput::server( 'HTTP_HOST', gethostname() );
+		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+
+		if ( false !== strpos( $_host, ':' ) )
+		{
+			$_host = current( explode( ':', $_host ) );
+		}
+
+		return $_host;
 	}
 
 	/**

@@ -3,7 +3,7 @@
  * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
  * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2013 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,23 +110,25 @@ return array_merge(
 	$_instanceSettings,
 	array(
 		 /** App Information */
-		 'base_path'            => $_basePath,
+		 'base_path'               => $_basePath,
 		 /** DSP Information */
-		 'dsp.version'          => DSP_VERSION,
-		 'dsp.name'             => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'    => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
-		 'cloud.endpoint'       => 'http://api.cloud.dreamfactory.com',
+		 'dsp.version'             => DSP_VERSION,
+		 'dsp.name'                => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint'       => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
+		 'cloud.endpoint'          => 'http://api.cloud.dreamfactory.com',
 		 /**
 		  * User data
 		  */
-		 'blobStorageConfig'    => $_blobConfig,
-		 'adminEmail'           => 'support@dreamfactory.com',
+		 'blobStorageConfig'       => $_blobConfig,
+		 'adminEmail'              => 'support@dreamfactory.com',
 		 /** Default services provided by all DSPs */
-		 'dsp.default_services' => array(
+		 'dsp.default_services'    => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
 		 /** The default application to start */
-		 'dsp.default_app' => '/public/launchpad/index.html',
+		 'dsp.default_app'         => '/public/launchpad/index.html',
+		 /** Version Settings */
+		 'version.jquery-validate' => '1.11.1',
 	)
 );
