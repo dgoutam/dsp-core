@@ -115,3 +115,21 @@ label.error {
 table.jtable tr td {
 	cursor: not-allowed;
 }
+
+[class^="icon-"], [class*=" icon-"] {
+	margin-right: 6px;
+}
+
+form.jtable-dialog-form div.jtable-input-field-container {
+	padding: 2px 0 3px 0;
+	border:  none;
+}
+
+.jtable-toolbar-item {
+	letter-spacing: normal;
+}
+
+tr.jtable-no-data-row {
+	font-size:   18px;
+	font-weight: bold;
+}

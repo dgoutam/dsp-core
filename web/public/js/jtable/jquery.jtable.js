@@ -42,10 +42,12 @@
 			dialogShowEffect:      'fade',
 			dialogHideEffect:      'fade',
 			showCloseButton:       false,
-			loadingAnimationDelay: 500,
+			loadingAnimationDelay: 250,
 			saveUserPreferences:   true,
 			jqueryuiTheme:         false,
 			useHttpVerbs:          false,
+			toolbarDiv:            null,
+			itemName:              null,
 
 			ajaxSettings: {
 				type:     'POST',
@@ -920,7 +922,10 @@
 		/* Creates the toolbar.
 		 *************************************************************************/
 		_createToolBar:                    function() {
-			this._$toolbarDiv = $('<div />').addClass('jtable-toolbar').appendTo(this._$titleDiv);
+			if (this.options.toolbarDiv)
+				this._$toolbarDiv = $(this.options.toolbarDiv).addClass('jtable-toolbar');
+			else
+				this._$toolbarDiv = $('<div />').addClass('jtable-toolbar').appendTo(this._$titleDiv);
 
 			for (var i = 0; i < this.options.toolbar.items.length; i++) {
 				this._addToolBarItem(this.options.toolbar.items[i]);
@@ -938,7 +943,7 @@
 				return null;
 			}
 
-			var $toolBarItem = $('<span></span>').addClass('jtable-toolbar-item').appendTo(this._$toolbarDiv);
+			var $toolBarItem = $('<button></button>').addClass('jtable-toolbar-item btn').appendTo(this._$toolbarDiv);
 
 			this._jqueryuiThemeAddClass($toolBarItem, 'ui-widget ui-state-default ui-corner-all', 'ui-state-hover');
 
@@ -954,18 +959,14 @@
 
 			//icon property
 			if (item.icon) {
-				var $icon = $('<span class="jtable-toolbar-item-icon"></span>').appendTo($toolBarItem);
-				if (item.icon === true) {
-					//do nothing
-				}
-				else if ($.type(item.icon === 'string')) {
-					$icon.css('background', 'url("' + item.icon + '")');
+				if (item.icon !== true) {
+					$('<i class="icon icon-' + item.icon + '"></i>').appendTo($toolBarItem);
 				}
 			}
 
 			//text property
 			if (item.text) {
-				$('<span class=""></span>').html(item.text).addClass('jtable-toolbar-item-text').appendTo($toolBarItem);
+				$toolBarItem.append(item.text);
 			}
 
 			//click event
@@ -1688,7 +1689,7 @@
 
 			//Localization
 			messages:    {
-				addNewRecord: 'Add new record'
+				addNewRecord: 'Add New Record'
 			}
 		},
 
@@ -1771,9 +1772,9 @@
 			else {
 				//If user did not supplied a button, create a 'add record button' toolbar item.
 				self._addToolBarItem({
-					icon:     true,
+					icon:     'plus',
 					cssClass: 'jtable-toolbar-item-add-record',
-					text:     self.options.messages.addNewRecord,
+					text:     self.options.itemName ? 'New ' + self.options.itemName : self.options.messages.addNewRecord,
 					click:    function() {
 						self._showAddRecordForm();
 					}
