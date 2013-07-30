@@ -1,5 +1,9 @@
 {
-	"version": "1.0.6",
+	"version": "1.0.6.1",
+	"scripts": {
+		"install": null,
+		"update":  "1.0.6.1-update.sql"
+	},
 	"table":   [
 		{
 			"name":  "df_sys_config",
@@ -180,6 +184,12 @@
 					"type":               "string",
 					"supports_multibyte": true,
 					"length":             64,
+					"allow_null":         true
+				},
+				{
+					"name":               "user_data",
+					"type":               "mediumtext",
+					"supports_multibyte": true,
 					"allow_null":         true
 				},
 				{
@@ -946,84 +956,7 @@
 			]
 		},
 		{
-			"name":  "df_sys_account_provider",
-			"field": [
-				{
-					"name": "id",
-					"type": "id"
-				},
-				{
-					"name":          "service_id",
-					"type":          "integer",
-					"ref_table":     "df_sys_service",
-					"ref_fields":    "id",
-					"ref_on_update": "CASCADE",
-					"ref_on_delete": "CASCADE",
-					"allow_null":    false
-				},
-				{
-					"name":       "provider_name",
-					"type":       "string",
-					"length":     64,
-					"allow_null": true
-				},
-				{
-					"name":       "handler_class",
-					"type":       "string",
-					"length":     1024,
-					"allow_null": false
-				},
-				{
-					"name":       "auth_endpoint",
-					"type":       "string",
-					"length":     1024,
-					"allow_null": true
-				},
-				{
-					"name":       "service_endpoint",
-					"type":       "string",
-					"length":     1024,
-					"allow_null": true
-				},
-				{
-					"name":       "provider_options",
-					"type":       "mediumtext",
-					"allow_null": true
-				},
-				{
-					"name":       "master_auth_text",
-					"type":       "mediumtext",
-					"allow_null": true
-				},
-				{
-					"name":       "last_use_date",
-					"type":       "datetime",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "created_date",
-					"type":       "datetime",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "created_by_id",
-					"type":       "user_id_on_create",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "last_modified_date",
-					"type":       "timestamp_on_update",
-					"validation": "api_read_only"
-				},
-				{
-					"name":       "last_modified_by_id",
-					"type":       "user_id_on_update",
-					"validation": "api_read_only"
-				}
-			]
-		},
-		{
-			"name":  "df_sys_service_account",
+			"name":  "df_sys_portal_account",
 			"field": [
 				{
 					"name": "id",
@@ -1045,13 +978,9 @@
 					"allow_null":    false
 				},
 				{
-					"name":          "provider_id",
-					"type":          "integer",
-					"ref_table":     "df_sys_account_provider",
-					"ref_fields":    "id",
-					"ref_on_update": "CASCADE",
-					"ref_on_delete": "CASCADE",
-					"allow_null":    false
+					"name":       "api_name",
+					"type":       "string",
+					"allow_null": false
 				},
 				{
 					"name":       "auth_text",
