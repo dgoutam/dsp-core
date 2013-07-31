@@ -42,5 +42,9 @@ Pii::alias( 'DreamFactory.Platform.Services.Portal', $_vendorPath . '/dreamfacto
 Pii::alias( 'DreamFactory.Platform.Yii.Behaviors', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Yii/Behaviors' );
 Pii::alias( 'DreamFactory.Platform.Yii.Models', $_vendorPath . '/dreamfactory/lib-php-common-platform/DreamFactory/Platform/Yii/Models' );
 
+Pii::alias( 'HybridAuth.*', $_vendorPath . '/hybridauth/hybridauth/hybridauth' );
+
+		'hybridauth.components.*',
+
 //	Vendors
 Pii::alias( 'Swift', $_vendorPath . '/swiftmailer/swiftmailer/lib/classes' );

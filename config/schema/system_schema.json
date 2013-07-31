@@ -978,14 +978,21 @@
 					"allow_null":    false
 				},
 				{
-					"name":       "api_name",
+					"name":       "provider_name",
 					"type":       "string",
+					"length":     128,
+					"allow_null": false
+				},
+				{
+					"name":       "provider_user_id",
+					"type":       "string",
+					"length":     1024,
 					"allow_null": false
 				},
 				{
 					"name":       "auth_text",
 					"type":       "mediumtext",
-					"allow_null": false
+					"allow_null": true
 				},
 				{
 					"name":       "last_use_date",
