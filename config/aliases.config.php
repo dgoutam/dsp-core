@@ -44,7 +44,5 @@ Pii::alias( 'DreamFactory.Platform.Yii.Models', $_vendorPath . '/dreamfactory/li
 
 Pii::alias( 'HybridAuth.*', $_vendorPath . '/hybridauth/hybridauth/hybridauth' );
 
-		'hybridauth.components.*',
-
 //	Vendors
 Pii::alias( 'Swift', $_vendorPath . '/swiftmailer/swiftmailer/lib/classes' );

@@ -8,7 +8,7 @@ foreach ( $resourceColumns as $_resource => $_config )
 {
 	$_html = '<h3>Coming Soon!</h3>';
 	$_labels = null;
-	$_active = $_resource == 'providers' ? ' active' : null;
+	$_active = $_resource == 'apps' ? ' active' : null;
 
 	if ( isset( $_config['labels'] ) && !empty( $_config['labels'] ) )
 	{
@@ -26,25 +26,23 @@ foreach ( $resourceColumns as $_resource => $_config )
 <h3>{$_config['header']}<div id="admin-toolbar" class=" pull-right"></div></h3>
 <div id="{$_resource}-table"></div>
 HTML;
-
 		/**
 		 * <table class="table table-striped table-hover table-bordered" id="{$_resource}-table">
-		<thead>
-		<tr>{$_labels}</tr>
-		</thead>
-
-		<tbody>
-		<tr>
-		<td colspan="{$_count}" class="dataTables_empty">Momentito...</td>
-		</tr>
-		</tbody>
-		</table>
+		 * <thead>
+		 * <tr>{$_labels}</tr>
+		 * </thead>
+		 *
+		 * <tbody>
+		 * <tr>
+		 * <td colspan="{$_count}" class="dataTables_empty">Momentito...</td>
+		 * </tr>
+		 * </tbody>
+		 * </table>
 
 		 */
 	}
 
 	$_content .= '<div class="tab-pane' . $_active . '" id="tab-' . $_resource . '">' . $_html . '</div>';
-
 }
 
 //	Fix up functions
@@ -56,10 +54,10 @@ $_dtConfig = str_replace( array( '"##', '##"', '\"' ), array( null, null, '"' ),
 	<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 			<li class="active">
-				<a href="#tab-providers" data-toggle="tab"><i class="icon-key"></i> Portal Providers </a>
+				<a href="#tab-apps" data-toggle="tab"><i class="icon-gear"></i> Applications</a>
 			</li>
 			<li>
-				<a href="#tab-accounts" data-toggle="tab"><i class="icon-key"></i> Provider Accounts </a>
+				<a href="#tab-accounts" data-toggle="tab"><i class="icon-key"></i> Provider Accounts</a>
 			</li>
 		</ul>
 
