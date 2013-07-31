@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Common\Enums\OutputFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;
@@ -85,7 +86,9 @@ class RestController extends BaseFactoryController
 			}
 			else
 			{
-				$_result = array( 'service' => Service::available() );
+				$_result = array( 'service' => Service::available( false, array( 'id', 'api_name' ) ) );
+
+				unset( $_services );
 			}
 
 			RestResponse::sendResults( $_result, RestResponse::Ok, $_resultFormat, $this->format );
@@ -132,6 +135,7 @@ class RestController extends BaseFactoryController
 		{
 			//	Check for verb tunneling
 			$_tunnelMethod = FilterInput::server( 'HTTP_X_HTTP_METHOD', null, FILTER_SANITIZE_STRING );
+
 			if ( empty( $_tunnelMethod ) )
 			{
 				$_tunnelMethod = FilterInput::request( 'method', null, FILTER_SANITIZE_STRING );
@@ -308,5 +312,25 @@ class RestController extends BaseFactoryController
 		}
 
 		return $GLOBALS['app_name'] = $_appName;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getFormat()
+	{
+		return $this->format;
+	}
+
+	/**
+	 * @param string $format
+	 *
+	 * @return RestController
+	 */
+	public function setFormat( $format )
+	{
+		$this->format = $format;
+
+		return $this;
 	}
 }

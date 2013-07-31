@@ -1,131 +1,120 @@
+<?php
+/**
+ * @var array $resourceColumns
+ */
+$_content = null;
+
+foreach ( $resourceColumns as $_resource => $_config )
+{
+	$_html = '<h3>Coming Soon!</h3>';
+	$_labels = null;
+	$_active = $_resource == 'providers' ? ' active' : null;
+
+	if ( isset( $_config['labels'] ) && !empty( $_config['labels'] ) )
+	{
+		$_id = 'tab-' . $_resource;
+		$_count = 0;
+
+		foreach ( $_config['labels'] as $_label )
+		{
+			$_labels .= '<th>' . $_label . '</th>';
+			$_count++;
+		}
+
+		$_html
+			= <<<HTML
+<h3>{$_config['header']}<div id="admin-toolbar" class=" pull-right"></div></h3>
+<div id="{$_resource}-table"></div>
+HTML;
+
+		/**
+		 * <table class="table table-striped table-hover table-bordered" id="{$_resource}-table">
+		<thead>
+		<tr>{$_labels}</tr>
+		</thead>
+
+		<tbody>
+		<tr>
+		<td colspan="{$_count}" class="dataTables_empty">Momentito...</td>
+		</tr>
+		</tbody>
+		</table>
+
+		 */
+	}
+
+	$_content .= '<div class="tab-pane' . $_active . '" id="tab-' . $_resource . '">' . $_html . '</div>';
+
+}
+
+//	Fix up functions
+$_dtConfig = json_encode( $resourceColumns );
+$_dtConfig = str_replace( array( '"##', '##"', '\"' ), array( null, null, '"' ), $_dtConfig );
+
+?>
 <div class="container">
 	<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 			<li class="active">
-				<a href="#tab-apps" data-toggle="tab"><i class="icon-cloud"></i>Applications</a>
+				<a href="#tab-providers" data-toggle="tab"><i class="icon-key"></i> Portal Providers </a>
 			</li>
 			<li>
-				<a href="#tab-app-groups" data-toggle="tab"><i class="icon-sitemap"></i>App Groups</a>
-			</li>
-			<li>
-				<a href="#tab-users" data-toggle="tab"><i class="icon-user"></i>Users</a>
-			</li>
-			<li>
-				<a href="#tab-roles" data-toggle="tab"><i class="icon-group"></i>Roles</a>
-			</li>
-			<li>
-				<a href="#tab-data" data-toggle="tab"><i class="icon-table"></i>Manage Data</a>
-			</li>
-			<li>
-				<a href="#tab-services" data-toggle="tab"><i class="icon-exchange"></i>Services</a>
-			</li>
-			<li>
-				<a href="#tab-files" data-toggle="tab"><i class="icon-folder-open"></i>Manage Files</a>
-			</li>
-			<li>
-				<a href="#tab-schema" data-toggle="tab"><i class="icon-table"></i>Manage Schema</a>
-			</li>
-			<li>
-				<a href="#tab-doc" data-toggle="tab"><i class="icon-book"></i>API Documentation</a>
-			</li>
-			<li>
-				<a href="#tab-packager" data-toggle="tab"><i class="icon-gift"></i>Package Apps</a>
-			</li>
-			<li>
-				<a href="#tab-config" data-toggle="tab"><i class="icon-cogs"></i>System Config</a>
-			</li>
-			<li>
-				<a href="#tab-authorizations" data-toggle="tab"><i class="icon-key"></i>Authorizations</a>
+				<a href="#tab-accounts" data-toggle="tab"><i class="icon-key"></i> Provider Accounts </a>
 			</li>
 		</ul>
 
-		<div class="tab-content">
-			<div class="tab-pane active" id="tab-apps"><?php require_once __DIR__ . '/_applications.php'; ?></div>
-			<div class="tab-pane" id="tab-app-groups">Coming</div>
-			<div class="tab-pane" id="tab-users">Coming</div>
-			<div class="tab-pane" id="tab-roles">Coming</div>
-			<div class="tab-pane" id="tab-data">Coming</div>
-			<div class="tab-pane" id="tab-services"><?php require_once __DIR__ . '/_services.php'; ?></div>
-			<div class="tab-pane" id="tab-files">Coming</div>
-			<div class="tab-pane" id="tab-schema">Coming</div>
-			<div class="tab-pane" id="tab-doc">Coming</div>
-			<div class="tab-pane" id="tab-packager">Coming</div>
-			<div class="tab-pane" id="tab-config">Coming</div>
-			<div class="tab-pane" id="tab-authorizations"><?php require_once __DIR__ . '/_authorizations.php'; ?></div>
-		</div>
+		<div class="tab-content"><?php echo $_content; ?></div>
 	</div>
 </div>
 
-<ul style="display: block;">
-
-</ul>
-
 <script type="text/javascript">
 jQuery(function($) {
-	var _initialized = [];
+	var _dtColumns = <?php echo $_dtConfig; ?>, _fields;
 
 	$('a[data-toggle="tab"]').on('shown', function(e) {
-		var _id = $(e.target).attr('href').replace('tab-', '') + '-table', _resource;
-		var _columns = [
-			{
-				"sName":  "id",
-				"sWidth": "50px"
-			},
-			{
-				"sName": "name"
-			},
-			{
-				"sName": "tag"
-			},
-			{
-				"sName": "enabled"
-			},
-			{
-				"sName": "last_used"
-			}
-		];
+		var _type = $(e.target).attr('href').replace('#tab-', '');
+		var _id = '#' + _type + '-table';
 
-		if (!$(_id).data('dt-init')) {
-			switch (_id) {
-				case '#services-table':
-				case '#applications-table':
-					break;
+		var _table = $(_id).data('jtable');
 
-				case '#authorizations-table':
-					_resource = 'account_provider';
-					break;
-			}
+		if (!_table) {
+			if (_dtColumns[_type]) {
+				var _fields = _dtColumns[_type].fields;
+				var _resource = _dtColumns[_type].resource;
+				var _columns = _dtColumns[_type].columns;
+				var _header = _dtColumns[_type].header || _type;
 
-			if (_resource) {
-				$(_id).dataTable({
-//						"sDom":            "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
-					"bProcessing":     true,
-					"bServerSide":     true,
-					"sAjaxSource":     "/rest/system/" + _resource + "?app_name=admin",
-					"sPaginationType": "bootstrap",
-					'aoColumns':       _columns,
-					"oLanguage":       {
-						"sSearch":     "Filter:",
-						"sLengthMenu": "_MENU_ records per page"
+				_table = $(_id).jtable({
+					itemName:     _dtColumns[_type].resourceName || _type,
+					useHttpVerbs: true,
+					title:        _header,
+					ajaxSettings: {
+						data: {
+							'app_name': 'admin',
+							'format':   101
+						}
 					},
-					"fnServerParams":  function(aoData) {
-						aoData.push({ "dt": 1, "app_name": "admin" });
-					}
-				});
-				$(_id).data('dt-init', true);
+					actions:      {
+						listAction:   '/rest/system/' + _resource + '?fields=' + (_dtColumns[_type].listFields || 'id,name'),
+						createAction: '/rest/system/' + _resource,
+						updateAction: '/rest/system/' + _resource,
+						deleteAction: '/rest/system/' + _resource
+					},
+					fields:       _fields
+				}).jtable('load');
+
+				$(_id).data('jtable', _table);
+			}
+		}
+		else {
+			if (_table && _table.oApi) {
+				_table.oApi.fnReloadAjax();
 			}
 		}
 	});
 
-//		/* Add events */
-//		$("#platforms-table").find("tbody tr").on('click', function () {
-//			var _row = $('td', this);
-//			var _id = $(_row[0]).text();
-//			window.location.href = '/services/update/id/' + _id;
-//			return false;
-//		});
-
+	//	Make the first tab load
+	$('li.active a').trigger('shown');
 });
 
 </script>
-

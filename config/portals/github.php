@@ -18,26 +18,21 @@
  * limitations under the License.
  */
 /**
- * @var $this  AdminController
+ * github.php
+ * This is the configuration file for github portal
  */
-use Kisma\Core\Utility\Bootstrap;
-
-?>
-<h4>Stored Authorizations</h4>
-
-<table class="table table-striped table-hover table-condensed" id="authorizations-table">
-	<thead>
-	<tr>
-		<th>Id</th>
-		<th>Name</th>
-		<th>Path</th>
-		<th>Enabled</th>
-		<th>Last Used</th>
-	</tr>
-	</thead>
-	<tbody>
-	<tr>
-		<td colspan="5" class="dataTables_empty">Loading data from server</td>
-	</tr>
-	</tbody>
-</table>
+return array(
+	/**
+	 * Basics
+	 */
+	'api_name'               => 'github',
+	'client_id'              => 'caf2ba694afc90d62c2a',
+	'client_secret'          => '8f5b38a65ddfc0761febe0c113a2e128c43bac9e',
+	'authorization_endpoint' => 'https://github.com/login',
+	'service_endpoint'       => 'https://api.github.com',
+	'resource_endpoint'      => 'https://api.github.com',
+	'auth_header_name'       => 'token',
+	'access_token_type'      => OAuthTokenTypes::URI,
+	'scope'                  => array( 'user', 'user:email', 'user:follow', 'public_repo', 'repo', 'repo:status', 'notifications', 'gist' ),
+	'user_agent'             => 'dreamfactorysoftware/portal-github',
+);

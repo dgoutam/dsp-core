@@ -4,7 +4,7 @@
 }
 
 body {
-	font-family: 'Open-Sans', 'Arial', sans-serif;
+	font-family: "Helvetica Neue Light", 'Open-Sans', 'Arial', sans-serif;
 	font-weight: normal;
 }
 
@@ -92,4 +92,44 @@ label.error {
 	width:   1px;
 	height:  50px;
 	display: block;
+}
+
+.tab-pane.active h3 {
+	font-size:      28px;
+	letter-spacing: -1px;
+	border-bottom:  1px solid #eaeaea;
+	color:          #777;
+	font-weight:    200;
+	text-shadow:    0 1px 0 #FFFFFF;
+	font-family:    "Helvetica Neue Light", "Aria", "Arial", "Open-Sans", sans-serif;
+}
+
+.tab-content {
+	height: 100%;
+}
+
+.dataTables_wrapper {
+	overflow: hidden;
+}
+
+table.jtable tr td {
+	cursor: not-allowed;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+	margin-right: 6px;
+}
+
+form.jtable-dialog-form div.jtable-input-field-container {
+	padding: 2px 0 3px 0;
+	border:  none;
+}
+
+.jtable-toolbar-item {
+	letter-spacing: normal;
+}
+
+tr.jtable-no-data-row {
+	font-size:   18px;
+	font-weight: bold;
 }

@@ -17,14 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Yii\Controllers\BaseWebController;
 use Kisma\Core\Utility\FilterInput;
-use Platform\Utility\ServiceHandler;
+use DreamFactory\Platform\Utility\ServiceHandler;
 use DreamFactory\Yii\Utility\Pii;
 
 /**
  *  Generic controller for streaming content from storage services
  */
-class StorageController extends Controller
+class StorageController extends BaseWebController
 {
 
 	/**

@@ -91,6 +91,25 @@ jQuery(document).ready(function() {
 				case '#services-table':
 				case '#applications-table':
 				case '#authorizations-table':
+					_columns = [
+								{
+									"sName":  "id",
+									"sWidth": "50px"
+								},
+								{
+									"sName": "name"
+								},
+								{
+									"sName": "tag"
+								},
+								{
+									"sName": "enabled"
+								},
+								{
+									"sName": "last_used"
+								}
+							];
+
 					$(_id).dataTable({
 //						"sDom":            "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
 						"bProcessing":     true,

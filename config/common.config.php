@@ -22,7 +22,6 @@ use DreamFactory\Platform\Utility\Fabric;
  * common.config.php
  * This file contains any application-level parameters that are to be shared between the background and web services
  */
-
 //*************************************************************************
 //* Constants
 //*************************************************************************
@@ -83,10 +82,7 @@ $_logFileName = basename( \Kisma::get( 'app.log_file' ) );
 /**
  * Aliases
  */
-if ( file_exists( __DIR__ . ALIASES_CONFIG_PATH ) )
-{
-	require __DIR__ . ALIASES_CONFIG_PATH;
-}
+file_exists( __DIR__ . ALIASES_CONFIG_PATH ) && require __DIR__ . ALIASES_CONFIG_PATH;
 
 /**
  * Application Paths
@@ -141,26 +137,45 @@ else
 return array_merge(
 	$_instanceSettings,
 	array(
-		 /** App Information */
-		 'base_path'            => $_basePath,
-		 /** DSP Information */
-		 'dsp.version'          => DSP_VERSION,
-		 'dsp.name'             => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'    => DEFAULT_INSTANCE_AUTH_ENDPOINT,
-		 'cloud.endpoint'       => DEFAULT_CLOUD_API_ENDPOINT,
+		 /**
+		  * App Information
+		  */
+		 'base_path'                  => $_basePath,
+		 /**
+		  * DSP Information
+		  */
+		 'dsp.version'                => DSP_VERSION,
+		 'dsp.name'                   => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint'          => DEFAULT_INSTANCE_AUTH_ENDPOINT,
+		 'cloud.endpoint'             => DEFAULT_CLOUD_API_ENDPOINT,
+		 /**
+		  * External Logins
+		  */
+		 'dsp.allow_remote_logins'    => true,
+		 'dsp.remote_login_providers' => array(
+			 'facebook',
+			 'github',
+			 'stackoverflow',
+		 ),
 		 /**
 		  * User data
 		  */
-		 'blobStorageConfig'    => $_blobConfig,
-		 'adminEmail'           => DEFAULT_SUPPORT_EMAIL,
-		 /** The default service configuration */
-		 'dsp.service_config'   => require( __DIR__ . SERVICES_CONFIG_PATH ),
-		 /** Default services provided by all DSPs */
-		 'dsp.default_services' => array(
+		 'blobStorageConfig'          => $_blobConfig,
+		 'adminEmail'                 => DEFAULT_SUPPORT_EMAIL,
+		 /**
+		  * The default service configuration
+		  */
+		 'dsp.service_config'         => require( __DIR__ . SERVICES_CONFIG_PATH ),
+		 /**
+		  * Default services provided by all DSPs
+		  */
+		 'dsp.default_services'       => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
-		 /** The default application to start */
-		 'dsp.default_app'      => '/public/launchpad/index.html',
+		 /**
+		  * The default application to start
+		  */
+		 'dsp.default_app'            => '/public/launchpad/index.html',
 	)
 );
