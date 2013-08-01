@@ -49,7 +49,7 @@ use Platform\Yii\Utility\Pii;
  * @property RoleServiceAccess[] $role_service_accesses
  * @property App[]               $apps
  * @property Role[]              $roles
- * @property AccountProviders[]  $providers
+ * @property AccountProvider[]   $providers
  */
 class Service extends BaseDspSystemModel
 {
