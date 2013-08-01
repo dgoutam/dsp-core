@@ -199,6 +199,7 @@ class UserSession extends RestResource
 				// special case for possible guest user
 				$theConfig = \Config::model()->with(
 								 'guest_role.role_service_accesses',
+								 'guest_role.role_system_accesses',
 								 'guest_role.apps',
 								 'guest_role.services'
 							 )->find();
@@ -235,7 +236,13 @@ class UserSession extends RestResource
 
 		try
 		{
-			$theUser = \User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->findByPk( $userId );
+			$theUser = \User::model()
+					   ->with(
+						   'role.role_service_accesses',
+						   'role.role_system_accesses',
+						   'role.apps',
+						   'role.services' )
+					   ->findByPk( $userId );
 			if ( null === $theUser )
 			{
 				throw new UnauthorizedException( "The user identified in the session or ticket does not exist in the system." );
@@ -364,7 +371,13 @@ class UserSession extends RestResource
 	{
 		if ( !isset( $user ) )
 		{
-			$user = \User::model()->with( 'role.role_service_accesses', 'role.apps', 'role.services' )->findByPk( $user_id );
+			$user = \User::model()
+					->with(
+						'role.role_service_accesses',
+						'role.role_system_accesses',
+						'role.apps',
+						'role.services' )
+					->findByPk( $user_id );
 		}
 		if ( null === $user )
 		{
@@ -419,14 +432,12 @@ class UserSession extends RestResource
 			}
 			$role['apps'] = $roleApps;
 			$permsFields = array( 'service_id', 'component', 'access' );
-			/**
-			 * @var \RoleServiceAccess[] $thePerms
-			 * @var \Service[]           $theServices
-			 */
-			$thePerms = $theRole->getRelated( 'role_service_accesses' );
+			/** @var \RoleServiceAccess[] $servicePerms */
+			$servicePerms = $theRole->getRelated( 'role_service_accesses' );
+			/** @var \Service[] $theServices */
 			$theServices = $theRole->getRelated( 'services' );
 			$perms = array();
-			foreach ( $thePerms as $perm )
+			foreach ( $servicePerms as $perm )
 			{
 				$permServiceId = $perm->getAttribute( 'service_id' );
 				$temp = $perm->getAttributes( $permsFields );
@@ -437,6 +448,15 @@ class UserSession extends RestResource
 						$temp['service'] = $service->getAttribute( 'api_name' );
 					}
 				}
+				$perms[] = $temp;
+			}
+			$permsFields = array( 'component', 'access' );
+			/** @var \RoleSystemAccess[] $systemPerms */
+			$systemPerms = $theRole->getRelated( 'role_system_accesses' );
+			foreach ( $systemPerms as $perm )
+			{
+				$temp = $perm->getAttributes( $permsFields );
+				$temp['service'] = 'system';
 				$perms[] = $temp;
 			}
 			$role['services'] = $perms;
@@ -467,7 +487,7 @@ class UserSession extends RestResource
 			{
 				throw new UnauthorizedException( "No valid role is assigned for guest users." );
 			}
-			$role = \Role::model()->with( 'role_service_accesses', 'apps', 'services' )->findByPk( $role_id );
+			$role = \Role::model()->with( 'role_service_accesses', 'role_system_accesses', 'apps', 'services' )->findByPk( $role_id );
 		}
 		if ( null === $role )
 		{
@@ -522,6 +542,15 @@ class UserSession extends RestResource
 					$temp['service'] = $service->getAttribute( 'api_name' );
 				}
 			}
+			$perms[] = $temp;
+		}
+		$permsFields = array( 'component', 'access' );
+		/** @var \RoleSystemAccess[] $systemPerms */
+		$systemPerms = $theRole->getRelated( 'role_system_accesses' );
+		foreach ( $systemPerms as $perm )
+		{
+			$temp = $perm->getAttributes( $permsFields );
+			$temp['service'] = 'system';
 			$perms[] = $temp;
 		}
 		$roleData['services'] = $perms;
@@ -815,6 +844,7 @@ class UserSession extends RestResource
 				// special case for possible guest user
 				$theConfig = \Config::model()->with(
 								 'guest_role.role_service_accesses',
+								 'guest_role.role_system_accesses',
 								 'guest_role.apps',
 								 'guest_role.services'
 							 )->find();
