@@ -18,7 +18,6 @@
  * limitations under the License.
  */
 use DreamFactory\Platform\Utility\Fabric;
-use DreamFactory\Yii\Utility\Pii;
 /**
  * common.config.php
  * This file contains any application-level parameters that are to be shared between the background and web services
@@ -154,7 +153,7 @@ return array_merge(
 		  */
 		 'dsp.allow_remote_logins'  => true,
 		 'dsp.remote_login_options' => array(
-			 'base_url'   => Pii::url( array( 'web/authorize' ) ),
+			 'base_url'   => '/web/authorize',
 			 'providers'  => array(
 				 'Facebook' => array( // 'id' is your facebook application id
 					 'enabled' => true,
