@@ -75,22 +75,52 @@ abstract class BaseDbSvc extends RestService
 		{
 			case self::Get:
 				$this->checkPermission( 'read' );
+				$_data = RestRequest::getPostDataAsArray();
 				$_properties = FilterInput::request( 'include_properties', false, FILTER_VALIDATE_BOOLEAN );
 
 				$_ids = FilterInput::request( 'names' );
 				if ( empty( $_ids ) )
 				{
-					$_data = RestRequest::getPostDataAsArray();
 					$_ids = Option::get( $_data, 'names' );
 				}
-
-				if ( !$_properties && empty( $_ids ) )
+				if ( !$_properties && empty( $_ids ) && empty( $_data ) )
 				{
 					return $this->_listResources();
 				}
 
-				$_result = $this->getTables( $_ids );
-				$_result = array( 'table' => $_result );
+				if ( !empty( $_ids ) )
+				{
+					$_result = $this->getTables( $_ids );
+					$_result = array( 'table' => $_result );
+				}
+				elseif ( empty( $_data ) )
+				{
+					$_result = $this->getTables();
+					$_result = array( 'table' => $_result );
+				}
+				else
+				{
+					$_tables = Option::get( $_data, 'table' );
+					if ( empty( $_tables ) )
+					{
+						// xml to array conversion leaves them in plural wrapper
+						$_tables = Option::getDeep( $_data, 'tables', 'table' );
+					}
+					if ( empty( $_tables ) )
+					{
+						$_name = Option::get( $_data, 'name' );
+						if ( empty( $_name ) )
+						{
+							throw new BadRequestException( 'No table name in GET request.' );
+						}
+						$_result = $this->getTable( $_name );
+					}
+					else
+					{
+						$_result = $this->getTables( $_tables );
+						$_result = array( 'table' => $_result );
+					}
+				}
 				break;
 
 			case self::Post:

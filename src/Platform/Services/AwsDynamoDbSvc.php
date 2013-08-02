@@ -286,6 +286,14 @@ class AwsDynamoDbSvc extends NoSqlDbSvc
 		$_out = array();
 		foreach ( $tables as $_table )
 		{
+			if ( is_array( $_table ) )
+			{
+				$_table = Option::get( $_table, 'name' );
+			}
+			if ( empty( $_table ) )
+			{
+				throw new BadRequestException( "No 'name' field in data." );
+			}
 			try
 			{
 				$_out[] = $this->getTable( $_table );
@@ -427,19 +435,15 @@ class AwsDynamoDbSvc extends NoSqlDbSvc
 		{
 			if ( is_array( $_table ) )
 			{
-				$_name = Option::get( $_table, 'name', Option::get( $_table, 'TableName' ) );
+				$_table = Option::get( $_table, 'name', Option::get( $_table, 'TableName' ) );
 			}
-			else
-			{
-				$_name = $_table;
-			}
-			if ( empty( $_name ) )
+			if ( empty( $_table ) )
 			{
 				throw new BadRequestException( "No 'name' field in data." );
 			}
 			try
 			{
-				$_out[] = $this->deleteTable( $_name );
+				$_out[] = $this->deleteTable( $_table );
 			}
 			catch ( \Exception $ex )
 			{
@@ -521,6 +525,7 @@ class AwsDynamoDbSvc extends NoSqlDbSvc
 		{
 			if ( !$this->_containsIdFields( $_record, $_idField ) )
 			{
+				// can we auto create an id here?
 				throw new BadRequestException( "Identifying field(s) not found in record." );
 			}
 

@@ -215,6 +215,14 @@ class CouchDbSvc extends NoSqlDbSvc
 			$_out = array();
 			foreach ( $tables as $_table )
 			{
+				if ( is_array( $_table ) )
+				{
+					$_table = Option::get( $_table, 'name' );
+				}
+				if ( empty( $_table ) )
+				{
+					throw new BadRequestException( "No 'name' field in data." );
+				}
 				$_out[] = $this->getTable( $_table );
 			}
 
@@ -303,25 +311,33 @@ class CouchDbSvc extends NoSqlDbSvc
 	 */
 	public function deleteTables( $tables = array(), $check_empty = false )
 	{
-		try
+		if ( !is_array( $tables ) )
 		{
-			$_out = array();
-			foreach ( $tables as $table )
+			// may be comma-delimited list of names
+			$tables = array_map( 'trim', explode( ',', trim( $tables, ',' ) ) );
+		}
+		$_out = array();
+		foreach ( $tables as $_table )
+		{
+			if ( is_array( $_table ) )
 			{
-				$_name = Option::get( $table, 'name' );
-				if ( empty( $_name ) )
-				{
-					throw new BadRequestException( "No 'name' field in data." );
-				}
-				$_out[] = $this->deleteTable( $_name, $check_empty );
+				$_table = Option::get( $_table, 'name' );
 			}
+			if ( empty( $_table ) )
+			{
+				throw new BadRequestException( "No 'name' field in data." );
+			}
+			try
+			{
+				$_out[] = $this->deleteTable( $_table, $check_empty );
+			}
+			catch ( \Exception $ex )
+			{
+				throw new InternalServerErrorException( "Failed to delete tables from CouchDb service.\n" . $ex->getMessage() );
+			}
+		}
 
-			return $_out;
-		}
-		catch ( \Exception $ex )
-		{
-			throw new InternalServerErrorException( "Failed to delete tables from CouchDb service.\n" . $ex->getMessage() );
-		}
+		return $_out;
 	}
 
 	/**
