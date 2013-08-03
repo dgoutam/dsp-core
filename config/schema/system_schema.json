@@ -1,8 +1,8 @@
 {
-	"version": "1.0.6.1",
+	"version": "1.0.6.2",
 	"scripts": {
 		"install": null,
-		"update":  "1.0.6.1-update.sql"
+		"update":  "1.0.6-update.sql"
 	},
 	"table":   [
 		{
@@ -956,6 +956,47 @@
 			]
 		},
 		{
+			"name":  "df_sys_provider",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name":       "api_name",
+					"type":       "string",
+					"allow_null": false,
+					"is_unique":  true,
+					"length":     64
+				},
+				{
+					"name":       "config_text",
+					"type":       "mediumtext",
+					"allow_null": true
+				},
+				{
+					"name":       "created_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_by_id",
+					"type":       "user_id_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_date",
+					"type":       "timestamp_on_update",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_by_id",
+					"type":       "user_id_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		},
+		{
 			"name":  "df_sys_portal_account",
 			"field": [
 				{
@@ -978,15 +1019,18 @@
 					"allow_null":    false
 				},
 				{
-					"name":       "provider_name",
-					"type":       "string",
-					"length":     128,
-					"allow_null": false
+					"name":          "provider_id",
+					"type":          "integer",
+					"ref_table":     "df_sys_provider",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
 				},
 				{
 					"name":       "provider_user_id",
 					"type":       "string",
-					"length":     1024,
+					"length":     128,
 					"allow_null": false
 				},
 				{

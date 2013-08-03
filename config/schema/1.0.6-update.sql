@@ -18,8 +18,11 @@
 --
 
 --
--- DSP v1.0.6.1 database update script for MySQL
+-- DSP v1.0.6.x database update script for MySQL
 --
 
 DROP TABLE IF EXISTS `df_sys_account_provider`;
 DROP TABLE IF EXISTS `df_sys_service_account`;
+
+-- Unique index on portal accounts
+CREATE UNIQUE INDEX ux_portal_user_account ON df_sys_portal_account ( user_id, provider_name, provider_user_id );
