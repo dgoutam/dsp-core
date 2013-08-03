@@ -248,9 +248,17 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 			}
 
 			$_out = array();
-			foreach ( $tables as $table )
+			foreach ( $tables as $_table )
 			{
-				$_out[] = $this->getTable( $table );
+				if ( is_array( $_table ) )
+				{
+					$_table = Option::get( $_table, 'name' );
+				}
+				if ( empty( $_table ) )
+				{
+					throw new BadRequestException( "No 'name' field in data." );
+				}
+				$_out[] = $this->getTable( $_table );
 			}
 
 			return $_out;
@@ -329,17 +337,25 @@ class WindowsAzureTablesSvc extends NoSqlDbSvc
 	 */
 	public function deleteTables( $tables = array(), $check_empty = false )
 	{
-		$_out = array();
-		foreach ( $tables as $table )
+		if ( !is_array( $tables ) )
 		{
-			$_name = Option::get( $table, 'name' );
-			if ( empty( $_name ) )
+			// may be comma-delimited list of names
+			$tables = array_map( 'trim', explode( ',', trim( $tables, ',' ) ) );
+		}
+		$_out = array();
+		foreach ( $tables as $_table )
+		{
+			if ( is_array( $_table ) )
+			{
+				$_table = Option::get( $_table, 'name' );
+			}
+			if ( empty( $_table ) )
 			{
 				throw new BadRequestException( "No 'name' field in data." );
 			}
 			try
 			{
-				$_out[] = $this->_dbConn->deleteTable( $_name );
+				$_out[] = $this->deleteTable( $_table );
 			}
 			catch ( \Exception $ex )
 			{

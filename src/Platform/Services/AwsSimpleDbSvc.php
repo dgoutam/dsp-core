@@ -225,6 +225,14 @@ class AwsSimpleDbSvc extends NoSqlDbSvc
 		$_out = array();
 		foreach ( $tables as $_table )
 		{
+			if ( is_array( $_table ) )
+			{
+				$_table = Option::get( $_table, 'name' );
+			}
+			if ( empty( $_table ) )
+			{
+				throw new BadRequestException( "No 'name' field in data." );
+			}
 			try
 			{
 				$_out[] = $this->getTable( $_table );
@@ -337,19 +345,15 @@ class AwsSimpleDbSvc extends NoSqlDbSvc
 		{
 			if ( is_array( $_table ) )
 			{
-				$_name = Option::get( $_table, 'name', Option::get( $_table, 'DomainName' ) );
+				$_table = Option::get( $_table, 'name', Option::get( $_table, 'DomainName' ) );
 			}
-			else
-			{
-				$_name = $_table;
-			}
-			if ( empty( $_name ) )
+			if ( empty( $_table ) )
 			{
 				throw new BadRequestException( "No 'name' field in data." );
 			}
 			try
 			{
-				$_out[] = $this->deleteTable( $_name );
+				$_out[] = $this->deleteTable( $_table );
 			}
 			catch ( \Exception $ex )
 			{
@@ -425,7 +429,8 @@ class AwsSimpleDbSvc extends NoSqlDbSvc
 			$_id = Option::get( $_record, $_idField, null, true );
 			if ( empty( $_id ) )
 			{
-				throw new BadRequestException( "Identifying field(s) not found in record." );
+				$_id = static::createItemId( $table );
+//				throw new BadRequestException( "Identifying field(s) not found in record." );
 			}
 
 			// Add operation to list of batch operations.
@@ -478,7 +483,8 @@ class AwsSimpleDbSvc extends NoSqlDbSvc
 		$_id = Option::get( $record, $_idField, null, true );
 		if ( empty( $_id ) )
 		{
-			throw new BadRequestException( "Identifying field(s) not found in record." );
+			$_id = static::createItemId( $table );
+//			throw new BadRequestException( "Identifying field(s) not found in record." );
 		}
 
 		try

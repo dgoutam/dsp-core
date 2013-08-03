@@ -309,6 +309,10 @@ class App extends BaseDspSystemModel
 				}
 				$this->launch_url .= $this->api_name . $this->url;
 			}
+			else
+			{
+				$this->launch_url = '';
+			}
 		}
 		else
 		{
