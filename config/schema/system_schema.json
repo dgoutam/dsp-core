@@ -193,6 +193,12 @@
 					"allow_null":         true
 				},
 				{
+					"name":       "user_source",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
+				},
+				{
 					"name": "last_login_date",
 					"type": "datetime"
 				},
@@ -963,11 +969,18 @@
 					"type": "id"
 				},
 				{
-					"name":       "api_name",
+					"name":       "provider_name",
 					"type":       "string",
 					"allow_null": false,
 					"is_unique":  true,
 					"length":     64
+				},
+				{
+					"name":       "api_name",
+					"type":       "string",
+					"allow_null": true,
+					"length":     64,
+					"comment":    "If this is a portal service, the api_name is the endpoint"
 				},
 				{
 					"name":       "config_text",
@@ -997,7 +1010,7 @@
 			]
 		},
 		{
-			"name":  "df_sys_portal_account",
+			"name":  "df_sys_provider_user",
 			"field": [
 				{
 					"name": "id",
