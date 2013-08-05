@@ -972,7 +972,7 @@
 					"name":       "provider_name",
 					"type":       "string",
 					"allow_null": false,
-					"is_unique":  true,
+					"is_unique":  false,
 					"length":     64
 				},
 				{

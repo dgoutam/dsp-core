@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use DreamFactory\Platform\Enums\PortalAccountTypes;
+use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
@@ -26,6 +27,7 @@ use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Platform\Utility\Fabric;
 use DreamFactory\Platform\Yii\Components\RemoteUserIdentity;
 use DreamFactory\Platform\Yii\Models\Provider;
+use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
 use DreamFactory\Platform\Yii\Models\PortalAccount;
 use DreamFactory\Yii\Controllers\BaseWebController;
@@ -761,6 +763,7 @@ class WebController extends BaseWebController
 	{
 		$_service = new \Hybrid_Auth( $this->_authConfig() );
 		$_provider = $this->_getAuthClassName( FilterInput::get( INPUT_GET, 'provider', Option::get( $_GET, 'hauth_start' ), FILTER_SANITIZE_STRING ) );
+		/** @var \Hybrid_Providers_GitHub $_adapter */
 		$_adapter = $_service->authenticate( $_provider );
 
 		try
@@ -773,12 +776,16 @@ class WebController extends BaseWebController
 
 				if ( empty( $_user ) )
 				{
+					//	Create new shadow user...
+					$_user = new User();
+
+
 					//	Create new portal account...
-					$_user = new PortalAccount();
+					$_user = new ProviderUser();
 					$_user->user_id = Pii::user()->id;
 					$_user->provider_user_id = $_profile->identifier;
-					$_user->provider_name = $_provider;
-					$_user->account_type = PortalAccountTypes::INDIVIDUAL_USER;
+					$_user->provider_id = $_provider;
+					$_user->account_type = ProviderUserTypes::INDIVIDUAL_USER;
 					$_user->auth_text = $_profile;
 					$_user->save();
 				}
@@ -801,6 +808,9 @@ class WebController extends BaseWebController
 		$this->redirect( Pii::request()->getUrlReferrer() );
 	}
 
+	/**
+	 * @return array
+	 */
 	protected function _authConfig()
 	{
 		$_providers = Provider::model()->findAll();
@@ -820,11 +830,12 @@ class WebController extends BaseWebController
 		foreach ( $_providers as $_provider )
 		{
 			$_config = $_provider->config_text;
-			$_name = $this->_getAuthClassName( $_provider->api_name );
+			$_name = $_provider->provider_name;
 
 			$_auth['providers'][$_name] = array(
-				'enabled' => true,
-				'keys'    => array(
+				'api_name' => $_provider->api_name,
+				'enabled'  => true,
+				'keys'     => array(
 					'id'     => Option::get( $_config, 'client_id' ),
 					'secret' => Option::get( $_config, 'client_secret' ),
 				)
