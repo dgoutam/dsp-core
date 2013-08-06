@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Platform\Enums\PortalAccountTypes;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
@@ -25,11 +24,11 @@ use DreamFactory\Platform\Services\AsgardService;
 use DreamFactory\Platform\Services\SystemManager;
 use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Platform\Utility\Fabric;
+use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
 use DreamFactory\Platform\Yii\Components\RemoteUserIdentity;
 use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
-use DreamFactory\Platform\Yii\Models\PortalAccount;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
 use DreamFactory\Yii\Utility\PiiScript;
@@ -622,132 +621,6 @@ class WebController extends BaseWebController
 	}
 
 	/**
-	 * Main method to handle login attempts.  If the user passes authentication with their
-	 * chosen provider then it displays a form for them to choose their username and email.
-	 * The email address they choose is *not* verified.
-	 *
-	 * If they are already logged in then it links the new provider to their account
-	 *
-	 * @throws Exception if a provider isn't supplied, or it has non-alpha characters
-	 */
-	private function _doLogin()
-	{
-		if ( !isset( $_GET['provider'] ) )
-		{
-			throw new Exception( "You haven't supplied a provider" );
-		}
-
-		if ( !ctype_alpha( $_GET['provider'] ) )
-		{
-			throw new Exception( "Invalid characters in provider string" );
-		}
-
-		$identity = new RemoteUserIdentity( $_GET['provider'], $this->module->getHybridauth() );
-
-		if ( $identity->authenticate() )
-		{
-			// They have authenticated AND we have a user record associated with that provider
-			if ( Yii::app()->user->isGuest )
-			{
-				$this->_loginUser( $identity );
-			}
-			else
-			{
-				//they shouldn't get here because they are already logged in AND have a record for
-				// that provider.  Just bounce them on
-				$this->redirect( Yii::app()->user->returnUrl );
-			}
-		}
-		else if ( $identity->errorCode == RemoteUserIdentity::ERROR_USERNAME_INVALID )
-		{
-			// They have authenticated to their provider but we don't have a matching HaLogin entry
-			if ( Yii::app()->user->isGuest )
-			{
-				// They aren't logged in => display a form to choose their username & email
-				// (we might not get it from the provider)
-				if ( $this->module->withYiiUser == true )
-				{
-					Yii::import( 'application.modules.user.models.*' );
-				}
-				else
-				{
-					Yii::import( 'application.models.*' );
-				}
-
-				$user = new User;
-				if ( isset( $_POST['User'] ) )
-				{
-					//Save the form
-					$user->attributes = $_POST['User'];
-
-					if ( $user->validate() && $user->save() )
-					{
-						if ( $this->module->withYiiUser == true )
-						{
-							$profile = new Profile();
-							$profile->first_name = 'firstname';
-							$profile->last_name = 'lastname';
-							$profile->user_id = $user->id;
-							$profile->save();
-						}
-
-						$identity->id = $user->id;
-						$identity->username = $user->username;
-						$this->_linkProvider( $identity );
-						$this->_loginUser( $identity );
-					} // } else { do nothing } => the form will get redisplayed
-				}
-				else
-				{
-					//Display the form with some entries prefilled if we have the info.
-					if ( isset( $identity->userData->email ) )
-					{
-						$user->email = $identity->userData->email;
-						$email = explode( '@', $user->email );
-						$user->username = $email[0];
-					}
-				}
-
-				$this->render(
-					'createUser',
-					array(
-						 'user' => $user,
-					)
-				);
-			}
-			else
-			{
-				// They are already logged in, link their user account with new provider
-				$identity->id = Yii::app()->user->id;
-				$this->_linkProvider( $identity );
-				$this->redirect( Yii::app()->session['hybridauth-ref'] );
-				unset( Yii::app()->session['hybridauth-ref'] );
-			}
-		}
-	}
-
-	/**
-	 * @param RemoteUserIdentity $identity
-	 */
-	protected function _linkProvider( $identity )
-	{
-		$_model = new PortalAccount();
-		$_model->provider_user_id = $identity->getProviderUserId();
-		$_model->provider_name = $identity->getProviderName();
-		$_model->user_id = $identity->id;
-		$_model->save();
-	}
-
-	/**
-	 * @param RemoteUserIdentity $identity
-	 */
-	protected function _loginUser( $identity )
-	{
-		Pii::user()->login( $identity, 0 );
-		$this->redirect( Pii::user()->getReturnUrl() );
-	}
-
-	/**
 	 * Handles remote authorization
 	 */
 	public function actionAuthorize()
@@ -765,47 +638,84 @@ class WebController extends BaseWebController
 		$_provider = $this->_getAuthClassName( FilterInput::get( INPUT_GET, 'provider', Option::get( $_GET, 'hauth_start' ), FILTER_SANITIZE_STRING ) );
 		/** @var \Hybrid_Providers_GitHub $_adapter */
 		$_adapter = $_service->authenticate( $_provider );
+		$_user = null;
+		$_profile = $_adapter->getUserProfile();
+		$_providerId = $_adapter->config['provider_id'];
 
 		try
 		{
-			$_profile = $_adapter->getUserProfile();
-
 			if ( !empty( $_profile ) )
 			{
-				$_user = PortalAccount::getUser( $_provider, $_profile->identifier );
+				$_user = ProviderUser::getUser( $_providerId, $_profile->identifier );
 
 				if ( empty( $_user ) )
 				{
 					//	Create new shadow user...
 					$_user = new User();
+					$_user->email = $_profile->email;
+					$_user->first_name = $_profile->firstName;
+					$_user->last_name = $_profile->lastName;
+					$_user->display_name = $_profile->displayName . ' @ ' . $_provider;
+					$_user->phone = $_profile->phone;
+					$_user->is_active = true;
+					$_user->is_sys_admin = false;
+					$_user->user_source = $_providerId;
+					$_user->password = 'remote-login';
+				}
 
+				$_data = $_user->user_data;
 
-					//	Create new portal account...
-					$_user = new ProviderUser();
-					$_user->user_id = Pii::user()->id;
-					$_user->provider_user_id = $_profile->identifier;
-					$_user->provider_id = $_provider;
-					$_user->account_type = ProviderUserTypes::INDIVIDUAL_USER;
-					$_user->auth_text = $_profile;
+				if ( empty( $_data ) )
+				{
+					$_data = array();
+				}
+
+				if ( !isset( $_data['providers'] ) )
+				{
+					$_data['providers'] = array();
+				}
+
+				$_data['providers'][$_adapter->config['api_name']] = $_profile;
+
+				//	Save the remote profile info...
+				$_user->user_data = $_data;
+
+				try
+				{
 					$_user->save();
 				}
+				catch ( \Exception $_ex )
+				{
+					Log::error( 'Exception creating remote login shadow user: ' . $_ex->getMessage() );
+					$this->redirect( '/' );
+				}
+
+				//	Create new portal account...
+				$_providerUser = new ProviderUser();
+				$_providerUser->user_id = $_user->id;
+				$_providerUser->provider_user_id = $_profile->identifier;
+				$_providerUser->provider_id = $_providerId;
+				$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
+				$_providerUser->auth_text = $_profile;
+				$_providerUser->save();
 			}
 		}
-		catch ( Exception $_ex )
+		catch ( \Exception $_ex )
 		{
 			Log::error( 'Exception getting remote user profile: ' . $_ex->getMessage() );
+			$this->redirect( '/' );
 		}
-	}
 
-	/**
-	 * Unlink an account
-	 */
-	public function actionUnlink()
-	{
-		$_login = PortalAccount::getLogin( Pii::user()->getid(), $_POST['hybridauth-unlinkprovider'] );
-		$_login->delete();
+		//	Login user...
+		$_identity = new PlatformUserIdentity( $_user->email, $_user->password );
+		$_identity->logInUser( $_user );
 
-		$this->redirect( Pii::request()->getUrlReferrer() );
+		if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
+		{
+			$_returnUrl = Pii::url( $this->id . '/index' );
+		}
+
+		$this->redirect( $_returnUrl );
 	}
 
 	/**
@@ -833,9 +743,10 @@ class WebController extends BaseWebController
 			$_name = $_provider->provider_name;
 
 			$_auth['providers'][$_name] = array(
-				'api_name' => $_provider->api_name,
-				'enabled'  => true,
-				'keys'     => array(
+				'provider_id' => $_provider->id,
+				'api_name'    => $_provider->api_name,
+				'enabled'     => true,
+				'keys'        => array(
 					'id'     => Option::get( $_config, 'client_id' ),
 					'secret' => Option::get( $_config, 'client_secret' ),
 				)

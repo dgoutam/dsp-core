@@ -84,36 +84,7 @@ return array(
 	/**
 	 * Modules
 	 */
-	'modules'            => array(
-		'hybridauth' => array(
-			'baseUrl'     => 'http://' . Fabric::getHostName() . '/hybridauth',
-			'withYiiUser' => false,
-			'providers'   => array(
-				'yahoo'    => array(
-					'enabled' => false
-				),
-				'google'   => array(
-					'enabled' => true,
-					'keys'    => array( 'id' => '[private]', 'secret' => '[private]' ),
-					'scope'   => '',
-				),
-				'facebook' => array(
-					'enabled' => true,
-					'keys'    => array( 'id' => '[private]', 'secret' => '[private]' ),
-					'scope'   => 'email,publish_stream',
-					'display' => '',
-				),
-				'github'   => array(
-					'enabled' => true,
-					'keys'    => array( 'id' => '[private]', 'secret' => '[private]' ),
-				),
-				'twitter'  => array(
-					'enabled' => true,
-					'keys'    => array( 'key' => '[private]', 'secret' => '[private]' ),
-				),
-			),
-		),
-	),
+	'modules'            => array(),
 	/**
 	 * Components
 	 */
@@ -129,7 +100,7 @@ return array(
 		'db'           => $_dbConfig,
 		//	Error management
 		'errorHandler' => array(
-			'errorAction' => 'web/error',
+			'errorAction' => $_defaultController . '/error',
 		),
 		//	Route configuration
 		'urlManager'   => array(
