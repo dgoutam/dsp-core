@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * index.php
  * Main entry point/bootstrap for all processes
@@ -32,8 +33,8 @@ defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
 //	Create the application and run
-DreamFactory\Platform\Yii\Utility\Pii::run(
+Platform\Yii\Utility\Pii::run(
 	__DIR__,
 	$_autoloader,
-	'DreamFactory\\Platform\\Yii\\Components\\PlatformWebApplication'
+	'Platform\\Yii\\Components\\PlatformWebApplication'
 );
