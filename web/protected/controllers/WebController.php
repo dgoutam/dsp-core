@@ -625,6 +625,8 @@ class WebController extends BaseWebController
 	 */
 	public function actionAuthorize()
 	{
+		$this->layout = false;
+
 		\Hybrid_Endpoint::process();
 	}
 
@@ -634,6 +636,8 @@ class WebController extends BaseWebController
 	 */
 	public function actionRemoteLogin()
 	{
+		$this->layout = false;
+
 		$_service = new \Hybrid_Auth( $this->_authConfig() );
 		$_provider = $this->_getAuthClassName( FilterInput::get( INPUT_GET, 'provider', Option::get( $_GET, 'hauth_start' ), FILTER_SANITIZE_STRING ) );
 		/** @var \Hybrid_Providers_GitHub $_adapter */
@@ -731,10 +735,13 @@ class WebController extends BaseWebController
 		}
 
 		$_auth = array(
-			'base_url'   => 'http://dsp.local/web/authorize',
-			'providers'  => array(),
-			'debug_mode' => true,
-			'debug_file' => \Kisma::get( 'app.log_file' ),
+			'base_url'  => 'http://dsp.local/web/authorize',
+			'providers' => array(),
+
+//	Uncomment these to turn on HybridAuth debug logging
+//			'debug_mode' => true,
+//			'debug_file' => \Kisma::get( 'app.log_file' ),
+
 		);
 
 		foreach ( $_providers as $_provider )
