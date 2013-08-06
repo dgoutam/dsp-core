@@ -32,8 +32,8 @@ defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
 defined( 'YII_TRACE_LEVEL' ) or define( 'YII_TRACE_LEVEL', 3 );
 
 //	Create the application and run
-Platform\Yii\Utility\Pii::run(
+DreamFactory\Platform\Yii\Utility\Pii::run(
 	__DIR__,
 	$_autoloader,
-	'Platform\\Yii\\Components\\PlatformWebApplication'
+	'DreamFactory\\Platform\\Yii\\Components\\PlatformWebApplication'
 );
