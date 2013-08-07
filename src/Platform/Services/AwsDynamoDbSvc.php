@@ -1716,10 +1716,13 @@ class AwsDynamoDbSvc extends NoSqlDbSvc
 	 */
 	protected static function _unformatAttributes( $record )
 	{
-		return array_map(
-			array( 'DreamFactory\\Platform\\Services\\AwsDynamoDbSvc', '_unformatValue' ),
-			$record
-		);
+		$_out = array();
+		foreach( $record as $_key => $_value )
+		{
+			$_out[$_key] = static::_unformatValue( $_value );
+		}
+
+		return $_out;
 	}
 
 	protected static function _buildAttributesToGet( $fields = null, $id_fields = null )
