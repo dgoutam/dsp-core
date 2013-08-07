@@ -31,7 +31,6 @@ use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
-use DreamFactory\Yii\Utility\PiiScript;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
@@ -638,8 +637,8 @@ class WebController extends BaseWebController
 	{
 		$this->layout = false;
 
-		$_service = new \Hybrid_Auth( $this->_authConfig() );
-		$_provider = $this->_getAuthClassName( FilterInput::get( INPUT_GET, 'provider', Option::get( $_GET, 'hauth_start' ), FILTER_SANITIZE_STRING ) );
+		$_service = new \Hybrid_Auth( Provider::getHybridAuthConfig() );
+		$_provider = Provider::getHybridClassName( FilterInput::get( INPUT_GET, 'provider', Option::get( $_GET, 'hauth_start' ), FILTER_SANITIZE_STRING ) );
 		/** @var \Hybrid_Providers_GitHub $_adapter */
 		$_adapter = $_service->authenticate( $_provider );
 		$_user = null;
@@ -722,74 +721,4 @@ class WebController extends BaseWebController
 		$this->redirect( $_returnUrl );
 	}
 
-	/**
-	 * @return array
-	 */
-	protected function _authConfig()
-	{
-		$_providers = Provider::model()->findAll();
-
-		if ( empty( $_providers ) )
-		{
-			return array();
-		}
-
-		$_auth = array(
-			'base_url'  => 'http://dsp.local/web/authorize',
-			'providers' => array(),
-
-//	Uncomment these to turn on HybridAuth debug logging
-//			'debug_mode' => true,
-//			'debug_file' => \Kisma::get( 'app.log_file' ),
-
-		);
-
-		foreach ( $_providers as $_provider )
-		{
-			$_config = $_provider->config_text;
-			$_name = $_provider->provider_name;
-
-			$_auth['providers'][$_name] = array(
-				'provider_id' => $_provider->id,
-				'api_name'    => $_provider->api_name,
-				'enabled'     => true,
-				'keys'        => array(
-					'id'     => Option::get( $_config, 'client_id' ),
-					'secret' => Option::get( $_config, 'client_secret' ),
-				)
-			);
-
-			if ( isset( $_config['consumer_key'] ) )
-			{
-				$_auth['providers'][$_name]['key'] = Option::get( $_config, 'consumer_key' );
-			}
-
-			if ( !empty( $_config['scope'] ) )
-			{
-				$_auth['providers'][$_name]['scope'] = $_config['scope'];
-			}
-
-			unset( $_provider, $_config );
-		}
-
-		unset( $_providers );
-
-		return $_auth;
-	}
-
-	/**
-	 */
-	protected function _getAuthClassName( $name )
-	{
-		$_name = strtolower( trim( $name ) );
-
-		switch ( $_name )
-		{
-			case 'github':
-				return 'GitHub';
-
-			default:
-				return ucfirst( $_name );
-		}
-	}
 }

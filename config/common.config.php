@@ -140,58 +140,37 @@ return array_merge(
 		 /**
 		  * App Information
 		  */
-		 'base_path'                => $_basePath,
+		 'base_path'               => $_basePath,
 		 /**
 		  * DSP Information
 		  */
-		 'dsp.version'              => DSP_VERSION,
-		 'dsp.name'                 => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'        => DEFAULT_INSTANCE_AUTH_ENDPOINT,
-		 'cloud.endpoint'           => DEFAULT_CLOUD_API_ENDPOINT,
+		 'dsp.version'             => DSP_VERSION,
+		 'dsp.name'                => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint'       => DEFAULT_INSTANCE_AUTH_ENDPOINT,
+		 'cloud.endpoint'          => DEFAULT_CLOUD_API_ENDPOINT,
 		 /**
 		  * Remote Logins
 		  */
-		 'dsp.allow_remote_logins'  => true,
-		 'dsp.remote_login_options' => array(
-			 'base_url'   => '/web/authorize',
-			 'providers'  => array(
-				 'Facebook' => array( // 'id' is your facebook application id
-					 'enabled' => true,
-					 'keys'    => array( 'id' => '1392217090991437', 'secret' => 'd5dd3a24b1ec6c5f204a300ed24c60d0' ),
-					 'scope'   => 'email, user_about_me, user_birthday, user_hometown' // optional
-				 ),
-				 'Github'   => array( // 'id' is your facebook application id
-					 'enabled' => true,
-					 'keys'    => array( 'id' => 'caf2ba694afc90d62c2a', 'secret' => '8f5b38a65ddfc0761febe0c113a2e128c43bac9e' ),
-					 'scope'   => 'user, user:email, user:follow, public_repo, repo, repo:status, notifications, gist',
-				 ),
-//				 'Twitter'  => array( // 'key' is your twitter application consumer key
-//					 'enabled' => true,
-//					 'keys'    => array( 'key' => '', 'secret' => '' )
-//				 ),
-			 ),
-			 'debug_mode' => true,
-			 'debug_file' => $_logFilePath . '/' . $_logFileName,
-		 ),
+		 'dsp.allow_remote_logins' => true,
 		 /**
 		  * User data
 		  */
-		 'blobStorageConfig'        => $_blobConfig,
-		 'adminEmail'               => DEFAULT_SUPPORT_EMAIL,
+		 'blobStorageConfig'       => $_blobConfig,
+		 'adminEmail'              => DEFAULT_SUPPORT_EMAIL,
 		 /**
 		  * The default service configuration
 		  */
-		 'dsp.service_config'       => require( __DIR__ . SERVICES_CONFIG_PATH ),
+		 'dsp.service_config'      => require( __DIR__ . SERVICES_CONFIG_PATH ),
 		 /**
 		  * Default services provided by all DSPs
 		  */
-		 'dsp.default_services'     => array(
+		 'dsp.default_services'    => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
 		 /**
 		  * The default application to start
 		  */
-		 'dsp.default_app'          => '/public/launchpad/index.html',
+		 'dsp.default_app'         => '/public/launchpad/index.html',
 	)
 );
