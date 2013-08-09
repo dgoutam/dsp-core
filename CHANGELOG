@@ -1,0 +1,33 @@
+Bug fix for array_map use in DynamoDb service
+Version fixing and upgrade fix for previously installed apps
+Corrected lost lines in composer
+Fixed index.php namespace
+Bug fix for App launch-url when switching hosted to no hosting
+more NoSQL bug fixes, mainly swagger
+merge 1.0.5-hotfix NoSQL fixes
+Including better nosql support from 1.0.6-dev
+Role System Access support
+Support for non-hosted apps
+Added code to strip port from host name in getHostName()
+Corrected namespace for Validate object
+MongoDB fixes for connection string
+jQuery Validate updated to version 1.11.1
+Delete container fix
+Updated composer dependencies for new release.
+Azure Table fixes
+Fix launch_url on app during creation
+Remove lowercase arrays by default
+Catch requesting bad folder path
+MongoDB fix username and password support
+Types from sqldb fix
+Return float type when possible
+Delete containers for file services
+Unused param in userSession now contain default values
+Container creation for file storage
+Fixed incorrect field type for df_sys_account_provider.provider_name (from int to string)
+Bug fix for remote file services
+Fix for Drupal auth (not skip) and user id being incorrect for creating the database.
+Final schema changes for v1.0.5
+Many remote file service fixes/enhancements
+Many local file service fixes/enhancements
+Fixing issue with auth from drupal killing creating of admin user
