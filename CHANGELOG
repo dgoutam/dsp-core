@@ -1,3 +1,7 @@
+# CHANGELOG
+
+### Release v1.0.6 (2013-08-08)
+
 Bug fix for array_map use in DynamoDb service
 Version fixing and upgrade fix for previously installed apps
 Corrected lost lines in composer
