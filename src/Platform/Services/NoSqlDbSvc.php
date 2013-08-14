@@ -215,6 +215,14 @@ use Swagger\Annotations as SWG;
  *           paramType="body", required="true", allowMultiple=false, dataType="NoSqlRecords"
  *         ),
  *         @SWG\Parameter(
+ *           name="ids", description="Comma-delimited list of the identifiers of the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="filter", description="SQL-like filter to limit the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=false, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
  *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
  *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
@@ -242,6 +250,14 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="record", description="Data containing name-value pairs of records to update.",
  *           paramType="body", required="true", allowMultiple=false, dataType="Table"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="ids", description="Comma-delimited list of the identifiers of the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="filter", description="SQL-like filter to limit the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
  *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",

@@ -674,6 +674,10 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_out = array();
 		foreach ( $records as $_record )
 		{
+			if ( !static::doesRecordContainModifier( $_record ) )
+			{
+				$_record = array( '$set' => $_record );
+			}
 			try
 			{
 				$_id = Option::get( $_record, static::DEFAULT_ID_FIELD, null, true );
@@ -683,7 +687,7 @@ class MongoDbSvc extends NoSqlDbSvc
 				}
 				$result = $_coll->findAndModify(
 					array( static::DEFAULT_ID_FIELD => static::idToMongoId( $_id ) ),
-					array( '$set' => $_record ),
+					$_record,
 					$_fieldArray,
 					array( 'new' => true )
 				);
@@ -724,11 +728,15 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_coll = $this->selectTable( $table );
 		$_criteria = array( static::DEFAULT_ID_FIELD => static::idToMongoId( $_id ) );
 		$_fieldArray = static::buildFieldArray( $fields );
+		if ( !static::doesRecordContainModifier( $record ) )
+		{
+			$record = array( '$set' => $record );
+		}
 		try
 		{
 			$result = $_coll->findAndModify(
 				$_criteria,
-				array( '$set' => $record ),
+				$record,
 				$_fieldArray,
 				array( 'new' => true )
 			);
@@ -763,9 +771,13 @@ class MongoDbSvc extends NoSqlDbSvc
 		// build criteria from filter parameters
 		$_criteria = static::buildFilterArray( $filter );
 		$_fieldArray = static::buildFieldArray( $fields );
+		if ( !static::doesRecordContainModifier( $record ) )
+		{
+			$record = array( '$set' => $record );
+		}
 		try
 		{
-			$_result = $_coll->update( $_criteria, array( '$set' => $record ), array( 'multiple' => true ) );
+			$_result = $_coll->update( $_criteria, $record, array( 'multiple' => true ) );
 			/** @var \MongoCursor $_result */
 			$_result = $_coll->find( $_criteria, $_fieldArray );
 			$_out = iterator_to_array( $_result );
@@ -805,9 +817,13 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_fieldArray = static::buildFieldArray( $fields );
 		unset( $record[static::DEFAULT_ID_FIELD] ); // make sure the record has no identifier
 
+		if ( !static::doesRecordContainModifier( $record ) )
+		{
+			$record = array( '$set' => $record );
+		}
 		try
 		{
-			$result = $_coll->update( $_criteria, array( '$set' => $record ), array( 'multiple' => true ) );
+			$result = $_coll->update( $_criteria, $record, array( 'multiple' => true ) );
 			if ( static::_requireMoreFields( $fields ) )
 			{
 				/** @var \MongoCursor $result */
@@ -852,11 +868,15 @@ class MongoDbSvc extends NoSqlDbSvc
 		$_criteria = array( static::DEFAULT_ID_FIELD => static::idToMongoId( $id ) );
 		$_fieldArray = static::buildFieldArray( $fields );
 		unset( $record[static::DEFAULT_ID_FIELD] );
+		if ( !static::doesRecordContainModifier( $record ) )
+		{
+			$record = array( '$set' => $record );
+		}
 		try
 		{
 			$result = $_coll->findAndModify(
 				$_criteria,
-				array( '$set' => $record ),
+				$record,
 				$_fieldArray,
 				array( 'new' => true )
 			);
@@ -1253,6 +1273,22 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		return static::mongoIdToId( $result );
+	}
+
+	protected static function doesRecordContainModifier( $record )
+	{
+		if ( is_array( $record ) )
+		{
+			foreach ( $record as $_key => $_value )
+			{
+				if ( !empty( $_key ) && ( '$' == $_key[0] ) )
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**
