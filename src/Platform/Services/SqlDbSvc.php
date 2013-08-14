@@ -660,7 +660,7 @@ class SqlDbSvc extends BaseDbSvc
 				{
 					$fields = Utilities::addOnceToList( $fields, $idField );
 				}
-				$temp = $this->retrieveRecordsByIds( $table, implode( ',', $ids ), $idField, $fields, $extras );
+				$temp = $this->retrieveRecordsByIds( $table, implode( ',', $ids ), $fields, $extras );
 				for ( $i = 0; $i < $count; $i++ )
 				{
 					$results[$i] = ( isset( $ids[$i] )
@@ -736,7 +736,7 @@ class SqlDbSvc extends BaseDbSvc
 					$fields = Utilities::addOnceToList( $fields, $idField );
 				}
 
-				return $this->retrieveRecordById( $table, $id, $idField, $fields, $extras );
+				return $this->retrieveRecordById( $table, $id, $fields, $extras );
 			}
 		}
 		catch ( \Exception $ex )

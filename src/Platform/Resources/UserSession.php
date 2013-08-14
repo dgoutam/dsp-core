@@ -546,7 +546,7 @@ class UserSession extends RestResource
 		}
 		$permsFields = array( 'component', 'access' );
 		/** @var \RoleSystemAccess[] $systemPerms */
-		$systemPerms = $theRole->getRelated( 'role_system_accesses' );
+		$systemPerms = $role->getRelated( 'role_system_accesses' );
 		foreach ( $systemPerms as $perm )
 		{
 			$temp = $perm->getAttributes( $permsFields );
