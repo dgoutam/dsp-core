@@ -41,20 +41,12 @@ use Swagger\Annotations as SWG;
  *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
  *         ),
  *         @SWG\Parameter(
- *           name="ids", description="Comma-delimited list of the identifiers of the resources to retrieve.",
+ *           name="names", description="Comma-delimited list of the table names to retrieve.",
  *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
  *         @SWG\Parameter(
- *           name="filter", description="SQL-like filter to limit the resources to retrieve.",
- *           paramType="query", required="false", allowMultiple=false, dataType="string"
- *         ),
- *         @SWG\Parameter(
- *           name="limit", description="Set to limit the filter results.",
- *           paramType="query", required="false", allowMultiple=false, dataType="int"
- *         ),
- *         @SWG\Parameter(
- *           name="include_count", description="Include the total number of filter results.",
- *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+ *           name="tables", description="Array of tables to retrieve.",
+ *           paramType="body", required="false", allowMultiple=false, dataType="NoSqlTables"
  *         )
  *       ),
  *       @SWG\ErrorResponses(
@@ -106,8 +98,12 @@ use Swagger\Annotations as SWG;
  *       responseClass="NoSqlTables", nickname="deleteTables",
  *       @SWG\Parameters(
  *         @SWG\Parameter(
+ *           name="names", description="Comma-delimited list of the table names to delete.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
  *           name="tables", description="Array of tables to delete.",
- *           paramType="body", required="true", allowMultiple=false, dataType="NoSqlTables"
+ *           paramType="body", required="false", allowMultiple=false, dataType="NoSqlTables"
  *         )
  *       ),
  *       @SWG\ErrorResponses(
@@ -131,10 +127,6 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="table_name", description="Name of the table to perform operations on.",
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
- *         ),
- *         @SWG\Parameter(
- *           name="include_properties", description="Return any properties or metadata available for the table.",
- *           paramType="query", required="false", allowMultiple=true, dataType="boolean"
  *         ),
  *         @SWG\Parameter(
  *           name="ids", description="Comma-delimited list of the identifiers of the resources to retrieve.",
@@ -163,6 +155,14 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="include_count", description="Include the total number of filter results.",
  *           paramType="query", required="false", allowMultiple=false, dataType="boolean"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="record", description="Data containing records to retrieve by identifying fields.",
+ *           paramType="body", required="false", allowMultiple=false, dataType="NoSqlRecords"
  *         )
  *       ),
  *       @SWG\ErrorResponses(
@@ -184,6 +184,10 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="record", description="Data containing name-value pairs of records to create.",
  *           paramType="body", required="true", allowMultiple=false, dataType="NoSqlRecords"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
  *         @SWG\Parameter(
  *           name="fields", description="Comma-delimited list of field names to retrieve for each record.",
@@ -211,6 +215,18 @@ use Swagger\Annotations as SWG;
  *           paramType="body", required="true", allowMultiple=false, dataType="NoSqlRecords"
  *         ),
  *         @SWG\Parameter(
+ *           name="ids", description="Comma-delimited list of the identifiers of the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="filter", description="SQL-like filter to limit the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=false, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
  *           name="fields", description="Comma-delimited list of field names to retrieve for each record.",
  *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         )
@@ -234,6 +250,22 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="record", description="Data containing name-value pairs of records to update.",
  *           paramType="body", required="true", allowMultiple=false, dataType="Table"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="ids", description="Comma-delimited list of the identifiers of the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="filter", description="SQL-like filter to limit the resources to modify.",
+ *           paramType="query", required="false", allowMultiple=false, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         )
  *       ),
  *       @SWG\ErrorResponses(
@@ -254,6 +286,10 @@ use Swagger\Annotations as SWG;
  *         ),
  *         @SWG\Parameter(
  *           name="ids", description="Comma-delimited list of the identifiers of the resources to delete.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
  *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
  *         @SWG\Parameter(
@@ -296,6 +332,10 @@ use Swagger\Annotations as SWG;
  *           paramType="query", required="false", allowMultiple=true, dataType="boolean"
  *         ),
  *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
  *           name="fields", description="Comma-delimited list of field names to retrieve for each record.",
  *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         )
@@ -319,6 +359,10 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="id", description="Identifier of the resource to create.",
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
  *         @SWG\Parameter(
  *           name="record", description="Data containing name-value pairs of records to create.",
@@ -350,6 +394,10 @@ use Swagger\Annotations as SWG;
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
  *           name="record", description="Data containing name-value pairs of records to update.",
  *           paramType="body", required="true", allowMultiple=false, dataType="NoSqlRecord"
  *         ),
@@ -379,8 +427,16 @@ use Swagger\Annotations as SWG;
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
  *         ),
  *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
  *           name="record", description="An array of record properties.",
  *           paramType="body", required="true", allowMultiple=false, dataType="Table"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="fields", description="Comma-delimited list of field names to retrieve for each record.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         )
  *       ),
  *       @SWG\ErrorResponses(
@@ -402,6 +458,10 @@ use Swagger\Annotations as SWG;
  *         @SWG\Parameter(
  *           name="id", description="Identifier of the resource to delete.",
  *           paramType="path", required="true", allowMultiple=false, dataType="string"
+ *         ),
+ *         @SWG\Parameter(
+ *           name="id_field", description="Comma-delimited list of the fields used as identifiers or primary keys for the table.",
+ *           paramType="query", required="false", allowMultiple=true, dataType="string"
  *         ),
  *         @SWG\Parameter(
  *           name="fields", description="Comma-delimited list of field names to retrieve for each record.",

@@ -1,3 +1,5 @@
-# DreamFactory Services Platform(tm) v1.0.5
+# dsp-core
 
-Please see our (site)[http://dreamfactorysoftware.github.io] for full documentation.
+### DreamFactory Services Platform(tm) v1.0.6
+
+Please see our [site](http://dreamfactorysoftware.github.io) for full documentation.

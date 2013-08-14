@@ -84,7 +84,14 @@ class Fabric extends SeedUtility
 	 */
 	public static function getHostName()
 	{
-		return FilterInput::server( 'HTTP_HOST', gethostname() );
+		$_host = FilterInput::server( 'HTTP_HOST', gethostname() );
+
+		if ( false !== strpos( $_host, ':' ) )
+		{
+			$_host = current( explode( ':', $_host ) );
+		}
+
+		return $_host;
 	}
 
 	/**

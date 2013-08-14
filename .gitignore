@@ -4,6 +4,7 @@ vendor
 shared/
 log
 storage
+storage.old
 composer.phar
 composer.lock
 .composer/

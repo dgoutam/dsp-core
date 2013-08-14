@@ -29,7 +29,7 @@
 /**
  * @var string
  */
-const DSP_VERSION = '1.0.5';
+const DSP_VERSION = '1.0.6';
 const API_VERSION = '1.0';
 
 //	The base path of the project, where it's checked out basically
@@ -110,23 +110,25 @@ return array_merge(
 	$_instanceSettings,
 	array(
 		 /** App Information */
-		 'base_path'            => $_basePath,
+		 'base_path'               => $_basePath,
 		 /** DSP Information */
-		 'dsp.version'          => DSP_VERSION,
-		 'dsp.name'             => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'    => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
-		 'cloud.endpoint'       => 'http://api.cloud.dreamfactory.com',
+		 'dsp.version'             => DSP_VERSION,
+		 'dsp.name'                => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint'       => 'http://cerberus.fabric.dreamfactory.com/api/instance/credentials',
+		 'cloud.endpoint'          => 'http://api.cloud.dreamfactory.com',
 		 /**
 		  * User data
 		  */
-		 'blobStorageConfig'    => $_blobConfig,
-		 'adminEmail'           => 'support@dreamfactory.com',
+		 'blobStorageConfig'       => $_blobConfig,
+		 'adminEmail'              => 'support@dreamfactory.com',
 		 /** Default services provided by all DSPs */
-		 'dsp.default_services' => array(
+		 'dsp.default_services'    => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
 		 /** The default application to start */
-		 'dsp.default_app' => '/public/launchpad/index.html',
+		 'dsp.default_app'         => '/public/launchpad/index.html',
+		 /** Version Settings */
+		 'version.jquery-validate' => '1.11.1',
 	)
 );

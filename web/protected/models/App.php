@@ -236,7 +236,7 @@ class App extends BaseDspSystemModel
 	 */
 	protected function beforeSave()
 	{
-		if ( !$this->is_url_external && empty( $this->url ) )
+		if ( empty( $this->url ) && !$this->is_url_external && !empty($this->storage_service_id) )
 		{
 			$this->url = '/index.html';
 		}
@@ -249,62 +249,54 @@ class App extends BaseDspSystemModel
 	 */
 	protected function afterSave()
 	{
-		// make sure we have an app in the folder
 		if ( !$this->is_url_external )
 		{
-			$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
-			$this->launch_url = $_protocol . '://' . FilterInput::server( 'HTTP_HOST' ) . '/';
-			/** @var $_service BaseFileSvc */
-			if ( empty( $this->storage_service_id ) )
+			if ( !empty($this->storage_service_id) )
 			{
-				$_service = ServiceHandler::getServiceObject( 'app' );
-				$_container = 'applications';
-			}
-			else
-			{
+				// make sure we have an app in the folder
+				$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
+				$this->launch_url = $_protocol . '://' . FilterInput::server( 'HTTP_HOST' ) . '/';
+				/** @var $_service BaseFileSvc */
 				$_service = ServiceHandler::getServiceObjectById( $this->storage_service_id );
 				$_container = $this->storage_container;
-			}
-			if ( empty( $_container ) )
-			{
-				if ( !$_service->containerExists( $this->api_name ) )
+				if ( empty( $_container ) )
 				{
-					// create in permanent storage
-					$_service->createContainer( array( 'name' => $this->api_name ) );
-					$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
-					$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
-					$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
-					$path = ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
-					if ( !$_service->fileExists( $this->api_name, $path ) )
+					if ( !$_service->containerExists( $this->api_name ) )
 					{
-						$_service->writeFile( $this->api_name, $path, $content );
+						// create in permanent storage
+						$_service->createContainer( array( 'name' => $this->api_name ) );
+						$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
+						$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
+						$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
+						$path = ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
+						if ( !$_service->fileExists( $this->api_name, $path ) )
+						{
+							$_service->writeFile( $this->api_name, $path, $content );
+						}
 					}
 				}
-			}
-			else
-			{
-				if ( !$_service->containerExists( $_container ) )
+				else
 				{
-					$_service->createContainer( array( 'name' => $_container ) );
-				}
-				if ( !$_service->folderExists( $_container, $this->api_name ) )
-				{
-					// create in permanent storage
-					$_service->createFolder( $_container, $this->api_name );
-					$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
-					$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
-					$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
-					$path = $this->api_name . '/';
-					$path .= ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
-					if ( !$_service->fileExists( $_container, $path ) )
+					if ( !$_service->containerExists( $_container ) )
 					{
-						$_service->writeFile( $_container, $path, $content );
+						$_service->createContainer( array( 'name' => $_container ) );
+					}
+					if ( !$_service->folderExists( $_container, $this->api_name ) )
+					{
+						// create in permanent storage
+						$_service->createFolder( $_container, $this->api_name );
+						$name = ( !empty( $this->name ) ) ? $this->name : $this->api_name;
+						$content = "<!DOCTYPE html>\n<html>\n<head>\n<title>" . $name . "</title>\n</head>\n";
+						$content .= "<body>\nYour app " . $name . " now lives here.</body>\n</html>";
+						$path = $this->api_name . '/';
+						$path .= ( !empty( $this->url ) ) ? ltrim( $this->url, '/' ) : 'index.html';
+						if ( !$_service->fileExists( $_container, $path ) )
+						{
+							$_service->writeFile( $_container, $path, $content );
+						}
 					}
 				}
-			}
 
-			if ( !empty( $this->storage_service_id ) )
-			{
 				/** @var $service Service */
 				$service = $this->getRelated( 'storage_service' );
 				if ( !empty( $service ) )
@@ -315,12 +307,12 @@ class App extends BaseDspSystemModel
 				{
 					$this->launch_url .= $this->storage_container . '/';
 				}
+				$this->launch_url .= $this->api_name . $this->url;
 			}
 			else
 			{
-				$this->launch_url .= 'app/applications/';
+				$this->launch_url = '';
 			}
-			$this->launch_url .= $this->api_name . $this->url;
 		}
 		else
 		{
@@ -361,10 +353,10 @@ class App extends BaseDspSystemModel
 		$this->requires_plugin = intval( $this->requires_plugin );
 		if ( !$this->is_url_external )
 		{
-			$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
-			$this->launch_url = $_protocol . '://' . FilterInput::server( 'HTTP_HOST' ) . '/';
-			if ( !empty( $this->storage_service_id ) )
+			if ( !empty($this->storage_service_id) )
 			{
+				$_protocol = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ) ? 'https' : 'http';
+				$this->launch_url = $_protocol . '://' . FilterInput::server( 'HTTP_HOST' ) . '/';
 				/** @var $service Service */
 				$service = $this->getRelated( 'storage_service' );
 				if ( !empty( $service ) )
@@ -375,12 +367,8 @@ class App extends BaseDspSystemModel
 				{
 					$this->launch_url .= $this->storage_container . '/';
 				}
+				$this->launch_url .= $this->api_name . $this->url;
 			}
-			else
-			{
-				$this->launch_url .= 'app/applications/';
-			}
-			$this->launch_url .= $this->api_name . $this->url;
 		}
 		else
 		{

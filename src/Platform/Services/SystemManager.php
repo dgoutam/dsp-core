@@ -333,6 +333,35 @@ class SystemManager extends RestService
 				{
 					Log::error( 'Exception removing prior indexes: ' . $_ex->getMessage() );
 				}
+
+				// Need upgrade path from <1.0.6 for apps
+				if ( version_compare( $oldVersion, '1.0.6', '<' ) )
+				{
+					try
+					{
+						$command->reset();
+						$serviceId = $command
+									 ->select( 'id' )
+									 ->from( 'df_sys_service' )
+									 ->where( 'api_name = :name', array( ':name' => 'app' ) )
+									 ->queryScalar();
+						if ( false === $serviceId )
+						{
+							throw new \Exception( 'Could not find local app storage service id.' );
+						}
+
+						$command->reset();
+						$attributes = array( 'storage_service_id' => $serviceId, 'storage_container' => 'applications' );
+						$condition = 'is_url_external = :external and storage_service_id is null';
+						$params = array( ':external' => 0 );
+						$rows = $command->update( 'df_sys_app', $attributes, $condition, $params );
+					}
+					catch ( \Exception $_ex )
+					{
+						Log::error( 'Exception upgrading apps to 1.0.6+ version: ' . $_ex->getMessage() );
+					}
+
+				}
 			}
 
 			// initialize config table if not already

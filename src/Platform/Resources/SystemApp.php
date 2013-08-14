@@ -637,9 +637,23 @@ class SystemApp extends SystemResource
 			throw new \Exception( 'No application description file in this package file.' );
 		}
 		$record = DataFormat::jsonToArray( $data );
-		if ( !empty( $import_url ) )
+		if ( !empty( $import_url ) && !isset( $record['import_url'] ) )
 		{
 			$record['import_url'] = $import_url;
+		}
+		$_storageServiceId = Option::get( $record, 'storage_service_id' );
+		$_container = Option::get( $record, 'storage_container' );
+		if ( empty( $_storageServiceId ))
+		{
+			// must be set or defaulted to local
+			$_model = \Service::model()->find( 'api_name = :api_name', array( ':api_name' => 'app' ) );
+			$_storageServiceId = ($_model) ? $_model->getPrimaryKey() : null;
+			$record['storage_service_id'] = $_storageServiceId;
+			if ( empty( $_container ) )
+			{
+				$_container = 'applications';
+				$record['storage_container'] = $_container;
+			}
 		}
 		try
 		{
@@ -815,19 +829,12 @@ class SystemApp extends SystemResource
 		}
 
 		// extract the rest of the zip file into storage
-		$_storageServiceId = Option::get( $record, 'storage_service_id' );
 		$_apiName = Option::get( $record, 'api_name' );
-
 		/** @var $_service \Platform\Services\BaseFileSvc */
-		if ( empty( $_storageServiceId ) )
+		$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
+		if ( empty( $_service ) )
 		{
-			$_service = ServiceHandler::getServiceObject( 'app' );
-			$_container = 'applications';
-		}
-		else
-		{
-			$_service = ServiceHandler::getServiceObjectById( $_storageServiceId );
-			$_container = Option::get( $record, 'storage_container' );
+			throw new \Exception( "App record created, but failed to import files due to unknown storage service with id '$_storageServiceId'." );
 		}
 		if ( empty( $_container ) )
 		{
