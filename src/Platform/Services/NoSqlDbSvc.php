@@ -249,7 +249,7 @@ use Swagger\Annotations as SWG;
  *         ),
  *         @SWG\Parameter(
  *           name="record", description="Data containing name-value pairs of records to update.",
- *           paramType="body", required="true", allowMultiple=false, dataType="Table"
+ *           paramType="body", required="true", allowMultiple=false, dataType="NoSqlRecords"
  *         ),
  *         @SWG\Parameter(
  *           name="ids", description="Comma-delimited list of the identifiers of the resources to modify.",
