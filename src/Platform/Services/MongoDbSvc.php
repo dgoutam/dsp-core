@@ -1387,17 +1387,9 @@ class MongoDbSvc extends NoSqlDbSvc
 		}
 
 		// the rest should be comparison operators
-		$_search = array( ' eq ', ' ne ', ' gte ', ' lte ', ' gt ', ' lt ', ' in ', ' nin ', ' all ', ' like ' );
-		$_replace = array( '=', '!=', '>=', '<=', '>', '<', ' IN ', ' NIN ', ' ALL ', ' LIKE ' );
+		$_search = array( ' eq ', ' ne ', ' gte ', ' lte ', ' gt ', ' lt ', ' in ', ' nin ', ' all ', ' like ', '<>' );
+		$_replace = array( '=', '!=', '>=', '<=', '>', '<', ' IN ', ' NIN ', ' ALL ', ' LIKE ', '!=' );
 		$filter = trim( str_ireplace( $_search, $_replace, $filter ) );
-
-		$_ops = array_map( 'trim', explode( '=', $filter ) );
-		if ( count( $_ops ) > 1 )
-		{
-			$_val = static::_determineValue( $_ops[1] );
-
-			return array( $_ops[0] => $_val );
-		}
 
 		$_ops = array_map( 'trim', explode( '!=', $filter ) );
 		if ( count( $_ops ) > 1 )
@@ -1421,6 +1413,14 @@ class MongoDbSvc extends NoSqlDbSvc
 			$_val = static::_determineValue( $_ops[1] );
 
 			return array( $_ops[0] => array( '$lte' => $_val ) );
+		}
+
+		$_ops = array_map( 'trim', explode( '=', $filter ) );
+		if ( count( $_ops ) > 1 )
+		{
+			$_val = static::_determineValue( $_ops[1] );
+
+			return array( $_ops[0] => $_val );
 		}
 
 		$_ops = array_map( 'trim', explode( '>', $filter ) );
