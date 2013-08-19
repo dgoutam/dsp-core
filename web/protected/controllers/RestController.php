@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Common\Enums\OutputFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;

@@ -30,7 +30,7 @@ use Kisma\Core\Utility\Bootstrap;
 	<tr>
 		<th>Id</th>
 		<th>Name</th>
-		<th>Service Endpoint</th>
+		<th>Settings</th>
 		<th>Last Used</th>
 	</tr>
 	</thead>
