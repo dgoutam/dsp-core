@@ -17,7 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Oasys\Components\GateKeeper;
+use DreamFactory\Oasys\Enums\Flows;
+use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
+use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
@@ -32,10 +36,13 @@ use DreamFactory\Platform\Yii\Models\User;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
+use Kisma\Core\Utility\Convert;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
+use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
+use TheSeer\DirectoryScanner\Exception;
 
 /**
  * WebController.php
@@ -64,6 +71,10 @@ class WebController extends BaseWebController
 	 * @var bool
 	 */
 	protected $_autoLogged = false;
+	/**
+	 * @var GateKeeper
+	 */
+	protected $_oasys = null;
 
 	//*************************************************************************
 	//* Methods
@@ -637,88 +648,158 @@ class WebController extends BaseWebController
 	{
 		$this->layout = false;
 
-		$_service = new \Hybrid_Auth( Provider::getHybridAuthConfig() );
-		$_provider = Provider::getHybridClassName( FilterInput::get( INPUT_GET, 'provider', Option::get( $_GET, 'hauth_start' ), FILTER_SANITIZE_STRING ) );
-		/** @var \Hybrid_Providers_GitHub $_adapter */
-		$_adapter = $_service->authenticate( $_provider );
-		$_user = null;
-		$_profile = $_adapter->getUserProfile();
-		$_providerId = $_adapter->config['provider_id'];
-
-		try
+		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
 		{
-			if ( !empty( $_profile ) )
+			throw new BadRequestException( 'No remote login provider specified.' );
+		}
+
+		if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
+		{
+			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
+		}
+
+		$this->_oasys = new GateKeeper( array( 'store' => new FileSystem( __FILE__ ) ) );
+
+		$_baseConfig = array(
+			'flow_type'    => Flows::CLIENT_SIDE,
+			'redirect_uri' => 'http://gha.cloud.dreamfactory.com/web/remoteLogin?pid=' . $_providerId
+		);
+
+		$_stateConfig = array();
+
+		if ( null !== ( $_json = Pii::getState( $_providerId . '.config' ) ) )
+		{
+			$_stateConfig = json_decode( $_json, true );
+			unset( $_json );
+		}
+
+		$_provider = $this->_oasys->getProvider(
+			$_providerId,
+			array_merge(
+				$_providerModel->config_text,
+				$_baseConfig,
+				$_stateConfig
+			)
+		);
+
+		if ( $_provider->handleRequest() )
+		{
+			$_profile = $_provider->getUserData();
+
+			$_name = $_profile->getName();
+			$_firstName = Option::get( $_name, 'given_name' );
+			$_lastName = Option::get( $_name, 'family_name' );
+			$_displayName = Option::get( $_name, 'formatted' );
+
+			$_phones = $_profile->getPhoneNumbers();
+			$_phone = null;
+
+			if ( !empty( $_phones ) && is_array( $_phones ) )
 			{
-				$_user = ProviderUser::getUser( $_providerId, $_profile->identifier );
+				$_phone = current( $_phones );
+			}
 
-				if ( empty( $_user ) )
-				{
-					//	Create new shadow user...
-					$_user = new User();
-					$_user->email = $_profile->email;
-					$_user->first_name = $_profile->firstName;
-					$_user->last_name = $_profile->lastName;
-					$_user->display_name = $_profile->displayName . ' @ ' . $_provider;
-					$_user->phone = $_profile->phone;
-					$_user->is_active = true;
-					$_user->is_sys_admin = false;
-					$_user->user_source = $_providerId;
-					$_user->password = 'remote-login';
-				}
+			$_transaction = Pii::db()->beginTransaction();
 
-				$_data = $_user->user_data;
-
-				if ( empty( $_data ) )
-				{
-					$_data = array();
-				}
-
-				if ( !isset( $_data['providers'] ) )
-				{
-					$_data['providers'] = array();
-				}
-
-				$_data['providers'][$_adapter->config['api_name']] = $_profile;
-
-				//	Save the remote profile info...
-				$_user->user_data = $_data;
+			try
+			{
+				$_user = null;
 
 				try
 				{
-					$_user->save();
+					if ( !empty( $_profile ) )
+					{
+						$_shadowEmail = $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
+						$_user = ProviderUser::getByEmail( $_shadowEmail );
+
+						if ( empty( $_user ) )
+						{
+							//	Create new shadow user...
+							$_user = new User();
+							$_user->first_name = $_firstName;
+							$_user->last_name = $_lastName;
+							$_user->display_name = $_displayName . ' @ ' . $_providerId;
+							$_user->phone = $_phone;
+							$_user->is_active = true;
+							$_user->is_sys_admin = false;
+							$_user->user_source = $_providerModel->id;
+							$_user->email = $_shadowEmail;
+							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
+						}
+
+						$_user->last_login_date = date( 'c' );
+						$_data = $_user->user_data;
+
+						if ( empty( $_data ) )
+						{
+							$_data = array();
+						}
+
+						$_data[$_providerId . '.profile'] = $_profile->toArray();
+
+						//	Save the remote profile info...
+						$_user->user_data = $_data;
+
+						try
+						{
+							$_user->save();
+						}
+						catch ( \Exception $_ex )
+						{
+							Log::error( 'Exception creating remote login shadow user: ' . $_ex->getMessage() );
+							throw $_ex;
+						}
+
+						if ( null === ( $_providerUser = ProviderUser::model()->byUserProviderUserId( $_user->id, $_profile->getUserId() )->find() ) )
+						{
+							//	Create new portal account...
+							$_providerUser = new ProviderUser();
+							$_providerUser->user_id = $_user->id;
+							$_providerUser->provider_user_id = $_profile->getUserId();
+							$_providerUser->provider_id = $_providerModel->id;
+							$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
+						}
+
+						try
+						{
+							$_providerUser->last_use_date = date( 'c' );
+							$_providerUser->auth_text = $_provider->getConfig()->toJson();
+							$_providerUser->save();
+
+							$_transaction->commit();
+
+							Pii::setstate( $_providerId . '.config', $_provider->getConfig()->toJson() );
+						}
+						catch ( \CDbException $_ex )
+						{
+							Log::error( 'Exception saving provider_user row: ' . $_ex->getMessage() );
+							throw $_ex;
+						}
+					}
+
+					//	Login user...
+					$_identity = new PlatformUserIdentity( $_user->email, $_user->password );
+					$_identity->logInUser( $_user );
+					Pii::user()->login( $_identity, 0 );
+
+					if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
+					{
+						$_returnUrl = Pii::url( $this->id . '/' );
+					}
+
+					$this->redirect( $_returnUrl );
 				}
 				catch ( \Exception $_ex )
 				{
-					Log::error( 'Exception creating remote login shadow user: ' . $_ex->getMessage() );
+					Log::error( 'Exception getting remote user profile: ' . $_ex->getMessage() );
 					$this->redirect( '/' );
 				}
-
-				//	Create new portal account...
-				$_providerUser = new ProviderUser();
-				$_providerUser->user_id = $_user->id;
-				$_providerUser->provider_user_id = $_profile->identifier;
-				$_providerUser->provider_id = $_providerId;
-				$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
-				$_providerUser->auth_text = $_profile;
-				$_providerUser->save();
+			}
+			catch ( \Exception $_ex )
+			{
+				//	Roll it back...
+				$_transaction->rollback();
 			}
 		}
-		catch ( \Exception $_ex )
-		{
-			Log::error( 'Exception getting remote user profile: ' . $_ex->getMessage() );
-			$this->redirect( '/' );
-		}
-
-		//	Login user...
-		$_identity = new PlatformUserIdentity( $_user->email, $_user->password );
-		$_identity->logInUser( $_user );
-
-		if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
-		{
-			$_returnUrl = Pii::url( $this->id . '/index' );
-		}
-
-		$this->redirect( $_returnUrl );
 	}
-
 }

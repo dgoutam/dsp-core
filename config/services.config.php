@@ -61,7 +61,7 @@ return
 			'class' => 'DreamFactory\\Platform\\Services\\SchemaSvc',
 			'local' => false,
 		),
-		PlatformServiceTypes::LOCAL_EMAIL_SERVICE  => array(
+		PlatformServiceTypes::EMAIL_SERVICE        => array(
 			'class' => 'DreamFactory\\Platform\\Services\\EmailSvc',
 		),
 		PlatformServiceTypes::NOSQL_DB             => array(
