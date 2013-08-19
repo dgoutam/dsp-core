@@ -1,14 +1,30 @@
 <?php
+use Kisma\Core\Utility\Inflector;
+use Kisma\Core\Utility\Option;
+
 /**
  * @var array $resourceColumns
  */
-$_content = null;
+$_content = $_tabs = null;
+
+$_class = ' class="active"';
 
 foreach ( $resourceColumns as $_resource => $_config )
 {
 	$_html = '<h3>Coming Soon!</h3>';
 	$_labels = null;
 	$_active = $_resource == 'apps' ? ' active' : null;
+
+	//	Get/create a menu name
+	$_menuName = Option::get(
+		$_config,
+		'menu_name',
+		Option::get(
+			$_config,
+			'header',
+			Inflector::pluralize( $_config['resource'] )
+		)
+	);
 
 	if ( isset( $_config['labels'] ) && !empty( $_config['labels'] ) )
 	{
@@ -43,6 +59,9 @@ HTML;
 	}
 
 	$_content .= '<div class="tab-pane' . $_active . '" id="tab-' . $_resource . '">' . $_html . '</div>';
+
+	$_tabs .= '<li ' . $_class . '><a href="#tab-' . $_resource . '" data-toggle="tab"><i class="icon-gear"></i> ' . $_menuName . '</a></li> ';
+	$_class = null;
 }
 
 //	Fix up functions
@@ -53,12 +72,7 @@ $_dtConfig = str_replace( array( '"##', '##"', '\"' ), array( null, null, '"' ),
 <div class="container">
 	<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
-			<li class="active">
-				<a href="#tab-apps" data-toggle="tab"><i class="icon-gear"></i> Applications</a>
-			</li>
-			<li>
-				<a href="#tab-accounts" data-toggle="tab"><i class="icon-key"></i> Provider Accounts</a>
-			</li>
+			<?php echo $_tabs; ?>
 		</ul>
 
 		<div class="tab-content"><?php echo $_content; ?></div>
@@ -76,14 +90,14 @@ jQuery(function($) {
 		var _table = $(_id).data('jtable');
 
 		if (!_table) {
-			if (_dtColumns[_type]) {
-				var _fields = _dtColumns[_type].fields;
-				var _resource = _dtColumns[_type].resource;
-				var _columns = _dtColumns[_type].columns;
-				var _header = _dtColumns[_type].header || _type;
+			if (_dtColumns && _dtColumns[_type]) {
+				var _fields = _dtColumns[ _type ].fields;
+				var _resource = _dtColumns[ _type ].resource;
+				var _columns = _dtColumns[ _type ].columns;
+				var _header = _dtColumns[ _type ].header || _type;
 
 				_table = $(_id).jtable({
-					itemName:     _dtColumns[_type].resourceName || _type,
+					itemName:     _dtColumns[ _type ].resourceName || _type,
 					useHttpVerbs: true,
 					title:        _header,
 					ajaxSettings: {
@@ -93,7 +107,7 @@ jQuery(function($) {
 						}
 					},
 					actions:      {
-						listAction:   '/rest/system/' + _resource + '?fields=' + (_dtColumns[_type].listFields || 'id,name'),
+						listAction:   '/rest/system/' + _resource + '?fields=' + ( _dtColumns[ _type ].listFields || 'id,name'),
 						createAction: '/rest/system/' + _resource,
 						updateAction: '/rest/system/' + _resource,
 						deleteAction: '/rest/system/' + _resource
@@ -103,16 +117,14 @@ jQuery(function($) {
 
 				$(_id).data('jtable', _table);
 			}
-		}
-		else {
+		} else {
 			if (_table && _table.oApi) {
 				_table.oApi.fnReloadAjax();
 			}
 		}
 	});
 
-	//	Make the first tab load
+//	Make the first tab load
 	$('li.active a').trigger('shown');
 });
-
 </script>

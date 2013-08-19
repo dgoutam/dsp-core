@@ -709,7 +709,7 @@ class WebController extends BaseWebController
 				{
 					if ( !empty( $_profile ) )
 					{
-						$_shadowEmail = $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
+						$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
 						$_user = ProviderUser::getByEmail( $_shadowEmail );
 
 						if ( empty( $_user ) )

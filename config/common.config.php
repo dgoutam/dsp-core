@@ -58,6 +58,10 @@ const DEFAULT_INSTANCE_AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/
  * @var string
  */
 const DEFAULT_SUPPORT_EMAIL = 'support@dreamfactory.com';
+/**
+ * @var string
+ */
+const DEFAULT_ADMIN_RESOURCE_SCHEMA = '/admin.resource_schema.config.php';
 
 //*************************************************************************
 //* Global Configuration Settings
@@ -172,5 +176,9 @@ return array_merge(
 		  * The default application to start
 		  */
 		 'dsp.default_app'         => '/public/launchpad/index.html',
+		 /**
+		  * The default admin resource schema
+		  */
+		 'admin.resource_schema'   => require( __DIR__ . DEFAULT_ADMIN_RESOURCE_SCHEMA ),
 	)
 );

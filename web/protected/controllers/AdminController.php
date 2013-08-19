@@ -66,49 +66,7 @@ class AdminController extends BaseWebController
 	 */
 	public function actionIndex()
 	{
-		$_resourceColumns
-			= array(
-			'apps'      => array(
-				'header'       => 'Installed Applications',
-				'resource'     => 'app',
-				'resourceName' => 'Application',
-				'fields'       => array(
-					'id'        => array( 'title' => 'ID', 'key' => true, 'list' => false, 'create' => false, 'edit' => false ),
-					'name'      => array( 'title' => 'Name' ),
-					'api_name'  => array( 'title' => 'Endpoint', 'edit' => false ),
-					'url'       => array( 'title' => 'Default Page', 'inputClass' => 'input-xxlarge' ),
-					'is_active' => array(
-						'title'   => 'Active',
-						'options' => array( 'true' => 'Yes', 'false' => 'No' ),
-						'display' => '##function (data){return data ? "Yes" : "No";}##',
-					),
-				),
-				'listFields'   => 'id,name,api_name,url,is_active',
-				'labels'       => array( 'ID', 'Name', 'Starting Path', 'Active' ),
-			),
-			'providers' => array(
-				'header'       => 'Authentication Providers',
-				'resource'     => 'provider',
-				'resourceName' => 'Provider',
-				'fields'       => array(
-					'id'            => array( 'title' => 'ID', 'key' => true, 'list' => false, 'create' => false, 'edit' => false ),
-					'provider_name' => array( 'title' => 'Name' ),
-					'config_text'   => array( 'title' => 'Settings' ),
-				),
-				'listFields'   => 'id,name,api_name,url,is_active',
-				'labels'       => array( 'ID', 'Name', 'Starting Path', 'Active' ),
-			),
-			'accounts'  => array(
-				'header'       => 'Provider Accounts',
-				'resource'     => 'provider_user',
-				'resourceName' => 'Account',
-				'fields'       => array( 'id', 'user_id', 'provider_name', 'provider_user_id', 'last_use_date' ),
-				'labels'       => array( 'ID', 'User', 'Provider', 'Provider User ID', 'Last Used' ),
-				'listFields'   => 'id,user_id,provider_name,provider_user_id,last_use_date',
-			),
-		);
-
-		$this->render( 'index', array( 'resourceColumns' => $_resourceColumns ) );
+		$this->render( 'index', array( 'resourceColumns' => Pii::getParam( 'admin.resource_schema', array() ) ) );
 	}
 
 	/**
