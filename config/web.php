@@ -127,6 +127,12 @@ return array(
 			'allowAutoLogin' => true,
 			'loginUrl'       => array( $_defaultController . '/activate' ),
 		),
+		'clientScript' => array(
+			'scriptMap' => array(
+				'jquery.js'     => false,
+				'jquery.min.js' => false,
+			),
+		),
 		//	Logging configuration
 		'log'          => array(
 			'class'  => 'CLogRouter',
