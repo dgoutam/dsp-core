@@ -46,7 +46,7 @@ foreach ( $resourceColumns as $_resource => $_config )
 </thead>
 <tbody>
 	<tr>
-		<td colspan="{$_count}" class="dataTables_empty">Momentito...</td>
+		<td colspan="{$_count}" class="dataTables_empty">Nothing to see here. Move along...</td>
 	</tr>
 </tbody>
 </table>
