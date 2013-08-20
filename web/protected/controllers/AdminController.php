@@ -102,7 +102,7 @@ class AdminController extends BaseWebController
 				'header'   => 'Services',
 				'resource' => 'service',
 				'fields'   => array( 'id', 'api_name', 'type_id', 'storage_type_id', 'is_active' ),
-				'labels'   => array( 'ID', 'Type', 'Storage Type', 'Active' )
+				'labels'   => array( 'ID', 'Endpoint', 'Type', 'Storage Type', 'Active' ),
 			),
 			'schema'     => array(
 				'header'   => 'Schema Manager',
