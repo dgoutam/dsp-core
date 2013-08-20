@@ -17,11 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 use DreamFactory\Common\Enums\OutputFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;
-use DreamFactory\Platform\Utility\SwaggerUtilities;
 use DreamFactory\Platform\Yii\Models\Service;
 use DreamFactory\Yii\Controllers\BaseFactoryController;
 use Kisma\Core\Enums\HttpMethod;
@@ -51,10 +51,6 @@ class RestController extends BaseFactoryController
 	 * @var string resource to be handled by service
 	 */
 	protected $resource = '';
-	/**
-	 * @var bool Swagger controlled get
-	 */
-	protected $swagger = false;
 
 	//*************************************************************************
 	//	Methods
@@ -77,21 +73,9 @@ class RestController extends BaseFactoryController
 	{
 		try
 		{
-			$_resultFormat = null;
+			$_result = array( 'service' => Service::available( false, array( 'id', 'api_name' ) ) );
 
-			if ( $this->swagger )
-			{
-				$_result = SwaggerUtilities::getSwagger();
-				$_resultFormat = 'json';
-			}
-			else
-			{
-				$_result = array( 'service' => Service::available( false, array( 'id', 'api_name' ) ) );
-
-				unset( $_services );
-			}
-
-			RestResponse::sendResults( $_result, RestResponse::Ok, $_resultFormat, $this->format );
+			RestResponse::sendResults( $_result, RestResponse::Ok, null, $this->format );
 		}
 		catch ( \Exception $_ex )
 		{
@@ -106,19 +90,11 @@ class RestController extends BaseFactoryController
 	{
 		try
 		{
-			$_resultFormat = null;
+			$svcObj = ServiceHandler::getService( $this->service );
+			$result = $svcObj->processRequest( $this->resource, HttpMethod::Get );
+			$resultFormat = $svcObj->getNativeFormat();
 
-			if ( $this->swagger )
-			{
-				$result = SwaggerUtilities::getSwaggerForService( $this->service );
-				$_resultFormat = 'json';
-			}
-			else
-			{
-				$result = ServiceHandler::getService( $this->service )->processRequest( $this->resource, HttpMethod::Get );
-			}
-
-			RestResponse::sendResults( $result, RestResponse::Ok, $_resultFormat, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
 		}
 		catch ( \Exception $ex )
 		{
@@ -174,9 +150,10 @@ class RestController extends BaseFactoryController
 
 			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Post );
+			$resultFormat = $svcObj->getNativeFormat();
 			$code = RestResponse::Created;
 
-			RestResponse::sendResults( $result, $code, null, $this->format );
+			RestResponse::sendResults( $result, $code, $resultFormat, $this->format );
 		}
 		catch ( \Exception $ex )
 		{
@@ -193,8 +170,9 @@ class RestController extends BaseFactoryController
 		{
 			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Merge );
+			$resultFormat = $svcObj->getNativeFormat();
 
-			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
 		}
 		catch ( \Exception $ex )
 		{
@@ -211,8 +189,9 @@ class RestController extends BaseFactoryController
 		{
 			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Put );
+			$resultFormat = $svcObj->getNativeFormat();
 
-			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
 		}
 		catch ( \Exception $ex )
 		{
@@ -229,7 +208,9 @@ class RestController extends BaseFactoryController
 		{
 			$svcObj = ServiceHandler::getService( $this->service );
 			$result = $svcObj->processRequest( $this->resource, HttpMethod::Delete );
-			RestResponse::sendResults( $result, RestResponse::Ok, null, $this->format );
+			$resultFormat = $svcObj->getNativeFormat();
+
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
 		}
 		catch ( \Exception $ex )
 		{
@@ -301,14 +282,7 @@ class RestController extends BaseFactoryController
 		//	Still empty?
 		if ( empty( $_appName ) )
 		{
-			//	Check for swagger documentation request
-			$_appName = FilterInput::request( 'swagger_app_name', null, FILTER_SANITIZE_STRING );
-			if ( empty( $_appName ) )
-			{
-				RestResponse::sendErrors( new BadRequestException( 'No application name header or parameter value in REST request.' ) );
-			}
-
-			$this->swagger = true;
+			RestResponse::sendErrors( new BadRequestException( 'No application name header or parameter value in REST request.' ) );
 		}
 
 		return $GLOBALS['app_name'] = $_appName;
