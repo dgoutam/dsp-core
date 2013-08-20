@@ -29,7 +29,7 @@ use DreamFactory\Platform\Utility\Fabric;
 /**
  * @var string
  */
-const DSP_VERSION = '1.0.6-dev-gha';
+const DSP_VERSION = '1.1.x-dev';
 /**
  * @var string
  */
@@ -58,6 +58,10 @@ const DEFAULT_INSTANCE_AUTH_ENDPOINT = 'http://cerberus.fabric.dreamfactory.com/
  * @var string
  */
 const DEFAULT_SUPPORT_EMAIL = 'support@dreamfactory.com';
+/**
+ * @var string
+ */
+const DEFAULT_ADMIN_RESOURCE_SCHEMA = '/admin.resource_schema.config.php';
 
 //*************************************************************************
 //* Global Configuration Settings
@@ -140,42 +144,41 @@ return array_merge(
 		 /**
 		  * App Information
 		  */
-		 'base_path'                  => $_basePath,
+		 'base_path'               => $_basePath,
 		 /**
 		  * DSP Information
 		  */
-		 'dsp.version'                => DSP_VERSION,
-		 'dsp.name'                   => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'          => DEFAULT_INSTANCE_AUTH_ENDPOINT,
-		 'cloud.endpoint'             => DEFAULT_CLOUD_API_ENDPOINT,
+		 'dsp.version'             => DSP_VERSION,
+		 'dsp.name'                => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint'       => DEFAULT_INSTANCE_AUTH_ENDPOINT,
+		 'cloud.endpoint'          => DEFAULT_CLOUD_API_ENDPOINT,
 		 /**
-		  * External Logins
+		  * Remote Logins
 		  */
-		 'dsp.allow_remote_logins'    => true,
-		 'dsp.remote_login_providers' => array(
-			 'facebook',
-			 'github',
-			 'stackoverflow',
-		 ),
+		 'dsp.allow_remote_logins' => true,
 		 /**
 		  * User data
 		  */
-		 'blobStorageConfig'          => $_blobConfig,
-		 'adminEmail'                 => DEFAULT_SUPPORT_EMAIL,
+		 'blobStorageConfig'       => $_blobConfig,
+		 'adminEmail'              => DEFAULT_SUPPORT_EMAIL,
 		 /**
 		  * The default service configuration
 		  */
-		 'dsp.service_config'         => require( __DIR__ . SERVICES_CONFIG_PATH ),
+		 'dsp.service_config'      => require( __DIR__ . SERVICES_CONFIG_PATH ),
 		 /**
 		  * Default services provided by all DSPs
 		  */
-		 'dsp.default_services'       => array(
+		 'dsp.default_services'    => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 		 ),
 		 /**
 		  * The default application to start
 		  */
-		 'dsp.default_app'            => '/public/launchpad/index.html',
+		 'dsp.default_app'         => '/public/launchpad/index.html',
+		 /**
+		  * The default admin resource schema
+		  */
+		 'admin.resource_schema'   => require( __DIR__ . DEFAULT_ADMIN_RESOURCE_SCHEMA ),
 	)
 );

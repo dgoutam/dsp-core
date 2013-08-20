@@ -1,8 +1,8 @@
 {
-	"version": "1.0.6.1",
+	"version": "1.0.6.2",
 	"scripts": {
 		"install": null,
-		"update":  "1.0.6.1-update.sql"
+		"update":  "1.0.6-update.sql"
 	},
 	"table":   [
 		{
@@ -191,6 +191,12 @@
 					"type":               "mediumtext",
 					"supports_multibyte": true,
 					"allow_null":         true
+				},
+				{
+					"name":       "user_source",
+					"type":       "integer",
+					"allow_null": false,
+					"default":    0
 				},
 				{
 					"name": "last_login_date",
@@ -956,7 +962,55 @@
 			]
 		},
 		{
-			"name":  "df_sys_portal_account",
+			"name":  "df_sys_provider",
+			"field": [
+				{
+					"name": "id",
+					"type": "id"
+				},
+				{
+					"name":       "provider_name",
+					"type":       "string",
+					"allow_null": false,
+					"is_unique":  false,
+					"length":     64
+				},
+				{
+					"name":       "api_name",
+					"type":       "string",
+					"allow_null": true,
+					"length":     64,
+					"comment":    "If this is a portal service, the api_name is the endpoint"
+				},
+				{
+					"name":       "config_text",
+					"type":       "mediumtext",
+					"allow_null": true
+				},
+				{
+					"name":       "created_date",
+					"type":       "datetime",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "created_by_id",
+					"type":       "user_id_on_create",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_date",
+					"type":       "timestamp_on_update",
+					"validation": "api_read_only"
+				},
+				{
+					"name":       "last_modified_by_id",
+					"type":       "user_id_on_update",
+					"validation": "api_read_only"
+				}
+			]
+		},
+		{
+			"name":  "df_sys_provider_user",
 			"field": [
 				{
 					"name": "id",
@@ -978,14 +1032,24 @@
 					"allow_null":    false
 				},
 				{
-					"name":       "api_name",
+					"name":          "provider_id",
+					"type":          "integer",
+					"ref_table":     "df_sys_provider",
+					"ref_fields":    "id",
+					"ref_on_update": "CASCADE",
+					"ref_on_delete": "CASCADE",
+					"allow_null":    false
+				},
+				{
+					"name":       "provider_user_id",
 					"type":       "string",
+					"length":     128,
 					"allow_null": false
 				},
 				{
 					"name":       "auth_text",
 					"type":       "mediumtext",
-					"allow_null": false
+					"allow_null": true
 				},
 				{
 					"name":       "last_use_date",

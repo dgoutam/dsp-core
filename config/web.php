@@ -17,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Platform\Utility\Fabric;
+
 /**
  * web.php
  * This is the main configuration file for the DreamFactory Services Platform server application.
@@ -34,8 +36,9 @@ $_commonConfig = require( __DIR__ . '/common.config.php' );
 //.........................................................................
 
 return array(
-
-	/**    Basics */
+	/**
+	 * Basics
+	 */
 	'basePath'           => $_docRoot . '/protected',
 	'name'               => $_appName,
 	'runtimePath'        => $_logFilePath,
@@ -59,20 +62,32 @@ return array(
 	'modelNamespaces'    => array(
 		'DreamFactory\\Platform\\Yii\\Models',
 	),
-	/** CORS Configuration */
+	/**
+	 * CORS Configuration
+	 */
 	'corsWhitelist'      => array( '*' ),
 	'autoAddHeaders'     => true,
 	'extendedHeaders'    => true,
-	/**    Preloads */
+	/**
+	 * Preloads
+	 */
 	'preload'            => array( 'log' ),
-	/**    Imports */
+	/**
+	 * Imports
+	 */
 	'import'             => array(
 		'system.utils.*',
 		'application.models.*',
 		'application.models.forms.*',
 		'application.components.*',
 	),
-	/**    Components */
+	/**
+	 * Modules
+	 */
+	'modules'            => array(),
+	/**
+	 * Components
+	 */
 	'components'         => array(
 		//	Asset management
 		'assetManager' => array(
@@ -85,7 +100,7 @@ return array(
 		'db'           => $_dbConfig,
 		//	Error management
 		'errorHandler' => array(
-			'errorAction' => 'web/error',
+			'errorAction' => $_defaultController . '/error',
 		),
 		//	Route configuration
 		'urlManager'   => array(

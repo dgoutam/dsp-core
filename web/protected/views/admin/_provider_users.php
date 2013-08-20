@@ -18,21 +18,26 @@
  * limitations under the License.
  */
 /**
- * github.php
- * This is the configuration file for github portal
+ * @var $this  AdminController
  */
-return array(
-	/**
-	 * Basics
-	 */
-	'api_name'               => 'github',
-	'client_id'              => 'caf2ba694afc90d62c2a',
-	'client_secret'          => '8f5b38a65ddfc0761febe0c113a2e128c43bac9e',
-	'authorization_endpoint' => 'https://github.com/login',
-	'service_endpoint'       => 'https://api.github.com',
-	'resource_endpoint'      => 'https://api.github.com',
-	'auth_header_name'       => 'token',
-	'access_token_type'      => OAuthTokenTypes::URI,
-	'scope'                  => array( 'user', 'user:email', 'user:follow', 'public_repo', 'repo', 'repo:status', 'notifications', 'gist' ),
-	'user_agent'             => 'dreamfactorysoftware/portal-github',
-);
+use Kisma\Core\Utility\Bootstrap;
+
+?>
+<h3>Provider Accounts</h3>
+
+<table class="table table-striped table-hover table-condensed" id="accounts-table">
+	<thead>
+	<tr>
+		<th>Id</th>
+		<th>User</th>
+		<th>Provider</th>
+		<th>Provider User ID</th>
+		<th>Last Used</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td colspan="4" class="dataTables_empty">Momentito...</td>
+	</tr>
+	</tbody>
+</table>

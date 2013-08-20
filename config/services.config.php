@@ -26,10 +26,10 @@ use DreamFactory\Platform\Enums\PlatformStorageTypes;
  */
 return
 	array(
-		PlatformServiceTypes::LOCAL_FILE_STORAGE    => array(
+		PlatformServiceTypes::LOCAL_FILE_STORAGE   => array(
 			'class' => 'DreamFactory\\Platform\\Services\\LocalFileSvc',
 		),
-		PlatformServiceTypes::REMOTE_FILE_STORAGE   => array(
+		PlatformServiceTypes::REMOTE_FILE_STORAGE  => array(
 			'class' => array(
 				PlatformStorageTypes::AZURE_BLOB               => array(
 					'class' => 'DreamFactory\\Platform\\Services\\WindowsAzureBlobSvc',
@@ -45,23 +45,23 @@ return
 				),
 			),
 		),
-		PlatformServiceTypes::LOCAL_SQL_DB          => array(
+		PlatformServiceTypes::LOCAL_SQL_DB         => array(
 			'class' => 'DreamFactory\\Platform\\Services\\SqlDbSvc',
 			'local' => true,
 		),
-		PlatformServiceTypes::REMOTE_SQL_DB         => array(
+		PlatformServiceTypes::REMOTE_SQL_DB        => array(
 			'class' => 'DreamFactory\\Platform\\Services\\SqlDbSvc',
 			'local' => false,
 		),
-		PlatformServiceTypes::LOCAL_SQL_DB_SCHEMA   => array(
+		PlatformServiceTypes::LOCAL_SQL_DB_SCHEMA  => array(
 			'class' => 'DreamFactory\\Platform\\Services\\SchemaSvc',
 			'local' => true,
 		),
-		PlatformServiceTypes::REMOTE_SQL_DB_SCHEMA  => array(
+		PlatformServiceTypes::REMOTE_SQL_DB_SCHEMA => array(
 			'class' => 'DreamFactory\\Platform\\Services\\SchemaSvc',
 			'local' => false,
 		),
-		PlatformServiceTypes::EMAIL_SERVICE         => array(
+		PlatformServiceTypes::EMAIL_SERVICE        => array(
 			'class' => 'DreamFactory\\Platform\\Services\\EmailSvc',
 		),
 		PlatformServiceTypes::NOSQL_DB             => array(
