@@ -40,7 +40,7 @@ foreach ( $resourceColumns as $_resource => $_config )
 		$_html
 			= <<<HTML
 <h3>{$_config['header']}<div id="admin-toolbar" class=" pull-right"></div></h3>
-<table class="table table-striped table-hover table-bordered" id="{$_resource}-table">
+<table class="table table-striped table-hover table-bordered table-resource" id="{$_resource}-table">
 <thead>
 	<tr>{$_labels}</tr>
 </thead>
@@ -122,13 +122,13 @@ jQuery(function($) {
 	//	Make the first tab load
 	$('li.active a').trigger('shown');
 
-//		/* Add events */
-//		$("#platforms-table").find("tbody tr").on('click', function () {
-//			var _row = $('td', this);
-//			var _id = $(_row[0]).text();
-//			window.location.href = '/services/update/id/' + _id;
-//			return false;
-//		});
+	/* Add events */
+	$('.table-resource').on('click', 'tbody tr', function() {
+		var _row = $('td', this);
+		var _id = $(_row[0]).text();
+		window.location.href = '/admin/' + $(this).closest('table').attr('id').replace('-table', '') + '/update/id/' + _id;
+		return false;
+	});
 });
 
 </script>

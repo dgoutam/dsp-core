@@ -62,6 +62,15 @@ class AdminController extends BaseWebController
 	}
 
 	/**
+	 * @param array $options
+	 * @param bool  $fromCreate
+	 */
+	public function actionUpdate( $options = array(), $fromCreate = false )
+	{
+		parent::actionUpdate( $options, $fromCreate );
+	}
+
+	/**
 	 *
 	 */
 	public function actionIndex()
