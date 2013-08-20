@@ -51,7 +51,8 @@
 		"dreamfactory/app-admin":               ">=1.0.5",
 		"dreamfactory/app-launchpad":           ">=1.0.5",
 		"dreamfactory/web-core":                ">=1.0.5",
-		"dreamfactory/oasys":                   "*"
+		"dreamfactory/oasys":                   "*",
+		"DataTables/DataTables":                "*"
 	},
 	"repositories":      [
 		{
