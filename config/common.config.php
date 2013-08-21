@@ -171,6 +171,7 @@ return array_merge(
 		 'dsp.default_services'    => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
+			 array( 'api_name' => 'api_docs', 'name' => 'API Documentation' ),
 		 ),
 		 /**
 		  * The default application to start
