@@ -657,7 +657,8 @@ class WebController extends BaseWebController
 		Oasys::setStore( new FileSystem( __FILE__ ) );
 
 		$_baseConfig = array(
-			'flow_type' => Flows::CLIENT_SIDE,
+			'flow_type'    => Flows::CLIENT_SIDE,
+			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId
 		);
 
 		$_stateConfig = array();
