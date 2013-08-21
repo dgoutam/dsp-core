@@ -13,7 +13,7 @@ foreach ( $resourceColumns as $_resource => $_config )
 {
 	$_html = '<h3>Coming Soon!</h3>';
 	$_labels = null;
-	$_active = $_resource == 'apps' ? ' active' : null;
+	$_active = $_resource == 'app' ? ' active' : null;
 
 	//	Get/create a menu name
 	$_menuName = Option::get(
