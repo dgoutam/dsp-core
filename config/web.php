@@ -119,6 +119,7 @@ return array(
 				'<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'          => '<controller>/<action>',
 				// fall through to storage services for direct access
+				array( 'admin/<action>', 'pattern' => 'admin/<resource:[_0-9a-zA-Z-]+>/<action>/<id:[_0-9a-zA-Z-\/. ]+>' ),
 				array( 'storage/get', 'pattern' => '<service:[_0-9a-zA-Z-]+>/<path:[_0-9a-zA-Z-\/. ]+>', 'verb' => 'GET' ),
 			),
 		),
@@ -126,6 +127,12 @@ return array(
 		'user'         => array(
 			'allowAutoLogin' => true,
 			'loginUrl'       => array( $_defaultController . '/activate' ),
+		),
+		'clientScript' => array(
+			'scriptMap' => array(
+				'jquery.js'     => false,
+				'jquery.min.js' => false,
+			),
 		),
 		//	Logging configuration
 		'log'          => array(

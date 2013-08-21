@@ -25,14 +25,14 @@ $_headline = 'Platform Administration';
 	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
 	<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
 	<link href="/public/css/jquery-ui.css" rel="stylesheet">
-	<link href="/public/js/jtable/themes/metro/darkorange/jtable.min.css" rel="stylesheet">
-	<!--[if IE 7]>
+	<!--	<link href="/public/js/jtable/themes/metro/darkorange/jtable.min.css" rel="stylesheet">-->    <!--[if IE 7]>
 	<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome-ie7.css" rel="stylesheet">    <![endif]-->
 	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.4.4/bootstrap-editable/css/bootstrap-editable.css" rel="stylesheet">
+	<link href="/public/css/jquery.dataTables.css" rel="stylesheet">
 	<link rel="stylesheet" type="text/css" href="/public/css/main.css" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->    <!--[if lt IE 9]>
 	<script type="text/javascript" src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>    <![endif]-->
-	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 </head>
 <body>
 <div class="navbar navbar-fixed-top">
@@ -61,7 +61,7 @@ $_headline = 'Platform Administration';
 </div>
 <!-- /container -->
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-<script src="/public/js/jtable/jquery.jtable.js" type="text/javascript"></script>
+<script src="//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+<script src="/public/js/df.datatables.js"></script>
 </body>
 </html>

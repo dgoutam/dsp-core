@@ -47,9 +47,11 @@
 		"php":                                  ">=5.3.10",
 		"kisma/kisma":                          "*",
 		"dreamfactory/yii":                     "dev-master",
-		"dreamfactory/lib-php-common-platform": "dev-develop as 1.*-dev",
 		"dreamfactory/app-admin":               "dev-develop as 1.*-dev",
 		"dreamfactory/app-launchpad":           "dev-develop as 1.*-dev",
+		"dreamfactory/lib-php-common-platform": "dev-feature/remote-login as 1.*-dev",
+		"dreamfactory/app-admin":               "*",
+		"dreamfactory/app-launchpad":           "*",
 		"dreamfactory/web-core":                "*",
 		"dreamfactory/oasys":                   "*"
 	},

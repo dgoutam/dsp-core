@@ -17,8 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Oasys\Components\GateKeeper;
 use DreamFactory\Oasys\Enums\Flows;
+use DreamFactory\Oasys\Oasys;
 use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Exceptions\BadRequestException;
@@ -71,10 +71,6 @@ class WebController extends BaseWebController
 	 * @var bool
 	 */
 	protected $_autoLogged = false;
-	/**
-	 * @var GateKeeper
-	 */
-	protected $_oasys = null;
 
 	//*************************************************************************
 	//* Methods
@@ -658,7 +654,7 @@ class WebController extends BaseWebController
 			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
 		}
 
-		$this->_oasys = new GateKeeper( array( 'store' => new FileSystem( __FILE__ ) ) );
+		Oasys::setStore( new FileSystem( __FILE__ ) );
 
 		$_baseConfig = array(
 			'flow_type'    => Flows::CLIENT_SIDE,
@@ -673,14 +669,13 @@ class WebController extends BaseWebController
 			unset( $_json );
 		}
 
-		$_provider = $this->_oasys->getProvider(
-			$_providerId,
-			array_merge(
-				$_providerModel->config_text,
-				$_baseConfig,
-				$_stateConfig
-			)
+		$_fullConfig = array_merge(
+			$_providerModel->config_text,
+			$_baseConfig,
+			$_stateConfig
 		);
+
+		$_provider = Oasys::getProvider( $_providerId, $_fullConfig );
 
 		if ( $_provider->handleRequest() )
 		{
@@ -802,4 +797,5 @@ class WebController extends BaseWebController
 			}
 		}
 	}
+
 }
