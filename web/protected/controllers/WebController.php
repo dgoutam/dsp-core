@@ -657,8 +657,7 @@ class WebController extends BaseWebController
 		Oasys::setStore( new FileSystem( __FILE__ ) );
 
 		$_baseConfig = array(
-			'flow_type'    => Flows::CLIENT_SIDE,
-			'redirect_uri' => 'http://gha.cloud.dreamfactory.com/web/remoteLogin?pid=' . $_providerId
+			'flow_type' => Flows::CLIENT_SIDE,
 		);
 
 		$_stateConfig = array();
