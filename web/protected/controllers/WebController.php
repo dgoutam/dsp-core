@@ -17,19 +17,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Oasys\Components\BaseProvider;
 use DreamFactory\Oasys\Enums\Flows;
 use DreamFactory\Oasys\Oasys;
+use DreamFactory\Oasys\Providers\BaseOAuthProvider;
 use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Exceptions\InternalServerErrorException;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
 use DreamFactory\Platform\Services\SystemManager;
 use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Platform\Utility\Fabric;
+use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
 use DreamFactory\Platform\Yii\Components\RemoteUserIdentity;
+use DreamFactory\Platform\Yii\Models\Config;
 use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
@@ -42,7 +47,6 @@ use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use TheSeer\DirectoryScanner\Exception;
 
 /**
  * WebController.php
@@ -480,7 +484,7 @@ class WebController extends BaseWebController
 	}
 
 	/**
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function actionUpgrade()
 	{
@@ -517,7 +521,7 @@ class WebController extends BaseWebController
 		}
 		if ( empty( $_versions ) )
 		{
-			throw new Exception( 'No upgrade available. This DSP is running the latest available version.' );
+			throw new \Exception( 'No upgrade available. This DSP is running the latest available version.' );
 		}
 
 		$_model = new UpgradeDspForm();
@@ -642,6 +646,8 @@ class WebController extends BaseWebController
 	 */
 	public function actionRemoteLogin()
 	{
+		Log::debug( 'actionRemoteLogin: ' . print_r( $_REQUEST, true ) );
+
 		$this->layout = false;
 
 		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
@@ -649,6 +655,7 @@ class WebController extends BaseWebController
 			throw new BadRequestException( 'No remote login provider specified.' );
 		}
 
+		/** @var Provider $_providerModel */
 		if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
 		{
 			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
@@ -709,6 +716,12 @@ class WebController extends BaseWebController
 
 						if ( empty( $_user ) )
 						{
+							/** @var Config $_config */
+							if ( null === ( $_config = Config::model()->find() ) )
+							{
+								throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing...' );
+							}
+
 							//	Create new shadow user...
 							$_user = new User();
 							$_user->first_name = $_firstName;
@@ -720,6 +733,8 @@ class WebController extends BaseWebController
 							$_user->user_source = $_providerModel->id;
 							$_user->email = $_shadowEmail;
 							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
+							$_user->role_id = $_config->open_reg_role_id;
+							$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
 						}
 
 						$_user->last_login_date = date( 'c' );
