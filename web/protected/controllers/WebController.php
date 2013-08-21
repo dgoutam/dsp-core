@@ -658,7 +658,7 @@ class WebController extends BaseWebController
 
 		$_baseConfig = array(
 			'flow_type'    => Flows::CLIENT_SIDE,
-			'redirect_uri' => 'http://gha.cloud.dreamfactory.com/web/remoteLogin?pid=' . $_providerId
+			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId
 		);
 
 		$_stateConfig = array();
