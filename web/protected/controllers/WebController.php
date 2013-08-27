@@ -22,6 +22,7 @@ use DreamFactory\Oasys\Oasys;
 use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Exceptions\InternalServerErrorException;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
@@ -30,6 +31,7 @@ use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Platform\Utility\Fabric;
 use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
 use DreamFactory\Platform\Yii\Components\RemoteUserIdentity;
+use DreamFactory\Platform\Yii\Models\Config;
 use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
@@ -707,6 +709,12 @@ class WebController extends BaseWebController
 						$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
 						$_user = ProviderUser::getByEmail( $_shadowEmail );
 
+						/** @var Config $_dspConfig */
+						if ( null === ( $_dspConfig = Config::model()->find() ) )
+						{
+							throw new InternalServerErrorException( 'DSP configuration not found.' );
+						}
+
 						if ( empty( $_user ) )
 						{
 							//	Create new shadow user...
@@ -720,6 +728,12 @@ class WebController extends BaseWebController
 							$_user->user_source = $_providerModel->id;
 							$_user->email = $_shadowEmail;
 							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
+						}
+
+						//	Set the default role, if one isn't assigned.
+						if ( empty( $_user->role_id ) )
+						{
+							$_user->role_id = $_dspConfig->open_reg_role_id;
 						}
 
 						$_user->last_login_date = date( 'c' );
@@ -797,5 +811,4 @@ class WebController extends BaseWebController
 			}
 		}
 	}
-
 }
