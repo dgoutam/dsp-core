@@ -302,9 +302,9 @@ class RestController extends BaseFactoryController
 			return 'xml';
 		}
 
-		RestResponse::sendErrors( new BadRequestException( 'Invalid format requested ' . $_format ) );
+//		RestResponse::sendErrors( new BadRequestException( 'Invalid format requested ' . $_format ) );
 
-		return $_format;
+		return 'json';
 	}
 
 	/**
