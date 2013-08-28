@@ -227,8 +227,8 @@ class RestController extends BaseFactoryController
 	 */
 	protected function beforeAction( $action )
 	{
-		$this->_determineAppName();
-		$this->format = strtolower( FilterInput::request( 'format', 'json', FILTER_SANITIZE_STRING ) );
+		$GLOBALS['app_name'] = $this->_determineAppName();
+		$this->format = $this->_determineFormat();
 
 //        'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>'
 		$path = Option::get( $_GET, 'path', '' );
@@ -263,10 +263,8 @@ class RestController extends BaseFactoryController
 	 *
 	 * @return mixed
 	 */
-	protected function _determineAppName()
+	protected static function _determineAppName()
 	{
-		$_appName = null;
-
 		// 	Determine application if any
 		$_appName = FilterInput::request( 'app_name', null, FILTER_SANITIZE_STRING );
 		if ( empty( $_appName ) )
@@ -281,10 +279,32 @@ class RestController extends BaseFactoryController
 		//	Still empty?
 		if ( empty( $_appName ) )
 		{
-			RestResponse::sendErrors( new BadRequestException( 'No application name header or parameter value in REST request.' ) );
+			RestResponse::sendErrors( new BadRequestException( 'No application name header or parameter value in request.' ) );
 		}
 
-		return $GLOBALS['app_name'] = $_appName;
+		return $_appName;
+	}
+
+	protected static function _determineFormat()
+	{
+		$_format = FilterInput::request( 'format', '', FILTER_SANITIZE_STRING );
+		if ( empty( $_format ) )
+		{
+			$_format = FilterInput::server( 'HTTP_ACCEPT', 'json', FILTER_SANITIZE_STRING );
+		}
+
+		if ( false !== strpos( strtolower( $_format ), 'json'))
+		{
+			return 'json';
+		}
+		if ( false !== strpos( strtolower( $_format ), 'xml'))
+		{
+			return 'xml';
+		}
+
+		RestResponse::sendErrors( new BadRequestException( 'Invalid format requested ' . $_format ) );
+
+		return $_format;
 	}
 
 	/**
