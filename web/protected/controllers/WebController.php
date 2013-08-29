@@ -714,6 +714,12 @@ class WebController extends BaseWebController
 						$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
 						$_user = ProviderUser::getByEmail( $_shadowEmail );
 
+						/** @var Config $_dspConfig */
+						if ( null === ( $_dspConfig = Config::model()->find() ) )
+						{
+							throw new InternalServerErrorException( 'DSP configuration not found.' );
+						}
+
 						if ( empty( $_user ) )
 						{
 							/** @var Config $_config */
@@ -735,6 +741,12 @@ class WebController extends BaseWebController
 							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
 							$_user->role_id = $_config->open_reg_role_id;
 							$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
+						}
+
+						//	Set the default role, if one isn't assigned.
+						if ( empty( $_user->role_id ) )
+						{
+							$_user->role_id = $_dspConfig->open_reg_role_id;
 						}
 
 						$_user->last_login_date = date( 'c' );
@@ -812,5 +824,4 @@ class WebController extends BaseWebController
 			}
 		}
 	}
-
 }
