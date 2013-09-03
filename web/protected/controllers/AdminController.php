@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 use DreamFactory\Common\Enums\OutputFormats;
+use DreamFactory\Oasys\Oasys;
 use DreamFactory\Platform\Enums\ResponseFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Services\SystemManager;
@@ -61,7 +62,7 @@ class AdminController extends BaseWebController
 		$this->layout = 'admin';
 		$this->defaultAction = 'index';
 
-		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'authorizations' ) );
+		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'providers', 'providerUsers', 'update' ) );
 	}
 
 	/**
@@ -88,8 +89,21 @@ class AdminController extends BaseWebController
 		}
 
 		$_resource = ResourceStore::resource( $_resourceId );
+		$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
+		$_schema = null;
 
-		$this->render( 'update', array( 'resource' => $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) ) ) );
+		if ( !empty( $_response ) && isset( $_response['api_name'] ) )
+		{
+			$_schema = Oasys::getProvider( $_response['api_name'] )->getSchema( false );
+		};
+
+		$this->render(
+			'update',
+			array(
+				 'resource' => $_response,
+				 'schema'   => $_schema,
+			)
+		);
 	}
 
 	/**

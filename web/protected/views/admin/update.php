@@ -2,6 +2,7 @@
 /**
  * @var WebController $this
  * @var array         $resource
+ * @var array         $schema
  */
 use DreamFactory\Yii\Utility\BootstrapForm;
 
@@ -15,14 +16,5 @@ $_options = array(
 
 $_formOptions = $_form->pageHeader( $_options );
 
-print_r($resource);
-
-////	Render the form
-//echo $this->renderPartial(
-//	'_form',
-//	array(
-//		 'model'        => $model,
-//		 '_formOptions' => $_formOptions,
-//		 'update'       => $update,
-//	)
-//);
+//	Render the form
+require __DIR__ . '/_provider.form.php';

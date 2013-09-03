@@ -1,31 +1,28 @@
 <?php
+use DreamFactory\Yii\Utility\BootstrapForm;
+use Kisma\Core\Utility\Bootstrap;
+
 /**
  * _provider.form.php
  *
- * @var WebController                             $this
- * @var array                                          $_formOptions
- * @var DreamFactory\Fabric\Yii\Models\Deploy\Instance $model
+ * @var WebController $this
+ * @var array         $schema
+ * @var array         $resource
+ * @var array         $_formOptions Provided by includer
  */
-use Cerberus\Yii\Controllers\PlatformController;
-use DreamFactory\Fabric\Yii\Models\Deploy\Vendor;
-use DreamFactory\Yii\Utility\BootstrapForm;
-use DreamFactory\Yii\Utility\Pii;
-use DreamFactory\Yii\Utility\Validate;
-use Kisma\Core\Utility\Bootstrap;
-
 $this->setBreadcrumbs(
 	array(
-		 'Platforms' => 'platform/index',
+		 'Providers' => 'providers/index',
 		 'Update'    => false,
 	)
 );
 
-
 $_errors = null;
 
-if ( isset( $model ) )
+if ( !empty( $resource ) )
 {
-	$_errors = $model->getErrors();
+	//@TODO error handling from resource request
+	$_errors = null;
 	$_headline = ( isset( $alertMessage ) ? $alertMessage : 'Sorry pal...' );
 
 	if ( !empty( $_errors ) )
@@ -42,81 +39,38 @@ if ( isset( $model ) )
 
 		echo <<<HTML
 	<div class="alert alert-error alert-block alert-fixed fade in" data-alert="alert">
-		<strong>{$_headline}</strong> {$_messages}
-	</div>
+		<strong>{$_headline}</strong>
+		{$_messages}</div>
 HTML;
 	}
 }
 
-//	Set up validation...
-$_rules = array(
-	//	Validation Rules
-	'rules' => array(),
-);
-
-Validate::register( 'form#update-platform', $_rules );
-
-$_hashedId = $this->hashId( $model->id );
+$_hashedId = $this->hashId( $resource['id'] );
 
 $_form = new BootstrapForm(
 	Bootstrap::Horizontal,
 	array(
-		 'id'             => 'update-platform',
+		 'id'             => 'update-provider',
 		 'method'         => 'POST',
-		 'x_editable_url' => '/dashboard/platform',
+		 'x_editable_url' => '/admin/provider/update',
 		 'x_editable_pk'  => $_hashedId,
-	),
-	$modelName = str_replace( '\\', '_', get_class( $model ) )
+	)
 );
 
-$_form->setFormData( $model->getAttributes() );
+$_form->setFormData( $resource );
 
 $_fields = array(
-	'Basics'     => array(
-		'instance_name_text' => array( 'class' => 'input-xlarge required x-editable', 'label' => 'Instance Name' ),
-		'vendor_id'          => array(
-			'type'     => 'select',
-			'class'    => 'input-large',
-			'disabled' => 'disabled',
-			'label'    => 'Vendor',
-			'value'    => $model->vendor_id,
-			'data'     => Vendor::listData( 'vendor_name_text' ),
-		),
-		'vendor_image_id'    => array( 'disabled' => 'disabled', 'class' => 'input-large uneditable-input', 'label' => 'Vendor Image ID' ),
-		'guest_location_nbr' => array(
-			'type'     => 'select_enum',
-			'disabled' => 'disabled',
-			'class'    => 'input-large',
-			'label'    => 'Guest Location',
-			'value'    => $model->guest_location_nbr,
-			'enum'     => '\\DreamFactory\\Fabric\\Enums\\Provisioners',
-		),
-		'instance_id_text'   => array( 'class' => 'input-large uneditable-input', 'label' => 'Instance ID', 'disabled' => 'disabled', ),
-	),
-	'Networking' => array(
-		'public_host_text'  => array( 'class' => 'input-xxlarge required x-editable', 'label' => 'Public Host Name' ),
-		'public_ip_text'    => array( 'class' => 'input-xlarge required x-editable', 'label' => 'Public IP Address' ),
-		'private_host_text' => array( 'class' => 'input-xlarge x-editable', 'label' => 'Private Host Name' ),
-		'private_ip_text'   => array( 'class' => 'input-xlarge x-editable', 'label' => 'Private IP Address' ),
-	),
-	'Database'   => array(
-		'db_name_text'     => array( 'class' => 'input-xlarge uneditable-input borderless', 'disabled' => 'disabled', 'label' => 'Name' ),
-		'db_user_text'     => array( 'class' => 'input-xxlarge uneditable-input borderless', 'disabled' => 'disabled', 'label' => 'User' ),
-		'db_password_text' => array( 'class' => 'input-xxlarge uneditable-input borderless', 'disabled' => 'disabled', 'label' => 'Password' ),
-	),
-	'Storage'    => array(
-		'storage_id_text' => array( 'class' => 'input-xxlarge uneditable-input borderless', 'disabled' => 'disabled', 'label' => 'Storage Key' ),
-	),
+	'Configuration' => $schema,
 );
 ?>
 <div class="row-fluid" style="border-bottom:1px solid #ddd">
 	<div class="span8">
-		<h2 style="margin-bottom: 0">Platform
-			<small><?php echo $model->instance_name_text; ?></small>
+		<h2 style="margin-bottom: 0">Provider
+			<small><?php echo 'ProviderName'; ?></small>
 		</h2>
 	</div>
 	<div class="span4" style="margin-top:10px">
-		<span class="pull-right">
+		<div class="pull-right" style="display: inline-block;">
 			<form method="POST" id="form-button-bar" style="display:inline;">
 				<input type="hidden" name="backup_instance" value="0">
 				<button data-row-id="<?php echo $_hashedId; ?>" class="btn btn-success" id="backup-instance">Backup</button>
@@ -127,38 +81,18 @@ $_fields = array(
 				<input type="hidden" name="delete_instance" value="0">
 				<button data-row-id="<?php echo $_hashedId; ?>" class="btn btn-danger" id="delete-instance">Delete</button>
 			</form>
-		</span>
-	</div>
-</div>
-
-<div class="tabbable tabs-left">
-	<ul id="platform-navbar" class="nav nav-tabs">
-		<li class="active"><a href="#tab-edit" data-toggle="tab">Settings</a></li>
-		<li><a href="#tab-metrics" data-toggle="tab">Metrics</a></li>
-		<li><a href="#tab-history" data-toggle="tab">History</a></li>
-	</ul>
-
-	<div class="tab-content">
-		<div class="tab-pane active" id="tab-edit">
-			<form id="update-platform" method="POST" class="form-horizontal tab-form" action>
-				<div class="row-fluid">
-					<div class="span12">
-						<?php $_form->renderFields( $_fields, $modelName ); ?>
-					</div>
-				</div>
-			</form>
-		</div>
-		<div class="tab-pane" id="tab-metrics">
-			<?php require_once __DIR__ . '/_metrics.php'; ?>
-		</div>
-		<div class="tab-pane" id="tab-history">
-			<?php require_once __DIR__ . '/_history.php'; ?>
 		</div>
 	</div>
 </div>
 
-<script src="//code.highcharts.com/highcharts.js"></script>
-<script src="//code.highcharts.com/modules/exporting.js"></script>
+<div class="row-fluid">
+	<div class="span12">
+		<form id="update-platform" method="POST" class="form-horizontal tab-form" action>
+			<?php $_form->renderFields( $_fields ); ?>
+		</form>
+	</div>
+</div>
+
 <script type="text/javascript">
 jQuery(function($) {
 	$('form#form-button-bar').on('click', 'button', function(e) {
@@ -166,24 +100,24 @@ jQuery(function($) {
 		var _cmd = $(this).attr('id').replace('-instance', '');
 		var _id = $(this).data('row-id');
 
-		if (!confirm('Do you REALLY REALLY wish to perform this action? It is irreversable!')) {
+		if (!confirm('Do you REALLY REALLY wish to perform this action? It is irreversible!')) {
 			return false;
 		}
 
-		$.ajax({url:         '/dashboard/action',
-				   method:   'POST',
-				   dataType: 'json',
-				   data:     {id: _id, action: _cmd },
-				   async:    false,
-				   success:  function(data) {
-					   if (data && data.success) {
-						   alert('Your platform request has been queued.');
-					   }
-					   else {
-						   alert('There was an error: ' + data.details.message);
-					   }
-				   }
-			   });
+		$.ajax({url:  '/admin/provider/update',
+			method:   'POST',
+			dataType: 'json',
+			data:     {id: _id, action: _cmd },
+			async:    false,
+			success:  function(data) {
+				if (data && data.success) {
+					alert('Your provider request has been queued.');
+				}
+				else {
+					alert('There was an error: ' + data.details.message);
+				}
+			}
+		});
 
 		return false;
 	});
@@ -194,15 +128,15 @@ jQuery(function($) {
 
 	$.fn.editable.defaults.mode = 'inline';
 	$('a.x-editable').editable({
-								   url:         '/dashboard/platform',
-								   emptytext:   'None',
-								   ajaxOptions: {
-									   dataType: 'json'
-								   },
-								   error:       function(errors) {
-									   var _data = JSON.parse(errors.responseText);
-									   return _data.details.message;
-								   }
-							   });
+		url:         '/admin/provider/update',
+		emptytext:   'None',
+		ajaxOptions: {
+			dataType: 'json'
+		},
+		error:       function(errors) {
+			var _data = JSON.parse(errors.responseText);
+			return _data.details.message;
+		}
+	});
 });
 </script>

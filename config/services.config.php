@@ -81,6 +81,9 @@ return
 				PlatformStorageTypes::MONGODB      => array(
 					'class' => 'DreamFactory\\Platform\\Services\\MongoDbSvc',
 				),
+				PlatformStorageTypes::MONGOHQ      => array(
+					'class' => 'DreamFactory\\Platform\\Services\\MongoDbSvc',
+				),
 			),
 		),
 		PlatformServiceTypes::LOCAL_PORTAL_SERVICE => array(

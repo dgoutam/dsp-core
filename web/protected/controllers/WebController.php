@@ -20,7 +20,6 @@
 use DreamFactory\Oasys\Components\BaseProvider;
 use DreamFactory\Oasys\Enums\Flows;
 use DreamFactory\Oasys\Oasys;
-use DreamFactory\Oasys\Providers\BaseOAuthProvider;
 use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Exceptions\BadRequestException;
@@ -29,11 +28,8 @@ use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
 use DreamFactory\Platform\Services\SystemManager;
-use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Platform\Utility\Fabric;
-use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
-use DreamFactory\Platform\Yii\Components\RemoteUserIdentity;
 use DreamFactory\Platform\Yii\Models\Config;
 use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Platform\Yii\Models\ProviderUser;
@@ -41,7 +37,6 @@ use DreamFactory\Platform\Yii\Models\User;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
-use Kisma\Core\Utility\Convert;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Hasher;
@@ -75,6 +70,10 @@ class WebController extends BaseWebController
 	 * @var bool
 	 */
 	protected $_autoLogged = false;
+	/**
+	 * @var string
+	 */
+	protected $_remoteError = null;
 
 	//*************************************************************************
 	//* Methods
@@ -89,6 +88,15 @@ class WebController extends BaseWebController
 
 		$this->defaultAction = 'index';
 		$this->_activated = SystemManager::activated();
+
+		//	Remote login errors?
+		$_error = FilterInput::request( 'error', null, FILTER_SANITIZE_STRING );
+		$_message = FilterInput::request( 'error_description', null, FILTER_SANITIZE_STRING );
+
+		if ( !empty( $_error ) )
+		{
+			$this->_remoteError = $_error . ( !empty( $_message ) ? ' (' . $_message . ')' : null );
+		}
 	}
 
 	/**
@@ -120,6 +128,7 @@ class WebController extends BaseWebController
 					'initAdmin',
 					'authorize',
 					'remoteLogin',
+					'form',
 				),
 				'users'   => array( '*' ),
 			),
@@ -154,6 +163,12 @@ class WebController extends BaseWebController
 		);
 
 		$this->actionInitSystem();
+	}
+
+	public function actionForm()
+	{
+		$_providerId = FilterInput::request( 'pid', 'facebook', FILTER_SANITIZE_STRING );
+		Log::debug( Oasys::getProvider( $_providerId )->getSchema() );
 	}
 
 	public function actionActivate()
@@ -250,11 +265,17 @@ class WebController extends BaseWebController
 	{
 		try
 		{
+			$_error = false;
 			$_state = SystemManager::getSystemState();
 
 			if ( !$this->_activated && $_state != PlatformStates::INIT_REQUIRED )
 			{
 				$_state = PlatformStates::ADMIN_REQUIRED;
+			}
+
+			if ( !empty( $this->_remoteError ) )
+			{
+				$_error = 'error=' . urlencode( $this->_remoteError );
 			}
 
 			switch ( $_state )
@@ -265,6 +286,11 @@ class WebController extends BaseWebController
 					//	Try local launchpad
 					if ( is_file( \Kisma::get( 'app.app_path' ) . $_defaultApp ) )
 					{
+						if ( $_error )
+						{
+							$_defaultApp = $_defaultApp . ( false !== strpos( $_defaultApp, '?' ) ? '&' : '?' ) . $_error;
+						}
+
 						$this->redirect( $_defaultApp );
 					}
 
@@ -273,20 +299,20 @@ class WebController extends BaseWebController
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					$this->redirect( '/' . $this->id . '/initSystem' );
+					$this->redirect( ' / ' . $this->id . ' / initSystem' );
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( '/' . $this->id . '/initAdmin' );
+					$this->redirect( ' / ' . $this->id . ' / initAdmin' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( '/' . $this->id . '/upgradeSchema' );
+					$this->redirect( ' / ' . $this->id . ' / upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( '/' . $this->id . '/initData' );
+					$this->redirect( ' / ' . $this->id . ' / initData' );
 					break;
 			}
 		}
@@ -319,21 +345,6 @@ class WebController extends BaseWebController
 	 */
 	public function actionLogin( $redirected = false )
 	{
-//		try
-//		{
-//			if ( !isset( Pii::app()->session['hybridauth-ref'] ) )
-//			{
-//				Pii::app()->session['hybridauth-ref'] = Pii::request()->getUrlReferrer();
-//			}
-//
-//			$this->_doLogin();
-//		}
-//		catch ( \Exception $_ex )
-//		{
-//			Pii::user()->setFlash( 'hybridauth-error', "Something went wrong, did you cancel?" );
-//			$this->redirect( Pii::app()->session['hybridauth-ref'], true );
-//		}
-
 		$_model = new LoginForm();
 		$_model->setDrupalAuth( !$redirected );
 
@@ -354,7 +365,7 @@ class WebController extends BaseWebController
 			{
 				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
 				{
-					$_returnUrl = Pii::url( $this->id . '/index' );
+					$_returnUrl = Pii::url( $this->id . ' / index' );
 				}
 
 				$this->redirect( $_returnUrl );
@@ -363,7 +374,7 @@ class WebController extends BaseWebController
 			}
 			else
 			{
-				$_model->addError( 'username', 'Invalid user name and password combination.' );
+				$_model->addError( 'username', 'Invalid user name and password combination . ' );
 			}
 		}
 
@@ -383,7 +394,7 @@ class WebController extends BaseWebController
 	public function actionInitSystem()
 	{
 		SystemManager::initSystem();
-		$this->redirect( '/' );
+		$this->redirect( ' / ' );
 	}
 
 	/**
@@ -400,7 +411,7 @@ class WebController extends BaseWebController
 			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				$this->redirect( '/' );
+				$this->redirect( ' / ' );
 			}
 			else
 			{
@@ -427,7 +438,7 @@ class WebController extends BaseWebController
 		{
 //			Log::debug( 'initAdmin activated' );
 			SystemManager::initAdmin();
-			$this->redirect( '/' );
+			$this->redirect( ' / ' );
 		}
 
 //		Log::debug( 'initAdmin NOT activated' );
@@ -441,7 +452,7 @@ class WebController extends BaseWebController
 			if ( $_model->validate() )
 			{
 				SystemManager::initAdmin();
-				$this->redirect( '/' );
+				$this->redirect( ' / ' );
 			}
 
 			$this->refresh();
@@ -469,7 +480,7 @@ class WebController extends BaseWebController
 			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				$this->redirect( '/' );
+				$this->redirect( ' / ' );
 			}
 
 			$this->refresh();
@@ -490,7 +501,7 @@ class WebController extends BaseWebController
 	{
 		if ( Fabric::fabricHosted() )
 		{
-			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
+			throw new \Exception( 'Fabric hosted DSPs can not be upgraded . ' );
 		}
 
 		/** @var \CWebUser $_user */
@@ -504,7 +515,7 @@ class WebController extends BaseWebController
 			}
 			catch ( \Exception $ex )
 			{
-				throw new \Exception( 'Upgrade requires admin privileges, logout and login with admin credentials.' );
+				throw new \Exception( 'Upgrade requires admin privileges, logout and login with admin credentials . ' );
 			}
 		}
 
@@ -514,14 +525,14 @@ class WebController extends BaseWebController
 		foreach ( $_temp as $_version )
 		{
 			$_name = Option::get( $_version, 'name', '' );
-			if ( version_compare( $_current, $_name, '<' ) )
+			if ( version_compare( $_current, $_name, ' < ' ) )
 			{
 				$_versions[] = $_name;
 			}
 		}
 		if ( empty( $_versions ) )
 		{
-			throw new \Exception( 'No upgrade available. This DSP is running the latest available version.' );
+			throw new \Exception( 'No upgrade available . This DSP is running the latest available version . ' );
 		}
 
 		$_model = new UpgradeDspForm();
@@ -535,7 +546,7 @@ class WebController extends BaseWebController
 			{
 				$_version = Option::get( $_versions, $_model->selected, '' );
 				SystemManager::upgradeDsp( $_version );
-				$this->redirect( '/' );
+				$this->redirect( ' / ' );
 			}
 
 			$this->refresh();
@@ -581,7 +592,7 @@ class WebController extends BaseWebController
 			/** @var $_node \SplFileInfo */
 			foreach ( $_objects as $_name => $_node )
 			{
-				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
+				if ( $_node->isDir() || $_node->isLink() || ' . ' == $_name || ' ..' == $_name )
 				{
 					continue;
 				}
@@ -590,7 +601,7 @@ class WebController extends BaseWebController
 
 				if ( empty( $_cleanPath ) )
 				{
-					$_cleanPath = '/';
+					$_cleanPath = ' / ';
 				}
 
 				$_data[$_cleanPath][] = basename( $_name );
@@ -612,7 +623,7 @@ class WebController extends BaseWebController
 		}
 		else
 		{
-			$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
+			$_endpoint = Pii::getParam( 'cloud . endpoint' ) . ' / metrics / dsp ? dsp = ' . urlencode( Pii::getParam( 'dsp . name' ) );
 
 			Curl::setDecodeToArray( true );
 			$_stats = Curl::get( $_endpoint );
@@ -624,7 +635,7 @@ class WebController extends BaseWebController
 		}
 
 		$this->layout = false;
-		header( 'Content-type: application/json' );
+		header( 'Content - type: application / json' );
 
 		echo json_encode( $_stats );
 		Pii::end();
@@ -646,7 +657,12 @@ class WebController extends BaseWebController
 	 */
 	public function actionRemoteLogin()
 	{
-		Log::debug( 'actionRemoteLogin: ' . print_r( $_REQUEST, true ) );
+		if ( null !== $this->_remoteError )
+		{
+			$this->redirect( '/?error=' . $this->_remoteError );
+		}
+
+		Log::debug( 'Remote login request: ' . print_r( $_REQUEST, true ) );
 
 		$this->layout = false;
 
@@ -663,9 +679,11 @@ class WebController extends BaseWebController
 
 		Oasys::setStore( new FileSystem( __FILE__ ) );
 
+		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
+
 		$_baseConfig = array(
-			'flow_type'    => Flows::CLIENT_SIDE,
-			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId
+			'flow_type'    => $_flow,
+			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId . '&flow=' . $_flow,
 		);
 
 		$_stateConfig = array();
@@ -681,6 +699,8 @@ class WebController extends BaseWebController
 			$_baseConfig,
 			$_stateConfig
 		);
+
+		Log::debug( 'Config: ' . print_r( $_fullConfig, true ) );
 
 		$_provider = Oasys::getProvider( $_providerId, $_fullConfig );
 
@@ -714,26 +734,17 @@ class WebController extends BaseWebController
 						$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
 						$_user = ProviderUser::getByEmail( $_shadowEmail );
 
-						/** @var Config $_dspConfig */
-						if ( null === ( $_dspConfig = Config::model()->find() ) )
-						{
-							throw new InternalServerErrorException( 'DSP configuration not found.' );
-						}
-
 						if ( empty( $_user ) )
 						{
 							/** @var Config $_config */
 							if ( null === ( $_config = Config::model()->find() ) )
 							{
-								throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing...' );
+								throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing ...' );
 							}
 
 							//	Create new shadow user...
 							$_user = new User();
-							$_user->first_name = $_firstName;
-							$_user->last_name = $_lastName;
 							$_user->display_name = $_displayName . ' @ ' . $_providerId;
-							$_user->phone = $_phone;
 							$_user->is_active = true;
 							$_user->is_sys_admin = false;
 							$_user->user_source = $_providerModel->id;
@@ -741,11 +752,20 @@ class WebController extends BaseWebController
 							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
 							$_user->role_id = $_config->open_reg_role_id;
 							$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
+							$_user->phone = $_phone;
+							$_user->first_name = $_firstName;
+							$_user->last_name = $_lastName;
 						}
 
-						//	Set the default role, if one isn't assigned.
+						//	Set the default role, if one isn't assigned .
 						if ( empty( $_user->role_id ) )
 						{
+							/** @var Config $_dspConfig */
+							if ( null === ( $_dspConfig = Config::model()->find( array( 'select' => 'open_reg_role_id' ) ) ) )
+							{
+								throw new InternalServerErrorException( 'DSP configuration not found.' );
+							}
+
 							$_user->role_id = $_dspConfig->open_reg_role_id;
 						}
 
@@ -768,7 +788,7 @@ class WebController extends BaseWebController
 						}
 						catch ( \Exception $_ex )
 						{
-							Log::error( 'Exception creating remote login shadow user: ' . $_ex->getMessage() );
+							Log::error( 'Exception siring shadow person > ' . $_ex->getMessage() );
 							throw $_ex;
 						}
 
@@ -794,7 +814,7 @@ class WebController extends BaseWebController
 						}
 						catch ( \CDbException $_ex )
 						{
-							Log::error( 'Exception saving provider_user row: ' . $_ex->getMessage() );
+							Log::error( 'Exception saving provider_user row > ' . $_ex->getMessage() );
 							throw $_ex;
 						}
 					}
@@ -813,14 +833,16 @@ class WebController extends BaseWebController
 				}
 				catch ( \Exception $_ex )
 				{
-					Log::error( 'Exception getting remote user profile: ' . $_ex->getMessage() );
-					$this->redirect( '/' );
+					Log::error( 'Exception getting remote user profile > ' . $_ex->getMessage() );
+					throw $_ex;
 				}
 			}
 			catch ( \Exception $_ex )
 			{
 				//	Roll it back...
 				$_transaction->rollback();
+
+				$this->redirect( '/?error=' . urlencode( $_ex->getMessage() ) );
 			}
 		}
 	}
