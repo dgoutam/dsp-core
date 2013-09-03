@@ -700,7 +700,7 @@ class WebController extends BaseWebController
 			$_stateConfig
 		);
 
-		Log::debug( 'Config: ' . print_r( $_fullConfig, true ) );
+//		Log::debug( 'Config: ' . print_r( $_fullConfig, true ) );
 
 		$_provider = Oasys::getProvider( $_providerId, $_fullConfig );
 
@@ -711,7 +711,6 @@ class WebController extends BaseWebController
 			$_name = $_profile->getName();
 			$_firstName = Option::get( $_name, 'given_name' );
 			$_lastName = Option::get( $_name, 'family_name' );
-			$_displayName = Option::get( $_name, 'formatted' );
 
 			$_phones = $_profile->getPhoneNumbers();
 			$_phone = null;
@@ -725,98 +724,100 @@ class WebController extends BaseWebController
 
 			try
 			{
-				$_user = null;
-
 				try
 				{
-					if ( !empty( $_profile ) )
+					$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
+
+					//	Don't overwrite other sources...
+					if ( null !== ( $_user = User::model()->find( 'email = :email', array( ':email' => $_shadowEmail ) ) ) )
 					{
-						$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
-						$_user = ProviderUser::getByEmail( $_shadowEmail );
-
-						if ( empty( $_user ) )
+						if ( $_user->user_source != $_providerModel->id )
 						{
-							/** @var Config $_config */
-							if ( null === ( $_config = Config::model()->find() ) )
-							{
-								throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing ...' );
-							}
-
-							//	Create new shadow user...
-							$_user = new User();
-							$_user->display_name = $_displayName . ' @ ' . $_providerId;
-							$_user->is_active = true;
-							$_user->is_sys_admin = false;
-							$_user->user_source = $_providerModel->id;
-							$_user->email = $_shadowEmail;
-							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
-							$_user->role_id = $_config->open_reg_role_id;
-							$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
-							$_user->phone = $_phone;
-							$_user->first_name = $_firstName;
-							$_user->last_name = $_lastName;
+							throw new InternalServerErrorException( 'The email address "' . $_shadowEmail . '" is already registered from another source.' );
 						}
 
-						//	Set the default role, if one isn't assigned .
-						if ( empty( $_user->role_id ) )
-						{
-							/** @var Config $_dspConfig */
-							if ( null === ( $_dspConfig = Config::model()->find( array( 'select' => 'open_reg_role_id' ) ) ) )
-							{
-								throw new InternalServerErrorException( 'DSP configuration not found.' );
-							}
+						unset( $_user );
+					}
 
-							$_user->role_id = $_dspConfig->open_reg_role_id;
-						}
+					$_user = ProviderUser::getByEmail( $_shadowEmail );
+					$_userName = $_profile->getPreferredUsername() ? : $_profile->getUserId();
 
-						$_user->last_login_date = date( 'c' );
-						$_data = $_user->user_data;
+					/** @var Config $_config */
+					if ( null === ( $_config = Config::model()->find( array( 'select' => 'open_reg_role_id' ) ) ) )
+					{
+						throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing ...' );
+					}
 
-						if ( empty( $_data ) )
-						{
-							$_data = array();
-						}
+					if ( empty( $_user ) )
+					{
+						//	Create new shadow user...
+						$_user = new User();
+						$_user->is_active = true;
+						$_user->is_sys_admin = false;
+					}
 
-						$_data[$_providerId . '.profile'] = $_profile->toArray();
+					$_user->display_name = $_userName . '@' . $_providerId;
+					$_user->user_source = $_providerModel->id;
+					$_user->email = $_shadowEmail;
+					$_user->password = sha1( $_user->email . Hasher::generateUnique() );
+					$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
+					$_user->phone = $_phone;
+					$_user->first_name = $_firstName;
+					$_user->last_name = $_lastName;
 
-						//	Save the remote profile info...
-						$_user->user_data = $_data;
+					//	Set the default role, if one isn't assigned .
+					if ( empty( $_user->role_id ) )
+					{
+						$_user->role_id = $_config->open_reg_role_id;
+					}
 
-						try
-						{
-							$_user->save();
-						}
-						catch ( \Exception $_ex )
-						{
-							Log::error( 'Exception siring shadow person > ' . $_ex->getMessage() );
-							throw $_ex;
-						}
+					$_user->last_login_date = date( 'c' );
+					$_data = $_user->user_data;
 
-						if ( null === ( $_providerUser = ProviderUser::model()->byUserProviderUserId( $_user->id, $_profile->getUserId() )->find() ) )
-						{
-							//	Create new portal account...
-							$_providerUser = new ProviderUser();
-							$_providerUser->user_id = $_user->id;
-							$_providerUser->provider_user_id = $_profile->getUserId();
-							$_providerUser->provider_id = $_providerModel->id;
-							$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
-						}
+					if ( empty( $_data ) )
+					{
+						$_data = array();
+					}
 
-						try
-						{
-							$_providerUser->last_use_date = date( 'c' );
-							$_providerUser->auth_text = $_provider->getConfig()->toJson();
-							$_providerUser->save();
+					$_data[$_providerId . '.profile'] = $_profile->toArray();
 
-							$_transaction->commit();
+					//	Save the remote profile info...
+					$_user->user_data = $_data;
 
-							Pii::setstate( $_providerId . '.config', $_provider->getConfig()->toJson() );
-						}
-						catch ( \CDbException $_ex )
-						{
-							Log::error( 'Exception saving provider_user row > ' . $_ex->getMessage() );
-							throw $_ex;
-						}
+					try
+					{
+						$_user->save();
+					}
+					catch ( \Exception $_ex )
+					{
+						Log::error( 'Exception siring shadow person > ' . $_ex->getMessage() );
+						throw $_ex;
+					}
+
+					if ( null === ( $_providerUser = ProviderUser::model()->byUserProviderUserId( $_user->id, $_profile->getUserId() )->find() ) )
+					{
+						//	Create new portal account...
+						$_providerUser = new ProviderUser();
+						$_providerUser->user_id = $_user->id;
+						$_providerUser->provider_user_id = $_profile->getUserId();
+						$_providerUser->provider_id = $_providerModel->id;
+						$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
+					}
+
+					try
+					{
+						$_providerUser->last_use_date = date( 'c' );
+						$_providerUser->auth_text = $_provider->getConfig()->toJson();
+						$_providerUser->save();
+
+						$_transaction->commit();
+
+						Pii::setstate( $_providerId . '.config', $_provider->getConfig()->toJson() );
+					}
+					catch ( \CDbException $_ex )
+					{
+						Log::error( 'Exception saving provider_user row > ' . $_ex->getMessage() );
+						throw $_ex;
 					}
 
 					//	Login user...
