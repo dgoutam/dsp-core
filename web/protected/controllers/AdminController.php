@@ -18,18 +18,13 @@
  * limitations under the License.
  */
 use DreamFactory\Oasys\Oasys;
-use DreamFactory\Platform\Enums\ResponseFormats;
-use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
-use Kisma\Core\Enums\OutputFormat;
-use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use Kisma\Core\Utility\Sql;
 
 /**
  * AdminController.php
@@ -71,7 +66,7 @@ class AdminController extends BaseWebController
 
 			if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
 			{
-				throw new \CHttpException( 'Invalid resource URI specified.' );
+				throw new \CHttpException( 404, 'Not found.' );
 			}
 
 			//	Handle a plural request
@@ -99,15 +94,17 @@ class AdminController extends BaseWebController
 							{
 								$_value = implode( ', ', $_value );
 							}
-
-							$_schema[$_key]['value'] = $_value;
 						}
+
+						$_schema[$_key]['value'] = $_value;
 					}
 				}
-			};
+			}
 		}
-		catch ( Exception $_ex )
+		catch ( \Exception $_ex )
 		{
+			$_errors[] = 'Error [' . $_ex->getCode() . '] ' . $_ex->getMessage();
+			Log::error( 'Admin::actionUpdate exception: ' . $_ex->getMessage() );
 		}
 
 		$this->render(
@@ -125,8 +122,7 @@ class AdminController extends BaseWebController
 	 */
 	public function actionIndex()
 	{
-		static $_resourceColumns
-		= array(
+		static $_resourceColumns = array(
 			'app'           => array(
 				'header'   => 'Installed Applications',
 				'resource' => 'app',
