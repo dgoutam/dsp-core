@@ -19,3 +19,4 @@ test.php
 test.sh
 src/Platform/*.moved
 *.moved.php
+*.setdev-on
