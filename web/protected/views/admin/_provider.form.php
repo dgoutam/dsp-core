@@ -9,6 +9,7 @@ use Kisma\Core\Utility\Bootstrap;
  * @var array         $schema
  * @var array         $resource
  * @var array         $_formOptions Provided by includer
+ * @var array         $errors       Errors if any
  */
 $this->setBreadcrumbs(
 	array(
@@ -17,32 +18,27 @@ $this->setBreadcrumbs(
 	)
 );
 
-$_errors = null;
+//@TODO error handling from resource request
+$_errors = isset( $errors ) ? Option::clean( $errors ) : array();
 
-if ( !empty( $resource ) )
+if ( !empty( $_errors ) )
 {
-	//@TODO error handling from resource request
-	$_errors = null;
 	$_headline = ( isset( $alertMessage ) ? $alertMessage : 'Sorry pal...' );
+	$_messages = null;
 
-	if ( !empty( $_errors ) )
+	foreach ( $_errors as $_error )
 	{
-		$_messages = null;
-
-		foreach ( $_errors as $_error )
+		foreach ( $_error as $_message )
 		{
-			foreach ( $_error as $_message )
-			{
-				$_messages .= '<p>' . $_message . '</p>';
-			}
+			$_messages .= '<p>' . $_message . '</p>';
 		}
-
-		echo <<<HTML
-	<div class="alert alert-error alert-block alert-fixed fade in" data-alert="alert">
-		<strong>{$_headline}</strong>
-		{$_messages}</div>
-HTML;
 	}
+
+	echo <<<HTML
+<div class="alert alert-error alert-block alert-fixed fade in" data-alert="alert">
+	<strong>{$_headline}</strong>
+	{$_messages}</div>
+HTML;
 }
 
 $_hashedId = $this->hashId( $resource['id'] );

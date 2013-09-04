@@ -299,8 +299,6 @@ class RestController extends BaseFactoryController
 
 		$_outputFormat = trim( strtolower( FilterInput::request( 'format', FilterInput::server( 'HTTP_ACCEPT', null, FILTER_SANITIZE_STRING ), FILTER_SANITIZE_STRING ) ) );
 
-		Log::debug( 'Format = ' . $_outputFormat );
-
 		switch ( $_outputFormat )
 		{
 			case 'json':

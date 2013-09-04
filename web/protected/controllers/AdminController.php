@@ -62,35 +62,60 @@ class AdminController extends BaseWebController
 	 */
 	public function actionUpdate( $options = array(), $fromCreate = false )
 	{
-		$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
-		$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+		$_response = $_schema = $_errors = null;
 
-		if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+		try
 		{
-			throw new BadRequestException( 'No resource and/or path specified.' );
+			$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
+			$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+
+			if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+			{
+				throw new \CHttpException( 'Invalid resource URI specified.' );
+			}
+
+			//	Handle a plural request
+			if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
+			{
+				$_resourceId = $_tempId;
+			}
+
+			$_resource = ResourceStore::resource( $_resourceId );
+			$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
+			$_schema = null;
+
+			if ( !empty( $_response ) && isset( $_response['api_name'] ) )
+			{
+				$_schema = Oasys::getProvider( $_response['api_name'] )->getConfig()->getSchema( false );
+
+				if ( !empty( $_schema ) && !empty( $_response['config_text'] ) )
+				{
+					//	Load the resource into the schema for a goof
+					foreach ( $_response['config_text'] as $_key => $_value )
+					{
+						if ( Option::contains( $_schema, $_key ) )
+						{
+							if ( is_array( $_value ) )
+							{
+								$_value = implode( ', ', $_value );
+							}
+
+							$_schema[$_key]['value'] = $_value;
+						}
+					}
+				}
+			};
 		}
-
-		//	Handle a plural request
-		$_temp = $_resourceId[strlen( $_resourceId ) - 1];
-		if ( 's' == $_temp && $_resourceId == Inflector::pluralize( substr( $_resourceId, 0, -1 ) ) )
+		catch ( Exception $_ex )
 		{
-			$_resourceId = substr( $_resourceId, 0, -1 );
 		}
-
-		$_resource = ResourceStore::resource( $_resourceId );
-		$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
-		$_schema = null;
-
-		if ( !empty( $_response ) && isset( $_response['api_name'] ) )
-		{
-			$_schema = Oasys::getProvider( $_response['api_name'] )->getConfig()->getSchema( false );
-		};
 
 		$this->render(
 			'update',
 			array(
 				 'resource' => $_response,
 				 'schema'   => $_schema,
+				 'errors'   => $_errors,
 			)
 		);
 	}
