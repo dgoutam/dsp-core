@@ -1,5 +1,5 @@
 {
-	"version": "1.0.6.2",
+	"version": "1.0.6.3",
 	"scripts": {
 		"install": null,
 		"update":  "1.0.6-update.sql"

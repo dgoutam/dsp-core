@@ -17,11 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Common\Enums\OutputFormats;
 use DreamFactory\Oasys\Oasys;
 use DreamFactory\Platform\Enums\ResponseFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
-use DreamFactory\Platform\Services\SystemManager;
 use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
@@ -39,15 +37,6 @@ use Kisma\Core\Utility\Sql;
  */
 class AdminController extends BaseWebController
 {
-	//*************************************************************************
-	//* Members
-	//*************************************************************************
-
-	/**
-	 * @var int
-	 */
-	protected $_format = OutputFormat::Raw;
-
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
@@ -94,7 +83,7 @@ class AdminController extends BaseWebController
 
 		if ( !empty( $_response ) && isset( $_response['api_name'] ) )
 		{
-			$_schema = Oasys::getProvider( $_response['api_name'] )->getSchema( false );
+			$_schema = Oasys::getProvider( $_response['api_name'] )->getConfig()->getSchema( false );
 		};
 
 		$this->render(
@@ -194,7 +183,6 @@ class AdminController extends BaseWebController
 		}
 
 		$this->render( 'index', array( 'resourceColumns' => $_resourceColumns ) );
-//		$this->render( 'index', array( 'resourceColumns' => Pii::getParam( 'admin.resource_schema', array() ) ) );
 	}
 
 	/**
@@ -219,25 +207,5 @@ class AdminController extends BaseWebController
 		}
 
 		$this->render( 'Providers' );
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getFormat()
-	{
-		return $this->_format;
-	}
-
-	/**
-	 * @param string $format
-	 *
-	 * @return RestController
-	 */
-	public function setFormat( $format )
-	{
-		$this->_format = $format;
-
-		return $this;
 	}
 }

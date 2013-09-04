@@ -17,8 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Common\Enums\OutputFormats;
+use DreamFactory\Platform\Enums\ResponseFormats;
 use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Platform\Utility\RestResponse;
 use DreamFactory\Platform\Utility\ServiceHandler;
 use DreamFactory\Platform\Yii\Models\Service;
@@ -39,17 +40,21 @@ class RestController extends BaseFactoryController
 	//*************************************************************************
 
 	/**
-	 * @var string Default response format, either 'json' or 'xml'
+	 * @var string Default output format, either 'json' or 'xml'. NOTE: Output format is different from RESPONSE format (inner payload format vs. envelope)
 	 */
-	protected $format = 'json';
+	protected $_outputFormat = 'json';
+	/**
+	 * @var int The inner payload response format
+	 */
+	protected $_responseFormat = null;
 	/**
 	 * @var string service to direct call to
 	 */
-	protected $service = '';
+	protected $_service;
 	/**
 	 * @var string resource to be handled by service
 	 */
-	protected $resource = '';
+	protected $_resource;
 
 	//*************************************************************************
 	//	Methods
@@ -74,7 +79,7 @@ class RestController extends BaseFactoryController
 		{
 			$_result = array( 'service' => Service::available( false, array( 'id', 'api_name' ) ) );
 
-			RestResponse::sendResults( $_result, RestResponse::Ok, null, $this->format );
+			RestResponse::sendResults( $_result, RestResponse::Ok, null, $this->_outputFormat );
 		}
 		catch ( \Exception $_ex )
 		{
@@ -89,11 +94,11 @@ class RestController extends BaseFactoryController
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getService( $this->service );
-			$result = $svcObj->processRequest( $this->resource, HttpMethod::Get );
+			$svcObj = ServiceHandler::getService( $this->_service );
+			$result = $svcObj->processRequest( $this->_resource, HttpMethod::Get );
 			$resultFormat = $svcObj->getNativeFormat();
 
-			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->_outputFormat );
 		}
 		catch ( \Exception $ex )
 		{
@@ -147,12 +152,12 @@ class RestController extends BaseFactoryController
 				}
 			}
 
-			$svcObj = ServiceHandler::getService( $this->service );
-			$result = $svcObj->processRequest( $this->resource, HttpMethod::Post );
+			$svcObj = ServiceHandler::getService( $this->_service );
+			$result = $svcObj->processRequest( $this->_resource, HttpMethod::Post );
 			$resultFormat = $svcObj->getNativeFormat();
 			$code = RestResponse::Created;
 
-			RestResponse::sendResults( $result, $code, $resultFormat, $this->format );
+			RestResponse::sendResults( $result, $code, $resultFormat, $this->_outputFormat );
 		}
 		catch ( \Exception $ex )
 		{
@@ -167,11 +172,11 @@ class RestController extends BaseFactoryController
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getService( $this->service );
-			$result = $svcObj->processRequest( $this->resource, HttpMethod::Merge );
+			$svcObj = ServiceHandler::getService( $this->_service );
+			$result = $svcObj->processRequest( $this->_resource, HttpMethod::Merge );
 			$resultFormat = $svcObj->getNativeFormat();
 
-			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->_outputFormat );
 		}
 		catch ( \Exception $ex )
 		{
@@ -186,11 +191,11 @@ class RestController extends BaseFactoryController
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getService( $this->service );
-			$result = $svcObj->processRequest( $this->resource, HttpMethod::Put );
+			$svcObj = ServiceHandler::getService( $this->_service );
+			$result = $svcObj->processRequest( $this->_resource, HttpMethod::Put );
 			$resultFormat = $svcObj->getNativeFormat();
 
-			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->_outputFormat );
 		}
 		catch ( \Exception $ex )
 		{
@@ -205,11 +210,11 @@ class RestController extends BaseFactoryController
 	{
 		try
 		{
-			$svcObj = ServiceHandler::getService( $this->service );
-			$result = $svcObj->processRequest( $this->resource, HttpMethod::Delete );
+			$svcObj = ServiceHandler::getService( $this->_service );
+			$result = $svcObj->processRequest( $this->_resource, HttpMethod::Delete );
 			$resultFormat = $svcObj->getNativeFormat();
 
-			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->format );
+			RestResponse::sendResults( $result, RestResponse::Ok, $resultFormat, $this->_outputFormat );
 		}
 		catch ( \Exception $ex )
 		{
@@ -228,21 +233,21 @@ class RestController extends BaseFactoryController
 	protected function beforeAction( $action )
 	{
 		$GLOBALS['app_name'] = $this->_determineAppName();
-		$this->format = $this->_determineFormat();
+		$this->_outputFormat = $this->_determineFormat();
 
 //        'rest/<service:[_0-9a-zA-Z-]+>/<resource:[_0-9a-zA-Z-\/. ]+>'
 		$path = Option::get( $_GET, 'path', '' );
 		$slashIndex = strpos( $path, '/' );
 		if ( false === $slashIndex )
 		{
-			$this->service = $path;
+			$this->_service = $path;
 		}
 		else
 		{
-			$this->service = substr( $path, 0, $slashIndex );
-			$this->resource = substr( $path, $slashIndex + 1 );
+			$this->_service = substr( $path, 0, $slashIndex );
+			$this->_resource = substr( $path, $slashIndex + 1 );
 			// fix removal of trailing slashes from resource
-			if ( !empty( $this->resource ) )
+			if ( !empty( $this->_resource ) )
 			{
 				$requestUri = Yii::app()->request->requestUri;
 				if ( ( false === strpos( $requestUri, '?' ) &&
@@ -250,7 +255,7 @@ class RestController extends BaseFactoryController
 					 ( '/' === substr( $requestUri, strpos( $requestUri, '?' ) - 1, 1 ) )
 				)
 				{
-					$this->resource .= '/';
+					$this->_resource .= '/';
 				}
 			}
 		}
@@ -263,7 +268,7 @@ class RestController extends BaseFactoryController
 	 *
 	 * @return mixed
 	 */
-	protected static function _determineAppName()
+	protected function _determineAppName()
 	{
 		// 	Determine application if any
 		$_appName = FilterInput::request( 'app_name', null, FILTER_SANITIZE_STRING );
@@ -285,45 +290,116 @@ class RestController extends BaseFactoryController
 		return $_appName;
 	}
 
-	protected static function _determineFormat()
+	/**
+	 * @return string
+	 */
+	protected function _determineFormat()
 	{
-		$_format = FilterInput::request( 'format', '', FILTER_SANITIZE_STRING );
-		if ( empty( $_format ) )
+		$this->_responseFormat = ResponseFormats::RAW;
+
+		$_outputFormat = trim( strtolower( FilterInput::request( 'format', FilterInput::server( 'HTTP_ACCEPT', null, FILTER_SANITIZE_STRING ), FILTER_SANITIZE_STRING ) ) );
+
+		Log::debug( 'Format = ' . $_outputFormat );
+
+		switch ( $_outputFormat )
 		{
-			$_format = FilterInput::server( 'HTTP_ACCEPT', 'json', FILTER_SANITIZE_STRING );
+			case 'json':
+			case 'xml':
+				//	These are good...
+				break;
+
+			default:
+				if ( ResponseFormats::contains( $_outputFormat ) )
+				{
+					//	Set the response format here and in the store
+					ResourceStore::setResponseFormat( $this->_responseFormat = $_outputFormat );
+				}
+
+				//	Set envelope to JSON
+				$_outputFormat = 'json';
+				break;
 		}
 
-		if ( false !== strpos( strtolower( $_format ), 'json'))
-		{
-			return 'json';
-		}
-		if ( false !== strpos( strtolower( $_format ), 'xml'))
-		{
-			return 'xml';
-		}
+		return $_outputFormat;
+	}
 
-//		RestResponse::sendErrors( new BadRequestException( 'Invalid format requested ' . $_format ) );
+	/**
+	 * @param string $outputFormat
+	 *
+	 * @return RestController
+	 */
+	public function setOutputFormat( $outputFormat )
+	{
+		$this->_outputFormat = $outputFormat;
 
-		return 'json';
+		return $this;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getFormat()
+	public function getOutputFormat()
 	{
-		return $this->format;
+		return $this->_outputFormat;
 	}
 
 	/**
-	 * @param string $format
+	 * @param string $resource
 	 *
 	 * @return RestController
 	 */
-	public function setFormat( $format )
+	public function setResource( $resource )
 	{
-		$this->format = $format;
+		$this->_resource = $resource;
 
 		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getResource()
+	{
+		return $this->_resource;
+	}
+
+	/**
+	 * @param int $responseFormat
+	 *
+	 * @return RestController
+	 */
+	public function setResponseFormat( $responseFormat )
+	{
+		$this->_responseFormat = $responseFormat;
+
+		return $this;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getResponseFormat()
+	{
+		return $this->_responseFormat;
+	}
+
+	/**
+	 * @param string $service
+	 *
+	 * @return RestController
+	 */
+	public function setService( $service )
+	{
+		$this->_service = $service;
+
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getService()
+	{
+		return $this->_service;
 	}
 }

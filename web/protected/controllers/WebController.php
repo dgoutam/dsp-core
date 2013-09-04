@@ -299,20 +299,20 @@ class WebController extends BaseWebController
 					break;
 
 				case PlatformStates::INIT_REQUIRED:
-					$this->redirect( ' / ' . $this->id . ' / initSystem' );
+					$this->redirect( '/' . $this->id . '/initSystem' );
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( ' / ' . $this->id . ' / initAdmin' );
+					$this->redirect( '/' . $this->id . '/initAdmin' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
 				case PlatformStates::UPGRADE_REQUIRED:
-					$this->redirect( ' / ' . $this->id . ' / upgradeSchema' );
+					$this->redirect( '/' . $this->id . '/upgradeSchema' );
 					break;
 
 				case PlatformStates::DATA_REQUIRED:
-					$this->redirect( ' / ' . $this->id . ' / initData' );
+					$this->redirect( '/' . $this->id . '/initData' );
 					break;
 			}
 		}
@@ -365,7 +365,7 @@ class WebController extends BaseWebController
 			{
 				if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
 				{
-					$_returnUrl = Pii::url( $this->id . ' / index' );
+					$_returnUrl = Pii::url( $this->id . '/index' );
 				}
 
 				$this->redirect( $_returnUrl );
@@ -394,7 +394,7 @@ class WebController extends BaseWebController
 	public function actionInitSystem()
 	{
 		SystemManager::initSystem();
-		$this->redirect( ' / ' );
+		$this->redirect( '/' );
 	}
 
 	/**
@@ -411,7 +411,7 @@ class WebController extends BaseWebController
 			if ( $_model->validate() )
 			{
 				SystemManager::initSchema();
-				$this->redirect( ' / ' );
+				$this->redirect( '/' );
 			}
 			else
 			{
@@ -438,7 +438,7 @@ class WebController extends BaseWebController
 		{
 //			Log::debug( 'initAdmin activated' );
 			SystemManager::initAdmin();
-			$this->redirect( ' / ' );
+			$this->redirect( '/' );
 		}
 
 //		Log::debug( 'initAdmin NOT activated' );
@@ -452,7 +452,7 @@ class WebController extends BaseWebController
 			if ( $_model->validate() )
 			{
 				SystemManager::initAdmin();
-				$this->redirect( ' / ' );
+				$this->redirect( '/' );
 			}
 
 			$this->refresh();
@@ -480,7 +480,7 @@ class WebController extends BaseWebController
 			if ( $_model->validate() )
 			{
 				SystemManager::initData();
-				$this->redirect( ' / ' );
+				$this->redirect( '/' );
 			}
 
 			$this->refresh();
@@ -546,7 +546,7 @@ class WebController extends BaseWebController
 			{
 				$_version = Option::get( $_versions, $_model->selected, '' );
 				SystemManager::upgradeDsp( $_version );
-				$this->redirect( ' / ' );
+				$this->redirect( '/' );
 			}
 
 			$this->refresh();
@@ -601,7 +601,7 @@ class WebController extends BaseWebController
 
 				if ( empty( $_cleanPath ) )
 				{
-					$_cleanPath = ' / ';
+					$_cleanPath = '/';
 				}
 
 				$_data[$_cleanPath][] = basename( $_name );
@@ -623,7 +623,7 @@ class WebController extends BaseWebController
 		}
 		else
 		{
-			$_endpoint = Pii::getParam( 'cloud . endpoint' ) . ' / metrics / dsp ? dsp = ' . urlencode( Pii::getParam( 'dsp . name' ) );
+			$_endpoint = Pii::getParam( 'cloud . endpoint' ) . '/metrics/dsp ? dsp = ' . urlencode( Pii::getParam( 'dsp . name' ) );
 
 			Curl::setDecodeToArray( true );
 			$_stats = Curl::get( $_endpoint );
@@ -635,7 +635,7 @@ class WebController extends BaseWebController
 		}
 
 		$this->layout = false;
-		header( 'Content - type: application / json' );
+		header( 'Content-type: application/json' );
 
 		echo json_encode( $_stats );
 		Pii::end();
@@ -756,7 +756,7 @@ class WebController extends BaseWebController
 						$_user->is_sys_admin = false;
 					}
 
-					$_user->display_name = $_userName . '@' . $_providerId;
+					$_user->display_name = $_profile->getDisplayName() . ' @ ' . $_providerId;
 					$_user->user_source = $_providerModel->id;
 					$_user->email = $_shadowEmail;
 					$_user->password = sha1( $_user->email . Hasher::generateUnique() );

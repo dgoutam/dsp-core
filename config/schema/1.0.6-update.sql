@@ -28,3 +28,4 @@ DROP TABLE IF EXISTS `df_sys_portal_account`;
 --	Unique index on portal accounts
 DROP INDEX undx_provider_user_provider_user_id ON df_sys_provider_user;
 CREATE UNIQUE INDEX undx_provider_user_provider_user_id ON df_sys_provider_user (user_id, provider_id, provider_user_id);
+CREATE UNIQUE INDEX undx_provider_user_provider_user_id ON df_sys_provider_user (user_id, provider_id, provider_user_id);
