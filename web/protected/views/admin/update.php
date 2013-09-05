@@ -11,7 +11,10 @@ $update = false;
 $_form = new BootstrapForm();
 
 $_options = array(
-	'breadcrumbs' => false,
+	'breadcrumbs' => array(
+		'Admin Dashboard' => '/admin',
+		'Resource'        => false,
+	)
 );
 
 $_formOptions = $_form->pageHeader( $_options );

@@ -1,7 +1,4 @@
 <?php
-use DreamFactory\Yii\Utility\BootstrapForm;
-use Kisma\Core\Utility\Bootstrap;
-
 /**
  * _provider.form.php
  *
@@ -11,6 +8,10 @@ use Kisma\Core\Utility\Bootstrap;
  * @var array         $_formOptions Provided by includer
  * @var array         $errors       Errors if any
  */
+use DreamFactory\Yii\Utility\BootstrapForm;
+use Kisma\Core\Utility\Bootstrap;
+use Kisma\Core\Utility\Option;
+
 $this->setBreadcrumbs(
 	array(
 		 'Providers' => 'providers/index',
@@ -53,16 +54,43 @@ $_form = new BootstrapForm(
 	)
 );
 
+$_newRecord = ( null === ( $_resourceId = Option::get( $resource, 'id' ) ) );
+
 $_form->setFormData( $resource );
 
 $_fields = array(
-	'Configuration' => $schema,
+	'Basic Settings' => array(
+		'api_name'      => array(
+			'type'        => 'text',
+			'class'       => $_newRecord ? 'required' : 'uneditable-input',
+			'placeholder' => 'How to address this provider via REST',
+			'hint'        => 'The URI portion to be used when calling this provider. For example: "github", or "facebook".',
+			'maxlength'   => 64,
+		),
+		'provider_name' => array(
+			'type'      => 'text',
+			'class'     => 'required' . ( !$_newRecord ? ' x-editable' : null ),
+			'hint'      => 'The real name, or "display" name for this provider.',
+			'maxlength' => 64,
+		),
+	),
+	'Configuration'  => $schema,
+	'Metrics'        => array(
+		'created_date'       => array(
+			'type'  => 'text',
+			'class' => 'uneditable-input',
+		),
+		'last_modified_date' => array(
+			'type'  => 'text',
+			'class' => 'uneditable-input',
+		),
+	),
 );
 ?>
 <div class="row-fluid" style="border-bottom:1px solid #ddd">
 	<div class="span8">
-		<h2 style="margin-bottom: 0">Provider
-			<small><?php echo 'ProviderName'; ?></small>
+		<h2 style="margin-bottom: 0"><?php echo $_newRecord ? 'New Provider' : $resource['provider_name']; ?>
+			<small>Edit Provider</small>
 		</h2>
 	</div>
 	<div class="span4" style="margin-top:10px">
