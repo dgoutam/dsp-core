@@ -149,14 +149,17 @@ label, input, button, select, textarea {
 }
 
 .help-block {
-	font-size:                  10pt;
-	opacity:                    0.5;
-	transition-duration:        0.3s;
-	transition-property:        opacity;
-	transition-timing-function: ease-in-out;
+	font-size:          10pt;
+	opacity:            0.5;
+	-webkit-transition: opacity 0.3s ease-in-out;
+	-moz-transition:    opacity 0.3s ease-in-out;
+	-ms-transition:     opacity 0.3s ease-in-out;
+	-o-transition:      opacity 0.3s ease-in-out;
+	transition:         opacity 0.3s ease-in-out;
 }
 
 .uneditable-input, .uneditable-input:focus, .uneditable-input:hover {
+	color:              #51A351 !important;
 	font-weight:        bold;
 	border:             none !important;
 	background:         transparent !important;
@@ -176,4 +179,13 @@ label, input, button, select, textarea {
 
 .form-horizontal input + .help-block, .form-horizontal select + .help-block, .form-horizontal textarea + .help-block, .form-horizontal .uneditable-input + .help-block, .form-horizontal .input-prepend + .help-block, .form-horizontal .input-append + .help-block {
 	margin-top: 4px;
+}
+
+.form-horizontal input.uneditable-input {
+	padding-bottom: 0px;
+	padding-left:   0;
+}
+
+.form-horizontal input.uneditable-input + .help-block {
+	margin-top: -4px;
 }
