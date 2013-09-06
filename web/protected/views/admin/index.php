@@ -2,43 +2,48 @@
 /**
  * @var array $resourceColumns
  */
+use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
 
-$_content = $_tabs = null;
+$_state = $_content = $_tabs = null;
 
-$_class = ' class="active"';
-
-foreach ( $resourceColumns as $_resource => $_config )
+if ( null === ( $_state = Pii::getState( 'admin.state' ) ) )
 {
-	$_html = '<h3>Coming Soon!</h3>';
-	$_labels = null;
-	$_active = $_resource == 'app' ? ' active' : null;
+	$_state = array();
 
-	//	Get/create a menu name
-	$_menuName = Option::get(
-		$_config,
-		'menu_name',
-		Option::get(
-			$_config,
-			'header',
-			Inflector::pluralize( $_config['resource'] )
-		)
-	);
+	$_class = ' class="active"';
 
-	if ( isset( $_config['labels'] ) && !empty( $_config['labels'] ) )
+	foreach ( $resourceColumns as $_resource => $_config )
 	{
-		$_id = 'tab-' . $_resource;
-		$_count = 0;
+		$_html = '<h3>Coming Soon!</h3>';
+		$_labels = null;
+		$_active = $_resource == 'app' ? ' active' : null;
 
-		foreach ( $_config['labels'] as $_label )
+		//	Get/create a menu name
+		$_menuName = Option::get(
+			$_config,
+			'menu_name',
+			Option::get(
+				$_config,
+				'header',
+				Inflector::pluralize( $_config['resource'] )
+			)
+		);
+
+		if ( isset( $_config['labels'] ) && !empty( $_config['labels'] ) )
 		{
-			$_labels .= '<th>' . $_label . '</th>';
-			$_count++;
-		}
+			$_id = 'tab-' . $_resource;
+			$_count = 0;
 
-		$_html
-			= <<<HTML
+			foreach ( $_config['labels'] as $_label )
+			{
+				$_labels .= '<th>' . $_label . '</th>';
+				$_count++;
+			}
+
+			$_html
+				= <<<HTML
 <h3>{$_config['header']}<div id="admin-toolbar" class=" pull-right"></div></h3>
 <table class="table table-striped table-hover table-bordered table-resource" id="{$_resource}-table">
 <thead>
@@ -51,17 +56,32 @@ foreach ( $resourceColumns as $_resource => $_config )
 </tbody>
 </table>
 HTML;
+		}
+
+		$_content .= '<div class="tab-pane' . $_active . '" id="tab-' . $_resource . '">' . $_html . '</div>';
+
+		$_tabs .= '<li ' . $_class . '><a href="#tab-' . $_resource . '" data-toggle="tab"><i class="icon-gear"></i> ' . $_menuName . '</a></li> ';
+		$_class = null;
 	}
 
-	$_content .= '<div class="tab-pane' . $_active . '" id="tab-' . $_resource . '">' . $_html . '</div>';
-
-	$_tabs .= '<li ' . $_class . '><a href="#tab-' . $_resource . '" data-toggle="tab"><i class="icon-gear"></i> ' . $_menuName . '</a></li> ';
-	$_class = null;
-}
-
 //	Fix up functions
-$_dtConfig = json_encode( $resourceColumns );
-$_dtConfig = str_replace( array( '"##', '##"', '\"' ), array( null, null, '"' ), $_dtConfig );
+	$_dtConfig = json_encode( $resourceColumns );
+	$_dtConfig = str_replace( array( '"##', '##"', '\"' ), array( null, null, '"' ), $_dtConfig );
+
+	$_state['dtConfig'] = $_dtConfig;
+	$_state['content'] = $_content;
+	$_state['tabs'] = $_tabs;
+
+	Pii::setState( 'admin.state', json_encode( $_state ) );
+}
+else
+{
+	$_state = json_decode( $_state, true );
+
+	$_dtConfig = $_state['dtConfig'];
+	$_content = $_state['content'];
+	$_tabs = $_state['tabs'];
+}
 
 ?>
 <div class="container">
@@ -126,7 +146,7 @@ jQuery(function($) {
 	$('.table-resource').on('click', 'tbody tr', function() {
 		var _row = $('td', this);
 		var _id = $(_row[0]).text();
-		window.location.href = '/admin/' + $(this).closest('table').attr('id').replace('-table', '') + '/update/id/' + _id;
+		window.location.href = '/admin/' + $(this).closest('table').attr('id').replace('-table', '') + '/update/' + _id;
 		return false;
 	});
 });

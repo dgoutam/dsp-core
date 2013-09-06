@@ -133,3 +133,59 @@ tr.jtable-no-data-row {
 	font-size:   18px;
 	font-weight: bold;
 }
+
+/** Form junk **/
+select, textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"],
+input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input {
+	font-size: 13px;
+	padding:   3px 5px;
+
+}
+
+label, input, button, select, textarea {
+	font-size:   13px;
+	font-weight: normal;
+	line-height: 18px;
+}
+
+.help-block {
+	font-size:          10pt;
+	opacity:            0.5;
+	-webkit-transition: opacity 0.3s ease-in-out;
+	-moz-transition:    opacity 0.3s ease-in-out;
+	-ms-transition:     opacity 0.3s ease-in-out;
+	-o-transition:      opacity 0.3s ease-in-out;
+	transition:         opacity 0.3s ease-in-out;
+}
+
+.uneditable-input, .uneditable-input:focus, .uneditable-input:hover {
+	color:              #51A351 !important;
+	font-weight:        bold;
+	border:             none !important;
+	background:         transparent !important;
+	-webkit-transition: none !important;
+	-moz-transition:    none !important;
+	-ms-transition:     none !important;
+	-o-transition:      none !important;
+	transition:         none !important;
+	-webkit-box-shadow: none !important;
+	-moz-box-shadow:    none !important;
+	box-shadow:         none !important;
+}
+
+.form-horizontal input:focus + .help-block, .form-horizontal select:focus + .help-block, .form-horizontal textarea:focus + .help-block, .form-horizontal .uneditable-input:focus + .help-block, .form-horizontal .input-prepend:focus + .help-block, .form-horizontal .input-append:focus + .help-block {
+	opacity: 1.0;
+}
+
+.form-horizontal input + .help-block, .form-horizontal select + .help-block, .form-horizontal textarea + .help-block, .form-horizontal .uneditable-input + .help-block, .form-horizontal .input-prepend + .help-block, .form-horizontal .input-append + .help-block {
+	margin-top: 4px;
+}
+
+.form-horizontal input.uneditable-input {
+	padding-bottom: 0px;
+	padding-left:   0;
+}
+
+.form-horizontal input.uneditable-input + .help-block {
+	margin-top: -4px;
+}

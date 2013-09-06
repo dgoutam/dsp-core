@@ -17,32 +17,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Oasys\Components\BaseProvider;
 use DreamFactory\Oasys\Enums\Flows;
 use DreamFactory\Oasys\Oasys;
 use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Exceptions\BadRequestException;
+use DreamFactory\Platform\Exceptions\InternalServerErrorException;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
 use DreamFactory\Platform\Services\SystemManager;
-use DreamFactory\Platform\Services\UserManager;
 use DreamFactory\Platform\Utility\Fabric;
 use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
-use DreamFactory\Platform\Yii\Components\RemoteUserIdentity;
+use DreamFactory\Platform\Yii\Models\Config;
 use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
-use Kisma\Core\Utility\Convert;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use TheSeer\DirectoryScanner\Exception;
 
 /**
  * WebController.php
@@ -71,6 +70,10 @@ class WebController extends BaseWebController
 	 * @var bool
 	 */
 	protected $_autoLogged = false;
+	/**
+	 * @var string
+	 */
+	protected $_remoteError = null;
 
 	//*************************************************************************
 	//* Methods
@@ -85,6 +88,15 @@ class WebController extends BaseWebController
 
 		$this->defaultAction = 'index';
 		$this->_activated = SystemManager::activated();
+
+		//	Remote login errors?
+		$_error = FilterInput::request( 'error', null, FILTER_SANITIZE_STRING );
+		$_message = FilterInput::request( 'error_description', null, FILTER_SANITIZE_STRING );
+
+		if ( !empty( $_error ) )
+		{
+			$this->_remoteError = $_error . ( !empty( $_message ) ? ' (' . $_message . ')' : null );
+		}
 	}
 
 	/**
@@ -116,6 +128,7 @@ class WebController extends BaseWebController
 					'initAdmin',
 					'authorize',
 					'remoteLogin',
+					'form',
 				),
 				'users'   => array( '*' ),
 			),
@@ -150,6 +163,12 @@ class WebController extends BaseWebController
 		);
 
 		$this->actionInitSystem();
+	}
+
+	public function actionForm()
+	{
+		$_providerId = FilterInput::request( 'pid', 'facebook', FILTER_SANITIZE_STRING );
+		Log::debug( Oasys::getProvider( $_providerId )->getSchema() );
 	}
 
 	public function actionActivate()
@@ -246,11 +265,17 @@ class WebController extends BaseWebController
 	{
 		try
 		{
+			$_error = false;
 			$_state = SystemManager::getSystemState();
 
 			if ( !$this->_activated && $_state != PlatformStates::INIT_REQUIRED )
 			{
 				$_state = PlatformStates::ADMIN_REQUIRED;
+			}
+
+			if ( !empty( $this->_remoteError ) )
+			{
+				$_error = 'error=' . urlencode( $this->_remoteError );
 			}
 
 			switch ( $_state )
@@ -261,6 +286,11 @@ class WebController extends BaseWebController
 					//	Try local launchpad
 					if ( is_file( \Kisma::get( 'app.app_path' ) . $_defaultApp ) )
 					{
+						if ( $_error )
+						{
+							$_defaultApp = $_defaultApp . ( false !== strpos( $_defaultApp, '?' ) ? '&' : '?' ) . $_error;
+						}
+
 						$this->redirect( $_defaultApp );
 					}
 
@@ -315,21 +345,6 @@ class WebController extends BaseWebController
 	 */
 	public function actionLogin( $redirected = false )
 	{
-//		try
-//		{
-//			if ( !isset( Pii::app()->session['hybridauth-ref'] ) )
-//			{
-//				Pii::app()->session['hybridauth-ref'] = Pii::request()->getUrlReferrer();
-//			}
-//
-//			$this->_doLogin();
-//		}
-//		catch ( \Exception $_ex )
-//		{
-//			Pii::user()->setFlash( 'hybridauth-error', "Something went wrong, did you cancel?" );
-//			$this->redirect( Pii::app()->session['hybridauth-ref'], true );
-//		}
-
 		$_model = new LoginForm();
 		$_model->setDrupalAuth( !$redirected );
 
@@ -359,7 +374,7 @@ class WebController extends BaseWebController
 			}
 			else
 			{
-				$_model->addError( 'username', 'Invalid user name and password combination.' );
+				$_model->addError( 'username', 'Invalid user name and password combination . ' );
 			}
 		}
 
@@ -480,13 +495,13 @@ class WebController extends BaseWebController
 	}
 
 	/**
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function actionUpgrade()
 	{
 		if ( Fabric::fabricHosted() )
 		{
-			throw new \Exception( 'Fabric hosted DSPs can not be upgraded.' );
+			throw new \Exception( 'Fabric hosted DSPs can not be upgraded . ' );
 		}
 
 		/** @var \CWebUser $_user */
@@ -500,7 +515,7 @@ class WebController extends BaseWebController
 			}
 			catch ( \Exception $ex )
 			{
-				throw new \Exception( 'Upgrade requires admin privileges, logout and login with admin credentials.' );
+				throw new \Exception( 'Upgrade requires admin privileges, logout and login with admin credentials . ' );
 			}
 		}
 
@@ -510,14 +525,14 @@ class WebController extends BaseWebController
 		foreach ( $_temp as $_version )
 		{
 			$_name = Option::get( $_version, 'name', '' );
-			if ( version_compare( $_current, $_name, '<' ) )
+			if ( version_compare( $_current, $_name, ' < ' ) )
 			{
 				$_versions[] = $_name;
 			}
 		}
 		if ( empty( $_versions ) )
 		{
-			throw new Exception( 'No upgrade available. This DSP is running the latest available version.' );
+			throw new \Exception( 'No upgrade available . This DSP is running the latest available version . ' );
 		}
 
 		$_model = new UpgradeDspForm();
@@ -577,7 +592,7 @@ class WebController extends BaseWebController
 			/** @var $_node \SplFileInfo */
 			foreach ( $_objects as $_name => $_node )
 			{
-				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
+				if ( $_node->isDir() || $_node->isLink() || ' . ' == $_name || ' ..' == $_name )
 				{
 					continue;
 				}
@@ -608,7 +623,7 @@ class WebController extends BaseWebController
 		}
 		else
 		{
-			$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
+			$_endpoint = Pii::getParam( 'cloud . endpoint' ) . '/metrics/dsp ? dsp = ' . urlencode( Pii::getParam( 'dsp . name' ) );
 
 			Curl::setDecodeToArray( true );
 			$_stats = Curl::get( $_endpoint );
@@ -642,6 +657,13 @@ class WebController extends BaseWebController
 	 */
 	public function actionRemoteLogin()
 	{
+		if ( null !== $this->_remoteError )
+		{
+			$this->redirect( '/?error=' . $this->_remoteError );
+		}
+
+		Log::debug( 'Remote login request: ' . print_r( $_REQUEST, true ) );
+
 		$this->layout = false;
 
 		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
@@ -649,6 +671,7 @@ class WebController extends BaseWebController
 			throw new BadRequestException( 'No remote login provider specified.' );
 		}
 
+		/** @var Provider $_providerModel */
 		if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
 		{
 			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
@@ -656,9 +679,11 @@ class WebController extends BaseWebController
 
 		Oasys::setStore( new FileSystem( __FILE__ ) );
 
+		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
+
 		$_baseConfig = array(
-			'flow_type'    => Flows::CLIENT_SIDE,
-			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId
+			'flow_type'    => $_flow,
+			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId . '&flow=' . $_flow,
 		);
 
 		$_stateConfig = array();
@@ -675,6 +700,8 @@ class WebController extends BaseWebController
 			$_stateConfig
 		);
 
+//		Log::debug( 'Config: ' . print_r( $_fullConfig, true ) );
+
 		$_provider = Oasys::getProvider( $_providerId, $_fullConfig );
 
 		if ( $_provider->handleRequest() )
@@ -684,7 +711,6 @@ class WebController extends BaseWebController
 			$_name = $_profile->getName();
 			$_firstName = Option::get( $_name, 'given_name' );
 			$_lastName = Option::get( $_name, 'family_name' );
-			$_displayName = Option::get( $_name, 'formatted' );
 
 			$_phones = $_profile->getPhoneNumbers();
 			$_phone = null;
@@ -698,78 +724,100 @@ class WebController extends BaseWebController
 
 			try
 			{
-				$_user = null;
-
 				try
 				{
-					if ( !empty( $_profile ) )
+					$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
+
+					//	Don't overwrite other sources...
+					if ( null !== ( $_user = User::model()->find( 'email = :email', array( ':email' => $_shadowEmail ) ) ) )
 					{
-						$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
-						$_user = ProviderUser::getByEmail( $_shadowEmail );
-
-						if ( empty( $_user ) )
+						if ( $_user->user_source != $_providerModel->id )
 						{
-							//	Create new shadow user...
-							$_user = new User();
-							$_user->first_name = $_firstName;
-							$_user->last_name = $_lastName;
-							$_user->display_name = $_displayName . ' @ ' . $_providerId;
-							$_user->phone = $_phone;
-							$_user->is_active = true;
-							$_user->is_sys_admin = false;
-							$_user->user_source = $_providerModel->id;
-							$_user->email = $_shadowEmail;
-							$_user->password = sha1( $_user->email . Hasher::generateUnique() );
+							throw new InternalServerErrorException( 'The email address "' . $_shadowEmail . '" is already registered from another source.' );
 						}
 
-						$_user->last_login_date = date( 'c' );
-						$_data = $_user->user_data;
+						unset( $_user );
+					}
 
-						if ( empty( $_data ) )
-						{
-							$_data = array();
-						}
+					$_user = ProviderUser::getByEmail( $_shadowEmail );
+					$_userName = $_profile->getPreferredUsername() ? : $_profile->getUserId();
 
-						$_data[$_providerId . '.profile'] = $_profile->toArray();
+					/** @var Config $_config */
+					if ( null === ( $_config = Config::model()->find( array( 'select' => 'open_reg_role_id' ) ) ) )
+					{
+						throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing ...' );
+					}
 
-						//	Save the remote profile info...
-						$_user->user_data = $_data;
+					if ( empty( $_user ) )
+					{
+						//	Create new shadow user...
+						$_user = new User();
+						$_user->is_active = true;
+						$_user->is_sys_admin = false;
+					}
 
-						try
-						{
-							$_user->save();
-						}
-						catch ( \Exception $_ex )
-						{
-							Log::error( 'Exception creating remote login shadow user: ' . $_ex->getMessage() );
-							throw $_ex;
-						}
+					$_user->display_name = $_profile->getDisplayName() . ' @ ' . $_providerId;
+					$_user->user_source = $_providerModel->id;
+					$_user->email = $_shadowEmail;
+					$_user->password = sha1( $_user->email . Hasher::generateUnique() );
+					$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
+					$_user->phone = $_phone;
+					$_user->first_name = $_firstName;
+					$_user->last_name = $_lastName;
 
-						if ( null === ( $_providerUser = ProviderUser::model()->byUserProviderUserId( $_user->id, $_profile->getUserId() )->find() ) )
-						{
-							//	Create new portal account...
-							$_providerUser = new ProviderUser();
-							$_providerUser->user_id = $_user->id;
-							$_providerUser->provider_user_id = $_profile->getUserId();
-							$_providerUser->provider_id = $_providerModel->id;
-							$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
-						}
+					//	Set the default role, if one isn't assigned .
+					if ( empty( $_user->role_id ) )
+					{
+						$_user->role_id = $_config->open_reg_role_id;
+					}
 
-						try
-						{
-							$_providerUser->last_use_date = date( 'c' );
-							$_providerUser->auth_text = $_provider->getConfig()->toJson();
-							$_providerUser->save();
+					$_user->last_login_date = date( 'c' );
+					$_data = $_user->user_data;
 
-							$_transaction->commit();
+					if ( empty( $_data ) )
+					{
+						$_data = array();
+					}
 
-							Pii::setstate( $_providerId . '.config', $_provider->getConfig()->toJson() );
-						}
-						catch ( \CDbException $_ex )
-						{
-							Log::error( 'Exception saving provider_user row: ' . $_ex->getMessage() );
-							throw $_ex;
-						}
+					$_data[$_providerId . '.profile'] = $_profile->toArray();
+
+					//	Save the remote profile info...
+					$_user->user_data = $_data;
+
+					try
+					{
+						$_user->save();
+					}
+					catch ( \Exception $_ex )
+					{
+						Log::error( 'Exception siring shadow person > ' . $_ex->getMessage() );
+						throw $_ex;
+					}
+
+					if ( null === ( $_providerUser = ProviderUser::model()->byUserProviderUserId( $_user->id, $_profile->getUserId() )->find() ) )
+					{
+						//	Create new portal account...
+						$_providerUser = new ProviderUser();
+						$_providerUser->user_id = $_user->id;
+						$_providerUser->provider_user_id = $_profile->getUserId();
+						$_providerUser->provider_id = $_providerModel->id;
+						$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
+					}
+
+					try
+					{
+						$_providerUser->last_use_date = date( 'c' );
+						$_providerUser->auth_text = $_provider->getConfig()->toJson();
+						$_providerUser->save();
+
+						$_transaction->commit();
+
+						Pii::setstate( $_providerId . '.config', $_provider->getConfig()->toJson() );
+					}
+					catch ( \CDbException $_ex )
+					{
+						Log::error( 'Exception saving provider_user row > ' . $_ex->getMessage() );
+						throw $_ex;
 					}
 
 					//	Login user...
@@ -786,16 +834,17 @@ class WebController extends BaseWebController
 				}
 				catch ( \Exception $_ex )
 				{
-					Log::error( 'Exception getting remote user profile: ' . $_ex->getMessage() );
-					$this->redirect( '/' );
+					Log::error( 'Exception getting remote user profile > ' . $_ex->getMessage() );
+					throw $_ex;
 				}
 			}
 			catch ( \Exception $_ex )
 			{
 				//	Roll it back...
 				$_transaction->rollback();
+
+				$this->redirect( '/?error=' . urlencode( $_ex->getMessage() ) );
 			}
 		}
 	}
-
 }

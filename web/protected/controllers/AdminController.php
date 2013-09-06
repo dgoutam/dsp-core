@@ -17,20 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Common\Enums\OutputFormats;
-use DreamFactory\Platform\Enums\ResponseFormats;
-use DreamFactory\Platform\Exceptions\BadRequestException;
-use DreamFactory\Platform\Services\SystemManager;
+use DreamFactory\Oasys\Oasys;
 use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
-use Kisma\Core\Enums\OutputFormat;
-use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
-use Kisma\Core\Utility\Sql;
 
 /**
  * AdminController.php
@@ -38,15 +32,6 @@ use Kisma\Core\Utility\Sql;
  */
 class AdminController extends BaseWebController
 {
-	//*************************************************************************
-	//* Members
-	//*************************************************************************
-
-	/**
-	 * @var int
-	 */
-	protected $_format = OutputFormat::Raw;
-
 	//*************************************************************************
 	//* Methods
 	//*************************************************************************
@@ -61,7 +46,7 @@ class AdminController extends BaseWebController
 		$this->layout = 'admin';
 		$this->defaultAction = 'index';
 
-		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'authorizations' ) );
+		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'providers', 'providerUsers', 'update' ) );
 	}
 
 	/**
@@ -72,24 +57,64 @@ class AdminController extends BaseWebController
 	 */
 	public function actionUpdate( $options = array(), $fromCreate = false )
 	{
-		$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
-		$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+		$_response = $_schema = $_errors = null;
 
-		if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+		try
 		{
-			throw new BadRequestException( 'No resource and/or path specified.' );
+			$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
+			$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+
+			if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+			{
+				throw new \CHttpException( 404, 'Not found.' );
+			}
+
+			//	Handle a plural request
+			if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
+			{
+				$_resourceId = $_tempId;
+			}
+
+			$_resource = ResourceStore::resource( $_resourceId );
+			$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
+			$_schema = null;
+
+			if ( !empty( $_response ) && isset( $_response['api_name'] ) )
+			{
+				$_schema = Oasys::getProvider( $_response['api_name'] )->getConfig()->getSchema( false );
+
+				if ( !empty( $_schema ) && !empty( $_response['config_text'] ) )
+				{
+					//	Load the resource into the schema for a goof
+					foreach ( $_response['config_text'] as $_key => $_value )
+					{
+						if ( Option::contains( $_schema, $_key ) )
+						{
+							if ( is_array( $_value ) )
+							{
+								$_value = implode( ', ', $_value );
+							}
+						}
+
+						$_schema[$_key]['value'] = $_value;
+					}
+				}
+			}
+		}
+		catch ( \Exception $_ex )
+		{
+			$_errors[] = 'Error [' . $_ex->getCode() . '] ' . $_ex->getMessage();
+			Log::error( 'Admin::actionUpdate exception: ' . $_ex->getMessage() );
 		}
 
-		//	Handle a plural request
-		$_temp = $_resourceId[strlen( $_resourceId ) - 1];
-		if ( 's' == $_temp && $_resourceId == Inflector::pluralize( substr( $_resourceId, 0, -1 ) ) )
-		{
-			$_resourceId = substr( $_resourceId, 0, -1 );
-		}
-
-		$_resource = ResourceStore::resource( $_resourceId );
-
-		$this->render( 'update', array( 'resource' => $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) ) ) );
+		$this->render(
+			'update',
+			array(
+				 'resource' => $_response,
+				 'schema'   => $_schema,
+				 'errors'   => $_errors,
+			)
+		);
 	}
 
 	/**
@@ -97,8 +122,7 @@ class AdminController extends BaseWebController
 	 */
 	public function actionIndex()
 	{
-		static $_resourceColumns
-		= array(
+		static $_resourceColumns = array(
 			'app'           => array(
 				'header'   => 'Installed Applications',
 				'resource' => 'app',
@@ -180,7 +204,6 @@ class AdminController extends BaseWebController
 		}
 
 		$this->render( 'index', array( 'resourceColumns' => $_resourceColumns ) );
-//		$this->render( 'index', array( 'resourceColumns' => Pii::getParam( 'admin.resource_schema', array() ) ) );
 	}
 
 	/**
@@ -205,25 +228,5 @@ class AdminController extends BaseWebController
 		}
 
 		$this->render( 'Providers' );
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getFormat()
-	{
-		return $this->_format;
-	}
-
-	/**
-	 * @param string $format
-	 *
-	 * @return RestController
-	 */
-	public function setFormat( $format )
-	{
-		$this->_format = $format;
-
-		return $this;
 	}
 }
