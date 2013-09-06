@@ -18,7 +18,7 @@
 --
 
 --
--- DSP v1.0.6.x database update script for MySQL
+-- DSP v1.1.0.x database update script for MySQL
 --
 
 DROP TABLE IF EXISTS `df_sys_account_provider`;

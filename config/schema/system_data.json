@@ -31,14 +31,6 @@
 			"type":        "Email Service",
 			"type_id":     1,
 			"description": "Default system email utility access"
-		},
-		{
-			"api_name":    "portal",
-			"name":        "Portal Service",
-			"is_active":   1,
-			"type":        "Local Portal Service",
-			"type_id":     64,
-			"description": "Local Portal Service"
 		}
 	],
 	"df_sys_email_template": [
