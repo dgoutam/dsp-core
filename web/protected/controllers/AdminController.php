@@ -75,8 +75,20 @@ class AdminController extends BaseWebController
 				$_resourceId = $_tempId;
 			}
 
-			$_resource = ResourceStore::resource( $_resourceId );
-			$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
+			if ( !empty( $_id ) )
+			{
+				if ( null === ( $_model = ResourceStore::model( $_resourceId )->unhashId( $_id )->find() ) )
+				{
+					$_model = ReourceStore::model( $_resourceId );
+				}
+			}
+
+			if ( Pii::postRequest() )
+			{
+				$_data = $_POST[$_resourceId];
+			}
+
+//			$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
 			$_schema = null;
 
 			if ( !empty( $_response ) && isset( $_response['api_name'] ) )
