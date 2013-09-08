@@ -137,15 +137,9 @@ tr.jtable-no-data-row {
 /** Form junk **/
 select, textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"],
 input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input {
-	font-size: 13px;
-	padding:   3px 5px;
-
 }
 
 label, input, button, select, textarea {
-	font-size:   13px;
-	font-weight: normal;
-	line-height: 18px;
 }
 
 .help-block {
@@ -158,7 +152,16 @@ label, input, button, select, textarea {
 	transition:         opacity 0.3s ease-in-out;
 }
 
-.uneditable-input, .uneditable-input:focus, .uneditable-input:hover {
+:focus + .help-block, :hover + .help-block {
+	color: #666;
+	opacity: 1.0;
+	-webkit-transition: opacity 0.6s ease-in-out;
+	-moz-transition:    opacity 0.6s ease-in-out;
+	-ms-transition:     opacity 0.6s ease-in-out;
+	-o-transition:      opacity 0.6s ease-in-out;
+}
+
+.uneditable-input {
 	color:              #51A351 !important;
 	font-weight:        bold;
 	border:             none !important;
@@ -182,10 +185,14 @@ label, input, button, select, textarea {
 }
 
 .form-horizontal input.uneditable-input {
-	padding-bottom: 0px;
+	padding-bottom: 0;
 	padding-left:   0;
 }
 
 .form-horizontal input.uneditable-input + .help-block {
-	margin-top: -4px;
+	margin-top: 0;
+}
+
+.form-horizontal input + .help-block, .form-horizontal select + .help-block, .form-horizontal textarea + .help-block, .form-horizontal .uneditable-input + .help-block, .form-horizontal .input-prepend + .help-block, .form-horizontal .input-append + .help-block {
+	margin-top: 0;
 }

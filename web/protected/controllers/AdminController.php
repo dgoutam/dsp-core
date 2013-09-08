@@ -18,7 +18,10 @@
  * limitations under the License.
  */
 use DreamFactory\Oasys\Oasys;
+use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\ResourceStore;
+use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
+use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\FilterInput;
@@ -57,7 +60,7 @@ class AdminController extends BaseWebController
 	 */
 	public function actionUpdate( $options = array(), $fromCreate = false )
 	{
-		$_response = $_schema = $_errors = null;
+		$_model = $_schema = $_errors = null;
 
 		try
 		{
@@ -75,44 +78,75 @@ class AdminController extends BaseWebController
 				$_resourceId = $_tempId;
 			}
 
-			$_resource = ResourceStore::resource( $_resourceId );
-			$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
-			$_schema = null;
-
-			if ( !empty( $_response ) && isset( $_response['api_name'] ) )
+			/** @var $_model BasePlatformSystemModel */
+			if ( null !== ( $_model = ResourceStore::model( $_resourceId )->findByPk( $_id ) ) )
 			{
-				$_schema = Oasys::getProvider( $_response['api_name'] )->getConfig()->getSchema( false );
-
-				if ( !empty( $_schema ) && !empty( $_response['config_text'] ) )
+				if ( Pii::postRequest() )
 				{
-					//	Load the resource into the schema for a goof
-					foreach ( $_response['config_text'] as $_key => $_value )
+					//	On a post, update
+					if ( null === ( $_data = Option::get( $_POST, $_resourceId ) ) )
 					{
-						if ( Option::contains( $_schema, $_key ) )
-						{
-							if ( is_array( $_value ) )
-							{
-								$_value = implode( ', ', $_value );
-							}
-						}
-
-						$_schema[$_key]['value'] = $_value;
+						throw new BadRequestException( 'No payload received.' );
 					}
+
+					$_model->setAttributes( $_data );
+					$_model->save();
 				}
 			}
 		}
 		catch ( \Exception $_ex )
 		{
-			$_errors[] = 'Error [' . $_ex->getCode() . '] ' . $_ex->getMessage();
+			$_errors[] = $_ex->getMessage();
 			Log::error( 'Admin::actionUpdate exception: ' . $_ex->getMessage() );
+		}
+
+		//	Providers have special templates for their configuration data
+		if ( !$_model->isNewRecord && $_model instanceof Provider )
+		{
+			/** @var Provider $_model */
+			$_schema = Oasys::getProvider( $_model->api_name )->getConfig()->getSchema( false );
+
+			if ( !empty( $_schema ) && !empty( $_model->config_text ) )
+			{
+				//	Load the resource into the schema for a goof
+				foreach ( $_model->config_text as $_key => $_value )
+				{
+					if ( Option::contains( $_schema, $_key ) )
+					{
+						if ( is_array( $_value ) )
+						{
+							$_value = implode( ', ', $_value );
+						}
+					}
+
+					$_schema[$_key]['value'] = $_value;
+				}
+			}
+		}
+
+		$_displayName = $_resourceName = @end( @explode( '\\', get_class( $_model ) ) );
+
+		if ( $_model->hasAttribute( 'name' ) )
+		{
+			$_displayName = $_model->name;
+		}
+		else if ( $_model->hasAttribute( 'provider_name' ) )
+		{
+			$_displayName = $_model->provider_name;
+		}
+		else if ( $_model->hasAttribute( 'api_name' ) )
+		{
+			$_displayName = $_model->api_name;
 		}
 
 		$this->render(
 			'update',
 			array(
-				 'resource' => $_response,
-				 'schema'   => $_schema,
-				 'errors'   => $_errors,
+				 'model'        => $_model,
+				 'schema'       => $_schema,
+				 'errors'       => $_errors,
+				 'resourceName' => $_resourceName,
+				 'displayName'  => $_displayName,
 			)
 		);
 	}
@@ -122,7 +156,8 @@ class AdminController extends BaseWebController
 	 */
 	public function actionIndex()
 	{
-		static $_resourceColumns = array(
+		static $_resourceColumns
+		= array(
 			'app'           => array(
 				'header'   => 'Installed Applications',
 				'resource' => 'app',
