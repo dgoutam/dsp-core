@@ -351,7 +351,7 @@ class WebController extends BaseWebController
 		// if it is ajax validation request
 		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
 		{
-			echo CActiveForm::validate( $_model );
+			echo \CActiveForm::validate( $_model );
 			Pii::end();
 		}
 

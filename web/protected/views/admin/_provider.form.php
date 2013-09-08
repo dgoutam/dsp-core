@@ -69,7 +69,7 @@ $_fields = array(
 		),
 		'provider_name' => array(
 			'type'      => 'text',
-			'class'     => 'required' . ( !$_newRecord ? ' x-editable' : null ),
+			'class'     => 'required',
 			'hint'      => 'The real name, or "display" name for this provider.',
 			'maxlength' => 64,
 		),
@@ -87,35 +87,18 @@ $_fields = array(
 	),
 );
 ?>
-<div class="row-fluid" style="border-bottom:1px solid #ddd">
-	<div class="span8">
-		<h2 style="margin-bottom: 0"><?php echo $_newRecord ? 'New Provider' : $resource['provider_name']; ?>
-			<small>Edit Provider</small>
-		</h2>
-	</div>
-	<div class="span4" style="margin-top:10px">
-		<div class="pull-right" style="display: inline-block;">
-			<form method="POST" id="form-button-bar" style="display:inline;">
-				<input type="hidden" name="backup_instance" value="0">
-				<button data-row-id="<?php echo $_hashedId; ?>" class="btn btn-success" id="backup-instance">Backup</button>
-				<input type="hidden" name="restore_instance" value="0">
-				<button data-row-id="<?php echo $_hashedId; ?>" class="btn btn-info" id="restore-instance">Restore</button>
-				<input type="hidden" name="wipe_instance" value="0">
-				<button data-row-id="<?php echo $_hashedId; ?>" class="btn btn-warning" id="wipe-instance">Wipe</button>
-				<input type="hidden" name="delete_instance" value="0">
-				<button data-row-id="<?php echo $_hashedId; ?>" class="btn btn-danger" id="delete-instance">Delete</button>
-			</form>
-		</div>
-	</div>
-</div>
+<h2 style="margin-bottom: 0"><?php echo $_newRecord ? 'New Provider' : $resource['provider_name']; ?>
+	<small>Edit Provider
+	</small>
+</h2>
 
-<div class="row-fluid">
-	<div class="span12">
-		<form id="update-platform" method="POST" class="form-horizontal tab-form" action>
-			<?php $_form->renderFields( $_fields ); ?>
-		</form>
+<form id="update-platform" method="POST" class="form-horizontal tab-form" action>
+	<?php $_form->renderFields( $_fields ); ?>
+	<div class="form-actions">
+		<button class="btn btn-secondary">Cancel</button>
+		<button class="btn btn-primary">Save</button>
 	</div>
-</div>
+</form>
 
 <script type="text/javascript">
 jQuery(function($) {
