@@ -9,9 +9,11 @@
  * @var array                   $errors       Errors if any
  * @var string                  $resourceName The name of this resource (i.e. App, AppGroup, etc.) Essentially the model name
  * @var string                  $displayName
+ * @var string                  $statusMessage
  */
 use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
 use DreamFactory\Yii\Utility\BootstrapForm;
+use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Bootstrap;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
@@ -48,6 +50,18 @@ if ( !empty( $_errors ) )
 HTML;
 }
 
+if ( null !== ( $_status = Pii::getState( 'status_message' ) ) )
+{
+	echo <<<HTML
+<div class="alert alert-success alert-block fade in" data-alert="alert">
+	<strong>Success!</strong><br/>
+	{$_status}
+</div>
+HTML;
+
+	Pii::clearState( 'status_message' );
+}
+
 $_hashedId = $model->isNewRecord ? null : $this->hashId( $model->id );
 
 $_form = new BootstrapForm(
@@ -64,13 +78,13 @@ $_form = new BootstrapForm(
 //	Make sure the renderer removes these...
 $_form->setRemovePrefix( AdminController::SCHEMA_PREFIX );
 
-$_form->setFormData( $model );
+$_form->setFormData( $model->getAttributes() );
 
 $_fields = array(
 	'Basic Settings' => array(
 		'api_name'      => array(
 			'type'        => 'text',
-			'class'       => !$_update ? 'required' : 'uneditable-input',
+			'class'       => $model->isNewRecord ? 'required' : 'uneditable-input',
 			'placeholder' => 'How to address this provider via REST',
 			'hint'        => 'The URI portion to be used when calling this provider. For example: "github", or "facebook".',
 			'maxlength'   => 64,

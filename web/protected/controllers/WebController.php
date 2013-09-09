@@ -592,7 +592,7 @@ class WebController extends BaseWebController
 			/** @var $_node \SplFileInfo */
 			foreach ( $_objects as $_name => $_node )
 			{
-				if ( $_node->isDir() || $_node->isLink() || ' . ' == $_name || ' ..' == $_name )
+				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
 				{
 					continue;
 				}
@@ -623,7 +623,7 @@ class WebController extends BaseWebController
 		}
 		else
 		{
-			$_endpoint = Pii::getParam( 'cloud . endpoint' ) . '/metrics/dsp ? dsp = ' . urlencode( Pii::getParam( 'dsp . name' ) );
+			$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
 
 			Curl::setDecodeToArray( true );
 			$_stats = Curl::get( $_endpoint );

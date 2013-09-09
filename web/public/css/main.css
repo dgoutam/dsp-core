@@ -4,7 +4,7 @@
 }
 
 body {
-	/*font-family: "Helvetica Neue Light", 'Open-Sans', 'Arial', sans-serif;*/
+	font-family: "Open Sans", "Helvetica Neue Light", 'Arial', sans-serif;
 	font-weight: normal;
 }
 
@@ -153,8 +153,8 @@ label, input, button, select, textarea {
 }
 
 :focus + .help-block, :hover + .help-block {
-	color: #666;
-	opacity: 1.0;
+	color:              #666;
+	opacity:            1.0;
 	-webkit-transition: opacity 0.6s ease-in-out;
 	-moz-transition:    opacity 0.6s ease-in-out;
 	-ms-transition:     opacity 0.6s ease-in-out;

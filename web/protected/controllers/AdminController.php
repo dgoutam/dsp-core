@@ -56,40 +56,13 @@ class AdminController extends BaseWebController
 	{
 		parent::init();
 
-		parent::init();
-
 		//	We want merged update/create...
 		$this->setSingleViewMode( true );
 		$this->layout = 'admin';
 		$this->defaultAction = 'index';
 
 		//	Everything is auth-required
-		$this->addUserActions( static::Authenticated, array( 'index', 'update', 'error' ) );
-	}
-
-	/**
-	 * @return array
-	 * @throws DreamFactory\Platform\Exceptions\BadRequestException
-	 */
-	protected function _parseRequest()
-	{
-		$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
-		$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
-
-		if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
-		{
-			throw new BadRequestException( 404, 'Not found.' );
-		}
-
-		//	Handle a plural request
-		if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
-		{
-			$_resourceId = $_tempId;
-		}
-
-		$this->setModelClass( 'DreamFactory\\Platform\\Yii\\Models\\' . Inflector::deneutralize( $_resourceId ) );
-
-		return array( $_resourceId, $_id );
+		$this->addUserActions( static::Authenticated, array( 'index', 'update', 'error', 'create' ) );
 	}
 
 	/**
@@ -100,12 +73,15 @@ class AdminController extends BaseWebController
 	 */
 	public function actionUpdate( $options = array(), $fromCreate = false )
 	{
-		$_model = $_schema = $_errors = null;
+		$_schema = $_errors = null;
 
-		if ( false !== $fromCreate && null !== ( $_resource = FilterInput::request( 'resource' ) ) )
+		if ( false !== $fromCreate && null !== ( $_resourceId = FilterInput::request( 'resource' ) ) )
 		{
 			//	New request
-			$_model = ResourceStore::model( $_resource );
+			$_model = ResourceStore::model( $_resourceId );
+			$_displayName = Inflector::display( $_resourceId );
+			$_id = null;
+			$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
 		}
 		else
 		{
@@ -113,52 +89,51 @@ class AdminController extends BaseWebController
 			list( $_resourceId, $_id ) = $this->_parseRequest();
 			$_displayName = Inflector::display( $_resourceId );
 
-			//	New resource?
-			if ( empty( $_id ) && HttpMethod::Get != $_action )
+			//	Load it up.
+			/** @var $_model BasePlatformSystemModel */
+			if ( null !== ( $_model = ResourceStore::model( $_resourceId )->findByPk( $_id ) ) )
 			{
-				$_model = ResourceStore::model( $_resourceId );
 				$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
-			}
-			else
-			{
-				//	Load it up.
-				/** @var $_model BasePlatformSystemModel */
-				if ( null !== ( $_model = ResourceStore::model( $_resourceId )->findByPk( $_id ) ) )
+
+				if ( Pii::postRequest() )
 				{
-					$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
-
-					if ( Pii::postRequest() )
+					//	On a post, update
+					if ( null === ( $_data = Option::get( $_POST, $_displayName ) ) )
 					{
-						//	On a post, update
-						if ( null === ( $_data = Option::get( $_POST, $_displayName ) ) )
-						{
-							throw new BadRequestException( 'No payload received.' );
-						}
-
-						if ( $_model->hasAttribute( 'config_text' ) )
-						{
-							$_len = strlen( static::SCHEMA_PREFIX );
-							$_config = Option::clean( $_model->config_text );
-
-							foreach ( $_data as $_key => $_value )
-							{
-								if ( static::SCHEMA_PREFIX == substr( $_key, 0, $_len ) )
-								{
-									$_newKey = str_replace( static::SCHEMA_PREFIX, null, $_key );
-									$_config[$_newKey] = $_value;
-									unset( $_data[$_key] );
-								}
-							}
-
-							$_model->config_text = $_config;
-							unset( $_data['config_text'] );
-						}
-
-						$_model->setAttributes( $_data );
-						$_model->save();
-
-						$this->redirect( '/admin/' . $_resourceId . '/update/' . $_id );
+						throw new BadRequestException( 'No payload received.' );
 					}
+
+					/** @var Provider $_model */
+					if ( $_model->hasAttribute( 'config_text' ) )
+					{
+						$_len = strlen( static::SCHEMA_PREFIX );
+						$_config = Option::clean( $_model->config_text );
+
+						foreach ( $_data as $_key => $_value )
+						{
+							if ( static::SCHEMA_PREFIX == substr( $_key, 0, $_len ) )
+							{
+								$_newKey = str_replace( static::SCHEMA_PREFIX, null, $_key );
+
+								if ( isset( $_config[$_newKey] ) )
+								{
+									$_config[$_newKey] = $_value;
+								}
+
+								unset( $_data[$_key] );
+							}
+						}
+
+						$_model->config_text = $_config;
+						unset( $_data['config_text'] );
+					}
+
+					$_model->setAttributes( $_data );
+					$_model->save();
+
+					Pii::setState( 'status_message', 'Resource Updated Successfully' );
+
+					$this->redirect( '/admin/' . $_resourceId . '/update/' . $_id );
 				}
 			}
 
@@ -185,6 +160,7 @@ class AdminController extends BaseWebController
 				 'errors'       => $_errors,
 				 'resourceName' => $_resourceId,
 				 'displayName'  => $_displayName,
+				 'update'       => ( null !== $_id ),
 			)
 		);
 	}
@@ -324,4 +300,30 @@ class AdminController extends BaseWebController
 
 		return $_schema;
 	}
+
+	/**
+	 * @return array
+	 * @throws DreamFactory\Platform\Exceptions\BadRequestException
+	 */
+	protected function _parseRequest()
+	{
+		$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
+		$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+
+		if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+		{
+			throw new BadRequestException( 404, 'Not found.' );
+		}
+
+		//	Handle a plural request
+		if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
+		{
+			$_resourceId = $_tempId;
+		}
+
+		$this->setModelClass( 'DreamFactory\\Platform\\Yii\\Models\\' . Inflector::deneutralize( $_resourceId ) );
+
+		return array( $_resourceId, $_id );
+	}
+
 }

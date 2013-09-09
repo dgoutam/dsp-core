@@ -130,33 +130,30 @@ jQuery(function($) {
 
 		console.log('shown ' + _type);
 
-		var _table = false;
+		if ($.fn.DataTable.fnIsDataTable($(_id)[0])) {
+			$(_id).dataTable().fnDestroy();
+			$(_id).empty();
+		}
 
-		_table = $(_id).dataTable({'bRetrieve': true});
+		if (_dtColumns[_type]) {
+			var _fields = _dtColumns[_type].fields;
+			var _resource = _dtColumns[_type].resource;
+			var _columns = _dtColumns[_type].columns;
 
-		if (_table) {
-			_table.fnReloadAjax();
-		} else {
-			if (_dtColumns[_type]) {
-				var _fields = _dtColumns[_type].fields;
-				var _resource = _dtColumns[_type].resource;
-				var _columns = _dtColumns[_type].columns;
-
-				$(_id).dataTable({
-					bProcessing:     true,
-					bServerSide:     true,
-					bStateSave:      true,
-					sAjaxSource:     "/rest/system/" + _resource,
-					sPaginationType: "bootstrap",
-					aoColumns:       _columns,
-					oLanguage:       {
-						sSearch: "Filter:"
-					},
-					fnServerParams:  function(aoData) {
-						aoData.push({ "name": "format", "value": 100 }, { "name": "app_name", "value": "php-admin" }, { "name": "fields", "value": _fields });
-					}
-				});
-			}
+			$(_id).dataTable({
+				bProcessing:     true,
+				bServerSide:     true,
+				bStateSave:      true,
+				sAjaxSource:     "/rest/system/" + _resource,
+				sPaginationType: "bootstrap",
+				aoColumns:       _columns,
+				oLanguage:       {
+					sSearch: "Filter:"
+				},
+				fnServerParams:  function(aoData) {
+					aoData.push({ "name": "format", "value": 100 }, { "name": "app_name", "value": "php-admin" }, { "name": "fields", "value": _fields });
+				}
+			});
 		}
 	});
 
