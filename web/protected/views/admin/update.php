@@ -10,6 +10,7 @@
  * @var array                   $_data_
  */
 use DreamFactory\Yii\Utility\BootstrapForm;
+use Kisma\Core\Utility\Inflector;
 
 $update = false;
 
@@ -17,9 +18,9 @@ $_form = new BootstrapForm();
 
 $_options = array(
 	'breadcrumbs' => array(
-		'Admin Dashboard'   => '/admin',
-		$resourceName . 's' => '/admin#tab-' . strtolower( $resourceName ),
-		$displayName        => false,
+		'Admin Dashboard'                         => '/admin',
+		Inflector::display( $resourceName ) . 's' => '/admin#tab-' . $resourceName,
+		$displayName       => false,
 	)
 );
 

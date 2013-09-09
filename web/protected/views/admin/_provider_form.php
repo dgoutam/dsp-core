@@ -19,6 +19,14 @@ use Kisma\Core\Utility\Option;
 //@TODO error handling from resource request
 $_errors = isset( $errors ) ? Option::clean( $errors ) : array();
 $_update = !$model->isNewRecord;
+$_prefix = @end( @explode( '\\', $this->getModelClass() ) );
+
+$_resourcePath = $resourceName;
+
+if ( $_update )
+{
+	$_resourcePath .= '/' . $model->id;
+}
 
 if ( !empty( $_errors ) )
 {
@@ -49,9 +57,12 @@ $_form = new BootstrapForm(
 		 'method'         => 'POST',
 		 'x_editable_url' => '/admin/' . $resourceName . '/update',
 		 'x_editable_pk'  => $_hashedId,
-		 'prefix'         => $resourceName,
+		 'prefix'         => $_prefix,
 	)
 );
+
+//	Make sure the renderer removes these...
+$_form->setRemovePrefix( AdminController::SCHEMA_PREFIX );
 
 $_form->setFormData( $model );
 
@@ -94,20 +105,19 @@ $_fields = array(
 
 <div class="row-fluid">
 	<div class="span12">
-		<form id="update-platform" method="POST" class="form-horizontal tab-form" action>
-			<?php $_form->renderFields( $_fields ); ?>
-		</form>
-	</div>
-</div>
+		<form id="update-platform"
+			  method="POST"
+			  class="form-horizontal tab-form"
+			  action="/admin/<?php echo $resourceName; ?>/update<?php echo isset( $model, $model->id ) ? '/' . $model->id : null; ?>">
+			<?php $_form->renderFields( $_fields, $_prefix ); ?>
 
-<div class="row-fluid">
-	<div class="span12" style="margin-top:10px">
-		<div class="pull-right" style="display: inline-block;">
-			<form method="POST" id="form-button-bar" style="display:inline;">
-				<button class="btn btn-success btn-primary" id="save-resource"> Save</button>
-				<button class="btn btn-danger" id="delete-instance"> Delete</button>
-			</form>
-		</div>
+			<div class="pull-right" style="display: inline-block; margin-top: 10px;">
+				<div id="form-button-bar" style="display:inline;">
+					<button class=" btn btn-danger" id="delete-resource"> Delete</button>
+					<button type="submit" class="btn btn-success btn-primary" id="save-resource"> Save</button>
+				</div>
+			</div>
+		</form>
 	</div>
 </div>
 
@@ -115,11 +125,13 @@ $_fields = array(
 jQuery(function($) {
 	$('form#form-button-bar').on('click', 'button', function(e) {
 		e.preventDefault();
-		var _cmd = $(this).attr('id').replace('-instance', '');
+		var _cmd = $(this).attr('id').replace('-resource', '');
 		var _id = $(this).data('row-id');
 
-		if (!confirm('Do you REALLY REALLY wish to perform this action? It is irreversible!')) {
-			return false;
+		if ('delete' == _cmd) {
+			if (!confirm('Do you REALLY REALLY wish to perform this action? It is irreversible!')) {
+				return false;
+			}
 		}
 
 		$.ajax({url:  '/admin/provider/update',

@@ -24,6 +24,7 @@ use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
 use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
+use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
@@ -36,6 +37,15 @@ use Kisma\Core\Utility\Option;
 class AdminController extends BaseWebController
 {
 	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const SCHEMA_PREFIX = '__schema.';
+
+	//*************************************************************************
 	//* Methods
 	//*************************************************************************
 
@@ -46,10 +56,40 @@ class AdminController extends BaseWebController
 	{
 		parent::init();
 
+		parent::init();
+
+		//	We want merged update/create...
+		$this->setSingleViewMode( true );
 		$this->layout = 'admin';
 		$this->defaultAction = 'index';
 
-		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'providers', 'providerUsers', 'update' ) );
+		//	Everything is auth-required
+		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'providers', 'providerUsers', 'update', 'error' ) );
+	}
+
+	/**
+	 * @return array
+	 * @throws DreamFactory\Platform\Exceptions\BadRequestException
+	 */
+	protected function _parseRequest()
+	{
+		$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
+		$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+
+		if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+		{
+			throw new BadRequestException( 404, 'Not found.' );
+		}
+
+		//	Handle a plural request
+		if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
+		{
+			$_resourceId = $_tempId;
+		}
+
+		$this->setModelClass( 'DreamFactory\\Platform\\Yii\\Models\\' . Inflector::deneutralize( $_resourceId ) );
+
+		return array( $_resourceId, $_id );
 	}
 
 	/**
@@ -62,74 +102,66 @@ class AdminController extends BaseWebController
 	{
 		$_model = $_schema = $_errors = null;
 
-		try
+		$_action = strtoupper( trim( Pii::request()->getRequestType() ) );
+
+		//	Requests will come in like: /admin/update/<resource>/<id>
+		list( $_resourceId, $_id ) = $this->_parseRequest();
+		$_displayName = Inflector::display( $_resourceId );
+
+		//	New resource?
+		if ( empty( $_id ) && HttpMethod::Get != $_action )
 		{
-			$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
-			$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
-
-			if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
-			{
-				throw new \CHttpException( 404, 'Not found.' );
-			}
-
-			//	Handle a plural request
-			if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
-			{
-				$_resourceId = $_tempId;
-			}
-
+			$_model = ResourceStore::model( $_resourceId );
+			$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
+		}
+		else
+		{
+			//	Load it up.
 			/** @var $_model BasePlatformSystemModel */
 			if ( null !== ( $_model = ResourceStore::model( $_resourceId )->findByPk( $_id ) ) )
 			{
+				$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
+
 				if ( Pii::postRequest() )
 				{
 					//	On a post, update
-					if ( null === ( $_data = Option::get( $_POST, $_resourceId ) ) )
+					if ( null === ( $_data = Option::get( $_POST, $_displayName ) ) )
 					{
 						throw new BadRequestException( 'No payload received.' );
 					}
 
-					$_model->setAttributes( $_data );
-					$_model->save();
-				}
-			}
-		}
-		catch ( \Exception $_ex )
-		{
-			$_errors[] = $_ex->getMessage();
-			Log::error( 'Admin::actionUpdate exception: ' . $_ex->getMessage() );
-		}
-
-		//	Providers have special templates for their configuration data
-		if ( !$_model->isNewRecord && $_model instanceof Provider )
-		{
-			/** @var Provider $_model */
-			$_schema = Oasys::getProvider( $_model->api_name )->getConfig()->getSchema( false );
-
-			if ( !empty( $_schema ) && !empty( $_model->config_text ) )
-			{
-				//	Load the resource into the schema for a goof
-				foreach ( $_model->config_text as $_key => $_value )
-				{
-					if ( Option::contains( $_schema, $_key ) )
+					if ( $_model->hasAttribute( 'config_text' ) )
 					{
-						if ( is_array( $_value ) )
+						$_len = strlen( static::SCHEMA_PREFIX );
+						$_config = Option::clean( $_model->config_text );
+
+						foreach ( $_data as $_key => $_value )
 						{
-							$_value = implode( ', ', $_value );
+							if ( static::SCHEMA_PREFIX == substr( $_key, 0, $_len ) )
+							{
+								$_newKey = str_replace( static::SCHEMA_PREFIX, null, $_key );
+								$_config[$_newKey] = $_value;
+								unset( $_data[$_key] );
+							}
 						}
+
+						$_model->config_text = $_config;
+						unset( $_data['config_text'] );
 					}
 
-					$_schema[$_key]['value'] = $_value;
+					$_model->setAttributes( $_data );
+					$_model->save();
+
+					$this->redirect( '/admin/' . $_resourceId . '/update/' . $_id );
 				}
 			}
 		}
-
-		$_displayName = $_resourceName = @end( @explode( '\\', get_class( $_model ) ) );
 
 		if ( $_model->hasAttribute( 'name' ) )
 		{
 			$_displayName = $_model->name;
 		}
+
 		else if ( $_model->hasAttribute( 'provider_name' ) )
 		{
 			$_displayName = $_model->provider_name;
@@ -145,7 +177,7 @@ class AdminController extends BaseWebController
 				 'model'        => $_model,
 				 'schema'       => $_schema,
 				 'errors'       => $_errors,
-				 'resourceName' => $_resourceName,
+				 'resourceName' => $_resourceId,
 				 'displayName'  => $_displayName,
 			)
 		);
@@ -154,7 +186,8 @@ class AdminController extends BaseWebController
 	/**
 	 *
 	 */
-	public function actionIndex()
+	public
+	function actionIndex()
 	{
 		static $_resourceColumns
 		= array(
@@ -244,7 +277,8 @@ class AdminController extends BaseWebController
 	/**
 	 *
 	 */
-	public function actionApplications()
+	public
+	function actionApplications()
 	{
 		if ( Pii::postRequest() )
 		{
@@ -256,12 +290,59 @@ class AdminController extends BaseWebController
 	/**
 	 *
 	 */
-	public function actionProviders()
+	public
+	function actionProviders()
 	{
 		if ( Pii::postRequest() )
 		{
 		}
 
 		$this->render( 'Providers' );
+	}
+
+	/**
+	 * Merges any configuration schema with model data
+	 *
+	 * @param string                  $resourceId
+	 * @param BasePlatformSystemModel $model
+	 *
+	 * @return array|null
+	 */
+	protected function _loadConfigSchema( $resourceId, $model )
+	{
+		$_schema = null;
+
+		switch ( $resourceId )
+		{
+			case 'provider':
+				/** @var Provider $model */
+				$_schema = Oasys::getProvider( $model->api_name )->getConfig()->getSchema( false );
+
+				if ( !empty( $_schema ) )
+				{
+					$_config = !empty( $model->config_text ) ? $model->config_text : array();
+
+					//	Load the resource into the schema for a goof
+					foreach ( $_schema as $_key => $_value )
+					{
+						if ( null !== ( $_configValue = Option::get( $_config, $_key ) ) )
+						{
+							if ( is_array( $_configValue ) )
+							{
+								$_configValue = implode( ', ', $_configValue );
+							}
+
+							$_value['value'] = $_configValue;
+						}
+
+						$_schema[static::SCHEMA_PREFIX . $_key] = $_value;
+
+						unset( $_schema[$_key] );
+					}
+				}
+				break;
+		}
+
+		return $_schema;
 	}
 }
