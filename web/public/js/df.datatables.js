@@ -37,7 +37,8 @@ $.extend($.fn.dataTableExt.oPagination, {
 				}
 			};
 
-			$(nPaging).addClass('pagination').append('<ul>' + '<li class="prev disabled"><a href="#">&larr; ' + oLang.sPrevious + '</a></li>' + '<li class="next disabled"><a href="#">' + oLang.sNext + ' &rarr; </a></li>' + '</ul>');
+			$(nPaging).addClass('pagination').append('<ul>' + '<li class="prev disabled"><a href="#">&larr; ' + oLang.sPrevious + '</a></li>' +
+				'<li class="next disabled"><a href="#">' + oLang.sNext + ' &rarr; </a></li>' + '</ul>');
 			var els = $('a', nPaging);
 			$(els[0]).bind('click.DT', { action: "previous" }, fnClickHandler);
 			$(els[1]).bind('click.DT', { action: "next" }, fnClickHandler);
@@ -161,7 +162,8 @@ $.fn.dataTableExt.oApi.fnReloadAjax = function(oSettings, sNewSource, fnCallback
 		that.oApi._fnClearTable(oSettings);
 
 		/* Got the data - add it to the table */
-		var aData = (oSettings.sAjaxDataProp !== "") ? that.oApi._fnGetObjectDataFn(oSettings.sAjaxDataProp)(json) : json;
+		var aData = (oSettings.sAjaxDataProp !== "") ?
+			that.oApi._fnGetObjectDataFn(oSettings.sAjaxDataProp)(json) : json;
 
 		for (var i = 0; i < aData.length; i++) {
 			that.oApi._fnAddData(oSettings, aData[i]);
