@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Oasys\Configs\BaseProviderConfig;
 use DreamFactory\Oasys\Oasys;
 use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\ResourceStore;
@@ -73,16 +74,17 @@ class AdminController extends BaseWebController
 	 */
 	public function actionUpdate( $options = array(), $fromCreate = false )
 	{
-		$_schema = $_errors = null;
+		$_id = $_schema = $_errors = null;
 
+		//	New provider
 		if ( false !== $fromCreate && null !== ( $_resourceId = FilterInput::request( 'resource' ) ) )
 		{
 			//	New request
 			$_model = ResourceStore::model( $_resourceId );
 			$_displayName = Inflector::display( $_resourceId );
-			$_id = null;
-			$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
+			$_schema = $this->_loadConfigSchema( $_resourceId, $_model->hasAttribute( 'config_text' ) ? $_model->config_text : array() );
 		}
+		//	Existing
 		else
 		{
 			//	Requests will come in like: /admin/update/<resource>/<id>
@@ -93,7 +95,7 @@ class AdminController extends BaseWebController
 			/** @var $_model BasePlatformSystemModel */
 			if ( null !== ( $_model = ResourceStore::model( $_resourceId )->findByPk( $_id ) ) )
 			{
-				$_schema = $this->_loadConfigSchema( $_resourceId, $_model );
+				$_schema = $this->_loadConfigSchema( $_resourceId, $_model->hasAttribute( 'config_text' ) ? $_model->config_text : array() );
 
 				if ( Pii::postRequest() )
 				{
@@ -141,7 +143,6 @@ class AdminController extends BaseWebController
 			{
 				$_displayName = $_model->name;
 			}
-
 			else if ( $_model->hasAttribute( 'provider_name' ) )
 			{
 				$_displayName = $_model->provider_name;
@@ -258,44 +259,45 @@ class AdminController extends BaseWebController
 	/**
 	 * Merges any configuration schema with model data
 	 *
-	 * @param string                  $resourceId
-	 * @param BasePlatformSystemModel $model
+	 * @param string $providerId The API name of the provider
+	 * @param array  $configData
 	 *
 	 * @return array|null
 	 */
-	protected function _loadConfigSchema( $resourceId, $model )
+	protected function _loadConfigSchema( $providerId, $configData = array() )
 	{
 		$_schema = null;
 
-		switch ( $resourceId )
+		switch ( $providerId )
 		{
 			case 'provider':
 				/** @var Provider $model */
-				$_schema = Oasys::getProvider( $model->api_name )->getConfig()->getSchema( false );
-
-				if ( !empty( $_schema ) )
-				{
-					$_config = !empty( $model->config_text ) ? $model->config_text : array();
-
-					//	Load the resource into the schema for a goof
-					foreach ( $_schema as $_key => $_value )
-					{
-						if ( null !== ( $_configValue = Option::get( $_config, $_key ) ) )
-						{
-							if ( is_array( $_configValue ) )
-							{
-								$_configValue = implode( ', ', $_configValue );
-							}
-
-							$_value['value'] = $_configValue;
-						}
-
-						$_schema[static::SCHEMA_PREFIX . $_key] = $_value;
-
-						unset( $_schema[$_key] );
-					}
-				}
+				$_schema = Oasys::getProvider( $providerId )->getConfig()->getSchema();
 				break;
+		}
+
+		//	Merge
+		if ( !empty( $_schema ) )
+		{
+			$_config = !empty( $configData ) ? $configData : array();
+
+			//	Load the resource into the schema for a goof
+			foreach ( $_schema as $_key => $_value )
+			{
+				if ( null !== ( $_configValue = Option::get( $_config, $_key ) ) )
+				{
+					if ( is_array( $_configValue ) )
+					{
+						$_configValue = implode( ', ', $_configValue );
+					}
+
+					$_value['value'] = $_configValue;
+				}
+
+				$_schema[static::SCHEMA_PREFIX . $_key] = $_value;
+
+				unset( $_schema[$_key] );
+			}
 		}
 
 		return $_schema;
