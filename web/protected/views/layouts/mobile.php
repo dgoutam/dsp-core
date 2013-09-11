@@ -9,16 +9,46 @@ use Kisma\Core\Utility\FilterInput;
  */
 $_route = $this->route;
 $_step = 'light';
-$_headline = 'Platform Administration';
+$_headline = 'DSP Settings';
+$_themeList = null;
 
 //	Change these to update the CDN versions used. Set to false to disable
 $_bootstrapVersion = '3.0.0'; // Set to false to disable
 $_bootswatchVersion = '3.0.0';
 $_dataTablesVersion = '1.9.4';
-$_useBootswatchThemes = true; // Set to false to disable
-$_bootswatchTheme = FilterInput::request( 'theme', 'cerulean', FILTER_SANITIZE_STRING );
+$_bootswatchTheme = FilterInput::request( 'theme', Pii::getState( 'admin.default_theme', 'default' ), FILTER_SANITIZE_STRING );
+Pii::setState( 'dsp.admin_theme', $_bootswatchTheme );
+$_useBootswatchThemes = ( 'default' != $_bootswatchTheme );
 $_fontAwesomeVersion = '3.2.1'; // Set to false to disable
-$_jqueryVersion = '1';
+$_jqueryVersion = '1.9.1';
+
+$_themes = array(
+	'Default',
+	'Amelia',
+	'Cerulean',
+	'Cosmo',
+	'Cyborg',
+	'Flatly',
+	'Journal',
+	'Readable',
+	'Simplex',
+	'Slate',
+	'Spacelab',
+	'United',
+);
+
+$_url = Curl::currentUrl( false );
+
+foreach ( $_themes as $_item )
+{
+	$_name = strtolower( $_item );
+	$_class = ( $_bootswatchTheme == $_name ) ? 'class="active"' : null;
+
+	$_themeList
+		.= <<<HTML
+	<li {$_class}><a href="{$_url}?theme={$_name}">{$_item}</a></li>
+HTML;
+}
 
 //	Our css building begins...
 $_css = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,800" rel="stylesheet" type="text/css">';
@@ -26,7 +56,12 @@ $_scripts = null;
 
 if ( $_useBootswatchThemes )
 {
-	$_css .= '<link href="//netdna.bootstrapcdn.com/bootswatch/' . $_bootswatchVersion . '/' . $_bootswatchTheme . '/bootstrap.min.css" rel="stylesheet" media="screen">';
+	$_css
+		.= '<link href="//netdna.bootstrapcdn.com/bootswatch/' .
+		   $_bootswatchVersion .
+		   '/' .
+		   $_bootswatchTheme .
+		   '/bootstrap.min.css" rel="stylesheet" media="screen">';
 }
 else if ( false !== $_bootstrapVersion )
 {
@@ -40,7 +75,7 @@ if ( false !== $_fontAwesomeVersion )
 
 if ( false !== $_dataTablesVersion )
 {
-//	$_css .= '<link href="/public/css/jquery.dataTables.css" rel="stylesheet">';
+	$_css .= '<link href="/public/css/df.datatables.css" rel="stylesheet">';
 }
 
 if ( false !== $_jqueryVersion )
@@ -64,145 +99,93 @@ if ( false !== $_jqueryVersion )
 	<![endif]-->
 	<link rel="icon" type="image/png" href="/public/images/logo-48x48.png">
 	<link href="/public/css/main.css" rel="stylesheet">
+	<link href="/public/css/df.effects.css" rel="stylesheet">
 </head>
 <body>
-
 <div id="wrap">
 	<div class="navbar navbar-default navbar-fixed-top">
-
 		<div class="container">
-
 			<div class="navbar-header">
-				<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+				<button data-target=".navbar-collapse" data-toggle="collapse" class="navbar-toggle" type="button">
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a href="/" class="navbar-brand"><?php echo $_headline; ?></a>
+				<a href="#" class="navbar-brand"><?php echo $_headline; ?></a>
 			</div>
 
-			<div class="collapse navbar-collapse" id="navbar-main">
+			<div class="collapse navbar-collapse">
 				<ul class="nav navbar-nav">
-					<li class="active">
-						<a href="#">Home</a>
-					</li>
-					<li>
-						<a href="#about">About</a>
-					</li>
-					<li>
-						<a href="#contact">Contact</a>
-					</li>
 					<li class="dropdown">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" id="themes">Themes <b class="caret"></b></a>
+
+						<ul class="dropdown-menu"><?php echo $_themeList; ?></ul>
+					</li>
+					<li class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#" id="download">Downloads <b class="caret"></b></a>
+
 						<ul class="dropdown-menu">
+							<li class="dropdown-header">Source Code</li>
 							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=default">Default</a>
+								<a href="https://github.com/dreamfactorysoftware/dsp-core">GitHub</a>
 							</li>
-							<li class="divider"></li>
+							<li class="dropdown-header">Linux Packages</li>
 							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=amelia">Amelia</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=cerulean">Cerulean</a>
+								<a href="#">Redhat</a>
 							</li>
 							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=cosmo">Cosmo</a>
+								<a href="#">Ubuntu</a>
 							</li>
 							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=cyborg">Cyborg</a>
+								<a href="#">CentOS</a>
 							</li>
 							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=flatly">Flatly</a>
+								<a href="#">Debian</a>
+							</li>
+							<li class="dropdown-header">Virtual Machine Images</li>
+							<li>
+								<a href="#">Amazon EC2 AMI</a>
 							</li>
 							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=journal">Journal</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=readable">Readable</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=simplex">Simplex</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=slate">Slate</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=spacelab">Spacelab</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="<?php echo Curl::currentUrl( false ); ?>?theme=united">United</a>
+								<a href="">Windows Azure VHD</a>
 							</li>
 						</ul>
-					</li>
-					<li>
-						<a href="#">Help</a>
 					</li>
 					<li>
 						<a href="http://blog.dreamfactory.com/blog">Blog</a>
 					</li>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#" id="download">Download <b class="caret"></b></a>
-						<ul class="dropdown-menu">
-							<li class="nav-header">Source Code</li>
-							<li>
-								<a tabindex="-1" href="https://github.com/dreamfactorysoftware/dsp-core">GitHub</a>
-							</li>
-							<li class="nav-header">Linux Packages</li>
-							<li>
-								<a tabindex="-1" href="#">Redhat</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="#">Ubuntu</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="#">CentOS</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="#">Debian</a>
-							</li>
-							<li class="nav-header">Virtual Machine Images</li>
-							<li>
-								<a tabindex="-1" href="#">Amazon EC2 AMI</a>
-							</li>
-							<li>
-								<a tabindex="-1" href="">Windows Azure VHD</a>
-							</li>
-						</ul>
+					<li>
+						<a href="#">Support</a>
 					</li>
-
 				</ul>
 			</div>
-			<!--/.nav-collapse -->
 		</div>
 	</div>
 
-	<div class="container">
-		<?php echo $content; ?>
-	</div>
+	<div class="container"><?php echo $content; ?></div>
 </div>
 
 <div id="footer">
 	<div class="container">
-		<ul class="list-inline">
-			<li class="pull-right">
-				<a href="#top">Back to top</a>
-			</li>
-			<li>
-				<a href="http://blog.dreamfactory.com/blog">Blog</a>
-			</li>
-			<li>
-				<a href="http://feeds.feedburner.com/dreamfactory">RSS</a>
-			</li>
-			<li>
-				<a href="https://twitter.com/dfsoftwareinc">Twitter</a>
-			</li>
-			<li>
-				<a href="https://github.com/dreamfactorysoftware">GitHub</a>
-			</li>
-		</ul>
+		<div class="social-links pull-right">
+			<ul class="list-inline">
+				<li>
+					<a href="http://facebook.com/dreamfactory"><i class="icon-facebook-sign icon-2x"></i></a>
+				</li>
+				<li>
+					<a href="https://twitter.com/dfsoftwareinc"><i class="icon-twitter-sign icon-2x"></i></a>
+				</li>
+				<li>
+					<a href="https://github.com/dreamfactorysoftware"><i class="icon-github-sign icon-2x"></i></a>
+				</li>
+			</ul>
+		</div>
+
+		<div class="clearfix"></div>
 		<p>
-			<span class="pull-right">Code licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License v2.0</a></span>
-			<span class="pull-left">&copy; DreamFactory Software, Inc. <?php echo date( 'Y' ); ?>. All Rights Reserved.</span>
+			<span class="left">All source code is licensed under the <a
+																	 href="http://www.apache.org/licenses/LICENSE-2.0">Apache License v2.0</a></span>
+			<span class="pull-right">&copy; DreamFactory Software, Inc. <?php echo date( 'Y' ); ?>. All Rights Reserved.</span>
 		</p>
 	</div>
 </div>
@@ -216,9 +199,10 @@ if ( false !== $_bootstrapVersion )
 if ( false !== $_dataTablesVersion )
 {
 	echo '<script src="//ajax.aspnetcdn.com/ajax/jquery.dataTables/' . $_dataTablesVersion . '/jquery.dataTables.min.js"></script>';
-	echo '<script src="/public/js/jquery.dataTables.bootstrap.support.js"></script>';
+	echo '<script src="/public/js/df.datatables.js"></script>';
 }
 ?>
 <script src="/public/js/app.jquery.js"></script>
+<script src="/public/js/sidebarEffects.js"></script>
 </body>
 </html>
