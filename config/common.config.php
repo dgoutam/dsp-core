@@ -156,7 +156,7 @@ return array_merge(
 		  * Remote Logins
 		  */
 		 'dsp.allow_remote_logins'       => true,
-		 'dsp.allow_admin_remote_logins' => false,
+		 'dsp.allow_admin_remote_logins' => true,
 		 /**
 		  * User data
 		  */
