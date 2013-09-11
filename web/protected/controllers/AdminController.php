@@ -59,7 +59,7 @@ class AdminController extends BaseWebController
 
 		//	We want merged update/create...
 		$this->setSingleViewMode( true );
-		$this->layout = 'admin';
+		$this->layout = 'mobile';
 		$this->defaultAction = 'index';
 
 		//	Everything is auth-required

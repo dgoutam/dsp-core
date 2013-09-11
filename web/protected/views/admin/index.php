@@ -2,11 +2,14 @@
 /**
  * @var array $resourceColumns
  */
+use DreamFactory\Common\Enums\PageLocation;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
 
 $_state = $_content = $_tabs = null;
+
+Pii::scriptFile( '/public/js/df.datatables.js', PageLocation::End );
 
 //if ( null !== ( $_state = Pii::getState( 'admin.state' ) ) )
 
@@ -99,7 +102,6 @@ $_state['tabs'] = $_tabs;
 	</div>
 </div>
 
-<script src="/public/js/df.datatables.js"></script>
 <script type="text/javascript">
 jQuery(function($) {
 	var _dtColumns = <?php echo $_dtConfig; ?>, _fields;

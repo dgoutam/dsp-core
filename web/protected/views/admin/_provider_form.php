@@ -11,12 +11,19 @@
  * @var string                  $displayName
  * @var string                  $statusMessage
  */
+use DreamFactory\Common\Enums\PageLocation;
 use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
 use DreamFactory\Yii\Utility\BootstrapForm;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Bootstrap;
-use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Option;
+
+Pii::cssFile( '//cdnjs.cloudflare.com/ajax/libs/x-editable/1.4.5/bootstrap-editable/css/bootstrap-editable.css' );
+Pii::scriptFile( '//cdnjs.cloudflare.com/ajax/libs/x-editable/1.4.5/bootstrap-editable/js/bootstrap-editable.min.js', PageLocation::End );
+
+$_css .= '<link href="" rel="stylesheet" />';
+echo '<script src=""></script>';
+
 
 //@TODO error handling from resource request
 $_errors = isset( $errors ) ? Option::clean( $errors ) : array();
