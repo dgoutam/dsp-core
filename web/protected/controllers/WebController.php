@@ -22,7 +22,6 @@ use DreamFactory\Oasys\Enums\Flows;
 use DreamFactory\Oasys\Oasys;
 use DreamFactory\Oasys\Stores\FileSystem;
 use DreamFactory\Platform\Exceptions\BadRequestException;
-use DreamFactory\Platform\Exceptions\InternalServerErrorException;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
@@ -271,7 +270,7 @@ class WebController extends BaseWebController
 
 			if ( !empty( $this->_remoteError ) )
 			{
-				$_error = 'error=' . urlencode( $this->_remoteError );
+				$_error = 'error=' . urlencode( rtrim( $this->_remoteError, ' #' ) );
 			}
 
 			switch ( $_state )
@@ -644,12 +643,11 @@ class WebController extends BaseWebController
 	{
 		if ( null !== $this->_remoteError )
 		{
-			$this->redirect( '/?error=' . $this->_remoteError );
+			$this->_redirectError( $this->_remoteError );
 		}
 
-		Log::debug( 'Remote login request: ' . print_r( $_REQUEST, true ) );
-
 		$this->layout = false;
+		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
 
 		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
 		{
@@ -662,44 +660,33 @@ class WebController extends BaseWebController
 			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
 		}
 
-		Oasys::setStore( new FileSystem( __FILE__ ) );
+		//	Set our store...
+		Oasys::setStore( $_store = new FileSystem( $_sid = session_id() ) );
 
-		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
-
-		$_baseConfig = array(
-			'flow_type'    => $_flow,
-			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId . '&flow=' . $_flow,
+		$_config = $_providerModel->buildConfig(
+			array(
+				 'flow_type'    => $_flow,
+				 'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
+			),
+			Pii::getState( $_providerId . '.user_config', array() )
 		);
 
-		$_stateConfig = array();
-
-		if ( null !== ( $_json = Pii::getState( $_providerId . '.config' ) ) )
-		{
-			$_stateConfig = json_decode( $_json, true );
-			unset( $_json );
-		}
-
-		$_fullConfig = array_merge(
-			$_providerModel->config_text,
-			$_baseConfig,
-			$_stateConfig
-		);
-
-		$_provider = Oasys::getProvider( $_providerId, $_fullConfig );
+		$_provider = Oasys::getProvider( $_providerId, $_config );
 
 		if ( $_provider->handleRequest() )
 		{
 			//	Now let the user model figure out what to do...
 			try
 			{
-				User::remoteLoginRequest( $_providerId, $_provider, $_providerModel );
+				$_user = User::remoteLoginRequest( $_providerId, $_provider, $_providerModel );
+				Log::debug( 'Remote login success: ' . $_user->email . ' (id#' . $_user->id . ')' );
 			}
 			catch ( \Exception $_ex )
 			{
 				Log::error( $_ex->getMessage() );
 
 				//	No soup for you!
-				Pii::controller()->redirect( '/?error=' . urlencode( $_ex->getMessage() ) );
+				$this->_redirectError( $_ex->getMessage() );
 			}
 
 			//	Go home baby!
@@ -707,6 +694,15 @@ class WebController extends BaseWebController
 		}
 
 		Log::error( 'Seems that the provider rejected the login...' );
-		$this->redirect( '/?error=' . urlencode( 'Error during remote login sequence. Please try again.' ) );
+		$this->_redirectError( 'Error during remote login sequence. Please try again.' );
+	}
+
+	/**
+	 * @param string $message
+	 * @param string $url
+	 */
+	protected function _redirectError( $message, $url = '/' )
+	{
+		$this->redirect( $url . '?error=' . urlencode( $message ) );
 	}
 }

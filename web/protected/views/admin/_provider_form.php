@@ -46,7 +46,7 @@ if ( !empty( $_errors ) )
 	{
 		foreach ( $_error as $_message )
 		{
-			$_messages .= '<p>' . $_message . '</p>';
+			$_messages .= '<p>' . rtrim( $_message, ' #' /* space intentional */ ) . '</p>';
 		}
 	}
 
