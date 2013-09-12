@@ -21,18 +21,13 @@ use DreamFactory\Oasys\Components\BaseProvider;
 use DreamFactory\Oasys\Enums\Flows;
 use DreamFactory\Oasys\Oasys;
 use DreamFactory\Oasys\Stores\FileSystem;
-use DreamFactory\Platform\Enums\ProviderUserTypes;
 use DreamFactory\Platform\Exceptions\BadRequestException;
-use DreamFactory\Platform\Exceptions\InternalServerErrorException;
 use DreamFactory\Platform\Interfaces\PlatformStates;
 use DreamFactory\Platform\Resources\User\Session;
 use DreamFactory\Platform\Services\AsgardService;
 use DreamFactory\Platform\Services\SystemManager;
 use DreamFactory\Platform\Utility\Fabric;
-use DreamFactory\Platform\Yii\Components\PlatformUserIdentity;
-use DreamFactory\Platform\Yii\Models\Config;
 use DreamFactory\Platform\Yii\Models\Provider;
-use DreamFactory\Platform\Yii\Models\ProviderUser;
 use DreamFactory\Platform\Yii\Models\User;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
@@ -275,7 +270,7 @@ class WebController extends BaseWebController
 
 			if ( !empty( $this->_remoteError ) )
 			{
-				$_error = 'error=' . urlencode( $this->_remoteError );
+				$_error = 'error=' . urlencode( rtrim( $this->_remoteError, ' #' ) );
 			}
 
 			switch ( $_state )
@@ -351,7 +346,7 @@ class WebController extends BaseWebController
 		// if it is ajax validation request
 		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
 		{
-			echo CActiveForm::validate( $_model );
+			echo \CActiveForm::validate( $_model );
 			Pii::end();
 		}
 
@@ -592,7 +587,7 @@ class WebController extends BaseWebController
 			/** @var $_node \SplFileInfo */
 			foreach ( $_objects as $_name => $_node )
 			{
-				if ( $_node->isDir() || $_node->isLink() || ' . ' == $_name || ' ..' == $_name )
+				if ( $_node->isDir() || $_node->isLink() || '.' == $_name || '..' == $_name )
 				{
 					continue;
 				}
@@ -623,7 +618,7 @@ class WebController extends BaseWebController
 		}
 		else
 		{
-			$_endpoint = Pii::getParam( 'cloud . endpoint' ) . '/metrics/dsp ? dsp = ' . urlencode( Pii::getParam( 'dsp . name' ) );
+			$_endpoint = Pii::getParam( 'cloud.endpoint' ) . '/metrics/dsp?dsp=' . urlencode( Pii::getParam( 'dsp.name' ) );
 
 			Curl::setDecodeToArray( true );
 			$_stats = Curl::get( $_endpoint );
@@ -642,29 +637,17 @@ class WebController extends BaseWebController
 	}
 
 	/**
-	 * Handles remote authorization
-	 */
-	public function actionAuthorize()
-	{
-		$this->layout = false;
-
-		\Hybrid_Endpoint::process();
-	}
-
-	/**
-	 * Action for URL that Hybrid_Auth redirects to when coming back from providers.
-	 * Calls Hybrid_Auth to process login.
+	 * Action for URL that the client redirects to when coming back from providers.
 	 */
 	public function actionRemoteLogin()
 	{
 		if ( null !== $this->_remoteError )
 		{
-			$this->redirect( '/?error=' . $this->_remoteError );
+			$this->_redirectError( $this->_remoteError );
 		}
 
-		Log::debug( 'Remote login request: ' . print_r( $_REQUEST, true ) );
-
 		$this->layout = false;
+		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
 
 		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
 		{
@@ -677,174 +660,49 @@ class WebController extends BaseWebController
 			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
 		}
 
-		Oasys::setStore( new FileSystem( __FILE__ ) );
+		//	Set our store...
+		Oasys::setStore( $_store = new FileSystem( $_sid = session_id() ) );
 
-		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
-
-		$_baseConfig = array(
-			'flow_type'    => $_flow,
-			'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId . '&flow=' . $_flow,
+		$_config = $_providerModel->buildConfig(
+			array(
+				 'flow_type'    => $_flow,
+				 'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
+			),
+			Pii::getState( $_providerId . '.user_config', array() )
 		);
 
-		$_stateConfig = array();
-
-		if ( null !== ( $_json = Pii::getState( $_providerId . '.config' ) ) )
-		{
-			$_stateConfig = json_decode( $_json, true );
-			unset( $_json );
-		}
-
-		$_fullConfig = array_merge(
-			$_providerModel->config_text,
-			$_baseConfig,
-			$_stateConfig
-		);
-
-//		Log::debug( 'Config: ' . print_r( $_fullConfig, true ) );
-
-		$_provider = Oasys::getProvider( $_providerId, $_fullConfig );
+		$_provider = Oasys::getProvider( $_providerId, $_config );
 
 		if ( $_provider->handleRequest() )
 		{
-			$_profile = $_provider->getUserData();
-
-			$_name = $_profile->getName();
-			$_firstName = Option::get( $_name, 'given_name' );
-			$_lastName = Option::get( $_name, 'family_name' );
-
-			$_phones = $_profile->getPhoneNumbers();
-			$_phone = null;
-
-			if ( !empty( $_phones ) && is_array( $_phones ) )
-			{
-				$_phone = current( $_phones );
-			}
-
-			$_transaction = Pii::db()->beginTransaction();
-
+			//	Now let the user model figure out what to do...
 			try
 			{
-				try
-				{
-					$_shadowEmail = $_profile->getEmailAddress() ? : $_providerId . '-' . $_profile->getUserId() . '@shadow.people.dreamfactory.com';
-
-					//	Don't overwrite other sources...
-					if ( null !== ( $_user = User::model()->find( 'email = :email', array( ':email' => $_shadowEmail ) ) ) )
-					{
-						if ( $_user->user_source != $_providerModel->id )
-						{
-							throw new InternalServerErrorException( 'The email address "' . $_shadowEmail . '" is already registered from another source.' );
-						}
-
-						unset( $_user );
-					}
-
-					$_user = ProviderUser::getByEmail( $_shadowEmail );
-					$_userName = $_profile->getPreferredUsername() ? : $_profile->getUserId();
-
-					/** @var Config $_config */
-					if ( null === ( $_config = Config::model()->find( array( 'select' => 'open_reg_role_id' ) ) ) )
-					{
-						throw new InternalServerErrorException( 'Unable to locate DSP configuration. Bailing ...' );
-					}
-
-					if ( empty( $_user ) )
-					{
-						//	Create new shadow user...
-						$_user = new User();
-						$_user->is_active = true;
-						$_user->is_sys_admin = false;
-					}
-
-					$_user->display_name = $_profile->getDisplayName() . ' @ ' . $_providerId;
-					$_user->user_source = $_providerModel->id;
-					$_user->email = $_shadowEmail;
-					$_user->password = sha1( $_user->email . Hasher::generateUnique() );
-					$_user->confirm_code = Hasher::generateUnique( $_shadowEmail );
-					$_user->phone = $_phone;
-					$_user->first_name = $_firstName;
-					$_user->last_name = $_lastName;
-
-					//	Set the default role, if one isn't assigned .
-					if ( empty( $_user->role_id ) )
-					{
-						$_user->role_id = $_config->open_reg_role_id;
-					}
-
-					$_user->last_login_date = date( 'c' );
-					$_data = $_user->user_data;
-
-					if ( empty( $_data ) )
-					{
-						$_data = array();
-					}
-
-					$_data[$_providerId . '.profile'] = $_profile->toArray();
-
-					//	Save the remote profile info...
-					$_user->user_data = $_data;
-
-					try
-					{
-						$_user->save();
-					}
-					catch ( \Exception $_ex )
-					{
-						Log::error( 'Exception siring shadow person > ' . $_ex->getMessage() );
-						throw $_ex;
-					}
-
-					if ( null === ( $_providerUser = ProviderUser::model()->byUserProviderUserId( $_user->id, $_profile->getUserId() )->find() ) )
-					{
-						//	Create new portal account...
-						$_providerUser = new ProviderUser();
-						$_providerUser->user_id = $_user->id;
-						$_providerUser->provider_user_id = $_profile->getUserId();
-						$_providerUser->provider_id = $_providerModel->id;
-						$_providerUser->account_type = ProviderUserTypes::INDIVIDUAL_USER;
-					}
-
-					try
-					{
-						$_providerUser->last_use_date = date( 'c' );
-						$_providerUser->auth_text = $_provider->getConfig()->toJson();
-						$_providerUser->save();
-
-						$_transaction->commit();
-
-						Pii::setstate( $_providerId . '.config', $_provider->getConfig()->toJson() );
-					}
-					catch ( \CDbException $_ex )
-					{
-						Log::error( 'Exception saving provider_user row > ' . $_ex->getMessage() );
-						throw $_ex;
-					}
-
-					//	Login user...
-					$_identity = new PlatformUserIdentity( $_user->email, $_user->password );
-					$_identity->logInUser( $_user );
-					Pii::user()->login( $_identity, 0 );
-
-					if ( null === ( $_returnUrl = Pii::user()->getReturnUrl() ) )
-					{
-						$_returnUrl = Pii::url( $this->id . '/' );
-					}
-
-					$this->redirect( $_returnUrl );
-				}
-				catch ( \Exception $_ex )
-				{
-					Log::error( 'Exception getting remote user profile > ' . $_ex->getMessage() );
-					throw $_ex;
-				}
+				$_user = User::remoteLoginRequest( $_providerId, $_provider, $_providerModel );
+				Log::debug( 'Remote login success: ' . $_user->email . ' (id#' . $_user->id . ')' );
 			}
 			catch ( \Exception $_ex )
 			{
-				//	Roll it back...
-				$_transaction->rollback();
+				Log::error( $_ex->getMessage() );
 
-				$this->redirect( '/?error=' . urlencode( $_ex->getMessage() ) );
+				//	No soup for you!
+				$this->_redirectError( $_ex->getMessage() );
 			}
+
+			//	Go home baby!
+			$this->redirect( '/' );
 		}
+
+		Log::error( 'Seems that the provider rejected the login...' );
+		$this->_redirectError( 'Error during remote login sequence. Please try again.' );
+	}
+
+	/**
+	 * @param string $message
+	 * @param string $url
+	 */
+	protected function _redirectError( $message, $url = '/' )
+	{
+		$this->redirect( $url . '?error=' . urlencode( $message ) );
 	}
 }
