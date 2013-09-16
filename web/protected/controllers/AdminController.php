@@ -17,10 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use DreamFactory\Oasys\Configs\BaseProviderConfig;
 use DreamFactory\Oasys\Oasys;
+use DreamFactory\Platform\Exceptions\BadRequestException;
 use DreamFactory\Platform\Utility\ResourceStore;
+use DreamFactory\Platform\Yii\Models\BasePlatformSystemModel;
+use DreamFactory\Platform\Yii\Models\Provider;
 use DreamFactory\Yii\Controllers\BaseWebController;
 use DreamFactory\Yii\Utility\Pii;
+use Kisma\Core\Enums\HttpMethod;
 use Kisma\Core\Utility\FilterInput;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
@@ -33,6 +38,15 @@ use Kisma\Core\Utility\Option;
 class AdminController extends BaseWebController
 {
 	//*************************************************************************
+	//* Constants
+	//*************************************************************************
+
+	/**
+	 * @var string
+	 */
+	const SCHEMA_PREFIX = '__schema.';
+
+	//*************************************************************************
 	//* Methods
 	//*************************************************************************
 
@@ -43,10 +57,13 @@ class AdminController extends BaseWebController
 	{
 		parent::init();
 
-		$this->layout = 'admin';
+		//	We want merged update/create...
+		$this->setSingleViewMode( true );
+		$this->layout = 'mobile';
 		$this->defaultAction = 'index';
 
-		$this->addUserActions( static::Authenticated, array( 'index', 'services', 'applications', 'providers', 'providerUsers', 'update' ) );
+		//	Everything is auth-required
+		$this->addUserActions( static::Authenticated, array( 'index', 'update', 'error', 'create' ) );
 	}
 
 	/**
@@ -57,62 +74,94 @@ class AdminController extends BaseWebController
 	 */
 	public function actionUpdate( $options = array(), $fromCreate = false )
 	{
-		$_response = $_schema = $_errors = null;
+		$_id = $_schema = $_errors = null;
 
-		try
+		//	New provider
+		if ( false !== $fromCreate && null !== ( $_resourceId = FilterInput::request( 'resource' ) ) )
 		{
-			$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
-			$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+			//	New request
+			$_model = ResourceStore::model( $_resourceId );
+			$_displayName = Inflector::display( $_resourceId );
+			$_schema = $this->_loadConfigSchema( $_resourceId, $_model->hasAttribute( 'config_text' ) ? $_model->config_text : array() );
+		}
+		//	Existing
+		else
+		{
+			//	Requests will come in like: /admin/update/<resource>/<id>
+			list( $_resourceId, $_id ) = $this->_parseRequest();
+			$_displayName = Inflector::display( $_resourceId );
 
-			if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
+			//	Load it up.
+			/** @var $_model BasePlatformSystemModel */
+			if ( null !== ( $_model = ResourceStore::model( $_resourceId )->findByPk( $_id ) ) )
 			{
-				throw new \CHttpException( 404, 'Not found.' );
-			}
+				$_schema = $this->_loadConfigSchema( $_resourceId, $_model->hasAttribute( 'config_text' ) ? $_model->config_text : array() );
 
-			//	Handle a plural request
-			if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
-			{
-				$_resourceId = $_tempId;
-			}
-
-			$_resource = ResourceStore::resource( $_resourceId );
-			$_response = $_resource->processRequest( $_resourceId . '/' . $_id, Option::server( 'REQUEST_METHOD' ) );
-			$_schema = null;
-
-			if ( !empty( $_response ) && isset( $_response['api_name'] ) )
-			{
-				$_schema = Oasys::getProvider( $_response['api_name'] )->getConfig()->getSchema( false );
-
-				if ( !empty( $_schema ) && !empty( $_response['config_text'] ) )
+				if ( Pii::postRequest() )
 				{
-					//	Load the resource into the schema for a goof
-					foreach ( $_response['config_text'] as $_key => $_value )
+					//	On a post, update
+					if ( null === ( $_data = Option::get( $_POST, $_displayName ) ) )
 					{
-						if ( Option::contains( $_schema, $_key ) )
+						throw new BadRequestException( 'No payload received.' );
+					}
+
+					/** @var Provider $_model */
+					if ( $_model->hasAttribute( 'config_text' ) )
+					{
+						$_len = strlen( static::SCHEMA_PREFIX );
+						$_config = Option::clean( $_model->config_text );
+
+						foreach ( $_data as $_key => $_value )
 						{
-							if ( is_array( $_value ) )
+							if ( static::SCHEMA_PREFIX == substr( $_key, 0, $_len ) )
 							{
-								$_value = implode( ', ', $_value );
+								$_newKey = str_replace( static::SCHEMA_PREFIX, null, $_key );
+
+								if ( isset( $_config[$_newKey] ) )
+								{
+									$_config[$_newKey] = $_value;
+								}
+
+								unset( $_data[$_key] );
 							}
 						}
 
-						$_schema[$_key]['value'] = $_value;
+						$_model->config_text = $_config;
+						unset( $_data['config_text'] );
 					}
+
+					$_model->setAttributes( $_data );
+					$_model->save();
+
+					Pii::setState( 'status_message', 'Resource Updated Successfully' );
+
+					$this->redirect( '/admin/' . $_resourceId . '/update/' . $_id );
 				}
 			}
-		}
-		catch ( \Exception $_ex )
-		{
-			$_errors[] = 'Error [' . $_ex->getCode() . '] ' . $_ex->getMessage();
-			Log::error( 'Admin::actionUpdate exception: ' . $_ex->getMessage() );
+
+			if ( $_model->hasAttribute( 'name' ) )
+			{
+				$_displayName = $_model->name;
+			}
+			else if ( $_model->hasAttribute( 'provider_name' ) )
+			{
+				$_displayName = $_model->provider_name;
+			}
+			else if ( $_model->hasAttribute( 'api_name' ) )
+			{
+				$_displayName = $_model->api_name;
+			}
 		}
 
 		$this->render(
 			'update',
 			array(
-				 'resource' => $_response,
-				 'schema'   => $_schema,
-				 'errors'   => $_errors,
+				 'model'        => $_model,
+				 'schema'       => $_schema,
+				 'errors'       => $_errors,
+				 'resourceName' => $_resourceId,
+				 'displayName'  => $_displayName,
+				 'update'       => ( null !== $_id ),
 			)
 		);
 	}
@@ -122,66 +171,67 @@ class AdminController extends BaseWebController
 	 */
 	public function actionIndex()
 	{
-		static $_resourceColumns = array(
-			'app'           => array(
-				'header'   => 'Installed Applications',
-				'resource' => 'app',
-				'fields'   => array( 'id', 'api_name', 'url', 'is_active' ),
-				'labels'   => array( 'ID', 'Name', 'Starting Path', 'Active' )
+		static $_resourceColumns
+		= array(
+			'app'       => array(
+				'header'       => 'Installed Applications',
+				'display_name' => 'Application',
+				'resource'     => 'app',
+				'fields'       => array( 'id', 'api_name', 'url', 'is_active' ),
+				'labels'       => array( 'ID', 'Name', 'Starting Path', 'Active' )
 			),
-			'app_group'     => array(
-				'header'   => 'Application Groups',
-				'resource' => 'app_group',
-				'fields'   => array( 'id', 'name', 'description' ),
-				'labels'   => array( 'ID', 'Name', 'Description' )
+			'app_group' => array(
+				'header'       => 'Application Groups',
+				'resource'     => 'app_group',
+				'display_name' => 'Application Group',
+				'fields'       => array( 'id', 'name', 'description' ),
+				'labels'       => array( 'ID', 'Name', 'Description' )
 			),
-			'user'          => array(
-				'header'   => 'Users',
-				'resource' => 'user',
-				'fields'   => array( 'id', 'email', 'first_name', 'last_name', 'created_date' ),
-				'labels'   => array( 'ID', 'Email', 'First Name', 'Last Name', 'Created' )
+			'user'      => array(
+				'header'       => 'Users',
+				'display_name' => 'User',
+				'resource'     => 'user',
+				'fields'       => array( 'id', 'email', 'first_name', 'last_name', 'created_date' ),
+				'labels'       => array( 'ID', 'Email', 'First Name', 'Last Name', 'Created' )
 			),
-			'role'          => array(
-				'header'   => 'Roles',
-				'resource' => 'role',
-				'fields'   => array( 'id', 'name', 'description', 'is_active' ),
-				'labels'   => array( 'ID', 'Name', 'Description', 'Active' )
+			'role'      => array(
+				'header'       => 'Roles',
+				'display_name' => 'Role',
+				'resource'     => 'role',
+				'fields'       => array( 'id', 'name', 'description', 'is_active' ),
+				'labels'       => array( 'ID', 'Name', 'Description', 'Active' )
 			),
-			'data'          => array(
+			'data'      => array(
 				'header'   => 'Data',
 				'resource' => 'db',
 				'fields'   => array(),
 				'labels'   => array(),
 			),
-			'service'       => array(
-				'header'   => 'Services',
-				'resource' => 'service',
-				'fields'   => array( 'id', 'api_name', 'type_id', 'storage_type_id', 'is_active' ),
-				'labels'   => array( 'ID', 'Endpoint', 'Type', 'Storage Type', 'Active' ),
+			'service'   => array(
+				'header'       => 'Services',
+				'display_name' => 'Service',
+				'resource'     => 'service',
+				'fields'       => array( 'id', 'api_name', 'type_id', 'storage_type_id', 'is_active' ),
+				'labels'       => array( 'ID', 'Endpoint', 'Type', 'Storage Type', 'Active' ),
 			),
-			'schema'        => array(
+			'schema'    => array(
 				'header'   => 'Schema Manager',
 				'resource' => 'schema',
 				'fields'   => array(),
 				'labels'   => array(),
 			),
-			'config'        => array(
+			'config'    => array(
 				'header'   => 'System Configuration',
 				'resource' => 'config',
 				'fields'   => array(),
 				'labels'   => array(),
 			),
-			'provider'      => array(
-				'header'   => 'Auth Providers',
-				'resource' => 'provider',
-				'fields'   => array( 'id', 'provider_name', 'api_name' ),
-				'labels'   => array( 'ID', 'Name', 'Endpoint' ),
-			),
-			'provider_user' => array(
-				'header'   => 'Provider Users',
-				'resource' => 'provider_user',
-				'fields'   => array( 'id', 'user_id', 'provider_id', 'provider_user_id', 'last_use_date' ),
-				'labels'   => array( 'ID', 'User', 'Provider', 'Provider User ID', 'Last Used' ),
+			'provider'  => array(
+				'header'       => 'Service Providers',
+				'display_name' => 'Provider',
+				'resource'     => 'provider',
+				'fields'       => array( 'id', 'provider_name', 'api_name' ),
+				'labels'       => array( 'ID', 'Name', 'Endpoint' ),
 			),
 		);
 
@@ -207,26 +257,75 @@ class AdminController extends BaseWebController
 	}
 
 	/**
+	 * Merges any configuration schema with model data
 	 *
+	 * @param string $providerId The API name of the provider
+	 * @param array  $configData
+	 *
+	 * @return array|null
 	 */
-	public function actionApplications()
+	protected function _loadConfigSchema( $providerId, $configData = array() )
 	{
-		if ( Pii::postRequest() )
+		$_schema = null;
+
+		switch ( $providerId )
 		{
+			case 'provider':
+				/** @var Provider $model */
+				$_schema = Oasys::getProvider( $providerId )->getConfig()->getSchema();
+				break;
 		}
 
-		$this->render( 'applications' );
+		//	Merge
+		if ( !empty( $_schema ) )
+		{
+			$_config = !empty( $configData ) ? $configData : array();
+
+			//	Load the resource into the schema for a goof
+			foreach ( $_schema as $_key => $_value )
+			{
+				if ( null !== ( $_configValue = Option::get( $_config, $_key ) ) )
+				{
+					if ( is_array( $_configValue ) )
+					{
+						$_configValue = implode( ', ', $_configValue );
+					}
+
+					$_value['value'] = $_configValue;
+				}
+
+				$_schema[static::SCHEMA_PREFIX . $_key] = $_value;
+
+				unset( $_schema[$_key] );
+			}
+		}
+
+		return $_schema;
 	}
 
 	/**
-	 *
+	 * @return array
+	 * @throws DreamFactory\Platform\Exceptions\BadRequestException
 	 */
-	public function actionProviders()
+	protected function _parseRequest()
 	{
-		if ( Pii::postRequest() )
+		$_resourceId = strtolower( trim( FilterInput::request( 'resource', null, FILTER_SANITIZE_STRING ) ) );
+		$_id = FilterInput::request( 'id', null, FILTER_SANITIZE_STRING );
+
+		if ( empty( $_resourceId ) || ( empty( $_resourceId ) && empty( $_id ) ) )
 		{
+			throw new BadRequestException( 404, 'Not found.' );
 		}
 
-		$this->render( 'Providers' );
+		//	Handle a plural request
+		if ( false !== ( $_tempId = Inflector::isPlural( $_resourceId, true ) ) )
+		{
+			$_resourceId = $_tempId;
+		}
+
+		$this->setModelClass( 'DreamFactory\\Platform\\Yii\\Models\\' . Inflector::deneutralize( $_resourceId ) );
+
+		return array( $_resourceId, $_id );
 	}
+
 }

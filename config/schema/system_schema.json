@@ -978,7 +978,7 @@
 				{
 					"name":       "api_name",
 					"type":       "string",
-					"allow_null": true,
+					"allow_null": false,
 					"length":     64,
 					"comment":    "If this is a portal service, the api_name is the endpoint"
 				},

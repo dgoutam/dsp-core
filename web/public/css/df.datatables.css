@@ -13,6 +13,10 @@ div.dataTables_length select {
 	width: 75px;
 }
 
+.dataTables_filter {
+	float:right;
+}
+
 div.dataTables_filter label {
 	float:     right;
 	font-size: 14px;
