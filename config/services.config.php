@@ -92,4 +92,7 @@ return
 		PlatformServiceTypes::REMOTE_WEB_SERVICE   => array(
 			'class' => 'DreamFactory\\Platform\\Services\\RemoteWebSvc',
 		),
+		PlatformServiceTypes::SALESFORCE_SERVICE => array(
+			'class' => 'DreamFactory\\Platform\\Services\\SalesforceDbSvc',
+		),
 	);

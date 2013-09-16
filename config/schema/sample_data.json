@@ -17,9 +17,6 @@
 		},
 		{
 			"url": "https://github.com/dreamfactorysoftware/app-calendar/raw/master/calendar.dfpkg"
-		},
-		{
-			"url": "https://github.com/dreamfactorysoftware/app-swagger/raw/master/swagger.dfpkg"
 		}
 	]
 }

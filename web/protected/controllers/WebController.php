@@ -270,7 +270,7 @@ class WebController extends BaseWebController
 
 			if ( !empty( $this->_remoteError ) )
 			{
-				$_error = 'error=' . urlencode( rtrim( $this->_remoteError, ' #' ) );
+				$_error = 'error=' . urlencode( $this->_remoteError );
 			}
 
 			switch ( $_state )
