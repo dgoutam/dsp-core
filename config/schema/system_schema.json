@@ -1,5 +1,5 @@
 {
-	"version": "1.1.0",
+	"version": "1.1.0.1",
 	"scripts": {
 		"install": null,
 		"update":  "1.1.0-update.sql"
@@ -981,6 +981,12 @@
 					"allow_null": false,
 					"length":     64,
 					"comment":    "If this is a portal service, the api_name is the endpoint"
+				},
+				{
+					"name":       "is_active",
+					"type":       "boolean",
+					"default":    true,
+					"allow_null": false
 				},
 				{
 					"name":       "config_text",

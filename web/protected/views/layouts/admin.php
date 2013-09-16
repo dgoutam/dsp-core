@@ -32,7 +32,8 @@ $_headline = 'Platform Administration';
 	<link rel="stylesheet" type="text/css" href="/public/css/main.css" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->    <!--[if lt IE 9]>
 	<script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>    <![endif]-->
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script src="//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 </head>
 <body>
 <div class="navbar navbar-fixed-top">
@@ -61,8 +62,7 @@ $_headline = 'Platform Administration';
 </div>
 <!-- /container -->
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-<script src="//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.4.5/bootstrap-editable/js/bootstrap-editable.min.js"></script>
-<script src="/public/js/df.datatables.js"></script>
+<script src="/public/js/app.jquery.js"></script>
 </body>
 </html>

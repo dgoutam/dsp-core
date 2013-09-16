@@ -1,198 +1,59 @@
-* {
-	outline:      none !important;
-	-moz-outline: none !important;
+html, body {
+	height: 100%;
+	/* The html and body elements cannot have any padding or margin. */
 }
 
 body {
-	font-family: "Helvetica Neue Light", 'Open-Sans', 'Arial', sans-serif;
-	font-weight: normal;
+	font-family: "Open Sans", "Helvetica Neue Light", 'Arial', sans-serif;
+	/*font-weight: normal;*/
 }
 
-img#logo-img {
-	margin-top:   5px;
-	margin-right: 15px;
-	float:        left;
-	height:       32px;
+/* Wrapper for page content to push down footer */
+#wrap {
+	min-height: 100%;
+	/*noinspection CssOverwrittenProperties*/
+	height:     auto !important;
+	/*noinspection CssOverwrittenProperties*/
+	height:     100%;
+	/* Negative indent footer by its height */
+	margin:     0 auto -64px;
+	/* Pad bottom by footer height */
+	padding:    0 0 64px;
 }
 
-h4 {
-	border-bottom: 1px solid #ddd;
+/* Set the fixed height of the footer here */
+#footer {
+	background-color: rgba(0, 0, 0, 0.08);
+	height:           64px;
 }
 
-h2.headline {
-	border-bottom: 1px solid #ddd;
-	margin-top:    25px;
-	margin-bottom: 50px;
+#wrap > .container {
+	padding: 64px 15px 0;
 }
 
-.main-content {
-	height:     640px;
-	font-size:  18px !important;
-	background: url(../images/bg-initial.png) 50% 0 no-repeat;
+.container .credit {
+	margin: 20px 0;
 }
 
-.main-content.step2 {
-	height:     640px;
-	font-size:  18px !important;
-	background: url(../images/bg-initial.png) 100% 50% no-repeat;
+#footer > .container {
+	padding-left:  15px;
+	padding-right: 15px;
+	padding-top:   4px;
 }
 
-.main-content p {
-	font-size: 18px;
-	width:     450px;
+code {
+	font-size: 80%;
 }
 
-.main-content .spacer {
-	height:        1px;
-	width:         1px;
-	margin-bottom: 25px;
+#footer ul, ol {
+	margin-bottom: 0;
 }
 
-.main-content label {
-	font-size: 16px;
-}
-
-.main-content.step1 .form-actions {
-	margin-top: 160px;
-}
-
-.main-content footer p {
-	width: 960px;
-}
-
-.light {
-	background: url(../images/bg-initial.png) 50% 0 no-repeat;
-	height:     640px;
-}
-
-label.error {
-	color:       darkred;
-	padding-top: 0;
-	margin-top:  -10px;
-	font-size:   10pt;
-	display:     block;
-}
-
-.admin-content {
-	background: url(../images/bg-initial.png) 50% 0 no-repeat;
-}
-
-.tabbable .nav li a i {
-	margin-left:  5px;
-	margin-right: 5px;
-}
-
-.space200 {
-	width:   1px;
-	height:  200px;
-	display: block;
-}
-
-.space50 {
-	width:   1px;
-	height:  50px;
-	display: block;
-}
-
-.tab-pane.active h3 {
-	font-size:      28px;
-	letter-spacing: -1px;
-	border-bottom:  1px solid #eaeaea;
-	color:          #777;
-	font-weight:    200;
-	text-shadow:    0 1px 0 #FFFFFF;
-	font-family:    "Helvetica Neue Light", "Aria", "Arial", "Open-Sans", sans-serif;
-}
-
-.tab-content {
-	height: 100%;
-}
-
-.dataTables_wrapper {
-	overflow: hidden;
-}
-
-table.jtable tr td {
-	cursor: not-allowed;
-}
-
-[class^="icon-"], [class*=" icon-"] {
-	margin-right: 6px;
-}
-
-form.jtable-dialog-form div.jtable-input-field-container {
-	padding: 2px 0 3px 0;
-	border:  none;
-}
-
-.jtable-toolbar-item {
-	letter-spacing: normal;
-}
-
-tr.jtable-no-data-row {
-	font-size:   18px;
-	font-weight: bold;
-}
-
-/** Form junk **/
-select, textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"],
-input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input {
-}
-
-label, input, button, select, textarea {
-}
-
-.help-block {
-	font-size:          10pt;
-	opacity:            0.5;
-	-webkit-transition: opacity 0.3s ease-in-out;
-	-moz-transition:    opacity 0.3s ease-in-out;
-	-ms-transition:     opacity 0.3s ease-in-out;
-	-o-transition:      opacity 0.3s ease-in-out;
-	transition:         opacity 0.3s ease-in-out;
-}
-
-:focus + .help-block, :hover + .help-block {
-	color: #666;
-	opacity: 1.0;
-	-webkit-transition: opacity 0.6s ease-in-out;
-	-moz-transition:    opacity 0.6s ease-in-out;
-	-ms-transition:     opacity 0.6s ease-in-out;
-	-o-transition:      opacity 0.6s ease-in-out;
-}
-
-.uneditable-input {
-	color:              #51A351 !important;
-	font-weight:        bold;
-	border:             none !important;
-	background:         transparent !important;
-	-webkit-transition: none !important;
-	-moz-transition:    none !important;
-	-ms-transition:     none !important;
-	-o-transition:      none !important;
-	transition:         none !important;
-	-webkit-box-shadow: none !important;
-	-moz-box-shadow:    none !important;
-	box-shadow:         none !important;
-}
-
-.form-horizontal input:focus + .help-block, .form-horizontal select:focus + .help-block, .form-horizontal textarea:focus + .help-block, .form-horizontal .uneditable-input:focus + .help-block, .form-horizontal .input-prepend:focus + .help-block, .form-horizontal .input-append:focus + .help-block {
-	opacity: 1.0;
-}
-
-.form-horizontal input + .help-block, .form-horizontal select + .help-block, .form-horizontal textarea + .help-block, .form-horizontal .uneditable-input + .help-block, .form-horizontal .input-prepend + .help-block, .form-horizontal .input-append + .help-block {
+#footer .social-links {
 	margin-top: 4px;
 }
 
-.form-horizontal input.uneditable-input {
-	padding-bottom: 0;
-	padding-left:   0;
+#footer > .container p {
+	margin-bottom: 0;
 }
 
-.form-horizontal input.uneditable-input + .help-block {
-	margin-top: 0;
-}
-
-.form-horizontal input + .help-block, .form-horizontal select + .help-block, .form-horizontal textarea + .help-block, .form-horizontal .uneditable-input + .help-block, .form-horizontal .input-prepend + .help-block, .form-horizontal .input-append + .help-block {
-	margin-top: 0;
-}

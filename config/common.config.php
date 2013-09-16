@@ -144,33 +144,34 @@ return array_merge(
 		 /**
 		  * App Information
 		  */
-		 'base_path'                 => $_basePath,
+		 'base_path'                     => $_basePath,
 		 /**
 		  * DSP Information
 		  */
-		 'dsp.version'               => DSP_VERSION,
-		 'dsp.name'                  => $_instanceSettings['dsp_name'],
-		 'dsp.auth_endpoint'         => DEFAULT_INSTANCE_AUTH_ENDPOINT,
-		 'cloud.endpoint'            => DEFAULT_CLOUD_API_ENDPOINT,
+		 'dsp.version'                   => DSP_VERSION,
+		 'dsp.name'                      => $_instanceSettings['dsp_name'],
+		 'dsp.auth_endpoint'             => DEFAULT_INSTANCE_AUTH_ENDPOINT,
+		 'cloud.endpoint'                => DEFAULT_CLOUD_API_ENDPOINT,
 		 /**
 		  * Remote Logins
 		  */
-		 'dsp.allow_remote_logins'   => true,
+		 'dsp.allow_remote_logins'       => true,
+		 'dsp.allow_admin_remote_logins' => false,
 		 /**
 		  * User data
 		  */
-		 'blobStorageConfig'         => $_blobConfig,
-		 'adminEmail'                => DEFAULT_SUPPORT_EMAIL,
+		 'blobStorageConfig'             => $_blobConfig,
+		 'adminEmail'                    => DEFAULT_SUPPORT_EMAIL,
 		 /**
 		  * The default service configuration
 		  */
-		 'dsp.service_config'        => require( __DIR__ . SERVICES_CONFIG_PATH ),
+		 'dsp.service_config'            => require( __DIR__ . SERVICES_CONFIG_PATH ),
 		 /** Array of namespaces to locations for service discovery */
-		 'dsp.service_location_map'  => array(),
+		 'dsp.service_location_map'      => array(),
 		 /**
 		  * Default services provided by all DSPs
 		  */
-		 'dsp.default_services'      => array(
+		 'dsp.default_services'          => array(
 			 array( 'api_name' => 'user', 'name' => 'User Login' ),
 			 array( 'api_name' => 'system', 'name' => 'System Configuration' ),
 			 array( 'api_name' => 'api_docs', 'name' => 'API Documentation' ),
@@ -178,10 +179,11 @@ return array_merge(
 		 /**
 		  * The default application to start
 		  */
-		 'dsp.default_app'           => '/public/launchpad/index.html',
+		 'dsp.default_app'               => '/public/launchpad/index.html',
 		 /**
 		  * The default admin resource schema
 		  */
-		 'admin.resource_schema'     => require( __DIR__ . DEFAULT_ADMIN_RESOURCE_SCHEMA ),
+		 'admin.resource_schema'         => require( __DIR__ . DEFAULT_ADMIN_RESOURCE_SCHEMA ),
+		 'admin.default_theme'           => 'united',
 	)
 );
