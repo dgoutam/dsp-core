@@ -13,6 +13,7 @@ web/public/assets
 web/public/admin
 web/public/launchpad
 web/public/web-core
+web/public/favicon.ico
 web/shared
 id_deploy
 test.php
