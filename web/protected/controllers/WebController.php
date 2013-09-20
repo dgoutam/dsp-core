@@ -151,10 +151,10 @@ class WebController extends BaseWebController
 	protected function _initSystemSplash()
 	{
 		$this->render(
-			'_splash',
-			array(
-				 'for' => PlatformStates::INIT_REQUIRED,
-			)
+			 '_splash',
+			 array(
+				  'for' => PlatformStates::INIT_REQUIRED,
+			 )
 		);
 
 		$this->actionInitSystem();
@@ -245,11 +245,11 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'activate',
-			array(
-				 'model'     => $_model,
-				 'activated' => $this->_activated,
-			)
+			 'activate',
+			 array(
+				  'model'     => $_model,
+				  'activated' => $this->_activated,
+			 )
 		);
 	}
 
@@ -374,12 +374,12 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'login',
-			array(
-				 'model'      => $_model,
-				 'activated'  => $this->_activated,
-				 'redirected' => $redirected,
-			)
+			 'login',
+			 array(
+				  'model'      => $_model,
+				  'activated'  => $this->_activated,
+				  'redirected' => $redirected,
+			 )
 		);
 	}
 
@@ -417,10 +417,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'initSchema',
-			array(
-				 'model' => $_model
-			)
+			 'initSchema',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -454,10 +454,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'initAdmin',
-			array(
-				 'model' => $_model
-			)
+			 'initAdmin',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -482,10 +482,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'initData',
-			array(
-				 'model' => $_model
-			)
+			 'initData',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -548,10 +548,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'upgradeDsp',
-			array(
-				 'model' => $_model
-			)
+			 'upgradeDsp',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -646,29 +646,35 @@ class WebController extends BaseWebController
 			$this->_redirectError( $this->_remoteError );
 		}
 
-		$this->layout = false;
-		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
-
 		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
 		{
 			throw new BadRequestException( 'No remote login provider specified.' );
 		}
 
-		/** @var Provider $_providerModel */
-		if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
+		$this->layout = false;
+
+		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
+
+		$_providerModel = Fabric::getProviderCredentials( $_providerId );
+
+		if ( empty( $_providerModel ) )
 		{
-			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
+			/** @var Provider $_providerModel */
+			if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
+			{
+				throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
+			}
 		}
 
 		//	Set our store...
 		Oasys::setStore( $_store = new FileSystem( $_sid = session_id() ) );
 
-		$_config = $_providerModel->buildConfig(
-			array(
-				 'flow_type'    => $_flow,
-				 'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
-			),
-			Pii::getState( $_providerId . '.user_config', array() )
+		$_config = Provider::buildConfig( $_providerModel,
+										  array(
+											   'flow_type'    => $_flow,
+											   'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
+										  ),
+										  Pii::getState( $_providerId . '.user_config', array() )
 		);
 
 		$_provider = Oasys::getProvider( $_providerId, $_config );
