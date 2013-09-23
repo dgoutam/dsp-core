@@ -639,24 +639,31 @@ class WebController extends BaseWebController
 			$this->_redirectError( $this->_remoteError );
 		}
 
-		$this->layout = false;
-		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
-
 		if ( null === ( $_providerId = Option::request( 'pid' ) ) )
 		{
 			throw new BadRequestException( 'No remote login provider specified.' );
 		}
 
-		/** @var Provider $_providerModel */
-		if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
+		$this->layout = false;
+
+		$_flow = FilterInput::request( 'flow', Flows::CLIENT_SIDE, FILTER_SANITIZE_NUMBER_INT );
+
+		$_providerModel = Fabric::getProviderCredentials( $_providerId );
+
+		if ( empty( $_providerModel ) )
 		{
-			throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
+			/** @var Provider $_providerModel */
+			if ( null === ( $_providerModel = Provider::model()->byPortal( $_providerId )->find() ) )
+			{
+				throw new BadRequestException( 'The provider "' . $_providerId . '" is not configured for remote login.' );
+			}
 		}
 
 		//	Set our store...
 		Oasys::setStore( $_store = new FileSystem( $_sid = session_id() ) );
 
-		$_config = $_providerModel->buildConfig(
+		$_config = Provider::buildConfig(
+			$_providerModel,
 			array(
 				 'flow_type'    => $_flow,
 				 'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
