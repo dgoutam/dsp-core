@@ -123,7 +123,6 @@ class WebController extends BaseWebController
 					'initAdmin',
 					'authorize',
 					'remoteLogin',
-					'form',
 				),
 				'users'   => array( '*' ),
 			),
@@ -158,12 +157,6 @@ class WebController extends BaseWebController
 		);
 
 		$this->actionInitSystem();
-	}
-
-	public function actionForm()
-	{
-		$_providerId = FilterInput::request( 'pid', 'facebook', FILTER_SANITIZE_STRING );
-		Log::debug( Oasys::getProvider( $_providerId )->getSchema() );
 	}
 
 	public function actionActivate()
