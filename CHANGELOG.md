@@ -17,6 +17,7 @@
 * New authentication provider service using the Oasys library
 * Remote login services added to core and app-launchpad
 * Added support for "global" authentication providers for enterprise customers
+* Added ability to control CRUD access to system resources (User, App, etc.) through the Roles Admin Settings.
 
 ## Major Foundational Changes
 * Most system types (i.e. service, storage, etc.) are now numeric instead of hard-coded strings
