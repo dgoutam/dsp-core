@@ -104,6 +104,13 @@ class WebController extends BaseWebController
 		);
 	}
 
+	public function actionBs3()
+	{
+		$this->layout = 'main-bs3';
+		$_model = new InitAdminForm();
+		$this->render( 'bs3', array( 'model' => $_model ) );
+	}
+
 	/**
 	 * {@InheritDoc}
 	 */
@@ -124,6 +131,7 @@ class WebController extends BaseWebController
 					'authorize',
 					'remoteLogin',
 					'form',
+					'bs3',
 				),
 				'users'   => array( '*' ),
 			),
