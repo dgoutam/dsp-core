@@ -21,6 +21,9 @@
 #
 # CHANGELOG:
 #
+# v1.2.7
+#	Remove composer cache on clean install
+#
 # v1.2.6
 #	Changed default perms on scripts/*.sh to 0775 from 0755 for web update
 #
@@ -86,7 +89,7 @@
 ##	Initial settings
 ##
 
-VERSION=1.2.6
+VERSION=1.2.7
 SYSTEM_TYPE=`uname -s`
 COMPOSER=composer.phar
 PHP=/usr/bin/php
@@ -183,7 +186,7 @@ while true ;  do
 			;;
 
 		-c|--clean)
-			rm -rf shared/ vendor/ composer.lock >/dev/null
+			rm -rf shared/ vendor/ .composer/ composer.lock >/dev/null
 			if [ $? -ne 0 ] ; then
 				echo "  * ${B1}WARNING{B2}: Cannot remove \"shared/\", \"vendor/\", and/or \"composer.lock\"."
 				echo "  * ${B1}WARNING{B2}: Clean installation NOT guaranteed."
