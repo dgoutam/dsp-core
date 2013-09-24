@@ -63,6 +63,7 @@ const DEFAULT_SUPPORT_EMAIL = 'support@dreamfactory.com';
  */
 const DEFAULT_ADMIN_RESOURCE_SCHEMA = '/admin.resource_schema.config.php';
 
+
 //*************************************************************************
 //* Global Configuration Settings
 //*************************************************************************
@@ -181,6 +182,10 @@ return array_merge(
 		  * The default application to start
 		  */
 		 'dsp.default_app'               => '/public/launchpad/index.html',
+		 /**
+		  * The default application to start
+		  */
+		 'dsp.db_max_records_returned'   => 1000,
 		 /**
 		  * The default admin resource schema
 		  */
