@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use DreamFactory\Oasys\Components\BaseProvider;
 use DreamFactory\Oasys\Enums\Flows;
 use DreamFactory\Oasys\Oasys;
 use DreamFactory\Oasys\Stores\FileSystem;
@@ -291,7 +290,7 @@ class WebController extends BaseWebController
 					break;
 
 				case PlatformStates::ADMIN_REQUIRED:
-					$this->redirect( '/' . $this->id . '/initAdmin' );
+					$this->redirect( '/' . $this->id . '/activate' );
 					break;
 
 				case PlatformStates::SCHEMA_REQUIRED:
@@ -398,7 +397,7 @@ class WebController extends BaseWebController
 
 			if ( $_model->validate() )
 			{
-				SystemManager::initSchema();
+				SystemManager::upgradeSchema();
 				$this->redirect( '/' );
 			}
 			else
@@ -459,27 +458,28 @@ class WebController extends BaseWebController
 	 */
 	public function actionInitData()
 	{
-		$_model = new InitDataForm();
-
-		if ( isset( $_POST, $_POST['InitDataForm'] ) )
-		{
-			$_model->attributes = $_POST['InitDataForm'];
-
-			if ( $_model->validate() )
-			{
+		// just do, no need to ask
+//		$_model = new InitDataForm();
+//
+//		if ( isset( $_POST, $_POST['InitDataForm'] ) )
+//		{
+//			$_model->attributes = $_POST['InitDataForm'];
+//
+//			if ( $_model->validate() )
+//			{
 				SystemManager::initData();
 				$this->redirect( '/' );
-			}
-
-			$this->refresh();
-		}
-
-		$this->render(
-			'initData',
-			array(
-				 'model' => $_model
-			)
-		);
+//			}
+//
+//			$this->refresh();
+//		}
+//
+//		$this->render(
+//			'initData',
+//			array(
+//				 'model' => $_model
+//			)
+//		);
 	}
 
 	/**
