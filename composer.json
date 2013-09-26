@@ -2,7 +2,7 @@
 	"name":              "dreamfactory/dsp-core",
 	"description":       "DreamFactory Services Platform(tm) Core",
 	"homepage":          "http://dreamfactorysoftware.github.io",
-	"version":           "1.1.0.3",
+	"version":           "1.1.1",
 	"config":            {
 		"home":      "./",
 		"cache-dir": "./.composer/cache"
@@ -49,7 +49,7 @@
 		"dreamfactory/yii":                     "dev-master",
 		"dreamfactory/app-admin":               "1.1.*",
 		"dreamfactory/app-launchpad":           "1.1.*",
-		"dreamfactory/lib-php-common-platform": "*",
+		"dreamfactory/lib-php-common-platform": "1.*",
 		"dreamfactory/web-core":                "*",
 		"dreamfactory/oasys":                   "*"
 	},
