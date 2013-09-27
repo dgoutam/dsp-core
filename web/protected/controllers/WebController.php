@@ -188,14 +188,10 @@ class WebController extends BaseWebController
 		if ( isset( $_POST, $_POST['LoginForm'] ) )
 		{
 			$_model->attributes = $_POST['LoginForm'];
+			$_model->setDrupalAuth( ( 0 == Option::get( $_POST, 'login-only', 0 ) ) );
 
 			if ( !empty( $_model->username ) && !empty( $_model->password ) )
 			{
-				if ( 1 == Option::get( $_POST, 'login-only', 0 ) )
-				{
-					$_model->setDrupalAuth( false );
-				}
-
 				//	Validate user input and redirect to the previous page if valid
 				if ( $_model->validate() && $_model->login() )
 				{
@@ -341,11 +337,7 @@ class WebController extends BaseWebController
 		if ( isset( $_POST['LoginForm'] ) )
 		{
 			$_model->attributes = $_POST['LoginForm'];
-
-			if ( 1 == Option::get( $_POST, 'login-only', 0 ) )
-			{
-				$_model->setDrupalAuth( false );
-			}
+			$_model->setDrupalAuth( ( 0 == Option::get( $_POST, 'login-only', 0 ) ) );
 
 			//	Validate user input and redirect to the previous page if valid
 			if ( $_model->validate() && $_model->login() )
