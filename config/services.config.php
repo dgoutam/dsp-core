@@ -95,7 +95,4 @@ return
 		PlatformServiceTypes::SALESFORCE           => array(
 			'class' => 'DreamFactory\\Platform\\Services\\SalesforceDbSvc',
 		),
-		PlatformServiceTypes::SALESFORCE_SERVICE   => array(
-			'class' => 'DreamFactory\\Platform\\Services\\SalesforceDbSvc',
-		),
 	);
