@@ -149,10 +149,10 @@ class WebController extends BaseWebController
 	protected function _initSystemSplash()
 	{
 		$this->render(
-			'_splash',
-			array(
-				 'for' => PlatformStates::INIT_REQUIRED,
-			)
+			 '_splash',
+			 array(
+				  'for' => PlatformStates::INIT_REQUIRED,
+			 )
 		);
 
 		$this->actionInitSystem();
@@ -188,11 +188,10 @@ class WebController extends BaseWebController
 		if ( isset( $_POST, $_POST['LoginForm'] ) )
 		{
 			$_model->attributes = $_POST['LoginForm'];
+			$_model->setDrupalAuth( ( 0 == Option::get( $_POST, 'login-only', 0 ) ) );
 
 			if ( !empty( $_model->username ) && !empty( $_model->password ) )
 			{
-				$_model->setDrupalAuth( !$_fromLogin );
-
 				//	Validate user input and redirect to the previous page if valid
 				if ( $_model->validate() && $_model->login() )
 				{
@@ -237,11 +236,11 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'activate',
-			array(
-				 'model'     => $_model,
-				 'activated' => $this->_activated,
-			)
+			 'activate',
+			 array(
+				  'model'     => $_model,
+				  'activated' => $this->_activated,
+			 )
 		);
 	}
 
@@ -333,19 +332,12 @@ class WebController extends BaseWebController
 	public function actionLogin( $redirected = false )
 	{
 		$_model = new LoginForm();
-		$_model->setDrupalAuth( !$redirected );
-
-		// if it is ajax validation request
-		if ( isset( $_POST, $_POST['ajax'] ) && 'login-form' === $_POST['ajax'] )
-		{
-			echo \CActiveForm::validate( $_model );
-			Pii::end();
-		}
 
 		// collect user input data
 		if ( isset( $_POST['LoginForm'] ) )
 		{
 			$_model->attributes = $_POST['LoginForm'];
+			$_model->setDrupalAuth( ( 0 == Option::get( $_POST, 'login-only', 0 ) ) );
 
 			//	Validate user input and redirect to the previous page if valid
 			if ( $_model->validate() && $_model->login() )
@@ -359,19 +351,17 @@ class WebController extends BaseWebController
 
 				return;
 			}
-			else
-			{
-				$_model->addError( 'username', 'Invalid user name and password combination . ' );
-			}
+
+			$_model->addError( 'username', 'Invalid user name and password combination.' );
 		}
 
 		$this->render(
-			'login',
-			array(
-				 'model'      => $_model,
-				 'activated'  => $this->_activated,
-				 'redirected' => $redirected,
-			)
+			 'login',
+			 array(
+				  'model'      => $_model,
+				  'activated'  => $this->_activated,
+				  'redirected' => $redirected,
+			 )
 		);
 	}
 
@@ -409,10 +399,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'initSchema',
-			array(
-				 'model' => $_model
-			)
+			 'initSchema',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -446,10 +436,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'initAdmin',
-			array(
-				 'model' => $_model
-			)
+			 'initAdmin',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -467,8 +457,8 @@ class WebController extends BaseWebController
 //
 //			if ( $_model->validate() )
 //			{
-				SystemManager::initData();
-				$this->redirect( '/' );
+		SystemManager::initData();
+		$this->redirect( '/' );
 //			}
 //
 //			$this->refresh();
@@ -541,10 +531,10 @@ class WebController extends BaseWebController
 		}
 
 		$this->render(
-			'upgradeDsp',
-			array(
-				 'model' => $_model
-			)
+			 'upgradeDsp',
+			 array(
+				  'model' => $_model
+			 )
 		);
 	}
 
@@ -663,12 +653,12 @@ class WebController extends BaseWebController
 		Oasys::setStore( $_store = new FileSystem( $_sid = session_id() ) );
 
 		$_config = Provider::buildConfig(
-			$_providerModel,
-			array(
-				 'flow_type'    => $_flow,
-				 'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
-			),
-			Pii::getState( $_providerId . '.user_config', array() )
+						   $_providerModel,
+						   array(
+								'flow_type'    => $_flow,
+								'redirect_uri' => Curl::currentUrl( false ) . '?pid=' . $_providerId,
+						   ),
+						   Pii::getState( $_providerId . '.user_config', array() )
 		);
 
 		$_provider = Oasys::getProvider( $_providerId, $_config );
