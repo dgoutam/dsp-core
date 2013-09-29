@@ -33,7 +33,6 @@ use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Interfaces\HttpResponse;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\FilterInput;
-use Kisma\Core\Utility\Hasher;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
@@ -160,7 +159,7 @@ class WebController extends BaseWebController
 
 	public function actionActivate()
 	{
-		$_model = new LoginForm();
+		$_model = new \LoginForm();
 
 		//	Came from login form? Don't do drupal auth, do dsp auth
 		$_fromLogin = ( 0 != Option::get( $_POST, 'login-only', 0 ) );
@@ -331,7 +330,12 @@ class WebController extends BaseWebController
 	 */
 	public function actionLogin( $redirected = false )
 	{
-		$_model = new LoginForm();
+		if ( !Pii::guest() )
+		{
+			$this->redirect( '/' );
+		}
+
+		$_model = new \LoginForm();
 
 		// collect user input data
 		if ( isset( $_POST['LoginForm'] ) )
